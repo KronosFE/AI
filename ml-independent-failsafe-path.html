@@ -1,0 +1,593 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The ML-Independent Hardware Failsafe · Kronos Fusion Energy</title><meta name="description" content="The last line of defense contains no machine learning and no general-purpose software; it trips to a defined safe state through logic simple enough to certify by inspection."><link rel="canonical" href="https://kronosfusionenergy.com/ai/ml-independent-failsafe-path.html"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:title" content="The ML-Independent Hardware Failsafe"><meta property="og:type" content="article"><meta property="og:description" content="The last line of defense contains no machine learning and no general-purpose software; it trips to a defined safe state through logic simple enough to certify by inspection."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"><script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "The ML-Independent Hardware Failsafe", "description": "The last line of defense contains no machine learning and no general-purpose software; it trips to a defined safe state through logic simple enough to certify by inspection.", "url": "https://kronosfusionenergy.com/ai/ml-independent-failsafe-path.html", "publisher": {"@type": "Organization", "name": "Kronos Fusion Energy"}}</script><style>
+:root{--bg:#232C39;--panel:#28323f;--text:#E7EBF2;--mut:#8FA0B8;--gold:#D4AD5C;--gold2:#E2C57E;
+--line:rgba(231,235,242,.11);--line2:rgba(231,235,242,.2);--good:#7FB08A;--warn:#D4A05C;
+--serif:"Newsreader",Charter,Georgia,serif;--sans:"Space Grotesk",system-ui,-apple-system,Arial,sans-serif;--mono:"Space Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16.5px/1.72 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--gold);text-decoration:none}p a,li a{border-bottom:1px solid rgba(212,173,92,.32)}a:hover{color:var(--gold2)}
+.sitebar{background:#1d2530;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;padding:11px 22px;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
+.sitebar a{color:#e8ebef;font-size:13px}.sitebar .sb-home{font-weight:700;letter-spacing:.11em;color:#fff;font-size:12.5px}
+.sitebar .sb-links{display:flex;flex-wrap:wrap;gap:15px}.sitebar a:hover{color:var(--gold)}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px}
+.page{padding:22px 0 72px}
+.layout{display:grid;grid-template-columns:250px 1fr;gap:34px;max-width:1240px;margin:0 auto;padding:0 24px}
+.side{border-right:1px solid var(--line);padding:24px 18px 60px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;font-size:13.5px}
+.side a{display:block;text-decoration:none}
+.side .sbtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);padding:0 0 10px;border-bottom:1px solid var(--line2);margin-bottom:4px}
+.side .sec{color:#c3cddb;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.side .sec .cn{float:right;color:var(--mut);font-family:var(--mono);font-size:10px}
+.side .sec:hover{color:#fff}.side .sec.on{color:var(--gold);font-weight:600}
+.side .pg{color:var(--mut);font-size:12.5px;padding:3px 0 3px 12px;border-left:1px solid var(--line);margin-left:2px}
+.side .pg:hover{color:var(--gold)}
+.main{padding:26px 0 70px;min-width:0}
+.crumb{font-family:var(--mono);color:var(--mut);font-size:12px;margin:12px 0 18px}
+.kicker{font-family:var(--mono);color:var(--gold);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(2rem,4.2vw,2.7rem);line-height:1.1;margin:.4rem 0 0;letter-spacing:-.015em}
+h2{font-family:var(--serif);font-weight:500;font-size:1.5rem;margin:2.4rem 0 .7rem}
+h3{font-size:1.05rem;margin:1.6rem 0 .5rem;color:var(--gold2)}
+.lede{font-family:var(--serif);font-style:italic;font-size:1.3rem;line-height:1.5;color:#C4CEDC;margin:1rem 0 0}
+p{margin:0 0 1.05rem}ul,ol{padding-left:1.15rem}li{margin:.34rem 0}
+.kf{margin:1.7rem 0;border-top:1px solid var(--line)}
+.kf .row{display:grid;grid-template-columns:minmax(130px,32%) 1fr;gap:16px;padding:10px 0;border-bottom:1px solid var(--line)}
+.kf dt{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.kf dd{margin:0;font-size:15px}
+.gate{margin:1.8rem 0;padding:1px 0 1px 20px;border-left:2px solid var(--gold);color:#C4CEDC;font-size:15px}
+.gate b{display:block;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.related{margin:3rem 0 0;padding-top:1.4rem;border-top:1px solid var(--line2)}
+.related h3{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin:0 0 .3rem}
+.related a{display:inline-block;margin:5px 14px 5px 0;color:var(--text)}
+footer{border-top:1px solid var(--line);margin-top:3rem}
+footer .wrap{padding:24px;color:var(--mut);font-size:12.5px;line-height:1.7}
+/* code */
+pre{background:#171e28;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:15px 17px;overflow-x:auto;font:13px/1.6 var(--mono);color:#d7deea;position:relative}
+pre .cp{position:absolute;top:7px;right:9px;font-size:10px;color:var(--mut);cursor:pointer;font-family:var(--mono)}
+code{font-family:var(--mono);font-size:.92em;color:var(--gold2)}
+.lang{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:0 0 4px}
+/* matrix */
+.matrix{display:inline-grid;gap:2px 14px;background:linear-gradient(#0000,#0000) padding-box;border-left:2px solid var(--gold2);border-right:2px solid var(--gold2);padding:8px 14px;margin:12px 0;font-family:var(--mono);font-size:14px;text-align:center;vertical-align:middle}
+.mxt{font-family:var(--mono);color:var(--gold);font-size:12px;margin:12px 0 2px}
+/* truth table */
+table.tt{border-collapse:collapse;margin:14px 0;font-family:var(--mono);font-size:13px}
+table.tt th{color:var(--gold);font-weight:400;text-align:left;border-bottom:1px solid var(--line2);padding:6px 16px 6px 0}
+table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cdd6e2}
+/* circuit */
+.circuit{margin:16px 0;padding:14px;background:#1b232e;border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.circuit svg{display:block}
+.qwire{stroke:#5b6a80;stroke-width:2}
+.gbox{fill:#2c3745;stroke:var(--gold);stroke-width:1.5;rx:4}
+.glabel{fill:var(--gold2);font-family:'Space Mono',monospace;font-size:15px;font-weight:700;text-anchor:middle;dominant-baseline:central}
+.qlabel{fill:var(--mut);font-family:'Space Mono',monospace;font-size:12px;dominant-baseline:central}
+.ctrl{fill:var(--gold)}.cline{stroke:var(--gold);stroke-width:2}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--mut);border:1px solid var(--line2);border-radius:20px;padding:2px 10px;margin:2px 4px 2px 0}
+/* bloch */
+.bloch{margin:12px 0}
+/* seamless clip */
+.clip{margin:26px 0 30px}
+.diagram{margin:26px 0}
+.diagram svg{width:100%;height:auto;display:block;background:#1b232e;border:1px solid var(--line);border-radius:10px;padding:10px}
+.diagram figcaption{font-family:var(--serif);font-style:italic;color:var(--mut);font-size:.9rem;margin-top:.6rem;text-align:center;opacity:.9}
+.diagram a.bp-band{cursor:pointer}.diagram a.bp-band rect{transition:fill-opacity .15s}.diagram a.bp-band:hover rect{fill-opacity:.28}
+.hubgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:18px 0}
+.hubcard{display:block;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:7px;padding:12px 14px;color:var(--text);font-size:14px;line-height:1.35}
+.hubcard:hover{border-color:var(--gold);color:var(--gold)}
+.side .blueprint-link{color:var(--gold);font-weight:600}
+.clip video{width:100%;height:auto;display:block;border:0;border-radius:0;box-shadow:none;background:transparent;
+-webkit-mask-image:radial-gradient(140% 132% at 50% 47%,#000 74%,transparent 100%);mask-image:radial-gradient(140% 132% at 50% 47%,#000 74%,transparent 100%)}
+.clip figcaption{font-family:var(--serif);font-style:italic;color:var(--mut);font-size:.9rem;margin-top:.5rem;text-align:center;opacity:.85}
+/* index */
+.hero{padding:46px 0 10px;border-bottom:1px solid var(--line)}
+.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:26px 0}
+.catcard{display:block;background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:8px;padding:16px 18px;color:var(--text)}
+.catcard:hover{border-color:var(--gold)}.catcard .ct{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+.catcard h3{margin:.3rem 0 .3rem;color:var(--text)}.catcard p{color:var(--mut);font-size:13.5px;margin:0}
+.catcard .n{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:8px}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
+</style></head><body><!-- ══════════════════════════════════════════════════════════════════════════
+     KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
+     Paste this entire block into the <body> of any static page.
+     • all CSS inline in one <style> block (only external ref: Google Fonts link)
+     • logo is inline SVG
+     • dropdowns work with plain CSS + vanilla JS (no React, no bundler)
+     • all links are absolute paths on kronosfusionenergy.com
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Kronos embed scope ───────────────────────────────────────────────── */
+.kfe-embed,
+.kfe-embed *,
+.kfe-embed *::before,
+.kfe-embed *::after { box-sizing: border-box; }
+
+.kfe-embed {
+  --kfe-bg:        #1f2733;
+  --kfe-bg-deep:   #0f141c;
+  --kfe-bg-panel:  rgba(15, 20, 28, 0.98);
+  --kfe-fg:        #dfe4ec;
+  --kfe-accent:    #e8c476;
+  --kfe-border:    rgba(150, 165, 190, 0.28);
+  --kfe-sans: "Space Grotesk", system-ui, -apple-system, Segoe UI, sans-serif;
+  --kfe-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--kfe-sans);
+  color: var(--kfe-fg);
+  -webkit-font-smoothing: antialiased;
+}
+.kfe-embed a { text-decoration: none; color: inherit; }
+.kfe-embed ul { list-style: none; margin: 0; padding: 0; }
+.kfe-embed button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.kfe-header {
+  position: sticky; top: 0; z-index: 9000;
+  height: 80px;
+  background: rgba(15, 20, 28, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--kfe-border);
+}
+.kfe-header-inner {
+  max-width: 1440px; margin: 0 auto; height: 100%;
+  padding: 0 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.kfe-brand { display: flex; align-items: center; gap: 12px; }
+.kfe-brand svg { width: 52px; height: 52px; flex: none; }
+.kfe-brand-text { display: flex; flex-direction: column; line-height: 1; }
+.kfe-brand-text b {
+  font-family: var(--kfe-mono); font-size: 14px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+}
+.kfe-brand-text span {
+  font-family: var(--kfe-mono); font-size: 9px; margin-top: 4px;
+  letter-spacing: 0.25em; text-transform: uppercase; color: rgba(223,228,236,.55);
+}
+
+.kfe-nav { display: flex; align-items: center; gap: 4px; }
+.kfe-nav > li { position: relative; }
+.kfe-nav-link, .kfe-nav-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 12px; border-radius: 2px;
+  font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(223,228,236,.72); transition: color .15s, background .15s;
+  white-space: nowrap;
+}
+.kfe-nav-link:hover, .kfe-nav-trigger:hover,
+.kfe-nav li.kfe-open > .kfe-nav-trigger { color: var(--kfe-accent); background: rgba(232,196,118,.07); }
+.kfe-caret { width: 10px; height: 10px; transition: transform .18s; }
+.kfe-nav li.kfe-open .kfe-caret { transform: rotate(180deg); }
+
+.kfe-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: 2px;
+  font-family: var(--kfe-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: #14181f; background: var(--kfe-accent);
+  border: 1px solid var(--kfe-accent); transition: opacity .15s;
+}
+.kfe-cta:hover { opacity: .85; }
+
+.kfe-dropdown {
+  position: absolute; top: 100%; left: 0; margin-top: 4px;
+  min-width: 260px; padding: 8px 0;
+  background: var(--kfe-bg-panel);
+  border: 1px solid var(--kfe-border);
+  box-shadow: 0 16px 40px rgba(5, 8, 12, .7);
+  backdrop-filter: blur(20px);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .16s, transform .16s, visibility .16s;
+}
+.kfe-dropdown::before {
+  content: ""; position: absolute; top: -1px; left: 0; right: 0; height: 1px;
+  background: rgba(232,196,118,.45);
+}
+.kfe-nav li.kfe-open > .kfe-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+.kfe-nav li:last-child .kfe-dropdown { left: auto; right: 0; }
+.kfe-dropdown a {
+  display: block; padding: 9px 18px;
+  font-size: 12.5px; letter-spacing: .02em; color: rgba(223,228,236,.72);
+  border-left: 2px solid transparent; transition: all .14s;
+}
+.kfe-dropdown a:hover {
+  color: var(--kfe-accent); background: rgba(232,196,118,.06);
+  border-left-color: var(--kfe-accent);
+}
+
+/* ── Mobile ───────────────────────────────────────────────────────────── */
+.kfe-burger { display: none; padding: 10px; }
+.kfe-burger svg { width: 22px; height: 22px; }
+.kfe-mobile {
+  display: none; position: fixed; inset: 80px 0 0 0; z-index: 8999;
+  overflow-y: auto; padding: 16px 20px 60px;
+  background: rgba(15, 20, 28, .985); backdrop-filter: blur(16px);
+}
+.kfe-mobile.kfe-open { display: block; }
+.kfe-mobile details { border-bottom: 1px solid rgba(150,165,190,.16); }
+.kfe-mobile summary {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 48px; padding: 12px 4px;
+  font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(223,228,236,.85);
+}
+.kfe-mobile summary::-webkit-details-marker { display: none; }
+.kfe-mobile details[open] summary { color: var(--kfe-accent); }
+.kfe-mobile details a, .kfe-mobile > a {
+  display: flex; align-items: center; min-height: 44px; padding: 10px 4px 10px 16px;
+  font-size: 13.5px; color: rgba(223,228,236,.68);
+}
+.kfe-mobile > a { border-bottom: 1px solid rgba(150,165,190,.16); text-transform: uppercase; letter-spacing: .1em; font-size: 13px; padding-left: 4px; }
+.kfe-mobile .kfe-cta { margin-top: 20px; width: 100%; justify-content: center; min-height: 48px; }
+
+@media (max-width: 1180px) {
+  .kfe-nav, .kfe-header .kfe-cta { display: none; }
+  .kfe-burger { display: inline-flex; }
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.kfe-footer {
+  position: relative; background: var(--kfe-bg-deep);
+  border-top: 1px solid rgba(232,196,118,.25);
+}
+.kfe-footer-inner { max-width: 1280px; margin: 0 auto; padding: 56px 20px 40px; }
+.kfe-footer-brand { display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px; }
+.kfe-footer-brand .kfe-brand svg { width: 44px; height: 44px; }
+.kfe-footer-tag { max-width: 460px; font-size: 12px; line-height: 1.7; color: rgba(223,228,236,.5); }
+.kfe-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; }
+.kfe-col h3 {
+  margin: 0 0 12px; font-family: var(--kfe-mono); font-size: 10px; font-weight: 400;
+  letter-spacing: .18em; text-transform: uppercase; color: rgba(223,228,236,.4);
+}
+.kfe-col a {
+  display: block; padding: 5px 0; font-size: 13.5px;
+  color: rgba(223,228,236,.6); transition: color .15s;
+}
+.kfe-col a:hover { color: var(--kfe-accent); }
+.kfe-bottom {
+  margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(150,165,190,.15);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between;
+}
+.kfe-bottom-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.kfe-bottom-links span, .kfe-bottom-links a {
+  font-family: var(--kfe-mono); font-size: 11px; color: rgba(223,228,236,.5);
+}
+.kfe-bottom-links a:hover { color: var(--kfe-accent); }
+.kfe-social { display: flex; align-items: center; gap: 14px; }
+.kfe-social a { color: rgba(223,228,236,.5); transition: color .15s; }
+.kfe-social a:hover { color: var(--kfe-accent); }
+.kfe-social svg { width: 17px; height: 17px; display: block; }
+.kfe-disclosure {
+  margin-top: 20px; font-size: 11px; line-height: 1.7; color: rgba(223,228,236,.35);
+}
+@media (max-width: 900px) { .kfe-cols { grid-template-columns: repeat(2, 1fr); gap: 28px; } }
+@media (max-width: 560px) { .kfe-cols { grid-template-columns: 1fr; } }
+</style>
+
+<!-- ── HEADER ──────────────────────────────────────────────────────────── -->
+<div class="kfe-embed">
+<header class="kfe-header">
+  <div class="kfe-header-inner">
+    <a class="kfe-brand" href="/" aria-label="Kronos Fusion Energy — home">
+      <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
+        <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round">
+          <circle cx="60" cy="60" r="50" />
+          <line x1="60" y1="16" x2="60" y2="104" />
+          <path d="M26,60 C44,42 76,42 94,60" />
+          <path d="M26,60 C44,78 76,78 94,60" />
+        </g>
+        <circle cx="60" cy="60" r="7.5" fill="#e8c476" />
+      </svg>
+      <span class="kfe-brand-text"><b>Kronos</b><span>Fusion Energy</span></span>
+    </a>
+
+    <nav aria-label="Primary">
+      <ul class="kfe-nav">
+        <li data-kfe-menu>
+          <button class="kfe-nav-trigger" aria-expanded="false">Technology
+            <svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="kfe-dropdown">
+            <a href="/how-it-works">How it works</a>
+            <a href="/hyperion">Breeder — Hyperion</a>
+            <a href="/aegis">Burner — Aegis</a>
+            <a href="/metrovolt">Burner — MetroVolt</a>
+            <a href="/ai">AI-Native Architecture</a>
+            <a href="/magnets">Magnets</a>
+            <a href="/fuel-cycle">Fuel cycle</a>
+            <a href="/safety">Safety</a>
+            <a href="/roadmap">Roadmap</a>
+          </div>
+        </li>
+        <li data-kfe-menu>
+          <button class="kfe-nav-trigger" aria-expanded="false">Solutions
+            <svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="kfe-dropdown">
+            <a href="/metrovolt">AI &amp; Data Centers</a>
+            <a href="/defense">Defense &amp; Government</a>
+            <a href="/metrovolt">Grid &amp; Baseload</a>
+            <a href="/defense">Neutron Detection</a>
+            <a href="/ai">Quantum</a>
+          </div>
+        </li>
+        <li><a class="kfe-nav-link" href="/learn/">Learn</a></li>
+        <li><a class="kfe-nav-link" href="/technical/">Technical Library</a></li>
+        <li data-kfe-menu>
+          <button class="kfe-nav-trigger" aria-expanded="false">Proof
+            <svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="kfe-dropdown">
+            <a href="/publications">Publications</a>
+            <a href="/whitepapers">Whitepapers</a>
+            <a href="/technical/">Technical Library</a>
+            <a href="/mission">Open Science &amp; Reproducibility</a>
+            <a href="/aegis/gate-honest-index.html">The Honest Gates</a>
+          </div>
+        </li>
+        <li data-kfe-menu>
+          <button class="kfe-nav-trigger" aria-expanded="false">Company
+            <svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="kfe-dropdown">
+            <a href="/mission">About / Mission</a>
+            <a href="/leadership">Leadership</a>
+            <a href="/ehs">Environment Health &amp; Safety</a>
+            <a href="/investors">Investors</a>
+            <a href="/careers">Careers</a>
+            <a href="/press">Press</a>
+            <a href="/contact">Contact</a>
+          </div>
+        </li>
+      </ul>
+    </nav>
+
+    <a class="kfe-cta" href="/3D_Model">3D Model</a>
+
+    <button class="kfe-burger" id="kfe-burger" aria-label="Open menu" aria-expanded="false" aria-controls="kfe-mobile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
+<div class="kfe-mobile" id="kfe-mobile">
+  <details>
+    <summary>Technology<svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <a href="/how-it-works">How it works</a>
+    <a href="/hyperion">Breeder — Hyperion</a>
+    <a href="/aegis">Burner — Aegis</a>
+    <a href="/metrovolt">Burner — MetroVolt</a>
+    <a href="/ai">AI-Native Architecture</a>
+    <a href="/magnets">Magnets</a>
+    <a href="/fuel-cycle">Fuel cycle</a>
+    <a href="/safety">Safety</a>
+    <a href="/roadmap">Roadmap</a>
+  </details>
+  <details>
+    <summary>Solutions<svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <a href="/metrovolt">AI &amp; Data Centers</a>
+    <a href="/defense">Defense &amp; Government</a>
+    <a href="/metrovolt">Grid &amp; Baseload</a>
+    <a href="/defense">Neutron Detection</a>
+    <a href="/ai">Quantum</a>
+  </details>
+  <a href="/learn/">Learn</a>
+  <a href="/technical/">Technical Library</a>
+  <details>
+    <summary>Proof<svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <a href="/publications">Publications</a>
+    <a href="/whitepapers">Whitepapers</a>
+    <a href="/technical/">Technical Library</a>
+    <a href="/mission">Open Science &amp; Reproducibility</a>
+    <a href="/aegis/gate-honest-index.html">The Honest Gates</a>
+  </details>
+  <details>
+    <summary>Company<svg class="kfe-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <a href="/mission">About / Mission</a>
+    <a href="/leadership">Leadership</a>
+    <a href="/ehs">Environment Health &amp; Safety</a>
+    <a href="/investors">Investors</a>
+    <a href="/careers">Careers</a>
+    <a href="/press">Press</a>
+    <a href="/contact">Contact</a>
+  </details>
+  <a class="kfe-cta" href="/3D_Model">3D Model</a>
+</div>
+
+</div><div class="layout"><aside class="side"><a class="sbtitle" href="./index.html">AI Architecture</a><a class="sec blueprint-link" href="./index.html">&#9635; Master Blueprint</a><a class="sec" href="./overview.html">The Master Blueprint<span class="cn">48</span></a><a class="sec" href="./l0-foundation.html">L0 · Foundation<span class="cn">53</span></a><a class="sec" href="./l1-control-plane.html">L1 · Control Plane<span class="cn">61</span></a><a class="sec" href="./l2-data-fabric.html">L2 · Data Fabric<span class="cn">59</span></a><a class="sec" href="./l3-twin-modeling.html">L3 · Twin Modeling &amp; AI<span class="cn">66</span></a><a class="sec" href="./l4-orchestration.html">L4 · Orchestration<span class="cn">43</span></a><a class="sec" href="./l5-copilots.html">L5 · Applications &amp; Copilots<span class="cn">43</span></a><a class="sec" href="./l6-experience.html">L6 · Experience<span class="cn">44</span></a><a class="sec" href="./l7-ecosystem.html">L7 · Ecosystem &amp; Strategy<span class="cn">33</span></a><a class="sec" href="./physical-interfaces.html">Physical Interfaces<span class="cn">39</span></a><a class="sec on" href="./control-safety.html">Real-Time Control &amp; Safety<span class="cn">43</span></a><a class="sec" href="./security.html">Security &amp; Zero-Trust<span class="cn">38</span></a><a class="sec" href="./mlops.html">MLOps &amp; Learning<span class="cn">42</span></a><a class="sec" href="./resiliency.html">Resiliency &amp; Operations<span class="cn">36</span></a><a class="sec" href="./foundations-math.html">Mathematical Foundations<span class="cn">48</span></a><a class="sec" href="./quantum-for-fusion.html">Quantum for Fusion<span class="cn">31</span></a><a class="sec" href="./advanced-capabilities.html">Advanced Capabilities<span class="cn">23</span></a></aside><main class="main"><div class="crumb"><a href="./index.html">AI Architecture</a> &rsaquo; Real-Time Control &amp; Safety</div><div class="kicker">Real-Time Control &amp; Safety</div><h1>The ML-Independent Hardware Failsafe</h1><p class="lede">The last line of defense contains no machine learning and no general-purpose software; it trips to a defined safe state through logic simple enough to certify by inspection.</p><figure class="diagram bp"><svg viewBox="0 0 1220 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kronos AI-Native S.M.A.R.T. Generator Master Blueprint — eight layers wired to both machines"><defs><pattern id="bpgrid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#1b2a42" stroke-width="1"/></pattern><pattern id="bpgridmaj" width="130" height="130" patternUnits="userSpaceOnUse"><path d="M130 0H0V130" fill="none" stroke="#243a55" stroke-width="0"/></pattern><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#5ec0e0"/></marker><marker id="ahg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0L6 3L0 6Z" fill="#D4AD5C"/></marker></defs><rect x="0" y="0" width="1220" height="820" fill="#0e1826"/><rect x="0" y="0" width="1220" height="820" fill="url(#bpgrid)"/><rect x="18" y="18" width="1184" height="784" fill="none" stroke="#2b3d59" stroke-width="1"/><path d="M18 44V18H44" fill="none" stroke="#D4AD5C" stroke-width="1.6"/><path d="M1202 44V18H1176" fill="none" stroke="#D4AD5C" stroke-width="1.6"/><path d="M18 776V802H44" fill="none" stroke="#D4AD5C" stroke-width="1.6"/><path d="M1202 776V802H1176" fill="none" stroke="#D4AD5C" stroke-width="1.6"/><line x1="40" y1="30" x2="40" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="92" y1="30" x2="92" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="144" y1="30" x2="144" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="196" y1="30" x2="196" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="248" y1="30" x2="248" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="300" y1="30" x2="300" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="352" y1="30" x2="352" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="404" y1="30" x2="404" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="456" y1="30" x2="456" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="508" y1="30" x2="508" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="560" y1="30" x2="560" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="612" y1="30" x2="612" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="664" y1="30" x2="664" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="716" y1="30" x2="716" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="768" y1="30" x2="768" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="820" y1="30" x2="820" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="872" y1="30" x2="872" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="924" y1="30" x2="924" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="976" y1="30" x2="976" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="1028" y1="30" x2="1028" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="1080" y1="30" x2="1080" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="1132" y1="30" x2="1132" y2="37" stroke="#8FA0B8" stroke-width="1"/><line x1="1184" y1="30" x2="1184" y2="37" stroke="#8FA0B8" stroke-width="1"/><text x="44" y="50" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11">STRATEGY / SLOW  ▲     ▼  MICROSECOND REAL-TIME</text><a class="bp-band" href="./l7-ecosystem.html"><g><rect x="44" y="74" width="520" height="72" rx="3" fill="#b48ae6" fill-opacity="0.10" stroke="#b48ae6" stroke-width="1.3"/><rect x="44" y="74" width="6" height="72" fill="#b48ae6"/><text x="66" y="104" fill="#b48ae6" font-family="Space Mono,monospace" font-size="16" font-weight="700">L7</text><text x="108" y="104" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Ecosystem & Strategy</text><text x="108" y="126" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="100" x2="682" y2="100" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="124" x2="564" y2="124" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="104" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l6-experience.html"><g><rect x="44" y="157" width="520" height="72" rx="3" fill="#b48ae6" fill-opacity="0.10" stroke="#b48ae6" stroke-width="1.3"/><rect x="44" y="157" width="6" height="72" fill="#b48ae6"/><text x="66" y="187" fill="#b48ae6" font-family="Space Mono,monospace" font-size="16" font-weight="700">L6</text><text x="108" y="187" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Experience & Visualization</text><text x="108" y="209" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="183" x2="682" y2="183" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="207" x2="564" y2="207" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="187" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l5-copilots.html"><g><rect x="44" y="240" width="520" height="72" rx="3" fill="#e0b23c" fill-opacity="0.10" stroke="#e0b23c" stroke-width="1.3"/><rect x="44" y="240" width="6" height="72" fill="#e0b23c"/><text x="66" y="270" fill="#e0b23c" font-family="Space Mono,monospace" font-size="16" font-weight="700">L5</text><text x="108" y="270" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Applications & Copilots</text><text x="108" y="292" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="266" x2="682" y2="266" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="290" x2="564" y2="290" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="270" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l4-orchestration.html"><g><rect x="44" y="323" width="520" height="72" rx="3" fill="#e0b23c" fill-opacity="0.10" stroke="#e0b23c" stroke-width="1.3"/><rect x="44" y="323" width="6" height="72" fill="#e0b23c"/><text x="66" y="353" fill="#e0b23c" font-family="Space Mono,monospace" font-size="16" font-weight="700">L4</text><text x="108" y="353" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Orchestration</text><text x="108" y="375" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="349" x2="682" y2="349" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="373" x2="564" y2="373" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="353" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l3-twin-modeling.html"><g><rect x="44" y="406" width="520" height="72" rx="3" fill="#e06aa0" fill-opacity="0.10" stroke="#e06aa0" stroke-width="1.3"/><rect x="44" y="406" width="6" height="72" fill="#e06aa0"/><text x="66" y="436" fill="#e06aa0" font-family="Space Mono,monospace" font-size="16" font-weight="700">L3</text><text x="108" y="436" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Twin Modeling & AI</text><text x="108" y="458" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="432" x2="682" y2="432" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="456" x2="564" y2="456" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="436" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l2-data-fabric.html"><g><rect x="44" y="489" width="520" height="72" rx="3" fill="#4aa3d4" fill-opacity="0.10" stroke="#4aa3d4" stroke-width="1.3"/><rect x="44" y="489" width="6" height="72" fill="#4aa3d4"/><text x="66" y="519" fill="#4aa3d4" font-family="Space Mono,monospace" font-size="16" font-weight="700">L2</text><text x="108" y="519" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Data Fabric</text><text x="108" y="541" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="515" x2="682" y2="515" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="539" x2="564" y2="539" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="519" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l1-control-plane.html"><g><rect x="44" y="572" width="520" height="72" rx="3" fill="#4aa3d4" fill-opacity="0.10" stroke="#4aa3d4" stroke-width="1.3"/><rect x="44" y="572" width="6" height="72" fill="#4aa3d4"/><text x="66" y="602" fill="#4aa3d4" font-family="Space Mono,monospace" font-size="16" font-weight="700">L1</text><text x="108" y="602" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Control Plane</text><text x="108" y="624" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="598" x2="682" y2="598" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="622" x2="564" y2="622" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="602" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><a class="bp-band" href="./l0-foundation.html"><g><rect x="44" y="655" width="520" height="72" rx="3" fill="#8492a8" fill-opacity="0.10" stroke="#8492a8" stroke-width="1.3"/><rect x="44" y="655" width="6" height="72" fill="#8492a8"/><text x="66" y="685" fill="#8492a8" font-family="Space Mono,monospace" font-size="16" font-weight="700">L0</text><text x="108" y="685" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="15" font-weight="600">Foundation</text><text x="108" y="707" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">telemetry ▲   control ▼</text><line x1="564" y1="681" x2="682" y2="681" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><line x1="682" y1="705" x2="564" y2="705" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="548" y="685" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="11" text-anchor="end">open ▸</text></g></a><rect x="714" y="74" width="376" height="570" rx="4" fill="none" stroke="#e8853a" stroke-width="1.4"/><text x="902.0" y="100" fill="#e8853a" font-family="Space Mono,monospace" font-size="12" font-weight="700" text-anchor="middle">PHYSICAL S.M.A.R.T. GENERATOR PLANT</text><text x="822" y="140" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="12.5" text-anchor="middle">BREEDER · HYPERION</text><rect x="806" y="166" width="20" height="150" fill="#e8853a" fill-opacity="0.18" stroke="#e8853a" stroke-width="1.2"/><path d="M826 170 q80 12 80 71 q0 59 -80 71" fill="none" stroke="#e8853a" stroke-width="6"/><path d="M826 186 q52 8 52 55 q0 47 -52 55" fill="#D4AD5C" fill-opacity="0.18" stroke="#D4AD5C" stroke-width="1.4"/><circle cx="864" cy="204" r="10" fill="#0e1826" stroke="#D4AD5C" stroke-width="1.4"/><text x="864" y="208" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="12" font-weight="700" text-anchor="middle">1</text><text x="822" y="336" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10" text-anchor="middle">R0 1.2 m · A 2.5 · 16.84 T · δ −0.30</text><text x="972" y="140" fill="#E7EBF2" font-family="Space Grotesk,sans-serif" font-size="12.5" text-anchor="middle">BURNER · TANDEM MIRROR</text><rect x="882" y="224" width="150" height="26" fill="#e8853a" fill-opacity="0.16" stroke="#e8853a" stroke-width="1.2"/><rect x="874" y="216" width="12" height="42" fill="#D4AD5C" fill-opacity="0.4" stroke="#D4AD5C" stroke-width="1.2"/><rect x="1028" y="216" width="12" height="42" fill="#D4AD5C" fill-opacity="0.4" stroke="#D4AD5C" stroke-width="1.2"/><polygon points="1040,224 1070,212 1070,262 1040,250" fill="#e8853a" fill-opacity="0.16" stroke="#e8853a" stroke-width="1.2"/><circle cx="957" cy="204" r="10" fill="#0e1826" stroke="#D4AD5C" stroke-width="1.4"/><text x="957" y="208" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="12" font-weight="700" text-anchor="middle">2</text><circle cx="1062" cy="198" r="10" fill="#0e1826" stroke="#D4AD5C" stroke-width="1.4"/><text x="1062" y="202" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="12" font-weight="700" text-anchor="middle">3</text><text x="972" y="336" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10" text-anchor="middle">17 T throat · 26.49 T plug · fₙ 5.44% · DEC</text><text x="730" y="604" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="9.5">1 center stack + plasma  ·  2 high-field plug  ·  3 expander → direct converter</text><g transform="translate(44,670)"><text x="0" y="0" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="11" font-weight="700">COLOR GRAMMAR</text><text x="0" y="20" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8FA0B8"><tspan fill="#b48ae6">■</tspan> strategy  <tspan fill="#e0b23c">■</tspan> AI-workflow  <tspan fill="#4aa3d4">■</tspan> infra/data  <tspan fill="#e06aa0">■</tspan> models  <tspan fill="#e8853a">■</tspan> reactor/DEC</text><text x="0" y="46" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="11" font-weight="700">LINE SEMANTICS</text><line x1="120" y1="42" x2="158" y2="42" stroke="#5ec0e0" stroke-width="1.5" marker-end="url(#ah)"/><text x="164" y="46" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8FA0B8">telemetry (µs)</text><line x1="290" y1="42" x2="328" y2="42" stroke="#D4AD5C" stroke-width="1.5" stroke-dasharray="1 4" marker-end="url(#ahg)"/><text x="334" y="46" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8FA0B8">control</text></g><g><rect x="890" y="724" width="312" height="72" fill="#0e1826" stroke="#D4AD5C" stroke-width="1.3"/><line x1="890" y1="750" x2="1202" y2="750" stroke="#2b3d59"/><line x1="1095" y1="724" x2="1095" y2="796" stroke="#2b3d59"/><text x="900" y="742" fill="#E7EBF2" font-family="Space Mono,monospace" font-size="11" font-weight="700">KRONOS FUSION ENERGY</text><text x="900" y="768" fill="#D4AD5C" font-family="Space Mono,monospace" font-size="10.5">AI-NATIVE S.M.A.R.T. GENERATOR</text><text x="900" y="784" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="10.5">MASTER BLUEPRINT</text><text x="1104" y="742" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="9.5">SHEET 01</text><text x="1104" y="768" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="9.5">REV. 2026-08</text><text x="1104" y="784" fill="#8FA0B8" font-family="Space Mono,monospace" font-size="9.5">L0-L7 · 2 MACHINES</text></g></svg><figcaption>The AI-Native S.M.A.R.T. Generator Master Blueprint — eight layers (L0→L7), one control stack, wired to both machines. Telemetry rises in microseconds; control descends the same path.</figcaption></figure>
+<h2>Trust requires independence from intelligence</h2>
+<p>Every AI component at Kronos &mdash; the twin, the copilots, the MPC agents &mdash; can be wrong, stale, or absent. The failsafe is the layer that must still work when they are. It is therefore built with no dependence on any learned model, no dependence on the supervisory network, and where possible no dependence on running software at all: comparators, latching logic, and energy-dump hardware that default to safe on loss of power or loss of heartbeat.</p>
+<h3>What the failsafe does</h3>
+<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — purpose"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a5-purpose.mp4" type="video/mp4"></video><figcaption>Kronos motion — purpose</figcaption></figure>
+<ul><li>Continuously compares a small set of hardwired safety signals against fixed thresholds.</li><li>On any breach, latches a trip and drives every actuator to its defined safe state.</li><li>Requires no arbitration, no model inference, and no supervisory permission to act.</li><li>Is fail-safe by default: loss of power, clock, or heartbeat itself causes a safe trip.</li></ul>
+<div class="lang">python</div><pre><code>def failsafe_trip(signals, thresholds, heartbeat_ok, power_ok):
+    # pure combinational logic: any breach OR loss of liveness -&gt; trip
+    breach = any(s &gt; t for s, t in zip(signals, thresholds))
+    if breach or (not heartbeat_ok) or (not power_ok):
+        return &#x27;TRIP -&gt; safe state&#x27;      # latched until manual reset
+    return &#x27;permit&#x27;</code></pre>
+<p>The failsafe deliberately cannot be talked out of a trip by anything upstream. A model that is confident the machine is fine has no channel to suppress a hardwired trip. This asymmetry &mdash; intelligence can request action but never veto safety &mdash; is the core of the design and the reason the safety case can be argued without reference to any AI behavior.</p>
+<p>This is also why the failsafe is validated by fault injection rather than by argument about the AI's behavior. Because it depends on no learned component, its correctness is a property of a small, fixed piece of logic that can be exhaustively tested against every trip condition. The safety authority can sign off on the failsafe without ever reasoning about model accuracy, training data, or distribution shift, which is exactly the independence that makes an AI-heavy plant certifiable at all.</p>
+<p>The failsafe is validated by fault injection during <a href=./commissioning-and-safety-validation.html>commissioning</a> and re-proven at intervals by <a href=./proof-testing-and-diagnostic-coverage.html>proof testing</a>. Its relationship to the intelligent layers is spelled out in <a href=./reflex-tier-separation.html>tier separation</a>.</p><div class="related"><h3>Related</h3><a href="./reflex-tier-separation.html">Reflex / supervisory separation &rarr;</a><a href="./interlock-matrix-hardwired.html">Hardwired interlock matrix &rarr;</a><a href="./proof-testing-and-diagnostic-coverage.html">Proof testing &amp; coverage &rarr;</a></div></main></div><div class="kfe-embed">
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
+<footer class="kfe-footer">
+  <div class="kfe-footer-inner">
+    <div class="kfe-footer-brand">
+      <a class="kfe-brand" href="/">
+        <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
+          <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round">
+            <circle cx="60" cy="60" r="50" />
+            <line x1="60" y1="16" x2="60" y2="104" />
+            <path d="M26,60 C44,42 76,42 94,60" />
+            <path d="M26,60 C44,78 76,78 94,60" />
+          </g>
+          <circle cx="60" cy="60" r="7.5" fill="#e8c476" />
+        </svg>
+        <span class="kfe-brand-text"><b>Kronos</b><span>Fusion Energy</span></span>
+      </a>
+      <p class="kfe-footer-tag">MetroVolt &amp; AEGIS · compact fusion generators on the Kronos breeder-to-burner architecture.</p>
+    </div>
+
+    <div class="kfe-cols">
+      <div class="kfe-col">
+        <h3>Technology</h3>
+        <a href="/how-it-works">How it works</a>
+        <a href="/hyperion">Breeder — Hyperion</a>
+        <a href="/aegis">Burner — Aegis</a>
+        <a href="/metrovolt">Burner — MetroVolt</a>
+        <a href="/ai">AI-Native Architecture</a>
+        <a href="/magnets">Magnets</a>
+        <a href="/fuel-cycle">Fuel cycle</a>
+        <a href="/safety">Safety</a>
+        <a href="/roadmap">Roadmap</a>
+      </div>
+      <div class="kfe-col">
+        <h3>Solutions</h3>
+        <a href="/metrovolt">AI &amp; Data Centers</a>
+        <a href="/defense">Defense &amp; Government</a>
+        <a href="/metrovolt">Grid &amp; Baseload</a>
+        <a href="/defense">Neutron Detection</a>
+        <a href="/ai">Quantum</a>
+      </div>
+      <div class="kfe-col">
+        <h3>Proof</h3>
+        <a href="/publications">Publications</a>
+        <a href="/whitepapers">Whitepapers</a>
+        <a href="/technical/">Technical Library</a>
+        <a href="/mission">Open Science &amp; Reproducibility</a>
+        <a href="/aegis/gate-honest-index.html">The Honest Gates</a>
+        <a href="/rss.xml">News RSS</a>
+      </div>
+      <div class="kfe-col">
+        <h3>Company</h3>
+        <a href="/mission">About / Mission</a>
+        <a href="/leadership">Leadership</a>
+        <a href="/ehs">Environment Health &amp; Safety</a>
+        <a href="/investors">Investors</a>
+        <a href="/careers">Careers</a>
+        <a href="/press">Press</a>
+        <a href="/contact">Contact</a>
+      </div>
+    </div>
+
+    <div class="kfe-bottom">
+      <div class="kfe-bottom-links">
+        <span>© 2026 Kronos Fusion Energy, Inc.</span>
+        <a href="/legal/privacy">Privacy</a>
+        <a href="/legal/terms">Terms</a>
+        <a href="/legal/legal-notices">Corrections log</a>
+        <a href="/legal/cookie-policy">Cookies</a>
+        <a href="/legal/accessibility">Accessibility</a>
+        <a href="/rss.xml">RSS</a>
+      </div>
+      <div class="kfe-social">
+        <a href="https://www.linkedin.com/company/kronosfusionenergy/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+        <a href="https://www.facebook.com/kronosfusionenergy/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+        <a href="https://www.youtube.com/@KronosFusionEnergy" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        </a>
+        <a href="https://x.com/Kronos__Fusion" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <p class="kfe-disclosure">
+      Kronos Fusion Energy, Inc. is a pre-commercial technology company. Engineering figures on this
+      site reflect the frozen design point and simulation results; they are not operating measurements
+      and are not an offer to sell securities.
+    </p>
+  </div>
+</footer>
+</div>
+
+<script>
+(function () {
+  var root = document.currentScript ? document.currentScript.previousElementSibling : null;
+  var menus = document.querySelectorAll('.kfe-embed [data-kfe-menu]');
+
+  function closeAll(except) {
+    menus.forEach(function (li) {
+      if (li === except) return;
+      li.classList.remove('kfe-open');
+      var b = li.querySelector('.kfe-nav-trigger');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  menus.forEach(function (li) {
+    var btn = li.querySelector('.kfe-nav-trigger');
+    var open = function () { closeAll(li); li.classList.add('kfe-open'); btn.setAttribute('aria-expanded', 'true'); };
+    var close = function () { li.classList.remove('kfe-open'); btn.setAttribute('aria-expanded', 'false'); };
+
+    li.addEventListener('mouseenter', open);
+    li.addEventListener('mouseleave', close);
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      li.classList.contains('kfe-open') ? close() : open();
+    });
+    li.addEventListener('focusout', function (e) {
+      if (!li.contains(e.relatedTarget)) close();
+    });
+  });
+
+  document.addEventListener('click', function () { closeAll(null); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeAll(null);
+      var m = document.getElementById('kfe-mobile');
+      var b = document.getElementById('kfe-burger');
+      if (m) m.classList.remove('kfe-open');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  var burger = document.getElementById('kfe-burger');
+  var mobile = document.getElementById('kfe-mobile');
+  if (burger && mobile) {
+    burger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = mobile.classList.toggle('kfe-open');
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.body.style.overflow = open ? 'hidden' : '';
+    });
+  }
+})();
+</script>
+<!-- ══ END KRONOS HEADER + FOOTER EMBED ═══════════════════════════════ -->
+
+<script>
+// copy code
+document.querySelectorAll('pre').forEach(function(p){var b=document.createElement('span');b.className='cp';b.textContent='copy';
+b.onclick=function(){navigator.clipboard.writeText(p.querySelector('code').innerText);b.textContent='copied';setTimeout(function(){b.textContent='copy';},1200);};p.appendChild(b);});
+// interactive circuit: read JSON from data-spec, draw SVG
+function drawCircuit(el){
+ var spec; try{spec=JSON.parse(el.getAttribute('data-spec'));}catch(e){return;}
+ var q=spec.qubits||1, cols=spec.cols||[], W=70, H=54, x0=54, y0=26;
+ var w=x0+Math.max(cols.length,1)*W+24, h=y0+q*H+10;
+ var s='<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" xmlns="http://www.w3.org/2000/svg">';
+ for(var i=0;i<q;i++){var y=y0+i*H;s+='<text class="qlabel" x="6" y="'+y+'">q'+i+'</text>';
+   s+='<line class="qwire" x1="40" y1="'+y+'" x2="'+(w-8)+'" y2="'+y+'"/>';}
+ cols.forEach(function(col,ci){var cx=x0+ci*W+W/2;
+   col.forEach(function(g){
+     if(g.c!=null){ // controlled
+       var yc=y0+g.c*H, yt=y0+g.t*H;
+       s+='<line class="cline" x1="'+cx+'" y1="'+yc+'" x2="'+cx+'" y2="'+yt+'"/>';
+       s+='<circle class="ctrl" cx="'+cx+'" cy="'+yc+'" r="5"/>';
+       if(g.g==='X'||g.g==='+'){s+='<circle cx="'+cx+'" cy="'+yt+'" r="13" fill="#2c3745" stroke="var(--gold)" stroke-width="1.5"/><line class="cline" x1="'+(cx-13)+'" y1="'+yt+'" x2="'+(cx+13)+'" y2="'+yt+'"/><line class="cline" x1="'+cx+'" y1="'+(yt-13)+'" x2="'+cx+'" y2="'+(yt+13)+'"/>';}
+       else{s+='<rect class="gbox" x="'+(cx-16)+'" y="'+(yt-16)+'" width="32" height="32" rx="4"/><text class="glabel" x="'+cx+'" y="'+yt+'">'+g.g+'</text>';}
+     } else {var y=y0+g.t*H; s+='<rect class="gbox" x="'+(cx-16)+'" y="'+(y-16)+'" width="32" height="32" rx="4"/><text class="glabel" x="'+cx+'" y="'+y+'">'+g.g+'</text>';}
+   });});
+ s+='</svg>'; el.innerHTML=s;
+}
+document.querySelectorAll('.circuit[data-spec]').forEach(drawCircuit);
+// lazy clips
+var io=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!v.src&&v.dataset.src){v.src=v.dataset.src;v.addEventListener('canplay',function(){v.play().catch(function(){});},{once:true});}v.play&&v.play().catch(function(){});}else{v.pause&&v.pause();}});},{rootMargin:'300px'});
+document.querySelectorAll('.clip video').forEach(function(v){io.observe(v);});
+</script>
+</body></html>
