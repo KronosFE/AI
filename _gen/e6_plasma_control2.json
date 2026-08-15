@@ -1,0 +1,1181 @@
+[
+{
+  "slug": "pcs-architecture-overview",
+  "title": "Plasma Control System Architecture",
+  "cat": "plasma-control",
+  "lede": "A plasma control system links diagnostics, real-time computation, and actuators into feedback loops that hold a discharge on its intended trajectory.",
+  "body": [
+    ["h2", "What the PCS is"],
+    ["p", "A plasma control system (PCS) is the real-time software and hardware that keeps a magnetically confined plasma inside its operating envelope. It reads measurements from diagnostics, estimates the plasma state, compares that state against a reference trajectory, and commands actuators such as coils, heating systems, and fueling. The loop runs continuously for the length of a discharge, from breakdown through ramp-down."],
+    ["h2", "Layered structure"],
+    ["p", "Mature control systems are layered. A <b>fast layer</b> handles time-critical loops like vertical stabilization at kilohertz rates. A <b>feedback layer</b> regulates shape, current, and density on millisecond timescales. A <b>supervisory layer</b> sequences scenario phases and arbitrates between controllers. Above these, an <b>off-normal layer</b> watches for faults and can trigger avoidance or safe shutdown."],
+    ["p", "This separation matters because the loops span very different bandwidths. Vertical position may need a response faster than a millisecond, while current-profile shaping evolves over the resistive timescale of seconds. Bundling everything into one loop would force the slow physics to run at the pace of the fast physics, wasting computation and coupling unrelated failures."],
+    ["h2", "Determinism"],
+    ["p", "A PCS is a hard real-time system: each cycle must finish within a fixed deadline, every cycle, or the control action is late and the plasma can move out of reach. This drives the use of real-time operating systems, dedicated networks, and bounded algorithms. Jitter, not average speed, is the enemy."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, a spherical tokamak, the architecture must give vertical stabilization very high priority because elongated, low-aspect-ratio plasmas are strongly vertically unstable. The burner generators use a different actuator set built around mirror plug fields and direct energy conversion. Because these machines are in design and simulation ahead of construction beginning in the second quarter of 2027, the control architecture is validated against models before it ever commands hardware."],
+    ["ul", ["Diagnostics feed a state estimator", "Controllers compare state to reference", "Actuators apply the correction", "Supervisor sequences the whole discharge"]]
+  ],
+  "related": [["pcs-real-time-computing", "Real-Time Computing"], ["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-vertical-stabilization", "Vertical Stabilization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-real-time-computing",
+  "title": "Real-Time Computing for Plasma Control",
+  "cat": "plasma-control",
+  "lede": "Plasma control depends on hard real-time computing, where meeting a deadline every cycle matters more than raw average throughput.",
+  "body": [
+    ["h2", "Hard versus soft real-time"],
+    ["p", "In a soft real-time system, a missed deadline degrades quality but is tolerable. In a hard real-time system, a missed deadline is a failure. Plasma control is mostly hard real-time: if a stabilization command arrives after the plasma has already drifted, the correction can be wrong in sign and make the situation worse. The design target is therefore a guaranteed worst-case response time, not a good average."],
+    ["h2", "Sources of jitter"],
+    ["p", "Latency variation, called jitter, comes from many places: operating-system scheduling, cache misses, garbage collection, interrupt handling, and network contention. Real-time control systems remove these by pinning threads to isolated CPU cores, disabling power-saving state transitions, pre-allocating memory, and using deterministic communication protocols. Dynamic memory allocation and unbounded loops are avoided inside the control cycle."],
+    ["code", ["python", "# Control-loop skeleton with a fixed period\nperiod_s = 0.001  # 1 kHz loop\nnext_tick = clock()\nwhile discharge_active():\n    state = estimate_state(read_diagnostics())\n    cmd = controller.step(state, reference(now()))\n    apply(cmd)\n    next_tick += period_s\n    sleep_until(next_tick)  # bounded, never busy-wait forever"]],
+    ["h2", "Timing budget"],
+    ["p", "Each cycle has a fixed budget split across acquisition, estimation, control computation, and actuation. The sum of worst-case times must fit inside the loop period with margin. Engineers profile the worst path, not the typical path, because the plasma does not care that most cycles were fast."],
+    ["h2", "Redundancy"],
+    ["p", "Because a hung controller is dangerous, watchdog timers monitor each loop. If a cycle overruns, the watchdog can force a known-safe output or hand control to a simpler backup controller. This graceful fallback is part of why control code is kept deliberately simple and analyzable."],
+    ["p", "For Kronos machines, the fastest loops, such as vertical stabilization of the spherical breeder plasma, sit on dedicated real-time nodes so their deadlines are never starved by slower supervisory tasks."]
+  ],
+  "related": [["pcs-architecture-overview", "PCS Architecture"], ["pcs-latency-budget", "Latency Budget"], ["pcs-watchdog-graceful-degradation", "Graceful Degradation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-latency-budget",
+  "title": "Control Latency Budget",
+  "cat": "plasma-control",
+  "lede": "The latency budget accounts for every microsecond between a measurement and the resulting actuator response, and must fit inside the loop period.",
+  "body": [
+    ["h2", "Why latency dominates stability"],
+    ["p", "Feedback control adds phase lag proportional to loop latency. For an unstable mode, too much lag pushes the closed loop from correcting the mode to reinforcing it. The maximum tolerable latency is set by the growth rate of the fastest instability the loop must catch. A faster-growing mode demands a shorter budget."],
+    ["h2", "Where the time goes"],
+    ["ul", ["Sensor integration and digitization", "Signal transport over the data network", "State estimation and filtering", "Control algorithm computation", "Command transport to the actuator", "Actuator physical response and coil inductance"]],
+    ["p", "The last term, actuator response, is often the largest and least compressible. A coil with high inductance cannot change current instantly regardless of how fast the computer is. Good control design does not fight this; it chooses actuators whose bandwidth matches the mode to be controlled."],
+    ["h2", "A worked example"],
+    ["p", "Suppose a vertical instability grows with an e-folding time of two milliseconds. A common rule is to keep total loop latency well under one e-folding time, so a budget near a few hundred microseconds is required. If digitization takes 100 microseconds, transport 50, computation 100, and the coil response 200, the loop is already tight and there is little room for jitter. Engineers then either speed a stage up or reduce the plasma elongation to slow the instability."],
+    ["h2", "Design tradeoffs"],
+    ["p", "Shortening latency can raise cost and complexity, so it is spent where it buys the most stability. Slow loops, like current-profile control, get relaxed budgets. Fast loops get dedicated hardware. The Hyperion breeder, being a low-aspect-ratio elongated device, spends much of its latency budget on the vertical loop, which is the tightest constraint in the whole system."]
+  ],
+  "related": [["pcs-real-time-computing", "Real-Time Computing"], ["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-actuators-allocation", "Actuator Allocation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-flight-simulator",
+  "title": "Real-Time Plasma Flight Simulators",
+  "cat": "plasma-control",
+  "lede": "A plasma flight simulator runs a fast physics model in place of the real machine so controllers can be tested and tuned before a discharge.",
+  "body": [
+    ["h2", "The idea"],
+    ["p", "A flight simulator for a fusion device couples a control-oriented plasma model to the actual control software, running in a loop that mimics a real discharge. The controller cannot tell whether it is talking to hardware or to the model. This lets operators rehearse scenarios, tune gains, and check off-normal responses without risking the machine."],
+    ["h2", "What the model must capture"],
+    ["p", "A useful simulator is fast but faithful in the quantities the controller acts on: plasma current, shape and position, stored energy, density, and the profiles that set stability limits. It does not need first-principles turbulence; it needs the right input-output response over the control bandwidth. Reduced models and lookup tables are common."],
+    ["h2", "Hardware-in-the-loop"],
+    ["p", "When the simulator runs on the real control hardware at real-time speed, it is called hardware-in-the-loop testing. This exposes timing bugs, network faults, and integer overflows that a pure software test would miss. It is the closest a controller comes to flight before its first shot."],
+    ["h2", "Uses across the life cycle"],
+    ["ul", ["Commissioning new controllers safely", "Operator training on rare fault sequences", "Regression testing after software changes", "Pre-shot rehearsal of a planned scenario", "Root-cause study of an anomalous discharge"]],
+    ["h2", "In the Kronos program"],
+    ["p", "Because the Hyperion breeder and the burner generators are still design and simulation devices, their flight simulators do double duty: they validate control designs and they let the team explore scenarios that hardware will only see after construction begins in the second quarter of 2027. The same reduced models that drive the simulator also feed the digital twin and the trajectory optimizer, so a scenario proven in simulation carries forward consistently."]
+  ],
+  "related": [["pcs-digital-twin-control", "Digital-Twin Control"], ["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-scenario-optimization", "Scenario Optimization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-scenario-optimization",
+  "title": "Scenario and Trajectory Optimization",
+  "cat": "plasma-control",
+  "lede": "Scenario optimization searches for an actuator trajectory that reaches a target plasma state while respecting every operational and stability limit.",
+  "body": [
+    ["h2", "What a scenario is"],
+    ["p", "A discharge scenario is the full time history of the controlled quantities and the actuator waveforms that produce them: how current ramps, when heating turns on, how density is built, and how the plasma is shaped. Optimizing a scenario means choosing this history to reach a goal, such as a stable high-performance phase, at least cost in stress and risk."],
+    ["h2", "As an optimization problem"],
+    ["p", "The problem is posed with a cost function (for example, time to target or actuator effort), a dynamics model, and constraints. Constraints encode physics limits such as the density limit, the beta limit, and the safety factor staying above unity, plus engineering limits such as coil current and heating power. The optimizer finds a feasible trajectory that minimizes cost."],
+    ["code", ["python", "# Sketch of a trajectory optimization statement\nminimize    J(x, u)              # cost over states x and actuators u\nsubject to  x[k+1] = f(x[k], u[k])   # plasma dynamics model\n            g(x[k]) <= 0            # stability limits (q>1, beta, density)\n            u_min <= u[k] <= u_max  # actuator limits\n            x[0] = x_init, x[N] in X_target"]],
+    ["h2", "Feedforward and feedback together"],
+    ["p", "The optimized trajectory becomes the feedforward plan. Feedback controllers then correct for the difference between plan and reality. A good scenario keeps the plasma close enough to the plan that feedback only has to make small corrections, which keeps actuators away from their saturation limits."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, scenario optimization must respect the negative-triangularity shape and drive toward the design operating point without crossing stability boundaries during the ramp. Because the machine is not yet built, these trajectories are developed against validated models and rehearsed in the flight simulator so that the first hardware discharges follow a well-understood plan."]
+  ],
+  "related": [["pcs-rampup-control", "Ramp-Up Control"], ["pcs-feedforward-feedback", "Feedforward and Feedback"], ["pcs-scenario-library", "Scenario Library"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-rampup-control",
+  "title": "Ramp-Up Control",
+  "cat": "plasma-control",
+  "lede": "Ramp-up brings a discharge from breakdown to the flat-top current while keeping the plasma stable and the current profile well behaved.",
+  "body": [
+    ["h2", "The delicate early phase"],
+    ["p", "Ramp-up is the phase where plasma current is driven from near zero to its flat-top value. It is delicate because the current profile is still forming, the plasma is small and cool, and several instabilities are most easily provoked here. Ramping too fast can leave a hollow current profile that seeds tearing modes; ramping too slow wastes flux and can hit density or radiation limits."],
+    ["h2", "What is controlled"],
+    ["ul", ["Plasma current rate of rise", "Plasma position and elongation as the shape forms", "Density buildup by fueling", "Edge safety factor to avoid low-order rational surfaces", "Internal inductance, a proxy for profile peaking"]],
+    ["h2", "Current profile matters"],
+    ["p", "Because current diffuses inward on the resistive timescale, the profile shape during ramp-up depends on the history of heating and current drive, not just the present demand. Auxiliary heating applied early keeps the plasma hot and slows current penetration, giving a broader, more stable profile. This is why ramp-up control couples tightly to heating scheduling."],
+    ["h2", "Flux management"],
+    ["p", "The central solenoid has a finite volt-second supply. Ramp-up must reach flat-top without exhausting it, leaving enough for the flat-top burn. Efficient ramp-up, sometimes assisted by early current drive, stretches the available flux and extends the usable pulse."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder is a spherical tokamak, so its slim central column limits solenoid flux and puts a premium on efficient ramp-up. Control designs for the machine, which is in simulation ahead of construction beginning in the second quarter of 2027, aim to establish the design current of 9.86 megaamperes with a profile that avoids seeding tearing modes at the transition to flat-top."]
+  ],
+  "related": [["pcs-rampdown-control", "Ramp-Down Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-scenario-optimization", "Scenario Optimization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-rampdown-control",
+  "title": "Ramp-Down Control",
+  "cat": "plasma-control",
+  "lede": "Ramp-down safely unwinds a discharge from flat-top to termination, avoiding the disruptions that a careless shutdown can trigger.",
+  "body": [
+    ["h2", "Not just the reverse of ramp-up"],
+    ["p", "Ramp-down is often more dangerous than ramp-up. As current falls, the plasma shrinks and the current profile can become peaked, driving internal inductance up. If the vertical control cannot keep pace with the changing shape, the plasma can lose position control and disrupt. Many machine disruptions historically occur during termination."],
+    ["h2", "Coordinated reduction"],
+    ["p", "A safe ramp-down reduces current, heating, and density together in a coordinated way. Heating is usually lowered before or with the current so the plasma does not remain hot and dense at low current, which raises the risk of exceeding the density limit relative to current. Density is pumped down to keep the discharge away from radiative collapse."],
+    ["h2", "Controlling internal inductance"],
+    ["p", "The peaking of the current profile, measured by internal inductance, is the key variable. Applying off-axis heating or current drive during ramp-down broadens the profile and keeps inductance in a controllable band. Without this, the vertical stability margin can shrink faster than the ramp reduces the demand on the vertical controller."],
+    ["h2", "Vertical margin during shutdown"],
+    ["p", "Because elongation and vertical instability are linked, ramp-down often reduces elongation as current falls, trading shape performance for stability margin. The controller must sequence these changes so the plasma always stays within the reach of the vertical loop."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the spherical Hyperion breeder, vertical control is the binding constraint, so its ramp-down profiles are designed to shed elongation and current together while broadening the profile. These sequences are validated in the flight simulator so that termination is routine rather than a source of off-normal events once hardware operation begins."]
+  ],
+  "related": [["pcs-rampup-control", "Ramp-Up Control"], ["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-disruption-avoidance", "Disruption Avoidance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-elm-control",
+  "title": "ELM Control and Pacing",
+  "cat": "plasma-control",
+  "lede": "Edge-localized modes are periodic edge bursts; control aims to make them small and frequent rather than large and rare.",
+  "body": [
+    ["h2", "What ELMs are"],
+    ["p", "An edge-localized mode (ELM) is a repetitive instability at the plasma edge in high-confinement operation. Each ELM expels a burst of particles and energy from the edge pedestal. Large, infrequent ELMs deposit heat on plasma-facing components in short pulses that can exceed material limits, so they must be managed."],
+    ["h2", "Two control philosophies"],
+    ["p", "The first approach is <b>suppression</b>: change the edge so ELMs do not occur at all, typically using resonant magnetic perturbations from small coils. The second is <b>pacing</b>: deliberately trigger many small ELMs before a large one can build, spreading the same exhaust over more, gentler events. Pacing is often done with rapid pellet injection or small vertical position kicks."],
+    ["h2", "Pacing as feedback"],
+    ["p", "ELM pacing can be run as a control loop. A magnetic or radiation signal detects each ELM; if the natural ELM frequency drops below a target, the controller injects a pacing pellet to trigger one on demand. Holding the frequency high keeps each ELM small because less energy accumulates in the pedestal between events."],
+    ["h2", "Coupling to other controls"],
+    ["p", "ELM control interacts with fueling, because pellets used for pacing also add particles, and with divertor control, because the exhaust ELMs produce must be handled downstream. It also couples to the perturbation coils, which are shared with error-field correction, so actuator allocation must arbitrate between these uses."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder uses negative triangularity, a shape associated with access to good confinement without the strong edge pedestal that drives large ELMs. This shape choice reduces reliance on active ELM control, though the control system retains pacing and detection capability as a safeguard in scenarios where edge conditions approach the ELM regime."]
+  ],
+  "related": [["pcs-divertor-detachment", "Detached Divertor Control"], ["pcs-error-field-correction", "Error Field Correction"], ["pcs-density-control", "Density Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-ntm-control",
+  "title": "Neoclassical Tearing Mode Control",
+  "cat": "plasma-control",
+  "lede": "Neoclassical tearing modes form magnetic islands that degrade confinement; control locates and shrinks them with targeted current drive.",
+  "body": [
+    ["h2", "How NTMs arise"],
+    ["p", "A neoclassical tearing mode (NTM) is a magnetic island that grows on a rational surface where the safety factor takes a simple ratio such as 3/2 or 2/1. Once a seed island forms, a self-driven current deficit inside the island lets it grow further. NTMs flatten the pressure profile across the island, reducing confinement, and a large 2/1 island can lock and lead to disruption."],
+    ["h2", "The control principle"],
+    ["p", "The standard countermeasure is to replace the missing current inside the island. Electron cyclotron current drive (ECCD) deposits current at a precise location if the beam is aimed at the island's rational surface. Filling the current deficit stops the island's growth mechanism and can shrink it away."],
+    ["h2", "Aiming and tracking"],
+    ["p", "The hard part is aiming. The rational surface moves as the profile evolves, and the island rotates. Control uses real-time equilibrium reconstruction to place the surface, then steers a mirror or adjusts the magnetic field so the deposition lands on target. Modulating the current drive in phase with the rotating island improves efficiency by depositing only in the island's low-current region."],
+    ["h2", "Detection"],
+    ["p", "Magnetic pickup coils sense the rotating perturbation and give the mode number and frequency. Electron temperature diagnostics can locate the island radially. The controller fuses these to decide whether to pre-emptively aim current drive at a likely surface or to react once an island appears."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, NTM control is part of the stability toolkit for the high-performance phase, using targeted current drive kept ready to stabilize low-order rational surfaces before an island can lock. The control design is exercised in simulation against the machine's profiles ahead of first operation."]
+  ],
+  "related": [["pcs-sawtooth-control", "Sawtooth Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-realtime-equilibrium", "Real-Time Equilibrium"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-sawtooth-control",
+  "title": "Sawtooth Control",
+  "cat": "plasma-control",
+  "lede": "Sawteeth are periodic core relaxations; control tunes their period so they flush impurities without seeding larger instabilities.",
+  "body": [
+    ["h2", "The sawtooth cycle"],
+    ["p", "A sawtooth is a repeating cycle in the plasma core: the central temperature slowly rises, then crashes as an internal instability reconnects the field inside the surface where the safety factor equals one. The temperature trace looks like the teeth of a saw. Each crash redistributes heat and particles from the core outward."],
+    ["h2", "Why control the period"],
+    ["p", "Sawteeth are not purely harmful. The crash helps flush helium ash and impurities from the core, which is useful in a burning plasma. But a long, infrequent sawtooth builds up a large crash that can seed a neoclassical tearing mode. Control therefore aims for a period long enough to be efficient but short enough to avoid seeding larger modes."],
+    ["h2", "Actuators"],
+    ["p", "The sawtooth period is set by conditions near the q=1 surface. Localized current drive or heating there changes the local magnetic shear, which either destabilizes sawteeth to make them more frequent and small, or stabilizes them to make them longer. Electron cyclotron systems are the usual tool because they can be aimed precisely."],
+    ["h2", "Pacing"],
+    ["p", "As with ELMs, sawteeth can be paced: a controller triggers a crash on demand by briefly changing the current drive near the q=1 surface, preventing the buildup that leads to a monster crash. This turns an uncontrolled event into a scheduled one."],
+    ["h2", "In the Kronos program"],
+    ["p", "In the Hyperion breeder, sawtooth control shares the electron cyclotron actuator with neoclassical tearing mode control, so the supervisor allocates that actuator between flushing the core and stabilizing rational surfaces according to the phase of the discharge. The strategy is developed in simulation against the machine's q-profile."]
+  ],
+  "related": [["pcs-ntm-control", "NTM Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-impurity-control", "Impurity Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-impurity-control",
+  "title": "Impurity and Radiation Control",
+  "cat": "plasma-control",
+  "lede": "Impurity control balances the radiation that protects walls against the core dilution and radiative collapse that too many impurities cause.",
+  "body": [
+    ["h2", "The dual role of impurities"],
+    ["p", "Impurities, atoms heavier than the hydrogen fuel, both help and hurt. In the edge and divertor, they radiate power over a large area and protect surfaces from concentrated heat. In the core, they radiate energy that should have heated the fuel and they dilute the fuel by taking up charge, lowering fusion output. Control keeps impurities where they help and out of where they hurt."],
+    ["h2", "Sources and sinks"],
+    ["p", "Impurities enter from wall sputtering, from deliberate seeding gases, and from the fusion process itself as helium ash. They leave through the divertor pumping and through core transport events like sawtooth crashes. Control acts on the deliberate levers: seeding rate, fueling, and the transport-modifying actuators."],
+    ["h2", "Radiation as a controlled quantity"],
+    ["p", "The total and spatially resolved radiated power is a controlled variable. Bolometers measure it in real time. A radiation controller adjusts impurity seeding to hold edge radiation at a set fraction of the input power, enough to protect the divertor but not so much that the radiation front moves into the confined plasma and cools it."],
+    ["h2", "Core accumulation"],
+    ["p", "Heavy impurities can accumulate in the core, where central heating and sawteeth help expel them. A radiation controller watches the central radiation signal; a rising core signal calls for more central heating or sawtooth pacing to break up the accumulation before it collapses the temperature."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder must manage helium ash from deuterium-tritium fusion alongside seeded impurities used for divertor protection. Its radiation control couples to divertor detachment control, since both act on the same edge radiation, and to sawtooth control, which helps keep the core clean. These interactions are studied in simulation ahead of operation."]
+  ],
+  "related": [["pcs-divertor-detachment", "Detached Divertor Control"], ["pcs-radiated-power-control", "Radiated-Power Control"], ["pcs-sawtooth-control", "Sawtooth Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-divertor-detachment",
+  "title": "Detached Divertor Control",
+  "cat": "plasma-control",
+  "lede": "Divertor detachment spreads exhaust heat over volume by radiation and neutral collisions; control holds the detachment front in a safe location.",
+  "body": [
+    ["h2", "The exhaust problem"],
+    ["p", "The divertor receives the plasma exhaust, and in an attached state the heat lands on a narrow strip that can exceed material limits. Detachment cools the plasma before it reaches the target so that heat is radiated and transferred to neutrals over a larger region, dropping the peak surface heat flux to tolerable levels."],
+    ["h2", "The detachment front"],
+    ["p", "Detachment is characterized by a radiation and ionization front that sits somewhere between the target and the confined plasma. If the front stays near the target, exhaust is handled and the core is unaffected. If it moves too far upstream toward the main plasma, it cools the confined region and degrades performance, and can trigger instabilities. The front's position is the quantity to control."],
+    ["h2", "Sensing and actuating"],
+    ["ul", ["Sense front position with divertor spectroscopy, Langmuir probes, or thermocouples", "Actuate with impurity seeding gas rate", "Trim with divertor neutral pressure via fueling and pumping", "Fall back on reducing input power if the front runs away"]],
+    ["h2", "Why it is hard"],
+    ["p", "The relationship between seeding rate and front position is nonlinear and can be bistable: near full detachment a small change in seeding can move the front a long way. Controllers use gain scheduling or nonlinear observers so they do not overshoot into the confined plasma. The loop must react before the front crosses into the core."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder is designed to run its divertor in a controlled detached state so the plasma-facing surfaces see spread-out heat rather than a concentrated strip. Detachment control shares seeding actuators with radiation and impurity control, so the supervisor coordinates them. These schemes are validated against edge models before hardware operation."]
+  ],
+  "related": [["pcs-impurity-control", "Impurity Control"], ["pcs-radiated-power-control", "Radiated-Power Control"], ["pcs-density-control", "Density Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-beta-stored-energy",
+  "title": "Stored-Energy and Beta Feedback",
+  "cat": "plasma-control",
+  "lede": "Beta and stored-energy feedback keeps plasma pressure near its performance target while staying below the limit where pressure-driven instabilities appear.",
+  "body": [
+    ["h2", "What beta measures"],
+    ["p", "Beta is the ratio of plasma pressure to magnetic pressure. It is a direct measure of how efficiently the magnetic field is being used to confine pressure. Higher beta means more fusion power for the same field, but beyond a limit the plasma becomes unstable to pressure-driven modes. Control aims to sit just below that limit."],
+    ["h2", "Stored energy"],
+    ["p", "Stored energy is the total thermal energy in the plasma, closely related to beta and to confinement quality. It is estimated in real time from magnetic measurements (a diamagnetic signal) and from profile diagnostics. Because stored energy sets both fusion output and the severity of a disruption, it is a primary controlled variable."],
+    ["h2", "The feedback loop"],
+    ["p", "The main actuator is heating power. A beta or stored-energy controller compares the estimate against a reference and modulates auxiliary heating to hold it. Fueling and current can also be trimmed. The loop must respect the beta limit as a hard constraint, backing heating off if the plasma approaches instability."],
+    ["h2", "Interaction with the limit"],
+    ["p", "The beta limit is not a fixed number; it depends on the current and pressure profiles. Operating near it is safe only if profile control keeps the plasma shape of the pressure and current favorable. This ties beta control to current-profile control, so the two loops are designed together rather than in isolation."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's design operating point corresponds to 88.7 megawatts of fusion power at a gain of 3.424. Stored-energy control holds the plasma at the pressure that produces this output while profile control maintains the margin to the beta limit. Because the machine is in simulation ahead of construction, these loops are tuned against validated models rather than hardware."]
+  ],
+  "related": [["pcs-kinetic-profile-control", "Kinetic and Profile Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-heating-power-control", "Heating Power Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-kinetic-profile-control",
+  "title": "Kinetic and Profile Control",
+  "cat": "plasma-control",
+  "lede": "Kinetic control shapes the radial profiles of temperature, density, and rotation rather than just their scalar averages.",
+  "body": [
+    ["h2", "Beyond scalar control"],
+    ["p", "Early plasma control regulated scalar quantities: total current, average density, stored energy. Kinetic or profile control goes further, regulating the shape of the radial profiles. Performance and stability depend not only on how much pressure a plasma holds but on how that pressure is distributed, so profile control is essential for advanced operation."],
+    ["h2", "The profiles that matter"],
+    ["ul", ["Temperature profile, set by heating deposition and transport", "Density profile, set by fueling location and particle transport", "Current profile, set by current drive and resistive diffusion", "Rotation profile, set by momentum input and transport"]],
+    ["h2", "The estimation challenge"],
+    ["p", "You cannot control what you cannot see. Profile control needs real-time estimates of the full radial profiles, which are reconstructed by combining several diagnostics through a model. The estimation must run inside the control cycle, so reduced models and fast mappings replace slow, high-fidelity codes."],
+    ["h2", "Actuator localization"],
+    ["p", "Shaping a profile requires actuators that deposit their effect at a chosen radius. Neutral beams, electron cyclotron waves, and pellet injection all have controllable deposition locations. Profile control is largely the art of placing these deposits so the profiles relax toward the desired shape as transport carries the effects around."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder relies on profile control to hold the pressure and current profiles that keep it stable near its operating point at a gain of 3.424. Temperature, density, and current-profile loops are designed to work together, since acting on one changes the others through transport. Their coordination is developed in simulation ahead of first plasma."]
+  ],
+  "related": [["pcs-current-profile-control", "Current-Profile Control"], ["pcs-beta-stored-energy", "Beta Feedback"], ["pcs-density-control", "Density Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-current-profile-control",
+  "title": "Current-Profile and q-Profile Control",
+  "cat": "plasma-control",
+  "lede": "Controlling the current profile controls the safety-factor profile, which sets both stability and confinement in advanced scenarios.",
+  "body": [
+    ["h2", "Why the current profile is central"],
+    ["p", "The radial distribution of plasma current determines the safety factor profile, usually called the q-profile. The q-profile sets where rational surfaces sit, whether the plasma is stable to tearing and kink modes, and whether transport barriers can form. Controlling it is the foundation of advanced, high-performance operation."],
+    ["h2", "The slow actuator problem"],
+    ["p", "The current profile evolves on the resistive diffusion timescale, which can be seconds long, and it responds to the integral of past current drive rather than the instant command. This makes it a slow, memory-laden system to control. Feedforward planning does most of the work; feedback makes gentle corrections around the plan."],
+    ["h2", "Actuators"],
+    ["p", "Current is driven non-inductively by neutral beams and by radio-frequency waves, each with a controllable deposition radius. The bootstrap current, a self-generated current tied to the pressure profile, is also part of the picture and is influenced indirectly through pressure control. A profile controller combines these to sculpt the total current."],
+    ["h2", "Keeping q above one"],
+    ["p", "A common goal is to keep the central safety factor above one to avoid sawteeth, or to hold a broad low-shear region to support a transport barrier. Real-time estimates of the q-profile, from equilibrium reconstruction constrained by internal measurements, tell the controller where to add or remove current drive."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder targets a design current of 9.86 megaamperes, and its current-profile control aims for a q-profile that avoids seeding low-order tearing modes while supporting good confinement. Because the profile responds slowly, the ramp-up scenario is designed to establish the right shape early, and feedback holds it during flat-top. This is exercised in simulation before operation."]
+  ],
+  "related": [["pcs-kinetic-profile-control", "Kinetic and Profile Control"], ["pcs-ntm-control", "NTM Control"], ["pcs-realtime-equilibrium", "Real-Time Equilibrium"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-actuators-allocation",
+  "title": "Actuator Sharing and Allocation",
+  "cat": "plasma-control",
+  "lede": "Many control goals compete for the same limited actuators; allocation decides who gets them, when, and how much.",
+  "body": [
+    ["h2", "The shared-actuator problem"],
+    ["p", "A fusion device has more control objectives than actuators. Electron cyclotron power might be wanted for sawtooth control, tearing-mode stabilization, current-profile shaping, and heating all at once. These requests cannot all be met simultaneously, so the control system needs an allocation layer that arbitrates among them."],
+    ["h2", "Priorities and pre-emption"],
+    ["p", "Allocation follows a priority order. Machine protection outranks performance; catching a growing tearing mode outranks trimming the current profile. When a high-priority need appears, the allocator can pre-empt a lower-priority use, redirecting a beam or a mirror to where it is most needed. This is decided within the control cycle, not by an operator."],
+    ["h2", "Constraints on allocation"],
+    ["ul", ["Total power and current limits per actuator", "Physical aiming ranges and slew rates of steering mirrors", "Minimum on-times and duty-cycle limits", "Coupling, where one actuator affects several controlled quantities"]],
+    ["h2", "Mathematical framing"],
+    ["p", "Allocation is often posed as a constrained optimization solved each cycle: given the demands from each controller and the actuator limits, find the actuator settings that best satisfy the highest-priority demands. Because it runs in real time, the solver must be fast and bounded, so simple quadratic programs or rule-based schemes are common."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder shares its electron cyclotron and beam systems among sawtooth, tearing-mode, current-profile, and heating functions, so its supervisor includes an allocator that reassigns them as the discharge phase changes. The burner generators have a different actuator set built around the mirror plug fields, but the same allocation principle applies. Allocation policies are tested in the flight simulator."]
+  ],
+  "related": [["pcs-supervisory-control", "Supervisory Control"], ["pcs-ntm-control", "NTM Control"], ["pcs-heating-power-control", "Heating Power Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-off-normal-detection",
+  "title": "Off-Normal Event Detection and Response",
+  "cat": "plasma-control",
+  "lede": "Off-normal detection watches for the early signs of a failing discharge and switches from performance to recovery or safe termination.",
+  "body": [
+    ["h2", "What off-normal means"],
+    ["p", "A discharge is off-normal when it departs from its planned trajectory in a way that threatens performance or the machine. Examples include a growing locked mode, an impurity influx, loss of density control, or an actuator failure. Detecting these early is the difference between a controlled recovery and a disruption."],
+    ["h2", "Detection methods"],
+    ["p", "Detection combines threshold monitors on individual signals with model-based checks that compare the observed state to the expected state. A signal crossing a limit is simple to catch. Subtler faults are caught by watching residuals: when the plasma stops responding to actuators as the model predicts, something is wrong even if no single signal is out of range."],
+    ["h2", "A tiered response"],
+    ["ul", ["Continue: minor deviation, feedback corrects it", "Adapt: back off performance, change scenario phase", "Recover: invoke a dedicated controller to stabilize the fault", "Terminate: ramp down safely before the fault escalates", "Mitigate: if termination cannot be safe, minimize the damage"]],
+    ["h2", "The decision layer"],
+    ["p", "An off-normal supervisor sits above the feedback controllers and selects the response tier. Its logic is often encoded as a state machine or an event matrix that maps detected conditions to actions. This layer is deliberately conservative and analyzable, because it must be trusted to act correctly in rare situations."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, off-normal detection focuses on the failure modes that lead to disruptions, especially locked modes and vertical control loss. The response ladder prefers avoidance and safe termination over mitigation. These detectors and responses are exercised against fault scenarios in the flight simulator ahead of hardware operation."]
+  ],
+  "related": [["pcs-machine-protection", "Machine Protection"], ["pcs-disruption-avoidance", "Disruption Avoidance"], ["pcs-exception-matrix", "Exception Matrix"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-machine-protection",
+  "title": "Machine Protection Systems",
+  "cat": "plasma-control",
+  "lede": "The machine protection system is the last line of defense, acting to protect hardware even when it means abandoning the plasma.",
+  "body": [
+    ["h2", "Purpose and priority"],
+    ["p", "The machine protection system (MPS) exists to keep the device from damaging itself. Its priority is above all performance goals: if protecting the plasma and protecting the machine conflict, the machine wins. This inversion of priority relative to normal control is deliberate, because hardware is expensive and slow to repair while a lost discharge can simply be repeated."],
+    ["h2", "What it protects against"],
+    ["ul", ["Overheating of plasma-facing components", "Coil currents or forces beyond structural limits", "Excessive voltage across the central solenoid", "Vacuum, cooling, or power-supply faults", "Runaway electron beams striking the wall"]],
+    ["h2", "Independence from control"],
+    ["p", "A key principle is that protection functions are as independent as practical from the performance control system. They use separate sensors, separate logic, and often simpler, hard-wired interlocks so that a bug in the control software cannot disable protection. This mirrors safety practice in other high-energy systems, where protection and control are kept apart."],
+    ["h2", "Actions"],
+    ["p", "When a protection limit is threatened, the MPS can command a fast, safe shutdown, or in extreme cases a mitigated shutdown that trades a controlled disruption for avoiding worse damage. Because these actions are drastic, protection thresholds are set with margin and validated so false trips are rare but real threats are always caught."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's protection system guards its high-field magnets, which reach 16.84 tesla at the coil, and its plasma-facing surfaces. The burner generators protect their mirror plug coils at 26.49 tesla. In both cases protection is layered beneath performance control and above the physical interlocks, and its logic is verified independently of the control code."]
+  ],
+  "related": [["pcs-off-normal-detection", "Off-Normal Detection"], ["pcs-safety-interlocks", "Safety Interlocks"], ["pcs-disruption-mitigation", "Disruption Mitigation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-pulse-schedule-waveforms",
+  "title": "The Pulse Schedule and Waveform Control",
+  "cat": "plasma-control",
+  "lede": "The pulse schedule is the time-programmed plan of references and actuator waveforms that defines a discharge before it begins.",
+  "body": [
+    ["h2", "What a pulse schedule is"],
+    ["p", "Before a shot, operators prepare a pulse schedule: a set of time-dependent waveforms specifying the target plasma current, shape, density, heating, and every other reference the controllers will track, plus the feedforward actuator commands. It is the executable plan for the discharge, translated from a physics scenario into concrete waveforms."],
+    ["h2", "References versus commands"],
+    ["p", "A waveform can be either a reference for a feedback loop to track, or a direct feedforward command to an actuator. Most quantities use both: a feedforward command gets the actuator into the right range, and a feedback reference corrects the remainder. The schedule holds both, and the control system knows which loop owns each waveform."],
+    ["h2", "Segmentation"],
+    ["p", "Schedules are usually divided into phases such as breakdown, ramp-up, flat-top, and ramp-down. Each phase can enable different controllers and different limits. Transitions between phases are triggered either by time or by a condition being met, for example flat-top starting when the target current is reached rather than at a fixed clock time."],
+    ["h2", "Editing and validation"],
+    ["p", "A schedule is checked before it runs: waveforms are validated against actuator limits, rates of change, and consistency between coupled quantities. A schedule that asks for more heating than exists, or a current rise faster than the supply can drive, is rejected before it reaches the machine. Flight-simulator runs give a final check."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, pulse schedules encode the ramp to 9.86 megaamperes, the shape at negative triangularity, and the flat-top at the design operating point. Because the machine is in simulation ahead of construction in the second quarter of 2027, schedules are developed and validated entirely against models, so the first hardware discharges follow already-vetted waveforms."]
+  ],
+  "related": [["pcs-scenario-optimization", "Scenario Optimization"], ["pcs-feedforward-feedback", "Feedforward and Feedback"], ["pcs-scenario-library", "Scenario Library"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-between-shot-analysis",
+  "title": "Between-Shot Analysis",
+  "cat": "plasma-control",
+  "lede": "Between shots, automated analysis turns the last discharge into corrections for the next, tightening the loop over an operating day.",
+  "body": [
+    ["h2", "The inter-shot cycle"],
+    ["p", "In pulsed operation, discharges are separated by minutes. That gap is used to process the data just recorded, judge how the discharge went, and adjust the plan for the next one. Between-shot analysis is the machinery that does this quickly and, increasingly, automatically."],
+    ["h2", "What it computes"],
+    ["ul", ["Whether the discharge met its targets", "Which controllers saturated or fought each other", "Reconstructed profiles and equilibrium for the shot", "Flags for any off-normal events that occurred", "Suggested tweaks to the next pulse schedule"]],
+    ["h2", "Speed matters"],
+    ["p", "The analysis must finish inside the inter-shot interval or it delays operations. This favors reduced analyses that run in seconds over full-fidelity reconstructions that take hours. High-fidelity analysis still happens, but offline; the between-shot layer produces just enough to decide the next shot."],
+    ["h2", "Closing the outer loop"],
+    ["p", "Between-shot analysis is a slow, human-supervised feedback loop wrapped around the fast in-shot loops. If the plasma consistently undershoots a target, the analysis suggests raising a feedforward, which the operator or an automated routine applies. Over a run, this converges the machine onto the desired scenario faster than trial and error."],
+    ["h2", "In the Kronos program"],
+    ["p", "Because Kronos machines are being designed with a digital twin, between-shot analysis is planned to feed the same models used in simulation, so a discrepancy between predicted and actual behavior updates the model as well as the next schedule. This keeps the flight simulator and the real machine in agreement as operation proceeds after first plasma."]
+  ],
+  "related": [["pcs-digital-twin-control", "Digital-Twin Control"], ["pcs-realtime-equilibrium", "Real-Time Equilibrium"], ["pcs-pulse-schedule-waveforms", "Pulse Schedule"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-watchdog-graceful-degradation",
+  "title": "Exception Handling and Graceful Degradation",
+  "cat": "plasma-control",
+  "lede": "A robust control system degrades gracefully, falling back to simpler safe behavior when a sensor, actuator, or computation fails.",
+  "body": [
+    ["h2", "Faults are expected"],
+    ["p", "Over many discharges, sensors drift, actuators trip, and computations occasionally overrun. A control system that assumes perfect components will fail hard the first time reality departs from the assumption. Robust design treats faults as expected inputs and defines what the system does for each."],
+    ["h2", "Graceful degradation"],
+    ["p", "Graceful degradation means losing capability in proportion to the fault rather than all at once. If one magnetic sensor fails, the state estimator drops it and continues with the rest. If a whole diagnostic is lost, the affected controller switches to a simpler model-based estimate. Performance falls, but control is retained rather than lost."],
+    ["h2", "Watchdogs and fallbacks"],
+    ["p", "Watchdog timers detect a controller that stops responding and switch to a pre-defined safe output or a simpler backup controller. The backup is intentionally less capable but more trustworthy: it might just hold position and ramp the plasma down. The goal is always to reach a safe state, not to keep performing."],
+    ["h2", "Designing the fallback ladder"],
+    ["ul", ["Full performance with all systems healthy", "Reduced performance with a degraded actuator or sensor", "Safe holding mode with core stabilization only", "Controlled termination", "Protective shutdown as the final rung"]],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, the fallback ladder always keeps vertical stabilization alive as long as possible, because losing it is the fastest path to a disruption. Each rung is designed so the transition to it is smooth and its behavior is fully analyzable. The ladder is exercised against injected faults in the flight simulator."]
+  ],
+  "related": [["pcs-off-normal-detection", "Off-Normal Detection"], ["pcs-real-time-computing", "Real-Time Computing"], ["pcs-machine-protection", "Machine Protection"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-digital-twin-control",
+  "title": "Digital-Twin-Assisted Control",
+  "cat": "plasma-control",
+  "lede": "A digital twin runs a live model of the machine alongside the real one, supporting estimation, prediction, and validation of control actions.",
+  "body": [
+    ["h2", "What a digital twin adds"],
+    ["p", "A digital twin is a model of the machine kept synchronized with the real device using live data. Unlike a flight simulator, which replaces the machine for testing, a twin runs concurrently with operation. It provides estimates of quantities that are not directly measured, predicts where the discharge is heading, and flags when reality diverges from the model."],
+    ["h2", "Roles in control"],
+    ["ul", ["State estimation, inferring hidden variables from sparse measurements", "Short-horizon prediction, warning of an approaching limit", "What-if evaluation of a candidate control action before applying it", "Anomaly detection through model-versus-measurement residuals"]],
+    ["h2", "Fidelity versus speed"],
+    ["p", "A twin used inside or near the control loop must be fast, so it uses reduced models. A higher-fidelity twin can run between shots or in parallel for validation. Many programs keep a hierarchy: a fast twin for real-time use and a slow, accurate twin for analysis, with the fast one calibrated against the slow one."],
+    ["h2", "Keeping it honest"],
+    ["p", "A twin is only useful if it stays accurate. Its parameters are updated from operating data, and its predictions are continually checked against outcomes. A twin that drifts from the machine becomes worse than no twin, because it gives confident wrong answers, so validation is a permanent part of running one."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos develops digital twins of the Hyperion breeder and the burner generators as part of the design effort, since the machines are in simulation ahead of construction beginning in the second quarter of 2027. The twins share reduced models with the flight simulator and the trajectory optimizer, so a scenario proven in one is consistent across all three. After first plasma, between-shot data will keep the twins calibrated."]
+  ],
+  "related": [["pcs-flight-simulator", "Flight Simulators"], ["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-between-shot-analysis", "Between-Shot Analysis"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-control-room-human-oversight",
+  "title": "Human Oversight and the Control Room",
+  "cat": "plasma-control",
+  "lede": "Automation runs the fast loops, but humans set intent, supervise, and hold authority to intervene from the control room.",
+  "body": [
+    ["h2", "Division of labor"],
+    ["p", "The fast control loops run far faster than any human can react, so they are fully automated. Humans work at a higher level: they define the scenario, set the goals, approve the pulse schedule, watch the discharge unfold, and decide between shots what to change. The control room is where this supervisory work happens."],
+    ["h2", "Roles"],
+    ["ul", ["Session leader, who owns the plan for the run", "Engineer-in-charge, responsible for machine safety", "Diagnostic and system specialists monitoring their subsystems", "The control system itself as the fast-acting operator"]],
+    ["h2", "Information design"],
+    ["p", "A control room must present the right information without overwhelming. During a discharge, operators cannot read raw traces fast enough, so displays summarize state, highlight deviations, and surface off-normal flags. Good information design reduces the chance that a developing problem is missed among normal signals."],
+    ["h2", "Authority and intervention"],
+    ["p", "Humans retain the authority to stop a discharge. Because a shot lasts seconds, most in-shot faults are handled by automation faster than a person could act, so the human role in-shot is mainly to authorize automated responses and to trigger a manual stop if something outside the model's scope appears. Between shots, human judgment dominates."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos designs its control room around this layered authority: automation owns the millisecond loops of the Hyperion breeder and the burner generators, while operators own intent and oversight. Training for these roles uses the flight simulator, so operators rehearse both routine runs and rare fault sequences before the machines exist in hardware."]
+  ],
+  "related": [["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-control-room-human-factors", "Control Room Human Factors"], ["pcs-flight-simulator", "Flight Simulators"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-layered-kronos-stack",
+  "title": "The Kronos Layered Control Stack in Operation",
+  "cat": "plasma-control",
+  "lede": "The Kronos control stack layers fast stabilization, feedback regulation, supervision, and protection into one coordinated system.",
+  "body": [
+    ["h2", "The layers"],
+    ["p", "Kronos organizes plasma control into distinct layers, each with its own timescale and authority. From fastest to slowest: a stabilization layer, a feedback-regulation layer, a supervisory layer, and an off-normal and protection layer that spans them all. Separating the layers keeps each simple and lets them be verified independently."],
+    ["h2", "Stabilization layer"],
+    ["p", "The fastest layer holds the plasma physically in place, above all vertical stabilization, which for a spherical tokamak like the Hyperion breeder is the tightest loop in the system. It runs on dedicated real-time hardware with the shortest latency budget so its deadline is never starved by slower tasks."],
+    ["h2", "Regulation and supervision"],
+    ["p", "The regulation layer tracks references for current, shape, density, stored energy, and the profiles, using feedback around the feedforward plan. The supervisory layer sequences discharge phases, arbitrates shared actuators, and switches controllers on and off as the scenario progresses. It is where the pulse schedule is executed."],
+    ["h2", "Protection across the stack"],
+    ["p", "The off-normal and protection layer watches every level. It detects developing faults, invokes recovery controllers, commands safe termination, and, as a last resort, hands off to the independent machine protection system. Its authority overrides performance, so it can halt any lower layer."],
+    ["h2", "One stack, two machine types"],
+    ["p", "The same layered pattern serves both product lines. The Hyperion breeder's stabilization layer centers on vertical control of its elongated, negative-triangularity plasma at 9.86 megaamperes. The burner generators, tandem-mirror devices, replace the tokamak-specific loops with plug-field and direct-conversion control while keeping the same layering and protection philosophy. Because both machines are in simulation ahead of construction in the second quarter of 2027, the whole stack is validated against models and rehearsed in the flight simulator before it commands hardware."]
+  ],
+  "related": [["pcs-architecture-overview", "PCS Architecture"], ["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-supervisory-control", "Supervisory Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-vertical-stabilization",
+  "title": "Vertical Stabilization",
+  "cat": "plasma-control",
+  "lede": "Elongated plasmas are vertically unstable and drift toward the wall unless a fast feedback loop actively holds them in place.",
+  "body": [
+    ["h2", "The instability"],
+    ["p", "Shaping a plasma to be tall and narrow, called elongation, improves confinement and raises the achievable current, but it makes the plasma vertically unstable. A small upward or downward displacement grows exponentially because the shaping field that stretches the plasma also pushes it further once it moves off center. Left alone, the plasma drifts into the wall and disrupts."],
+    ["h2", "The fast loop"],
+    ["p", "Vertical stabilization is the fastest feedback loop in a tokamak. Magnetic sensors measure vertical position; a controller drives a dedicated set of coils to push the plasma back. Because the instability grows on a millisecond scale, the loop must run at kilohertz rates with a very short latency budget. It is the loop that most constrains the whole control system's timing."],
+    ["h2", "Growth rate and margin"],
+    ["p", "The instability's growth rate rises with elongation, so more aggressive shaping demands a faster loop and stronger coils. Designers trade shape performance against the stability margin the vertical system can provide. The controllable elongation is limited by how fast and how hard the vertical coils can respond, not by physics alone."],
+    ["h2", "Failure consequences"],
+    ["p", "Loss of vertical control is a leading cause of disruptions, often producing a vertical displacement event where the plasma moves into the wall and dumps its current into the structure. This is why the fallback ladder keeps vertical control alive to the last possible rung and why its coils and sensors are treated as protection-critical."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder is a spherical tokamak, a low-aspect-ratio device that is naturally elongated, so vertical stabilization is its single most demanding control loop. It runs on dedicated real-time hardware with the shortest latency in the stack, and its performance sets the machine's achievable shape. The design is validated in simulation before hardware operation."]
+  ],
+  "related": [["pcs-shape-position-control", "Shape and Position Control"], ["pcs-latency-budget", "Latency Budget"], ["pcs-disruption-avoidance", "Disruption Avoidance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-shape-position-control",
+  "title": "Shape and Position Control",
+  "cat": "plasma-control",
+  "lede": "Shape control holds the plasma boundary on its target outline and gaps, keeping it clear of walls and on the divertor strike points.",
+  "body": [
+    ["h2", "The controlled boundary"],
+    ["p", "The plasma boundary must sit where the scenario intends: at the right major radius, with the right elongation and triangularity, with adequate gaps to the wall, and with its exhaust landing on the divertor targets rather than the main wall. Shape and position control regulates all of this using the poloidal field coils."],
+    ["h2", "Control points"],
+    ["p", "Rather than control the whole boundary as a continuous curve, the system regulates a set of control points and gaps: the outer gap, the inner gap, the top and bottom positions, and the strike-point locations. Each is measured through real-time equilibrium reconstruction and driven by a combination of coil currents."],
+    ["h2", "Coupling between coils"],
+    ["p", "Each poloidal field coil affects several control points at once, so shape control is a multi-input, multi-output problem. Controllers use a model that maps coil currents to boundary changes, then invert it to decide which coils to move for a desired shape correction. Decoupling the interactions is central to steady shape control."],
+    ["h2", "Relation to vertical control"],
+    ["p", "Position control and vertical stabilization overlap: both move the plasma with coils. In practice the fast vertical loop is separated out to run at high rate, while the slower shape loop handles the rest of the boundary. Coordinating the two so they do not fight is part of the control design."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder is shaped to a negative triangularity of -0.30, an outward-curved boundary at the outboard midplane, so its shape control must hold that unusual outline while managing the gaps and strike points. Achieving and holding negative triangularity through the discharge is a design objective validated in simulation ahead of first plasma."]
+  ],
+  "related": [["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-realtime-equilibrium", "Real-Time Equilibrium"], ["pcs-plasma-current-control", "Plasma Current Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-plasma-current-control",
+  "title": "Plasma Current Control",
+  "cat": "plasma-control",
+  "lede": "Plasma current control regulates the total toroidal current, the quantity that anchors confinement, stability, and the safety factor.",
+  "body": [
+    ["h2", "Why total current is fundamental"],
+    ["p", "The toroidal plasma current sets the poloidal magnetic field that confines the plasma, fixes the edge safety factor for a given shape and field, and largely determines confinement quality. It is one of the first quantities any control system regulates and it is present in every scenario phase."],
+    ["h2", "Inductive drive"],
+    ["p", "The primary actuator is the central solenoid, which acts like the primary of a transformer with the plasma as the secondary. Changing the solenoid current induces a loop voltage that drives plasma current. The controller regulates plasma current by commanding the solenoid, subject to the finite volt-second budget the solenoid can supply."],
+    ["h2", "Non-inductive contributions"],
+    ["p", "Neutral beams, radio-frequency current drive, and the self-generated bootstrap current also carry part of the total. In steady operation these reduce the demand on the solenoid, extending the pulse. The current controller must account for them so it commands only the remaining inductive share, avoiding overshoot when non-inductive current changes."],
+    ["h2", "Coupling to profile control"],
+    ["p", "Total current control and current-profile control are related but distinct: the first regulates the integral, the second regulates the distribution. They must be consistent, since driving more total current changes the profile. Well-designed systems separate the fast total-current loop from the slow profile loop while keeping them coordinated."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder targets a flat-top current of 9.86 megaamperes. As a spherical tokamak with a slim central column, its solenoid volt-second budget is limited, so current control is designed to reach and hold this value efficiently, leaning on non-inductive drive during flat-top. The scheme is validated in simulation before hardware operation."]
+  ],
+  "related": [["pcs-current-profile-control", "Current-Profile Control"], ["pcs-rampup-control", "Ramp-Up Control"], ["pcs-shape-position-control", "Shape and Position Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-density-control",
+  "title": "Density Control",
+  "cat": "plasma-control",
+  "lede": "Density control regulates how many particles the plasma holds, using gas puffing and pellet injection against pumping and the density limit.",
+  "body": [
+    ["h2", "Why density matters"],
+    ["p", "Plasma density enters fusion power quadratically, so more density means more output, but there is a limit. Above the density limit, the edge cools, radiation rises, and the plasma is prone to disruption. Density control keeps the plasma near the productive value while staying below this boundary."],
+    ["h2", "Fueling actuators"],
+    ["ul", ["Gas puffing, which adds particles at the edge and is fast but shallow", "Pellet injection, which delivers frozen fuel deep into the plasma", "Supersonic or high-field-side injection for better penetration", "Recycling from the wall, an uncontrolled but real particle source"]],
+    ["h2", "The estimation side"],
+    ["p", "Line-integrated density is measured by interferometry in real time, giving the controller a fast signal. Reconstructing the density profile from several chords lets profile control act on where the particles are, not just how many. Wall recycling makes the particle balance history-dependent, which the controller must accommodate."],
+    ["h2", "Interaction with other loops"],
+    ["p", "Density couples to almost everything: to divertor detachment, which depends on upstream density; to impurity control, since fueling dilutes impurities; and to the density limit relative to current, which tightens during ramp-down. A density controller therefore cannot be tuned in isolation from the divertor and current loops."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder uses deuterium-tritium fuel, so density control also manages the fuel mix and interacts with tritium handling. Pellet injection provides the deep fueling needed to sustain the core density at the design operating point, while gas puffing trims the edge and supports detachment. These loops are coordinated in simulation ahead of operation."]
+  ],
+  "related": [["pcs-divertor-detachment", "Detached Divertor Control"], ["pcs-impurity-control", "Impurity Control"], ["pcs-kinetic-profile-control", "Kinetic and Profile Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-heating-power-control",
+  "title": "Heating Power Control",
+  "cat": "plasma-control",
+  "lede": "Heating power control modulates auxiliary systems to regulate temperature, stored energy, and profiles while respecting source limits.",
+  "body": [
+    ["h2", "The heating systems"],
+    ["p", "Auxiliary heating raises the plasma temperature toward fusion-relevant conditions and shapes profiles. The main systems are neutral beam injection, which fires energetic neutral atoms into the plasma, and radio-frequency heating at the ion or electron cyclotron frequencies. Each has a controllable power level and, for the wave systems, a controllable deposition location."],
+    ["h2", "What heating control regulates"],
+    ["p", "Heating power is the primary actuator for stored energy and temperature control, and, through localized deposition, a tool for profile and instability control. A single heating request often serves several goals at once, which is why heating sits at the center of actuator allocation."],
+    ["h2", "Modulation and constraints"],
+    ["p", "Sources have minimum and maximum power, finite ramp rates, and duty-cycle limits. Neutral beams may only operate in discrete steps rather than continuously. Controllers respect these by using the available modulation granularity and by combining sources so that the aggregate power is smooth even when individual sources switch."],
+    ["h2", "Deposition control"],
+    ["p", "For wave systems, steering the deposition changes which physics goal is served: central deposition heats the core and can control sawteeth, off-axis deposition broadens profiles and drives current. Real-time steering mirrors let one system move between roles within a discharge under supervisor control."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's heating systems support the stored-energy loop that holds it at 88.7 megawatts of fusion power and are shared, through allocation, with sawtooth, tearing-mode, and profile control. The burner generators use their own heating and sustainment scheme suited to a tandem mirror. Heating control schemes are validated in simulation before operation."]
+  ],
+  "related": [["pcs-beta-stored-energy", "Beta Feedback"], ["pcs-actuators-allocation", "Actuator Allocation"], ["pcs-current-profile-control", "Current-Profile Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-rotation-momentum-control",
+  "title": "Rotation and Momentum Control",
+  "cat": "plasma-control",
+  "lede": "Plasma rotation stabilizes some instabilities and shears turbulence; control adjusts it through momentum input and magnetic braking.",
+  "body": [
+    ["h2", "Why rotation matters"],
+    ["p", "A rotating plasma resists certain instabilities. Toroidal rotation and its radial shear suppress turbulence, improving confinement, and rotation keeps some modes from locking to the wall, which would otherwise lead to disruption. Rotation is therefore a controlled quantity in advanced scenarios, not just a byproduct."],
+    ["h2", "Sources of momentum"],
+    ["p", "Neutral beams injected in the direction of the current impart toroidal momentum and are the main external drive. Radio-frequency systems can also drive rotation indirectly. Intrinsic rotation, generated by the plasma itself without external torque, adds a baseline that the controller must account for."],
+    ["h2", "Braking"],
+    ["p", "Rotation can also be reduced deliberately. Applying a static magnetic perturbation with correction coils brakes the plasma through a drag force. Because the same coils are used for error-field correction and edge control, rotation braking competes for them, another item for the allocator."],
+    ["h2", "Locking and its danger"],
+    ["p", "If rotation falls too low, a magnetic island can lock to the wall and stop rotating, after which it grows and often disrupts the plasma. Rotation control includes watching for the conditions that precede locking and maintaining enough rotation, or enough correction, to prevent it. This links rotation control to tearing-mode and error-field control."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, maintaining rotation is part of avoiding mode locking during the high-performance phase, working alongside error-field correction and tearing-mode control. The relative contributions of beam-driven and intrinsic rotation are studied in simulation to set control targets ahead of operation."]
+  ],
+  "related": [["pcs-error-field-correction", "Error Field Correction"], ["pcs-ntm-control", "NTM Control"], ["pcs-disruption-avoidance", "Disruption Avoidance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-error-field-correction",
+  "title": "Error Field Correction",
+  "cat": "plasma-control",
+  "lede": "Tiny asymmetries in the magnetic field can lock modes and disrupt the plasma; correction coils cancel them under feedback.",
+  "body": [
+    ["h2", "What an error field is"],
+    ["p", "An ideal tokamak field is perfectly axisymmetric, the same all the way around the torus. Real coils are slightly misaligned and real structures are slightly asymmetric, producing small non-axisymmetric error fields. Even a very small error field can penetrate the plasma, brake its rotation, and lock a mode, leading to a disruption, especially at low density."],
+    ["h2", "Correction coils"],
+    ["p", "Dedicated correction coils apply a controllable non-axisymmetric field designed to cancel the error field. The correction has both an amplitude and a phase, since it must oppose the specific error field present. Getting the phase wrong makes the situation worse, so correction is tuned carefully."],
+    ["h2", "Finding the correction"],
+    ["p", "The optimal correction is found experimentally by scanning the applied field and watching for the plasma response, or estimated from a model of the machine's known asymmetries. In operation, a feedback loop can trim the correction using the plasma's own response, for example the onset of braking, as the error signal."],
+    ["h2", "Shared coils"],
+    ["p", "The same coils used for error-field correction are often used for edge-localized-mode control and rotation braking. These uses can conflict, since one wants to cancel non-axisymmetry and another wants to add it. Actuator allocation resolves the conflict according to which need is more pressing in the current discharge phase."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder includes error-field correction to keep rotation up and prevent mode locking, particularly during low-density phases such as early ramp-up. Its correction coils are shared with edge control, so the supervisor arbitrates their use. The required correction is estimated from the machine model in simulation ahead of operation."]
+  ],
+  "related": [["pcs-rotation-momentum-control", "Rotation Control"], ["pcs-elm-control", "ELM Control"], ["pcs-actuators-allocation", "Actuator Allocation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-realtime-equilibrium",
+  "title": "Real-Time Equilibrium Reconstruction",
+  "cat": "plasma-control",
+  "lede": "Equilibrium reconstruction infers the plasma shape, position, and internal fields from magnetic and other measurements, fast enough for control.",
+  "body": [
+    ["h2", "The reconstruction problem"],
+    ["p", "The plasma's shape and internal field distribution are not measured directly. They are inferred by solving the equation that balances plasma pressure against magnetic forces, constrained to match the sensor readings. This is equilibrium reconstruction, and doing it fast enough to feed control loops is real-time reconstruction."],
+    ["h2", "Inputs"],
+    ["ul", ["Magnetic pickup coils and flux loops around the vessel", "Coil currents driving the field", "Optional internal constraints from interferometry or polarimetry", "Pressure information from kinetic profile measurements"]],
+    ["h2", "The speed constraint"],
+    ["p", "A full offline reconstruction can take a long time. Real-time versions use fixed grids, pre-computed matrices, and bounded iteration counts to guarantee they finish inside the control cycle. They trade some accuracy for determinism, and the accuracy they keep is concentrated in the quantities control needs: boundary shape, position, and safety factor."],
+    ["h2", "Feeding the controllers"],
+    ["p", "The reconstructed equilibrium supplies the shape control points, the vertical position, and the q-profile estimate that current-profile control needs. It also locates rational surfaces for tearing-mode control to aim at. Because so many loops depend on it, the reconstruction is a shared service that must be both fast and reliable."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, real-time equilibrium reconstruction must resolve the negative-triangularity boundary and the elongated shape accurately enough for shape and vertical control, and must locate the surfaces used by tearing-mode and sawtooth control. As a spherical tokamak, its geometry requires reconstruction tuned to low aspect ratio. The method is validated in simulation before operation."]
+  ],
+  "related": [["pcs-shape-position-control", "Shape and Position Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-plasma-state-estimation", "Plasma State Estimation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-plasma-state-estimation",
+  "title": "Plasma State Estimation",
+  "cat": "plasma-control",
+  "lede": "State estimation fuses many noisy diagnostics into a single best estimate of the plasma state for controllers to act on.",
+  "body": [
+    ["h2", "From measurements to state"],
+    ["p", "Controllers act on the plasma state, but no diagnostic measures that state directly. Each measures something related, with its own noise, delay, and blind spots. State estimation combines these measurements with a model of how the plasma evolves to produce a coherent, filtered estimate of the quantities the controllers need."],
+    ["h2", "Filtering"],
+    ["p", "The classic tool is a recursive filter, such as a Kalman filter, that predicts the next state from the model and then corrects the prediction with new measurements, weighting each by its trustworthiness. Filtering smooths noise, fills gaps when a diagnostic drops out, and provides estimates of quantities that are only measured indirectly."],
+    ["code", ["python", "# One recursive estimator step (conceptual)\nx_pred = A @ x_est + B @ u        # model prediction\nP_pred = A @ P @ A.T + Q          # predicted uncertainty\nK = P_pred @ H.T @ inv(H @ P_pred @ H.T + R)  # gain\nx_est = x_pred + K @ (y_meas - H @ x_pred)    # correct with data\nP = (I - K @ H) @ P_pred"]],
+    ["h2", "Handling faults"],
+    ["p", "A good estimator degrades gracefully when a sensor fails: it drops the bad input and relies more on the model and the remaining sensors. It can also flag when measurements and model disagree beyond expected noise, which is an early sign of an off-normal event. This makes estimation part of fault detection, not just control."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's estimator fuses magnetics, interferometry, and other diagnostics to feed the vertical, shape, density, and profile loops. It is designed to tolerate the loss of individual sensors without losing the fast loops, supporting the graceful-degradation ladder. The estimator is tuned against the machine model in simulation ahead of first plasma."]
+  ],
+  "related": [["pcs-realtime-equilibrium", "Real-Time Equilibrium"], ["pcs-diagnostic-pipeline", "Diagnostic Pipeline"], ["pcs-watchdog-graceful-degradation", "Graceful Degradation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-diagnostic-pipeline",
+  "title": "Diagnostic-to-Control Data Pipeline",
+  "cat": "plasma-control",
+  "lede": "The data pipeline moves diagnostic signals to the controllers with bounded, predictable latency, the nervous system of real-time control.",
+  "body": [
+    ["h2", "The path from sensor to controller"],
+    ["p", "A measurement travels a defined path: sensor, signal conditioning, digitizer, real-time network, and finally the estimator and controllers. Every stage adds latency, and for control what matters is that the total is bounded and predictable, not merely small on average. The pipeline is engineered for determinism first."],
+    ["h2", "Real-time networking"],
+    ["p", "Ordinary networks deliver data eventually; real-time control networks deliver it within a guaranteed time. Deterministic protocols, reserved bandwidth, and switches that bound queuing delay ensure that a measurement produced this cycle is available to the controller this cycle. Without this guarantee, the latency budget cannot be met."],
+    ["h2", "Synchronization"],
+    ["p", "Fusing many diagnostics requires knowing when each sample was taken. A shared clock, distributed to every node with tight precision, timestamps samples so the estimator can align them. Poor synchronization corrupts fused estimates, so timing distribution is a first-class part of the pipeline design."],
+    ["h2", "Data volume versus control need"],
+    ["p", "Diagnostics can produce far more data than the control loop can consume in real time. The pipeline splits paths: a reduced, low-latency stream for control and a full-rate stream archived for between-shot and offline analysis. Control gets only what it needs to act, fast; the rest is stored for later study."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos designs the diagnostic pipeline for its machines so the fastest loops, above all vertical stabilization of the Hyperion breeder, receive their inputs within the tight latency budget those loops demand. The same synchronized data feeds the between-shot analysis and digital twin. The pipeline is specified and validated in simulation ahead of construction."]
+  ],
+  "related": [["pcs-plasma-state-estimation", "State Estimation"], ["pcs-latency-budget", "Latency Budget"], ["pcs-real-time-computing", "Real-Time Computing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-supervisory-control",
+  "title": "Supervisory Control and State Machines",
+  "cat": "plasma-control",
+  "lede": "The supervisor sequences discharge phases, enables and disables controllers, and holds the logic that ties fast loops into one discharge.",
+  "body": [
+    ["h2", "The conductor of the orchestra"],
+    ["p", "Individual feedback loops each do one job. The supervisor is the layer that decides which loops run when, sets their references from the pulse schedule, arbitrates shared actuators, and moves the discharge through its phases. It is the logic that turns a collection of controllers into a coherent discharge."],
+    ["h2", "State machines"],
+    ["p", "Supervisory logic is naturally expressed as a state machine: the discharge is in a state such as breakdown, ramp-up, flat-top, or ramp-down, and transitions happen when conditions are met. Each state enables a specific set of controllers and limits. State machines are used because they are explicit, testable, and easy to reason about in fault conditions."],
+    ["h2", "Event-driven transitions"],
+    ["p", "Transitions can be time-based or event-based. An event-based transition, such as entering flat-top when the target current is reached, makes the discharge adapt to reality rather than a fixed clock. Off-normal events also drive transitions, moving the machine into a recovery or termination state when a fault is detected."],
+    ["h2", "Arbitration"],
+    ["p", "When controllers request the same actuator, the supervisor decides who wins using the priority order. It also enforces mutual exclusion where two controllers must not act at once, and it hands actuators between controllers cleanly so there is no glitch at the transfer."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's supervisor sequences the ramp to 9.86 megaamperes, the flat-top at the design operating point, and a controlled ramp-down, while allocating the shared electron cyclotron and beam systems among competing uses. Its state machine also embeds the off-normal transitions. The logic is exercised against normal and fault scenarios in the flight simulator."]
+  ],
+  "related": [["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-actuators-allocation", "Actuator Allocation"], ["pcs-exception-matrix", "Exception Matrix"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-feedforward-feedback",
+  "title": "Feedforward and Feedback Control",
+  "cat": "plasma-control",
+  "lede": "Feedforward applies the planned command in advance; feedback corrects the difference between plan and reality. Good control uses both.",
+  "body": [
+    ["h2", "Two complementary strategies"],
+    ["p", "Feedforward control applies a pre-computed command based on the plan, without waiting to see the result. Feedback control measures the result and corrects the error. Feedforward is fast and anticipatory but blind to disturbances; feedback rejects disturbances but only after they appear. Combining them gives both anticipation and correction."],
+    ["h2", "Why feedforward carries the load"],
+    ["p", "A well-designed scenario provides most of the required actuation as feedforward, computed by the trajectory optimizer from a model. Feedback then handles only the residual error. This keeps feedback signals small, which keeps actuators away from saturation and makes the closed loop more stable and predictable."],
+    ["h2", "The cost of leaning on feedback"],
+    ["p", "If feedforward is poor, feedback must do heavy lifting, driving large corrections that can saturate actuators or excite oscillations. A control system that only reacts is always chasing; one that also anticipates stays ahead. This is why scenario optimization and feedback design are done together."],
+    ["h2", "Model dependence"],
+    ["p", "Feedforward is only as good as the model used to compute it. When the model is uncertain, feedforward is made conservative and feedback given more authority. As models improve, more of the burden shifts to feedforward. This balance is revisited as a machine's behavior becomes better understood through operation."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, feedforward waveforms come from trajectory optimization against validated models, and feedback loops trim the residuals. Because the machine is in simulation ahead of construction, feedforward is initially conservative; as operating data arrives after first plasma, the models sharpen and feedforward takes on more of the work through the between-shot loop."]
+  ],
+  "related": [["pcs-scenario-optimization", "Scenario Optimization"], ["pcs-pulse-schedule-waveforms", "Pulse Schedule"], ["pcs-model-predictive-control", "Model Predictive Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-disruption-avoidance",
+  "title": "Disruption Avoidance",
+  "cat": "plasma-control",
+  "lede": "Avoidance keeps the plasma away from the boundaries where disruptions occur, always preferred over cleaning up after one.",
+  "body": [
+    ["h2", "What a disruption is"],
+    ["p", "A disruption is a sudden, uncontrolled loss of plasma confinement in which the stored thermal and magnetic energy is released rapidly. It can deposit heat on surfaces, exert large forces on the structure, and generate high-energy runaway electrons. Preventing disruptions is a central goal of plasma control."],
+    ["h2", "Avoidance versus mitigation"],
+    ["p", "There are two responses. Avoidance steers the plasma away from the conditions that cause disruptions, keeping it inside a safe operating region. Mitigation accepts that a disruption is unavoidable and acts to make it less damaging. Avoidance is always preferred, because a mitigated disruption still stresses the machine; mitigation is the fallback when avoidance fails."],
+    ["h2", "Proximity monitoring"],
+    ["p", "Avoidance needs a measure of how close the plasma is to a disruptive boundary: the density limit, the beta limit, the safety-factor limit, or a growing locked mode. Real-time proximity indicators, sometimes combined into a single disruptivity estimate, tell the controller when to back off performance to restore margin."],
+    ["h2", "Actions"],
+    ["ul", ["Reduce heating to lower stored energy and beta", "Adjust density away from the limit", "Apply current drive to stabilize a growing mode", "Reduce elongation to ease vertical stability", "Initiate a controlled ramp-down if margin cannot be restored"]],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, disruption avoidance is the first priority of the off-normal layer, which monitors proximity to the density, beta, and stability limits and to locked-mode onset. When margin shrinks, it backs off performance or terminates safely rather than risk a disruption. The mitigation system stands behind it as a last resort. Both are exercised in the flight simulator."]
+  ],
+  "related": [["pcs-disruption-mitigation", "Disruption Mitigation"], ["pcs-off-normal-detection", "Off-Normal Detection"], ["pcs-disruption-prediction", "Disruption Prediction"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-disruption-mitigation",
+  "title": "Disruption Mitigation",
+  "cat": "plasma-control",
+  "lede": "When a disruption cannot be avoided, mitigation spreads the energy release and suppresses runaway electrons to protect the machine.",
+  "body": [
+    ["h2", "The role of mitigation"],
+    ["p", "Mitigation is the last line of plasma-side defense. It does not save the discharge; it accepts the loss and acts to minimize damage. Its goals are to radiate the stored thermal energy over a large area rather than a small spot, to reduce the mechanical forces of the current quench, and to prevent or dissipate runaway electron beams."],
+    ["h2", "Massive material injection"],
+    ["p", "The main technique is to inject a large quantity of impurity material into the plasma very quickly, either as a gas jet or as a shattered frozen pellet. The injected material radiates the stored energy nearly isotropically, converting a localized heat dump into a distributed radiative one, and raises the density to suppress runaways."],
+    ["h2", "The runaway problem"],
+    ["p", "During the rapid current quench, the induced electric field can accelerate electrons to high energy, forming a runaway beam that, if it strikes the wall, damages it deeply. Mitigation aims to keep density high enough to collide these electrons out, or to deconfine the beam before it localizes. This is one of the hardest problems in disruption handling."],
+    ["h2", "Timing"],
+    ["p", "Mitigation must fire within milliseconds of the decision, which means the decision itself must be made by fast automated logic, not a human. This is why disruption prediction and mitigation are tightly coupled: the predictor's warning triggers the injection with enough lead time for the material to act."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder carries a mitigation capability as the fallback behind avoidance. Because avoidance is prioritized and the machine is designed to run away from disruptive boundaries, mitigation is intended as a rare last resort. Its triggering logic and effectiveness are studied in simulation ahead of hardware operation."]
+  ],
+  "related": [["pcs-disruption-avoidance", "Disruption Avoidance"], ["pcs-runaway-electron-control", "Runaway Electron Control"], ["pcs-disruption-prediction", "Disruption Prediction"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-disruption-prediction",
+  "title": "Disruption Prediction",
+  "cat": "plasma-control",
+  "lede": "Prediction gives the control system advance warning of an approaching disruption so it can avoid or mitigate in time.",
+  "body": [
+    ["h2", "The prediction task"],
+    ["p", "Disruption prediction answers a real-time question: is this discharge heading toward a disruption, and how soon? A useful predictor must give enough warning for the control system to act, with few false alarms, since a false alarm that triggers mitigation needlessly ends a good discharge."],
+    ["h2", "Physics-based indicators"],
+    ["p", "Some predictors track physical proximity to known limits: a growing locked-mode amplitude, a density approaching the limit, a shrinking safety-factor margin, or rising radiated power fraction. These are interpretable and tie directly to a cause, which makes the appropriate response clear."],
+    ["h2", "Data-driven predictors"],
+    ["p", "Machine-learning predictors are trained on many past discharges, both disruptive and healthy, to recognize the signatures that precede a disruption. They can catch combinations of signals that no single physics indicator flags. Their weakness is that they may not generalize to conditions unlike their training data, a serious concern for a new machine with little operating history."],
+    ["h2", "Warning time versus accuracy"],
+    ["p", "There is a trade-off between how early a warning comes and how accurate it is. Earlier warnings are less certain; later ones are surer but leave less time to act. Predictors are tuned to give the response system the lead time it needs, biased toward catching real disruptions even at the cost of some false alarms."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, prediction feeds the avoidance-first strategy: an early warning prompts the off-normal layer to restore margin or terminate safely, reserving mitigation for late, high-confidence warnings. Because a new machine lacks operating history, initial predictors lean on interpretable physics indicators validated in simulation, with data-driven methods added as operating experience accumulates."]
+  ],
+  "related": [["pcs-disruption-avoidance", "Disruption Avoidance"], ["pcs-disruption-mitigation", "Disruption Mitigation"], ["pcs-rl-plasma-control", "Reinforcement Learning"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-runaway-electron-control",
+  "title": "Runaway Electron Control",
+  "cat": "plasma-control",
+  "lede": "Runaway electrons accelerated during a quench can damage the wall; control aims to prevent their formation or safely dissipate the beam.",
+  "body": [
+    ["h2", "How runaways form"],
+    ["p", "When plasma current decays rapidly, as in a disruption, the changing field induces a strong toroidal electric field. If this field exceeds the drag that collisions exert on fast electrons, those electrons keep accelerating instead of slowing, becoming runaways. An avalanche process then multiplies them, forming a beam that can carry a large fraction of the plasma current at high energy."],
+    ["h2", "Why they are dangerous"],
+    ["p", "A runaway beam is narrow and energetic. If it terminates on a plasma-facing surface, it deposits its energy in a small volume and can melt or crack the material well below the surface. Preventing beam formation, or dissipating it harmlessly, is therefore a machine-protection priority."],
+    ["h2", "Prevention"],
+    ["p", "The primary prevention is to keep the density high during the quench so collisions damp the seed electrons before the avalanche builds. Massive material injection serves this purpose. Avoiding disruptions in the first place is the surest prevention, since no quench means no runaway drive."],
+    ["h2", "Dissipation"],
+    ["p", "If a beam forms anyway, control aims to dissipate it gently: injecting further material to collisionally slow the electrons, or applying perturbations that deconfine the beam so it spreads its energy over a wide area rather than a point. Both are active areas of research because no method yet fully solves the problem at reactor scale."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder addresses runaways chiefly through disruption avoidance, keeping the machine away from the quenches that generate them. The mitigation system's material injection provides the density needed to suppress an avalanche if a disruption does occur. These strategies are evaluated in simulation ahead of hardware operation."]
+  ],
+  "related": [["pcs-disruption-mitigation", "Disruption Mitigation"], ["pcs-machine-protection", "Machine Protection"], ["pcs-disruption-avoidance", "Disruption Avoidance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-radiated-power-control",
+  "title": "Radiated-Power Control",
+  "cat": "plasma-control",
+  "lede": "Radiated-power control regulates how much and where the plasma radiates, protecting surfaces without collapsing the core.",
+  "body": [
+    ["h2", "Radiation as a lever"],
+    ["p", "A plasma radiates power through impurity line emission, bremsstrahlung, and recombination. Radiation is useful when it happens in the edge and divertor, spreading exhaust heat over a large area. It is harmful when it happens in the core, where it drains energy meant to sustain fusion. Radiated-power control manages this balance."],
+    ["h2", "Measurement"],
+    ["p", "Bolometer arrays measure the radiated power along many lines of sight, and tomographic inversion reconstructs where the radiation comes from. In real time, a reduced version of this gives the controller both the total radiated fraction and a coarse map of where radiation is concentrated, edge versus core."],
+    ["h2", "The control target"],
+    ["p", "A common target is to hold the edge radiated fraction at a set value, high enough that the divertor is protected but low enough that the radiation front stays out of the confined plasma. Impurity seeding rate is the main actuator. The controller must respond before a rising front reaches the core and cools it."],
+    ["h2", "Coupling"],
+    ["p", "Radiated-power control overlaps divertor-detachment control and impurity control, since all three act on seeding and edge radiation. They are often implemented as one coordinated controller with several outputs rather than three independent loops fighting over the same actuator. Core radiation is handled by different levers, chiefly central heating and sawtooth flushing."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder uses edge radiation to protect its divertor while guarding the core against radiative collapse. Its radiated-power controller is coordinated with detachment and impurity control on the shared seeding actuators. The target radiated fraction and the control response are set through edge modeling in simulation ahead of operation."]
+  ],
+  "related": [["pcs-impurity-control", "Impurity Control"], ["pcs-divertor-detachment", "Detached Divertor Control"], ["pcs-density-control", "Density Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-scenario-library",
+  "title": "The Discharge Scenario Library",
+  "cat": "plasma-control",
+  "lede": "A scenario library stores proven pulse schedules and their outcomes so operators build on validated starting points rather than from scratch.",
+  "body": [
+    ["h2", "Why keep a library"],
+    ["p", "Developing a good discharge takes many shots of trial and refinement. Once a scenario works, it is worth saving so it can be reused and improved rather than rediscovered. A scenario library is the organized store of these proven pulse schedules together with the results they produced."],
+    ["h2", "What each entry holds"],
+    ["ul", ["The full pulse schedule of references and feedforward waveforms", "The controllers and limits that were active", "The measured outcome and how well targets were met", "Any off-normal events and how they were handled", "Provenance: which shot validated it and under what machine conditions"]],
+    ["h2", "Reuse and adaptation"],
+    ["p", "A new discharge usually starts from the closest library scenario, adapted to the day's goal and machine state. This anchors development to something known to work, so operators spend their shots on the intended change rather than on re-establishing the basics. It also makes runs reproducible, since a scenario can be re-run and compared."],
+    ["h2", "Versioning"],
+    ["p", "As scenarios are refined, the library keeps versions, so a change that turned out worse can be rolled back. Linking each scenario to the machine conditions it was validated under prevents applying a scenario in conditions where it is no longer valid, for instance after a wall change alters recycling."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder and the burner generators, the scenario library begins in simulation: schedules validated in the flight simulator against the digital twin form the initial entries. Because construction begins in the second quarter of 2027, the first hardware discharges draw on this pre-built library, and operating results then refine and version it."]
+  ],
+  "related": [["pcs-pulse-schedule-waveforms", "Pulse Schedule"], ["pcs-scenario-optimization", "Scenario Optimization"], ["pcs-between-shot-analysis", "Between-Shot Analysis"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-control-oriented-modeling",
+  "title": "Control-Oriented Modeling",
+  "cat": "plasma-control",
+  "lede": "Control-oriented models capture just enough physics to predict the input-output response controllers need, fast enough to run in real time.",
+  "body": [
+    ["h2", "A different goal than first-principles models"],
+    ["p", "A high-fidelity plasma simulation aims to reproduce the physics as faithfully as possible and may take hours per case. A control-oriented model has a different goal: predict how the controlled outputs respond to the actuator inputs, accurately over the control bandwidth, fast enough to run inside a loop or an optimizer. Fidelity is spent only where control needs it."],
+    ["h2", "Reduced models"],
+    ["p", "Control-oriented models are built by reduction: linearizing around an operating point, keeping only the dominant dynamics, or fitting a low-order model to data from a high-fidelity code. The result might be a handful of states describing how current, shape, and stored energy respond, rather than millions of grid cells."],
+    ["h2", "Data-driven identification"],
+    ["p", "Models can also be identified directly from operating data using system-identification methods, which fit a model to the observed response to deliberate actuator perturbations. This captures the real machine's behavior, including effects a physics model missed, at the cost of validity only near the conditions where the data were taken."],
+    ["h2", "Uses"],
+    ["ul", ["Feedforward computation in trajectory optimization", "Prediction inside model-predictive controllers", "The plant model in state estimators", "The core of flight simulators and digital twins"]],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos builds control-oriented models of the Hyperion breeder and the burner generators from its high-fidelity simulations, since the machines are not yet built. These reduced models are shared across the flight simulator, the digital twin, and the trajectory optimizer, so a scenario proven in one is consistent everywhere. After first plasma, system identification will refine them from operating data."]
+  ],
+  "related": [["pcs-flight-simulator", "Flight Simulators"], ["pcs-model-predictive-control", "Model Predictive Control"], ["pcs-digital-twin-control", "Digital-Twin Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-model-predictive-control",
+  "title": "Model Predictive Control for Plasmas",
+  "cat": "plasma-control",
+  "lede": "Model predictive control optimizes actuator commands over a short future horizon each cycle, handling constraints and coupling directly.",
+  "body": [
+    ["h2", "The idea"],
+    ["p", "Model predictive control (MPC) uses a model to predict how the plasma will respond to a sequence of future actuator commands, then chooses the sequence that best meets the goals while respecting constraints. It applies the first command, then repeats the whole optimization next cycle with fresh measurements. This is called receding-horizon control."],
+    ["h2", "Why it suits plasma control"],
+    ["p", "Plasma control is full of constraints (actuator limits, stability boundaries) and coupling (one actuator affects many outputs). MPC handles both directly: constraints are part of the optimization, and the model captures the coupling. A classical single-loop controller must approximate these; MPC treats them explicitly."],
+    ["h2", "The computational cost"],
+    ["p", "Solving an optimization every cycle is expensive, which historically kept MPC out of the fastest loops. Advances in fast solvers, and the use of simple reduced models, now let MPC run on slower-to-medium loops such as profile and shape control. The fastest loops, like vertical stabilization, still use lightweight controllers where every microsecond counts."],
+    ["code", ["python", "# Receding-horizon step\nfor k in range(N):\n    u_seq = solve_qp(model, x_now, refs, u_limits, x_limits)  # optimize horizon\n    apply(u_seq[0])          # use only the first command\n    x_now = estimate_state() # remeasure next cycle, then repeat"]],
+    ["h2", "Constraint handling as safety"],
+    ["p", "Because MPC keeps predicted states inside limits, it naturally keeps the plasma away from boundaries, complementing disruption avoidance. If a command would breach a limit over the horizon, MPC never issues it. This built-in respect for constraints is a major reason it is attractive for fusion."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos evaluates model predictive control for the coupled, constrained loops of the Hyperion breeder, such as profile and shape control, using the shared reduced models. The fastest stabilization loops remain lightweight for latency. These designs are exercised in the flight simulator ahead of operation."]
+  ],
+  "related": [["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-feedforward-feedback", "Feedforward and Feedback"], ["pcs-current-profile-control", "Current-Profile Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-rl-plasma-control",
+  "title": "Reinforcement Learning for Plasma Control",
+  "cat": "plasma-control",
+  "lede": "Reinforcement learning trains control policies against a simulator, offering a route to coordinate many actuators toward hard-to-specify goals.",
+  "body": [
+    ["h2", "What reinforcement learning offers"],
+    ["p", "Reinforcement learning (RL) trains a control policy by trial and error against a model of the system, rewarding actions that move toward a goal. For plasma control it is attractive because it can learn to coordinate many coupled actuators toward objectives that are hard to write as explicit control laws, such as achieving and holding a complex plasma shape."],
+    ["h2", "Training against a simulator"],
+    ["p", "An RL agent needs enormous numbers of trials, far more than a real machine can provide. So it is trained against a fast simulator, the same kind of reduced model used for flight simulation. The learned policy is then transferred to the real machine. This makes a fast, accurate simulator a prerequisite for RL control."],
+    ["h2", "The transfer gap"],
+    ["p", "A policy trained in simulation can fail on hardware if the simulator differs from reality, the so-called reality gap. Techniques to bridge it include randomizing the simulator's parameters during training so the policy is robust to model error, and fine-tuning on the real machine. Verifying a learned policy is harder than verifying a designed one, which is a live concern for safety-critical use."],
+    ["h2", "Where it fits"],
+    ["p", "RL is most compelling for coordination problems that are cumbersome for hand-designed controllers, and less so for the fastest safety-critical loops, where analyzable, provable behavior matters most. In practice RL policies are used within a supervisory framework that retains conventional protection, rather than replacing the whole stack."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos treats reinforcement learning as a research avenue for coordinated control of the Hyperion breeder, trained against its reduced models and constrained by the same protection layer that governs all controllers. Because the machine is in simulation ahead of operation, any learned policy is validated in the flight simulator, and the fastest safety-critical loops remain conventional and analyzable."]
+  ],
+  "related": [["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-flight-simulator", "Flight Simulators"], ["pcs-disruption-prediction", "Disruption Prediction"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-safety-interlocks",
+  "title": "Safety Interlocks and Instrumented Systems",
+  "cat": "plasma-control",
+  "lede": "Interlocks are simple, independent safety functions that act automatically when a hard limit is crossed, regardless of the control software.",
+  "body": [
+    ["h2", "The purpose of an interlock"],
+    ["p", "An interlock is a safety function that takes a defined protective action when a condition is met, independent of the main control system. If the vacuum fails or a coil current exceeds its structural limit, an interlock acts even if the control software is confused or crashed. Interlocks are the simplest, most trustworthy layer of protection."],
+    ["h2", "Independence and simplicity"],
+    ["p", "Interlocks are kept simple, often implemented in hardware or in small dedicated logic rather than in the complex control code. Simplicity makes them analyzable and reliable: a function that does one thing when one signal crosses one threshold can be verified exhaustively. Independence ensures a bug in the performance software cannot disable them."],
+    ["h2", "Safety instrumented functions"],
+    ["p", "Formal safety engineering describes these as safety instrumented functions, each with a required reliability level. Sensors, logic, and final actuators are chosen and tested so the function meets its target failure rate. This discipline, borrowed from process industries, applies to the interlocks that protect fusion hardware."],
+    ["h2", "Relationship to the control stack"],
+    ["p", "Interlocks sit beneath the machine protection system, which sits beneath performance control. Performance control tries to do well; protection tries to prevent harm using the same actuators intelligently; interlocks are the blunt, final guarantee. Each layer is more trustworthy and less capable than the one above it."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder and the burner generators use interlocks to guard their high-field magnets, at 16.84 tesla and 26.49 tesla respectively, along with vacuum, cooling, and power-supply limits. These functions are independent of the performance control software and engineered to formal reliability targets. Their design is part of the machine specification developed ahead of construction."]
+  ],
+  "related": [["pcs-machine-protection", "Machine Protection"], ["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-watchdog-graceful-degradation", "Graceful Degradation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-exception-matrix",
+  "title": "The Exception Matrix and Event Handling",
+  "cat": "plasma-control",
+  "lede": "An exception matrix maps detected off-normal conditions to defined responses, making fault handling explicit, reviewable, and testable.",
+  "body": [
+    ["h2", "Making fault logic explicit"],
+    ["p", "When something goes wrong, the control system must respond correctly and predictably. An exception matrix (sometimes called an event table) captures this as an explicit mapping: each row is a detectable condition, each column an aspect of the response. It replaces scattered, implicit fault handling with one reviewable specification."],
+    ["h2", "Structure"],
+    ["p", "A typical matrix lists, for each condition, how it is detected, its severity, the response tier (continue, adapt, recover, terminate, mitigate), which subsystems act, and any prerequisites. Because it is tabular, engineers and physicists can review it together, spot gaps, and check that no condition falls through without a defined response."],
+    ["h2", "Severity and precedence"],
+    ["p", "When several conditions occur at once, the matrix defines precedence so the most severe response wins. A minor deviation that would prompt an adaptation is overridden by a concurrent condition demanding termination. Encoding precedence prevents conflicting responses from being issued together."],
+    ["h2", "Testing"],
+    ["p", "Because the matrix is explicit, each entry can be tested by injecting its condition in the flight simulator and confirming the specified response occurs. This turns fault handling from something hoped to work into something demonstrated to work, one row at a time, including the rare combinations that real operation seldom produces."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's off-normal layer is organized around an exception matrix covering locked modes, vertical control loss, impurity influx, actuator failures, and diagnostic loss, each mapped to a response on the avoidance-first ladder. Every entry is exercised against injected faults in the flight simulator so the response is verified before hardware operation."]
+  ],
+  "related": [["pcs-off-normal-detection", "Off-Normal Detection"], ["pcs-supervisory-control", "Supervisory Control"], ["pcs-watchdog-graceful-degradation", "Graceful Degradation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-control-room-human-factors",
+  "title": "Control Room Human Factors",
+  "cat": "plasma-control",
+  "lede": "Human factors design shapes displays, alarms, and procedures so operators make good decisions under time pressure and complexity.",
+  "body": [
+    ["h2", "Why human factors matter"],
+    ["p", "Even with automation running the fast loops, humans decide intent, judge results, and intervene when something falls outside the machine's programmed scope. How well they do this depends on how information is presented and how procedures are structured. Human factors is the discipline of designing for reliable human performance."],
+    ["h2", "Display design"],
+    ["p", "Operators cannot absorb raw data streams during a discharge. Displays must aggregate: show the plasma state at a glance, highlight deviations from plan, and surface off-normal flags prominently. Poor displays bury the one signal that matters among hundreds that do not, delaying recognition of a developing problem."],
+    ["h2", "Alarm management"],
+    ["p", "Too many alarms are as dangerous as too few. When every minor deviation raises an alert, operators learn to ignore them, and a real alarm is missed in the noise. Good alarm design prioritizes, suppresses redundant alarms, and reserves the strongest signals for conditions that genuinely require human action."],
+    ["h2", "Procedures and workload"],
+    ["p", "Clear procedures for routine and off-normal situations reduce the cognitive load of deciding under pressure. Automation should carry the time-critical actions so the human is never asked to react faster than a person can. The design goal is to keep the operator's workload in the band where attention and judgment are sharpest."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos designs its control room so automation owns the millisecond loops of the Hyperion breeder and the burner generators while operators focus on intent and oversight. Displays surface plasma state and off-normal flags clearly, and alarms are prioritized to avoid overload. Operators rehearse both routine and fault procedures in the flight simulator ahead of first plasma."]
+  ],
+  "related": [["pcs-control-room-human-oversight", "Human Oversight"], ["pcs-off-normal-detection", "Off-Normal Detection"], ["pcs-flight-simulator", "Flight Simulators"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-integrated-commissioning",
+  "title": "Integrated Commissioning of the Control System",
+  "cat": "plasma-control",
+  "lede": "Commissioning brings the control system online in careful stages, proving each layer before the next depends on it.",
+  "body": [
+    ["h2", "Why commissioning is staged"],
+    ["p", "A control system cannot be switched on all at once and trusted. It is commissioned in stages, each proving a capability before the next relies on it. This ordered buildup finds problems while they are cheap to fix and while the plasma, if any, is in a benign state. Rushing commissioning trades a saved week for a damaged machine."],
+    ["h2", "The typical order"],
+    ["ul", ["Bench and hardware-in-the-loop tests against the flight simulator", "Actuator and diagnostic commissioning without plasma", "First plasma with minimal control, just breakdown and basic position", "Progressive enabling of shape, current, and density loops", "Advanced loops: profiles, instabilities, off-normal handling"]],
+    ["h2", "Proving before trusting"],
+    ["p", "Each loop is verified in open loop, watching what it would command, before it is closed and allowed to act. Gains start conservative and are raised as behavior is confirmed. This mirrors the feedforward-first philosophy: rely on what is known, add authority only as confidence grows."],
+    ["h2", "The role of the simulator"],
+    ["p", "Because so much can be tested against a flight simulator before touching hardware, integrated commissioning starts long before first plasma. Timing bugs, network faults, and logic errors are shaken out in hardware-in-the-loop testing, so the on-machine commissioning focuses on the differences between model and reality rather than on basic correctness."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder and the burner generators, integrated commissioning begins in simulation well ahead of construction in the second quarter of 2027, using the flight simulator and digital twin. On-machine commissioning then proceeds in the staged order, enabling vertical stabilization and basic loops first and building toward the advanced profile and off-normal capabilities that support the design operating point."]
+  ],
+  "related": [["pcs-flight-simulator", "Flight Simulators"], ["pcs-actuator-commissioning", "Actuator Commissioning"], ["pcs-layered-kronos-stack", "Kronos Control Stack"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-actuator-commissioning",
+  "title": "Actuator Commissioning and Characterization",
+  "cat": "plasma-control",
+  "lede": "Before an actuator can be trusted in a loop, its real response, limits, and quirks must be measured and modeled.",
+  "body": [
+    ["h2", "Knowing the actuator"],
+    ["p", "A controller commands an actuator expecting a certain response. If the real response differs from the assumed one in gain, delay, or limits, the loop misbehaves. Actuator commissioning measures the true input-output behavior of each actuator so the control model matches reality before the actuator is placed in a feedback loop."],
+    ["h2", "What is characterized"],
+    ["ul", ["Static gain: how much output per unit command", "Dynamic response: delay, rise time, and bandwidth", "Hard limits: maximum output, slew rate, duty cycle", "Nonlinearities: saturation, dead zones, discrete steps", "Cross-effects: what else the actuator disturbs"]],
+    ["h2", "Methods"],
+    ["p", "Actuators are driven with test waveforms, step changes and swept frequencies, and their response is recorded. Fitting a model to this data yields the parameters the controller and estimator need. For heating and current-drive systems, deposition location is mapped as well, since where the effect lands matters as much as how much."],
+    ["h2", "Feeding the control design"],
+    ["p", "The characterized models update the control-oriented models used for feedforward, estimation, and prediction. An accurately characterized actuator lets feedforward carry more of the load, keeping feedback corrections small. A poorly characterized one forces conservative, feedback-heavy control that risks saturation."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder and the burner generators, actuator commissioning covers the poloidal field coils, the central solenoid, heating and current-drive systems, fueling, and the mirror plug coils of the burner. Measured responses refine the shared reduced models used across the flight simulator and digital twin. This characterization is part of the staged commissioning that follows construction."]
+  ],
+  "related": [["pcs-integrated-commissioning", "Integrated Commissioning"], ["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-actuators-allocation", "Actuator Allocation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-breakdown-startup-control",
+  "title": "Breakdown and Start-Up Control",
+  "cat": "plasma-control",
+  "lede": "Breakdown is the moment the gas becomes a plasma; control must reliably initiate and grow the discharge from nothing.",
+  "body": [
+    ["h2", "The beginning of a discharge"],
+    ["p", "Before there is a plasma there is neutral gas in the vessel. Breakdown is the process of ionizing that gas and forming an initial plasma current channel. It is a delicate, condition-sensitive step: if breakdown fails or is patchy, the discharge never starts or starts badly, so control must make it reliable."],
+    ["h2", "Conditions for breakdown"],
+    ["p", "Breakdown needs a loop voltage from the solenoid to accelerate seed electrons, a gas pressure in a suitable range so electrons ionize before being lost, and a field configuration with a low stray field so the electrons stay confined long enough to build an avalanche. Control sets these conditions and times the solenoid swing to initiate the avalanche."],
+    ["h2", "Null formation"],
+    ["p", "The poloidal field coils are configured to create a region of near-zero field, a magnetic null, where the plasma first forms. A clean, well-positioned null gives reliable breakdown; a poor one leaves stray fields that carry electrons into the wall before a plasma forms. Real-time control positions the null and holds it during the initial current rise."],
+    ["h2", "Burn-through"],
+    ["p", "Just after breakdown the young plasma must heat enough to fully ionize its impurities, a phase called burn-through. If radiation from partially ionized impurities exceeds the available heating, the plasma cools and the discharge fails. Control manages the loop voltage and fueling through this radiative barrier into a growing, stable current channel."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder, as a spherical tokamak with limited solenoid flux, must break down efficiently to conserve volt-seconds for the main discharge. Start-up control positions the null, times the solenoid swing, and manages burn-through before handing off to ramp-up control. The scheme is validated in simulation ahead of first plasma."]
+  ],
+  "related": [["pcs-rampup-control", "Ramp-Up Control"], ["pcs-plasma-current-control", "Plasma Current Control"], ["pcs-shape-position-control", "Shape and Position Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-burner-mirror-control",
+  "title": "Control of the Tandem-Mirror Burner",
+  "cat": "plasma-control",
+  "lede": "The burner generator is a tandem mirror, not a tokamak, so its control centers on plug fields, axial confinement, and direct conversion.",
+  "body": [
+    ["h2", "A different confinement scheme"],
+    ["p", "Where the Hyperion breeder is a toroidal spherical tokamak, the Kronos burner is a tandem-mirror device: a linear central cell with strong magnetic mirrors at each end that reflect particles back and end plugs that electrostatically confine ions along the axis. The control problem is therefore different in kind, not just in numbers."],
+    ["h2", "Plug field control"],
+    ["p", "The end plugs use very high magnetic fields, 26.49 tesla at the plug and 17 tesla at the throat, to build the potential that confines the central-cell ions. Controlling the plug fields and the plasma that generates the confining potential is central to holding the burner's confinement. This replaces the toroidal shape and current loops of a tokamak."],
+    ["h2", "Axial and radial stability"],
+    ["p", "Mirror configurations face their own instabilities, including interchange and drift modes tied to the field curvature and the plasma pressure. Control maintains the field profile and plasma parameters that keep these modes stable, an analog to the stability control a tokamak applies to its current and pressure profiles."],
+    ["h2", "Direct energy conversion"],
+    ["p", "A distinctive feature of the burner is direct energy conversion: charged particles escaping along the axis are decelerated against an electric field, converting their kinetic energy directly to electrical output rather than through heat. Control regulates the collector fields to match the escaping particle flux, a loop with no counterpart in a tokamak."],
+    ["h2", "In the Kronos program"],
+    ["p", "The burner runs deuterium and helium-3 fuel, giving a low neutron fraction near 5.44 percent, and appears in two housings: Aegis for fixed defense installations and MetroVolt for data centers. Both share the tandem-mirror control approach centered on plug fields, axial stability, and direct conversion. Like the breeder, the burner is in design and simulation, with the same layered control and protection philosophy applied to its distinct actuator set."]
+  ],
+  "related": [["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-architecture-overview", "PCS Architecture"], ["pcs-machine-protection", "Machine Protection"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-gatekeeper-decision-layer",
+  "title": "The Gatekeeper Decision Layer",
+  "cat": "plasma-control",
+  "lede": "A gatekeeper continuously decides whether to keep pushing performance, hold, or abandon the discharge, arbitrating avoidance and mitigation.",
+  "body": [
+    ["h2", "The decision at the top of off-normal handling"],
+    ["p", "During a discharge, one question recurs: is it safe to continue toward the performance goal, or should the system back off or stop? A gatekeeper is the decision layer that answers this continuously, weighing the proximity to disruptive boundaries against the value of continuing. It is the arbiter between avoidance and mitigation."],
+    ["h2", "Inputs"],
+    ["ul", ["Disruption-proximity indicators from the predictor", "Actuator headroom, how much authority remains to correct", "Progress toward the scenario goal", "Health of diagnostics and controllers"]],
+    ["h2", "The core logic"],
+    ["p", "The gatekeeper compares proximity to boundaries against remaining actuator authority. If margin is comfortable, it lets performance control continue. If margin shrinks but authority remains, it commands avoidance actions to restore margin. If margin is lost and authority is exhausted, it triggers a controlled ramp-down, and only if that is impossible does it release mitigation."],
+    ["h2", "Why it must be automated"],
+    ["p", "These decisions unfold in milliseconds, faster than a human can judge. The gatekeeper encodes the operators' intent as automated logic so the right decision is made in time. Its rules are made explicit and reviewable, so operators can trust and audit the choices it makes on their behalf during a shot."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's gatekeeper implements the avoidance-first strategy: it prefers restoring margin, then safe termination, and treats mitigation as a last resort. It draws on the disruption predictor and the actuator allocator to know both the threat and the available authority. Its decision logic is exercised across normal and fault scenarios in the flight simulator ahead of operation."]
+  ],
+  "related": [["pcs-disruption-avoidance", "Disruption Avoidance"], ["pcs-disruption-mitigation", "Disruption Mitigation"], ["pcs-off-normal-detection", "Off-Normal Detection"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-actuator-saturation-management",
+  "title": "Actuator Saturation Management",
+  "cat": "plasma-control",
+  "lede": "Every actuator has limits; managing saturation keeps a loop stable and honest when it runs out of authority.",
+  "body": [
+    ["h2", "What saturation is"],
+    ["p", "An actuator saturates when it is commanded beyond its limit and simply delivers its maximum instead of the requested amount. Once saturated, the loop can no longer correct errors in that direction, so it loses control authority. Managing saturation is about behaving sensibly when this happens rather than pretending it has not."],
+    ["h2", "The windup problem"],
+    ["p", "Controllers with integral action accumulate error over time. If the actuator is saturated, the integral keeps growing while the output cannot respond, a condition called integrator windup. When the actuator finally comes off its limit, the wound-up integral drives a large overshoot. Anti-windup schemes stop the integral from accumulating while saturated."],
+    ["code", ["python", "# Simple clamped anti-windup\nu_raw = kp*e + ki*integ\nu = clamp(u_raw, u_min, u_max)\nif u == u_raw:            # not saturated\n    integ += e*dt         # integrate only when there is headroom"]],
+    ["h2", "Graceful priority under saturation"],
+    ["p", "When actuators saturate, not every goal can be met. The control system sheds the lowest-priority objectives first, keeping authority for stability and protection. This connects saturation management to actuator allocation: both are about spending limited authority on what matters most."],
+    ["h2", "Design implication"],
+    ["p", "Persistent saturation is a sign the scenario is asking for more than the machine can give. Good scenario design keeps operation away from actuator limits so feedback has headroom to reject disturbances. Saturation should be a rare margin, not a normal operating state."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, keeping vertical-control coils out of saturation is safety-critical, since a saturated vertical loop cannot catch a growing displacement. Scenarios are designed to preserve vertical headroom, and anti-windup protects every integrating loop. These behaviors are verified in the flight simulator."]
+  ],
+  "related": [["pcs-actuators-allocation", "Actuator Allocation"], ["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-feedforward-feedback", "Feedforward and Feedback"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-fueling-injection-control",
+  "title": "Fueling and Pellet Injection Control",
+  "cat": "plasma-control",
+  "lede": "Fueling control times and places fuel delivery, using gas and pellets to build and hold density where the plasma needs it.",
+  "body": [
+    ["h2", "Getting fuel to the core"],
+    ["p", "Density is only useful where fusion happens, in the hot core, but fuel added at the edge often does not reach the center before it is lost. Fueling control is the art of delivering particles to the right depth at the right time, coordinating the different injectors available to shape the density profile, not just its total."],
+    ["h2", "Gas puffing"],
+    ["p", "Gas valves admit neutral fuel at the edge. Gas puffing is fast and simple but shallow: the neutrals ionize near the boundary and rely on transport to move inward. It is well suited to edge density and to supporting divertor detachment, and it responds quickly for feedback trimming of the density signal."],
+    ["h2", "Pellet injection"],
+    ["p", "Frozen fuel pellets fired into the plasma penetrate far deeper than gas, depositing particles in or near the core. Pellet timing and speed set the deposition depth. Because each pellet delivers a discrete packet, pellet fueling is pulsed rather than continuous, and the controller schedules pellets to build and maintain core density."],
+    ["h2", "Coordinated control"],
+    ["p", "A fueling controller blends gas and pellets: gas for fast edge trimming and detachment support, pellets for deep core sustainment. It must also coordinate with pellet use for edge-mode pacing, since the same injector may serve both fueling and pacing, and with the fuel mix in a two-species plasma."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder burns deuterium and tritium, so fueling control manages both the total density at the design operating point and the deuterium-tritium mix, using pellets for core sustainment and gas for the edge. Coordination with detachment and edge-mode control is designed in simulation ahead of operation. The burner's helium-3 fuel handling follows its own tandem-mirror scheme."]
+  ],
+  "related": [["pcs-density-control", "Density Control"], ["pcs-elm-control", "ELM Control"], ["pcs-divertor-detachment", "Detached Divertor Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-loop-tuning-gain-scheduling",
+  "title": "Loop Tuning and Gain Scheduling",
+  "cat": "plasma-control",
+  "lede": "Tuning sets a loop's responsiveness; gain scheduling changes the tuning as the plasma moves through very different operating conditions.",
+  "body": [
+    ["h2", "Tuning a control loop"],
+    ["p", "A feedback loop's behavior depends on its gains, which set how strongly it responds to error. Too little gain leaves the loop sluggish and unable to reject disturbances; too much makes it oscillate or go unstable. Tuning is the process of choosing gains that give a fast, stable response with adequate margin against instability."],
+    ["h2", "Why one tuning is not enough"],
+    ["p", "The plasma's dynamics change dramatically over a discharge. During ramp-up the plasma is small and cool; at flat-top it is large and hot; the actuator responses and instability growth rates differ between phases. A single fixed tuning that is safe everywhere is too conservative at the operating point, and one tuned for flat-top may be unstable during ramp-up."],
+    ["h2", "Gain scheduling"],
+    ["p", "Gain scheduling solves this by changing the gains as a function of the operating condition, such as plasma current or stored energy. The controller interpolates between tunings validated at several operating points, so it is always near its best tuning for the present state. This is a practical way to control a strongly varying system with well-understood linear tools."],
+    ["h2", "Stability across schedules"],
+    ["p", "Care is needed that switching or interpolating gains does not itself cause instability. The scheduled tunings are designed with overlap and smooth transitions, and the whole schedule is tested across the operating range in simulation. Abrupt gain changes are avoided in favor of continuous interpolation."],
+    ["h2", "In the Kronos program"],
+    ["p", "The Hyperion breeder's fast loops, above all vertical stabilization, are gain-scheduled across the discharge because the vertical instability growth rate changes with elongation and current as the plasma evolves. The schedules are tuned against the machine's reduced models and verified across the full operating range in the flight simulator ahead of first plasma."]
+  ],
+  "related": [["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-control-oriented-modeling", "Control-Oriented Models"], ["pcs-feedforward-feedback", "Feedforward and Feedback"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-locked-mode-control",
+  "title": "Locked-Mode Detection and Control",
+  "cat": "plasma-control",
+  "lede": "A locked mode is a non-rotating magnetic island that often precedes a disruption; detecting and unlocking it is a priority for the off-normal layer.",
+  "body": [
+    ["h2", "What locking means"],
+    ["p", "A magnetic island in a rotating plasma normally rotates with it, which limits its growth. If the island's rotation slows and stops, usually by coupling to a static error field or the conducting wall, it is said to lock. A locked mode grows unimpeded and is one of the most reliable precursors of a disruption."],
+    ["h2", "Detection"],
+    ["p", "Because a locked mode is stationary, it produces a steady non-axisymmetric magnetic signal that saddle coils around the vessel can detect directly. A rising locked-mode amplitude is a strong, low-latency warning. It is one of the most trusted disruption precursors precisely because it is simple and direct to measure."],
+    ["h2", "Preventing locking"],
+    ["p", "The best control is to prevent locking in the first place. Maintaining plasma rotation resists locking, and error-field correction removes the static field that a rotating island would otherwise lock to. Keeping rational surfaces free of large islands through tearing-mode control also reduces the chance a mode grows large enough to lock."],
+    ["h2", "Responding to a locked mode"],
+    ["p", "Once locked, options narrow. Targeted current drive can attempt to shrink the island, and briefly applied rotating fields can try to unlock it. If the mode continues to grow, the gatekeeper commands a controlled ramp-down before it disrupts. Because locking often gives limited warning, fast, decisive response is essential."],
+    ["h2", "In the Kronos program"],
+    ["p", "For the Hyperion breeder, locked-mode amplitude is a primary entry in the exception matrix, tied to a fast response on the avoidance-first ladder. Prevention leans on rotation control and error-field correction, especially at low density during ramp-up. The detection and response are exercised against injected locked modes in the flight simulator."]
+  ],
+  "related": [["pcs-error-field-correction", "Error Field Correction"], ["pcs-ntm-control", "NTM Control"], ["pcs-disruption-avoidance", "Disruption Avoidance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-timing-synchronization",
+  "title": "Timing and Synchronization",
+  "cat": "plasma-control",
+  "lede": "A shared, precise clock lets distributed control nodes act together and lets measurements be fused correctly across the system.",
+  "body": [
+    ["h2", "Why a common time base matters"],
+    ["p", "A plasma control system is distributed across many nodes: diagnostics, real-time computers, actuator controllers. For them to act as one system, they must agree on time. A shared clock lets a measurement taken on one node be aligned with an action on another, and lets the whole discharge run against one timeline."],
+    ["h2", "Distributing the clock"],
+    ["p", "A timing system distributes a precise clock and synchronizing signals to every node, often over dedicated fiber to avoid the variable delays of a general network. Nodes discipline their local clocks to this reference so that timestamps across the system are consistent to a known, small tolerance."],
+    ["h2", "Triggers and events"],
+    ["p", "Beyond a clock, the timing system broadcasts triggers and events: the moment breakdown should occur, the transition to flat-top, an off-normal event that all nodes must react to. Event distribution lets the whole system change behavior together at a defined instant rather than each node deciding independently."],
+    ["h2", "Consequences of poor synchronization"],
+    ["p", "If clocks drift or timestamps are wrong, fused state estimates are corrupted, because measurements meant to be simultaneous are combined as though they were not. Actions can be mistimed relative to the plasma. Synchronization error therefore directly enters the latency budget and the accuracy of state estimation."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos specifies a timing and synchronization system so the fast loops of the Hyperion breeder and the burner generators share a common time base, letting the diagnostic pipeline deliver aligned data to the state estimator and letting event triggers coordinate phase transitions and off-normal responses across nodes. The design is validated in simulation ahead of construction."]
+  ],
+  "related": [["pcs-diagnostic-pipeline", "Diagnostic Pipeline"], ["pcs-plasma-state-estimation", "State Estimation"], ["pcs-real-time-computing", "Real-Time Computing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pcs-verification-validation",
+  "title": "Verification and Validation of Control Software",
+  "cat": "plasma-control",
+  "lede": "Control software must be shown correct before it commands a machine; verification checks the code, validation checks it against reality.",
+  "body": [
+    ["h2", "Two distinct questions"],
+    ["p", "Verification asks: does the software correctly implement its specification? Validation asks: does the specification, once implemented, produce the right behavior on the real system? Both are needed. Correct code implementing a wrong control law is verified but not valid; a good control law with a coding bug is valid in design but fails in verification."],
+    ["h2", "Verification methods"],
+    ["ul", ["Code review and coding standards that keep control code simple", "Unit tests of each function against expected outputs", "Static analysis to catch overflow, timing, and memory faults", "Bounded-execution proofs that loops meet their deadlines"]],
+    ["h2", "Validation methods"],
+    ["p", "Validation uses the flight simulator and hardware-in-the-loop testing to run the software against a model of the machine, then against the machine itself during commissioning. A control design is validated when it produces the intended plasma behavior across the operating range and handles the fault scenarios in the exception matrix."],
+    ["h2", "Why simplicity is a virtue"],
+    ["p", "Safety-critical control code is kept deliberately simple because simple code is easier to verify. Complex, clever algorithms may perform better on average but are harder to prove correct and harder to trust in the rare fault conditions where correctness matters most. The fastest protection loops favor analyzable simplicity over sophistication."],
+    ["h2", "In the Kronos program"],
+    ["p", "Kronos verifies and validates the control software for the Hyperion breeder and the burner generators against their reduced models and exception matrices in the flight simulator before any hardware exists. Because construction begins in the second quarter of 2027, this pre-hardware validation carries much of the burden, and on-machine commissioning confirms the remaining model-versus-reality differences."]
+  ],
+  "related": [["pcs-flight-simulator", "Flight Simulators"], ["pcs-exception-matrix", "Exception Matrix"], ["pcs-integrated-commissioning", "Integrated Commissioning"]],
+  "seo_type": "TechArticle"
+}
+]

@@ -1,0 +1,942 @@
+[
+{
+  "slug": "vision-transformer-vit",
+  "title": "Vision Transformer (ViT)",
+  "cat": "neural-architectures",
+  "lede": "The Vision Transformer treats an image as a sequence of patches and applies a standard transformer encoder, showing convolution is not required for strong image models.",
+  "body": [
+    ["h2", "From pixels to tokens"],
+    ["p", "The Vision Transformer (ViT) reframes image recognition as a sequence problem. An input image is split into a grid of fixed-size non-overlapping patches, typically 16x16 pixels. Each patch is flattened and projected by a single learned linear layer into a vector of the model dimension. The resulting sequence of patch embeddings is exactly the kind of input a transformer encoder consumes, so the architecture that dominated language modeling transfers to vision with almost no structural change."],
+    ["h3", "Positional information and the class token"],
+    ["p", "A transformer is permutation-invariant, so ViT adds learned position embeddings to the patch embeddings to encode where each patch sat in the grid. A special learnable <b>class token</b> is prepended to the sequence; after the encoder stack, its final hidden state is fed to a small classification head. Every patch attends to every other patch in each layer, giving the model a global receptive field from the first block rather than the gradually widening one a convolutional network builds up."],
+    ["h3", "Encoder blocks"],
+    ["p", "Each block is the familiar pattern: layer normalization, multi-head self-attention, a residual add, then layer normalization, a two-layer MLP with a GELU nonlinearity, and another residual add. Stacking these blocks and scaling width and depth gives the ViT-Base, Large, and Huge variants."],
+    ["ul", ["Global context from layer one, unlike the local kernels of a CNN", "Weak spatial inductive bias, so ViT needs large training sets or strong augmentation and distillation to match CNNs on modest data", "Compute scales quadratically with the number of patches, motivating hierarchical and windowed variants"]],
+    ["h2", "Why the inductive bias matters"],
+    ["p", "Convolutions bake in translation equivariance and locality for free. ViT does not, so on small datasets it underperforms. Given enough data, that same freedom lets it learn relationships a fixed kernel cannot, and it often transfers well after large-scale pretraining. Hierarchical designs reintroduce locality with shifted local-attention windows while keeping the transformer core."],
+    ["p", "ViT established that a single architecture, the transformer, can serve as a general sequence backbone across modalities. That unification underpins the multimodal and language systems described in <a href=./clip-contrastive-multimodal.html>CLIP</a> and <a href=./gpt-decoder-only-models.html>decoder-only models</a>."]
+  ],
+  "related": [["vit-patch-embeddings", "Patch Embeddings"], ["clip-contrastive-multimodal", "CLIP"], ["bert-masked-language-models", "BERT"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "vit-patch-embeddings",
+  "title": "Patch Embeddings and Positional Encoding in ViT",
+  "cat": "neural-architectures",
+  "lede": "Patch embedding turns a 2D image into a token sequence with one strided convolution, and position embeddings restore the spatial layout the transformer would otherwise ignore.",
+  "body": [
+    ["h2", "The patch embedding operation"],
+    ["p", "The first layer of a <a href=./vision-transformer-vit.html>Vision Transformer</a> converts raw pixels into tokens. Given an image of height H, width W, and C channels, and a patch size P, the image contains (H/P) x (W/P) patches. Each patch has P*P*C values, which a learned linear map projects to the model dimension D. Implementations usually realize this as a single convolution with kernel size P and stride P, which is mathematically identical to flattening each patch and multiplying by a weight matrix."],
+    ["code", ["python", "import torch, torch.nn as nn\n# image: (B, C, H, W); patch P; model dim D\nproj = nn.Conv2d(in_channels=3, out_channels=768, kernel_size=16, stride=16)\nx = torch.randn(2, 3, 224, 224)\ntokens = proj(x)                 # (2, 768, 14, 14)\ntokens = tokens.flatten(2).transpose(1, 2)  # (2, 196, 768)"]],
+    ["h3", "Number of tokens"],
+    ["p", "For a 224x224 image with P=16, the grid is 14x14 = 196 patch tokens. Adding the class token gives a sequence of length 197. Because self-attention cost grows with the square of sequence length, halving the patch size roughly quadruples the number of tokens and increases attention cost by about sixteen times, which is why patch size is a central efficiency knob."],
+    ["h3", "Position embeddings"],
+    ["p", "Self-attention has no notion of order, so a learned position embedding is added to each token. ViT uses a table of 1D learned vectors, one per position, added elementwise. When fine-tuning at a higher resolution, the grid has more patches than the pretrained table, so the position embeddings are reshaped to the original grid and interpolated to the new grid before use."],
+    ["ul", ["Learned 1D embeddings work about as well as 2D-aware ones in practice", "The class-token position also has its own embedding", "Interpolation lets one checkpoint serve multiple input resolutions"]],
+    ["h2", "Design consequences"],
+    ["p", "Patch embedding is where nearly all spatial inductive bias enters a ViT, and it is minimal: a linear projection plus additive positions. Everything else is learned by attention. This is why ViT is data-hungry but flexible, and why so many variants innovate primarily on the tokenizer and the position scheme rather than the encoder blocks themselves."]
+  ],
+  "related": [["vision-transformer-vit", "Vision Transformer"], ["rotary-position-embeddings", "Rotary Embeddings"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "bert-masked-language-models",
+  "title": "BERT and Masked Language Modeling",
+  "cat": "neural-architectures",
+  "lede": "BERT is a bidirectional transformer encoder pretrained by predicting randomly masked tokens, producing context-rich representations for classification and extraction tasks.",
+  "body": [
+    ["h2", "Bidirectional context"],
+    ["p", "BERT (Bidirectional Encoder Representations from Transformers) is a transformer encoder stack that reads an entire input at once, letting every token attend to tokens on both its left and right. This contrasts with autoregressive models, which see only past tokens. Bidirectional context is well suited to understanding tasks such as classification, named-entity recognition, and extractive question answering, where the whole sentence is available and the goal is a representation rather than generation."],
+    ["h3", "The masked language modeling objective"],
+    ["p", "To train a bidirectional model without letting it trivially copy the answer, BERT uses <b>masked language modeling</b> (MLM). About 15 percent of input tokens are selected; of those, most are replaced with a special [MASK] token, some are replaced with a random token, and a few are left unchanged. The model must predict the original token at each selected position from the surrounding context. The random and unchanged cases reduce the mismatch between pretraining, which contains [MASK] tokens, and fine-tuning, which does not."],
+    ["ul", ["[CLS] token at the start yields a pooled representation for sentence-level tasks", "[SEP] token separates sentence pairs for tasks like entailment", "Segment embeddings distinguish the first sentence from the second", "WordPiece subword tokenization keeps the vocabulary bounded"]],
+    ["h3", "Next sentence prediction and its critics"],
+    ["p", "Original BERT added a next-sentence-prediction task, deciding whether one segment truly followed another. Later work found this objective weak and often harmful, and strong successors dropped it, trained longer on more data, and used dynamic masking that reselects masked positions each epoch."],
+    ["h2", "Fine-tuning and transfer"],
+    ["p", "Pretraining is expensive and done once; adaptation is cheap. For a downstream task, a small head is added on top of the pretrained encoder and the whole model is fine-tuned on labeled data. The [CLS] representation drives sentence classification, while per-token outputs drive tagging and span extraction. See <a href=./bert-fine-tuning.html>fine-tuning</a> for the mechanics."],
+    ["p", "BERT demonstrated that self-supervised pretraining on unlabeled text, followed by light supervised adaptation, beats training task-specific models from scratch. That recipe reshaped natural language processing and set the template later scaled up by <a href=./gpt-decoder-only-models.html>decoder-only generators</a>."]
+  ],
+  "related": [["bert-fine-tuning", "Fine-Tuning BERT"], ["gpt-decoder-only-models", "Decoder-Only Models"], ["vision-transformer-vit", "Vision Transformer"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "bert-fine-tuning",
+  "title": "Fine-Tuning Pretrained Encoders",
+  "cat": "neural-architectures",
+  "lede": "Fine-tuning adapts a pretrained encoder to a specific task by attaching a small head and continuing training with a low learning rate on labeled data.",
+  "body": [
+    ["h2", "The transfer recipe"],
+    ["p", "A pretrained encoder such as <a href=./bert-masked-language-models.html>BERT</a> already encodes broad linguistic structure. Fine-tuning specializes it. The standard procedure adds a task head on top of the encoder outputs, initializes it randomly, and trains the combined model on the target dataset. Because the encoder starts near a good solution, training is short, often a few epochs, and uses a small learning rate so the pretrained weights are nudged rather than overwritten."],
+    ["h3", "Choosing what the head reads"],
+    ["ul", ["Sentence classification reads the pooled [CLS] representation", "Token tagging reads each token's final hidden state independently", "Span extraction predicts start and end positions over the sequence", "Sentence-pair tasks concatenate two inputs separated by [SEP]"]],
+    ["h3", "Stability tactics"],
+    ["p", "Fine-tuning small datasets can be unstable across random seeds. Common remedies include a brief learning-rate warmup followed by linear decay, gradient clipping, and layer-wise learning-rate decay that lets upper layers move more than the general-purpose lower layers. Freezing the lower layers entirely and training only the head is the cheapest option and a reasonable baseline when labeled data is scarce."],
+    ["code", ["python", "import torch\nopt = torch.optim.AdamW(model.parameters(), lr=2e-5, weight_decay=0.01)\nfor epoch in range(3):\n    for x, y in loader:\n        loss = model(x, labels=y).loss\n        loss.backward()\n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        opt.step(); opt.zero_grad()"]],
+    ["h2", "Parameter-efficient alternatives"],
+    ["p", "Full fine-tuning updates every weight and produces a full copy of the model per task. Parameter-efficient methods instead train a small number of added parameters while freezing the backbone: low-rank adapters inject trainable low-rank matrices into the attention and MLP projections, and prompt tuning learns a few input vectors. These cut memory and let one frozen backbone serve many tasks."],
+    ["p", "The optimizer of choice is usually <a href=./adamw-optimizer.html>AdamW</a>, and the schedule usually pairs warmup with decay as described in <a href=./learning-rate-schedules.html>learning-rate schedules</a>. The result is a task-specific model that inherits the general knowledge of the pretrained encoder while adding only what the task requires."]
+  ],
+  "related": [["bert-masked-language-models", "BERT"], ["adamw-optimizer", "AdamW"], ["learning-rate-schedules", "LR Schedules"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gpt-decoder-only-models",
+  "title": "Decoder-Only Language Models",
+  "cat": "neural-architectures",
+  "lede": "Decoder-only transformers predict the next token from all previous tokens, using causal masking so a single model both learns from and generates text.",
+  "body": [
+    ["h2", "One stack, left to right"],
+    ["p", "The GPT family popularized the decoder-only transformer: a stack of transformer blocks trained to predict the next token given every token before it. Unlike an encoder that reads bidirectionally, a decoder-only model applies a <b>causal mask</b> so position i can attend only to positions 1 through i. This makes the model naturally generative, because at inference it can extend a sequence one token at a time, feeding each prediction back as input."],
+    ["h3", "The causal mask"],
+    ["p", "Causality is enforced inside self-attention by adding a mask to the attention logits before the softmax, setting the score of any future position to negative infinity so it receives zero weight. During training this lets the model compute the loss for every position in parallel from a single forward pass, because each position already only sees legal context. The same mask at inference guarantees generation depends only on the past."],
+    ["matrix", ["Causal attention mask (1 = allowed)", [["1", "0", "0", "0"], ["1", "1", "0", "0"], ["1", "1", "1", "0"], ["1", "1", "1", "1"]]]],
+    ["h3", "Training objective"],
+    ["p", "The objective is straightforward maximum likelihood: minimize the average negative log-probability the model assigns to the true next token across the corpus. This single self-supervised task, applied at scale to diverse text, is enough to induce grammar, factual associations, and reasoning-shaped patterns without any task-specific labels. See <a href=./autoregressive-language-modeling.html>autoregressive modeling</a> for the probabilistic view."],
+    ["ul", ["Pre-norm residual blocks with attention and an MLP, repeated many times", "A shared token embedding and output projection in many designs", "Sampling strategies such as temperature, top-k, and nucleus sampling shape generation", "Context length is bounded by position handling and attention cost"]],
+    ["h2", "Why decoder-only won at scale"],
+    ["p", "A decoder-only model unifies understanding and generation in one architecture and one objective, which simplifies scaling. Because every position produces a training signal, the objective is dense and sample-efficient per token. Efficiency techniques such as <a href=./flash-attention.html>flash attention</a>, <a href=./multi-query-attention.html>multi-query attention</a>, and <a href=./rmsnorm.html>RMSNorm</a> were widely adopted to make very large decoder stacks practical. The architecture stays conceptually simple while the capability comes from scale, data, and careful training."]
+  ],
+  "related": [["autoregressive-language-modeling", "Autoregressive Modeling"], ["bert-masked-language-models", "BERT"], ["mixture-of-experts-routing", "Mixture of Experts"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "autoregressive-language-modeling",
+  "title": "Autoregressive Language Modeling",
+  "cat": "neural-architectures",
+  "lede": "Autoregressive models factor the probability of a sequence into a product of conditional next-token probabilities, the foundation of generative text models.",
+  "body": [
+    ["h2", "The chain rule of probability"],
+    ["p", "An autoregressive language model assigns a probability to a sequence of tokens by factoring it with the chain rule: P(x1..xn) equals the product over t of P(xt given x1..x(t-1)). Each factor is a conditional distribution over the vocabulary, produced by the network's softmax output. Training maximizes the log of this product, which decomposes into a sum of per-token cross-entropy terms, so a single forward pass over a sequence yields a loss at every position."],
+    ["h3", "Teacher forcing"],
+    ["p", "During training the model conditions on the true previous tokens rather than its own predictions, a technique called teacher forcing. This makes training parallel and stable. At inference the model must instead condition on its own generated tokens, creating a distribution mismatch known as exposure bias: small errors can compound over a long generation. Sampling temperature and careful decoding mitigate but do not eliminate this."],
+    ["code", ["python", "import torch.nn.functional as F\n# logits: (T, V) for one sequence; targets: (T,) next tokens\nloss = F.cross_entropy(logits, targets)      # mean NLL per token\nperplexity = loss.exp()                        # geometric-mean branching"]],
+    ["h3", "Perplexity"],
+    ["p", "Perplexity, the exponential of the mean per-token negative log-likelihood, is the standard intrinsic measure of a language model. It can be read as the effective number of equally likely choices the model faces at each step; lower is better. Perplexity is only comparable across models that share a tokenizer, since it is defined per token."],
+    ["ul", ["Greedy decoding picks the highest-probability token each step", "Temperature scales logits to make sampling sharper or flatter", "Top-k and nucleus (top-p) sampling truncate the tail before sampling", "Beam search keeps several partial sequences for likelihood-oriented tasks"]],
+    ["h2", "Why it generalizes"],
+    ["p", "Next-token prediction seems narrow, yet to predict the next token well across broad text a model must represent syntax, facts, and long-range dependencies. This is why the objective, applied at scale in <a href=./gpt-decoder-only-models.html>decoder-only models</a>, produces general capabilities. The same factorization underlies autoregressive models of audio such as <a href=./wavenet.html>WaveNet</a>, showing the principle is not specific to language."]
+  ],
+  "related": [["gpt-decoder-only-models", "Decoder-Only Models"], ["wavenet", "WaveNet"], ["retrieval-augmented-generation", "RAG"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "clip-contrastive-multimodal",
+  "title": "CLIP and Contrastive Multimodal Learning",
+  "cat": "neural-architectures",
+  "lede": "CLIP trains an image encoder and a text encoder together so that matching image-caption pairs land nearby in a shared embedding space.",
+  "body": [
+    ["h2", "Aligning two modalities"],
+    ["p", "CLIP (Contrastive Language-Image Pretraining) learns a joint embedding space for images and text. It uses two encoders, one for images (often a <a href=./vision-transformer-vit.html>Vision Transformer</a> or a convolutional network) and one for text (a transformer), each producing a single vector. Training pulls the vectors of a true image-caption pair together and pushes apart the vectors of mismatched pairs, using large batches of naturally occurring image-text data from the web rather than curated class labels."],
+    ["h3", "The contrastive objective"],
+    ["p", "Within a batch of N image-text pairs, the model computes an N-by-N matrix of cosine similarities between every image and every text. The correct pairs lie on the diagonal. A symmetric cross-entropy loss treats each row and each column as a classification problem whose correct answer is the diagonal entry, scaled by a learned temperature. Maximizing agreement on the diagonal while suppressing off-diagonal similarity produces the alignment."],
+    ["code", ["python", "import torch, torch.nn.functional as F\nimg = F.normalize(image_features, dim=-1)   # (N, D)\ntxt = F.normalize(text_features, dim=-1)    # (N, D)\nlogits = img @ txt.t() * temperature        # (N, N)\nlabels = torch.arange(len(img))\nloss = 0.5*(F.cross_entropy(logits, labels) + F.cross_entropy(logits.t(), labels))"]],
+    ["h3", "Zero-shot classification"],
+    ["p", "Because CLIP maps text and images into the same space, it classifies without task-specific training. To recognize a set of categories, each category name is written as a short caption, encoded to a vector, and the image is assigned to whichever caption vector it is closest to. Changing the label set requires no retraining, only new text prompts."],
+    ["ul", ["Robust to distribution shift compared to models trained on fixed label sets", "Prompt wording measurably affects accuracy", "Retrieval works in both directions: find images for a caption or captions for an image", "The image encoder transfers well as a general visual backbone"]],
+    ["h2", "A foundation for multimodal systems"],
+    ["p", "CLIP showed that natural-language supervision at scale yields flexible, transferable visual features. Its embeddings became a building block for generation and retrieval systems and informed how modalities are combined; see <a href=./multimodal-fusion-strategies.html>fusion strategies</a>. The contrastive idea also connects to metric learning covered in <a href=./triplet-networks.html>triplet networks</a>."]
+  ],
+  "related": [["multimodal-fusion-strategies", "Multimodal Fusion"], ["vision-transformer-vit", "Vision Transformer"], ["triplet-networks", "Triplet Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "multimodal-fusion-strategies",
+  "title": "Multimodal Fusion Strategies",
+  "cat": "neural-architectures",
+  "lede": "Multimodal models combine signals from different modalities at different depths, trading simplicity against the richness of cross-modal interaction.",
+  "body": [
+    ["h2", "Where to combine"],
+    ["p", "A multimodal network must decide where two or more streams of information meet. The classic taxonomy is early, late, and intermediate fusion, distinguished by the depth at which representations are merged. The choice affects how much cross-modal interaction the model can learn, how robust it is to a missing modality, and how much compute each stream requires."],
+    ["h3", "Early fusion"],
+    ["p", "Early fusion concatenates or interleaves the raw or lightly processed inputs and passes them through a single shared network. This lets the model learn fine-grained interactions from the start but assumes the modalities are aligned and available together, and it is sensitive to differences in scale and sampling rate between modalities."],
+    ["h3", "Late fusion"],
+    ["p", "Late fusion processes each modality with its own encoder and combines only the final representations or predictions, for example by averaging scores or concatenating embeddings before a small head. It is modular, tolerant of a missing modality, and easy to train, but it cannot model interactions that require the two streams to influence each other's internal features."],
+    ["h3", "Intermediate and attention-based fusion"],
+    ["p", "Intermediate fusion exchanges information at one or more middle layers. Cross-attention is the dominant mechanism: queries from one modality attend to keys and values from another, letting text condition on image regions or the reverse. This preserves separate encoders while enabling deep, learned interaction, and it scales naturally to more than two modalities."],
+    ["ul", ["Early fusion: maximal interaction, brittle to misalignment and missing inputs", "Late fusion: modular and robust, limited interaction", "Cross-attention: flexible interaction with separate encoders", "Contrastive alignment as in CLIP is a form of late alignment in a shared space"]],
+    ["h2", "Practical considerations"],
+    ["p", "Modalities differ in dimensionality, noise, and how much each contributes to a task, so models often normalize and reweight streams and use modality dropout to avoid over-reliance on one input. Systems like <a href=./clip-contrastive-multimodal.html>CLIP</a> show that even simple alignment in a shared space is powerful, while cross-attention fusion, drawing on the same attention machinery as <a href=./gpt-decoder-only-models.html>transformers</a>, supports richer grounding when the task demands it."]
+  ],
+  "related": [["clip-contrastive-multimodal", "CLIP"], ["vision-transformer-vit", "Vision Transformer"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "graph-attention-networks",
+  "title": "Graph Attention Networks",
+  "cat": "neural-architectures",
+  "lede": "Graph attention networks weight the contribution of each neighbor with a learned attention coefficient, letting a node emphasize its most relevant connections.",
+  "body": [
+    ["h2", "Attention on graphs"],
+    ["p", "Graph attention networks (GATs) operate on data structured as nodes and edges. Each node updates its representation by aggregating information from its neighbors, but rather than treating all neighbors equally, a GAT computes a learned attention coefficient for each edge. A node can then attend more strongly to the neighbors most relevant to it, which is valuable when connections carry different importance, as in citation graphs, molecules, or social networks."],
+    ["h3", "Computing attention coefficients"],
+    ["p", "For a node i and each neighbor j, the layer transforms both features by a shared weight matrix, concatenates them, applies a small learned vector and a LeakyReLU to produce a raw score, then normalizes the scores across all neighbors of i with a softmax. The new representation of i is the attention-weighted sum of its neighbors' transformed features, passed through a nonlinearity. Attention depends only on the two endpoint features, so the same parameters apply to any graph regardless of size."],
+    ["code", ["python", "# per edge (i, j): raw score, then softmax over neighbors of i\ne_ij = leaky_relu(a @ torch.cat([W @ h_i, W @ h_j]))\nalpha_ij = softmax_over_neighbors(e_ij)\nh_i_new = elu(sum(alpha_ij * (W @ h_j) for j in neighbors(i)))"]],
+    ["h3", "Multi-head attention"],
+    ["p", "As in transformers, GATs use multiple attention heads to stabilize learning and capture different relationship types. Intermediate layers concatenate the heads' outputs; the final layer averages them. Multiple heads let the model attend to distinct neighborhood aspects in parallel."],
+    ["ul", ["No expensive graph-wide operations; each node only looks at its neighbors", "Handles graphs of varying size and works in an inductive setting on unseen nodes", "Attention weights offer a degree of interpretability about which edges mattered", "Stacking layers widens the receptive field to multi-hop neighborhoods"]],
+    ["h2", "Relation to other graph methods"],
+    ["p", "GAT is one instance of the broader <a href=./message-passing-neural-networks.html>message-passing</a> framework, where nodes exchange and aggregate messages along edges. It differs from <a href=./graph-convolutional-networks.html>graph convolutional networks</a> by using learned, data-dependent edge weights instead of weights fixed by the graph structure. The attention mechanism itself is the same idea that powers <a href=./vision-transformer-vit.html>transformers</a>, adapted to irregular graph neighborhoods."]
+  ],
+  "related": [["graph-convolutional-networks", "Graph Convolution"], ["message-passing-neural-networks", "Message Passing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "graph-convolutional-networks",
+  "title": "Graph Convolutional Networks",
+  "cat": "neural-architectures",
+  "lede": "Graph convolutional networks generalize convolution to graphs by averaging each node's features with its neighbors' using a normalized adjacency matrix.",
+  "body": [
+    ["h2", "Convolution without a grid"],
+    ["p", "Images live on a regular grid, so a convolution can slide a fixed kernel across them. Graphs have no such regularity: nodes have different numbers of neighbors and no canonical ordering. Graph convolutional networks (GCNs) generalize the idea by defining a layer that mixes each node's features with those of its neighbors, weighted by the graph structure rather than by learned spatial positions."],
+    ["h3", "The propagation rule"],
+    ["p", "A GCN layer computes H' = sigma(D^(-1/2) A~ D^(-1/2) H W), where A~ is the adjacency matrix with added self-loops, D is its degree matrix, H is the current node features, W is a learned weight matrix, and sigma is a nonlinearity. The symmetric normalization by node degree keeps feature magnitudes stable so high-degree nodes do not dominate. Each layer aggregates information from one hop away; stacking L layers reaches L-hop neighborhoods."],
+    ["ul", ["Weights are shared across all nodes, like a convolution kernel", "Edge weights come from the graph, not learned per edge as in a GAT", "Self-loops let a node retain its own features during aggregation", "Degree normalization prevents exploding activations on hubs"]],
+    ["h3", "Over-smoothing"],
+    ["p", "Because each layer averages neighbors, stacking many GCN layers pushes all node representations toward a common value, a failure called over-smoothing. In practice shallow GCNs of two or three layers work best; going deeper requires residual connections, normalization, or techniques that preserve node identity across depth."],
+    ["h2", "Tasks and limits"],
+    ["p", "GCNs handle node classification, link prediction, and graph-level prediction after pooling. They are simple and effective on homophilous graphs, where connected nodes tend to be similar. When edges vary in importance, the learned edge weights of <a href=./graph-attention-networks.html>graph attention networks</a> often help. Both are special cases of the general <a href=./message-passing-neural-networks.html>message-passing</a> view, which frames a graph layer as computing, sending, and aggregating messages along edges."]
+  ],
+  "related": [["graph-attention-networks", "Graph Attention"], ["message-passing-neural-networks", "Message Passing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "message-passing-neural-networks",
+  "title": "Message-Passing Neural Networks",
+  "cat": "neural-architectures",
+  "lede": "The message-passing framework describes most graph neural networks as three steps: compute messages on edges, aggregate them at nodes, and update node states.",
+  "body": [
+    ["h2", "A unifying abstraction"],
+    ["p", "Message-passing neural networks (MPNNs) give a single vocabulary for graph learning. Each layer runs three operations. First, a message function computes a message on every edge from the features of its two endpoints and any edge attributes. Second, each node aggregates the messages arriving from its neighbors with a permutation-invariant operator. Third, an update function combines a node's current state with the aggregated message to produce its new state. Many named architectures are just particular choices of these three functions."],
+    ["h3", "The three functions"],
+    ["ul", ["Message: m_ij = M(h_i, h_j, e_ij), often a small MLP or linear map", "Aggregate: sum, mean, or max over incoming messages, which must be order-independent", "Update: h_i' = U(h_i, aggregated_message), often a GRU cell or MLP"]],
+    ["p", "Sum aggregation preserves the most structural information and is provably more expressive than mean or max for distinguishing graph structures, but mean is more stable when node degrees vary widely. The choice is a genuine design decision, not a detail."],
+    ["h3", "Expressive power"],
+    ["p", "The discriminative power of standard MPNNs is bounded by the Weisfeiler-Lehman graph isomorphism test: two graphs the WL test cannot tell apart will receive identical representations. This explains why plain message passing cannot count certain substructures, and it motivates additions such as positional encodings, edge features, and higher-order schemes that push past the WL limit."],
+    ["code", ["python", "for layer in range(L):\n    messages = message_fn(h[src], h[dst], edge_attr)   # per edge\n    agg = scatter_sum(messages, dst, dim_size=N)        # per node\n    h = update_fn(h, agg)"]],
+    ["h2", "Why the framing matters"],
+    ["p", "Seeing <a href=./graph-convolutional-networks.html>graph convolution</a> and <a href=./graph-attention-networks.html>graph attention</a> as message-passing variants makes their differences precise: they choose different message and aggregation functions. The abstraction also guides new designs, since improving any of the three functions, or the way readouts pool node states into a graph-level vector, is a clear axis for research. Global readouts turn node states into a single vector for graph classification or regression."]
+  ],
+  "related": [["graph-convolutional-networks", "Graph Convolution"], ["graph-attention-networks", "Graph Attention"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "temporal-convolutional-networks",
+  "title": "Temporal Convolutional Networks",
+  "cat": "neural-architectures",
+  "lede": "Temporal convolutional networks model sequences with stacked dilated causal convolutions, offering a parallel alternative to recurrent networks for time-series tasks.",
+  "body": [
+    ["h2", "Convolutions for sequences"],
+    ["p", "A temporal convolutional network (TCN) applies one-dimensional convolutions along the time axis to model sequential data. It is built from two ingredients: causal convolutions, which ensure the output at time t depends only on inputs at or before t, and dilated convolutions, which skip input positions to expand the receptive field without adding layers or losing resolution. Together they let a TCN see far into the past while training in parallel, unlike a recurrent network that must process one step at a time."],
+    ["h3", "Exponential receptive field"],
+    ["p", "Stacking layers with dilation factors 1, 2, 4, 8, and so on grows the receptive field exponentially with depth. A network with dilations doubling across L layers and kernel size k covers a history of roughly (k-1) times (2^L - 1) time steps. This means a modest stack can capture long-range dependencies that would require many recurrent steps, and it does so with a fixed, predictable memory footprint."],
+    ["ul", ["Parallel training, since all time steps are computed at once", "Stable gradients compared to backpropagation through long recurrences", "A fixed and controllable memory cost regardless of sequence length", "Residual blocks make deep stacks trainable"]],
+    ["h3", "Residual blocks"],
+    ["p", "Each TCN block typically contains two dilated causal convolutions with weight normalization, a nonlinearity, and dropout, wrapped in a <a href=./residual-connections.html>residual connection</a>. The residual path lets very deep TCNs train reliably and lets each block learn a refinement of the sequence representation rather than a full transformation."],
+    ["h2", "TCN versus recurrence and attention"],
+    ["p", "Against recurrent networks, TCNs often match or beat accuracy while training faster and avoiding vanishing-gradient issues. Their receptive field is fixed by architecture, so they cannot in principle attend to an unbounded past the way an RNN's hidden state can carry information indefinitely, though in practice the exponential field usually suffices. For very long or content-dependent context, attention-based models and <a href=./state-space-models-s4.html>state-space models</a> are alternatives. The core dilation mechanism is shared with <a href=./wavenet.html>WaveNet</a>."]
+  ],
+  "related": [["dilated-causal-convolutions", "Dilated Causal Convolutions"], ["wavenet", "WaveNet"], ["residual-connections", "Residual Connections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dilated-causal-convolutions",
+  "title": "Dilated Causal Convolutions",
+  "cat": "neural-architectures",
+  "lede": "Dilated causal convolutions insert gaps between kernel taps to widen the receptive field exponentially while keeping outputs strictly dependent on the past.",
+  "body": [
+    ["h2", "Two constraints, one operator"],
+    ["p", "Sequence models built on convolution often need two properties at once. Causality means the output at time t must not depend on any future input, which is essential for autoregressive generation and honest forecasting. A wide receptive field means the model can reach far back in time. Dilated causal convolution satisfies both: the convolution is shifted so the kernel only covers past positions, and the kernel taps are spaced apart by a dilation factor."],
+    ["h3", "How dilation works"],
+    ["p", "A standard convolution with kernel size k reads k consecutive inputs. A dilated convolution with dilation d reads k inputs spaced d apart, so it covers a span of (k-1)*d + 1 while still using only k weights. Increasing d skips over positions, sampling a wider window at the same cost. Because the operator only looks backward, causality is preserved by padding on the left and cropping the right."],
+    ["matrix", ["Kernel taps at dilation 1, 2, 4 (X = tap, . = skipped)", [["X", "X", "X", ".", ".", ".", "."], ["X", ".", "X", ".", "X", ".", "."], ["X", ".", ".", ".", "X", ".", "."]]]],
+    ["h3", "Stacking for exponential coverage"],
+    ["p", "The power comes from stacking layers with geometrically increasing dilation, such as 1, 2, 4, 8. Each layer roughly doubles the reach of the one below, so the total receptive field grows exponentially with depth while the parameter count grows only linearly. A handful of layers can therefore cover thousands of time steps."],
+    ["ul", ["Constant number of weights per layer regardless of dilation", "No pooling, so temporal resolution is preserved throughout", "Left padding keeps outputs aligned with inputs and strictly causal", "Exponential receptive-field growth from linear depth"]],
+    ["h2", "Where they are used"],
+    ["p", "Dilated causal convolutions are the backbone of <a href=./temporal-convolutional-networks.html>temporal convolutional networks</a> and of <a href=./wavenet.html>WaveNet</a>, which generates raw audio sample by sample. The same idea appears wherever a model must respect time order yet reach far back cheaply, making it a general tool for forecasting, audio, and other ordered signals such as sensor and instrument time series."]
+  ],
+  "related": [["temporal-convolutional-networks", "TCN"], ["wavenet", "WaveNet"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "wavenet",
+  "title": "WaveNet",
+  "cat": "neural-architectures",
+  "lede": "WaveNet generates raw audio one sample at a time using a deep stack of dilated causal convolutions with gated activations, modeling waveforms directly.",
+  "body": [
+    ["h2", "Modeling raw audio"],
+    ["p", "WaveNet is an autoregressive generative model of raw audio waveforms. Instead of predicting spectral features and reconstructing sound, it predicts the next audio sample directly from all previous samples. Audio is sampled tens of thousands of times per second, so a model must capture structure over very long ranges. WaveNet does this with a deep stack of <a href=./dilated-causal-convolutions.html>dilated causal convolutions</a> whose receptive field spans thousands of samples."],
+    ["h3", "Gated activation units"],
+    ["p", "Each layer uses a gated activation borrowed from the LSTM family: the convolution output is split into two paths, one passed through a tanh (the content) and one through a sigmoid (the gate), and the two are multiplied elementwise. The gate learns how much of each filter's response to let through, which improved audio quality over a plain rectified nonlinearity in the original work."],
+    ["code", ["python", "z = torch.tanh(conv_f(x)) * torch.sigmoid(conv_g(x))   # gated unit\nskip = skip_proj(z)\nout = x + res_proj(z)                                    # residual"]],
+    ["h3", "Residual and skip connections"],
+    ["p", "Every layer feeds a residual path that carries the signal to the next layer and a skip path that is summed across all layers to form the output representation. The skip connections let the final prediction draw on features from every depth, and the residual paths keep the deep stack trainable. The output is a categorical distribution over quantized sample values, trained with cross-entropy."],
+    ["ul", ["Direct waveform modeling avoids hand-designed audio features", "Dilation gives a long receptive field without pooling", "Naive sample-by-sample generation is slow, since each sample needs a full pass", "Later variants distilled WaveNet into parallel generators for real-time synthesis"]],
+    ["h2", "Legacy"],
+    ["p", "WaveNet set a quality benchmark for text-to-speech and demonstrated that convolutional autoregressive models could rival and surpass recurrent approaches for long sequences. Its combination of dilated causal convolution, gating, and residual and skip connections influenced later sequence models and directly shaped <a href=./temporal-convolutional-networks.html>temporal convolutional networks</a>. The autoregressive framing it shares with language models is described in <a href=./autoregressive-language-modeling.html>autoregressive modeling</a>."]
+  ],
+  "related": [["dilated-causal-convolutions", "Dilated Causal Convolutions"], ["temporal-convolutional-networks", "TCN"], ["autoregressive-language-modeling", "Autoregressive Modeling"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "neural-ode",
+  "title": "Neural Ordinary Differential Equations",
+  "cat": "neural-architectures",
+  "lede": "Neural ODEs treat a network's depth as continuous time, defining the transformation as the solution of a differential equation parameterized by a neural network.",
+  "body": [
+    ["h2", "Depth as continuous time"],
+    ["p", "A residual network updates its hidden state by h(t+1) = h(t) + f(h(t)), which resembles one step of the Euler method for a differential equation. Neural ordinary differential equations take this limit seriously: instead of a fixed number of discrete layers, they define the hidden state's evolution by dh/dt = f(h(t), t, theta), where f is a neural network. The output is the state at the final time, computed by a numerical ODE solver rather than by stacking layers."],
+    ["h3", "The adjoint method"],
+    ["p", "Backpropagating through the internal operations of an ODE solver would require storing every intermediate step, which is memory-heavy. Neural ODEs instead compute gradients with the adjoint sensitivity method, which solves a second, augmented ODE backward in time to recover the gradients. This gives training a memory cost that does not grow with the number of solver steps, at the price of solving another ODE and some numerical error."],
+    ["ul", ["Adaptive solvers spend more steps where the dynamics are stiff and fewer where they are smooth", "A single continuous model can be evaluated at any output time", "Constant memory in the number of function evaluations via the adjoint", "Function evaluations are the natural cost measure, replacing layer count"]],
+    ["h3", "Continuous normalizing flows"],
+    ["p", "A notable application is density modeling. In a continuous normalizing flow, the change in log-probability along the trajectory is governed by the trace of the Jacobian of f, which the ODE tracks alongside the state. This turns an intractable determinant into an integral, enabling flexible invertible generative models."],
+    ["code", ["python", "from torchdiffeq import odeint\ndef f(t, h): return net(h)          # net is an nn.Module\nh_T = odeint(f, h0, t=torch.tensor([0.0, 1.0]))[-1]"]],
+    ["h2", "Strengths and limits"],
+    ["p", "Neural ODEs are a natural fit for irregularly sampled time series and for physical systems whose behavior is genuinely continuous, since the model can be queried at arbitrary times. Their limitation is that a single ODE trajectory cannot cross itself, so plain neural ODEs cannot represent certain functions; <a href=./augmented-neural-ode.html>augmented neural ODEs</a> add extra dimensions to lift this restriction. The link to fixed-depth residual nets is described in <a href=./residual-connections.html>residual connections</a>."]
+  ],
+  "related": [["augmented-neural-ode", "Augmented Neural ODEs"], ["residual-connections", "Residual Connections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "augmented-neural-ode",
+  "title": "Augmented Neural ODEs",
+  "cat": "neural-architectures",
+  "lede": "Augmenting a neural ODE with extra state dimensions removes a fundamental expressiveness limit caused by trajectories that cannot cross.",
+  "body": [
+    ["h2", "A topological obstruction"],
+    ["p", "A <a href=./neural-ode.html>neural ODE</a> transforms its input by flowing it continuously along a learned vector field. A basic property of such flows is that trajectories cannot intersect: two distinct starting points always map to distinct points at every later time, and the mapping is a continuous, invertible deformation of space, a homeomorphism. This is elegant but restrictive, because some functions require the input space to be folded or torn in ways a homeomorphism cannot achieve."],
+    ["h3", "A concrete failure"],
+    ["p", "Consider a one-dimensional task where points inside a small interval should map to one class and points outside to another, so the desired function is not monotonic and would require trajectories to cross. A plain neural ODE cannot represent this and must resort to a very stiff, hard-to-integrate vector field that only approximates it, driving up the number of solver steps as training proceeds."],
+    ["h3", "Adding dimensions"],
+    ["p", "Augmented neural ODEs solve this by appending extra zero-initialized dimensions to the state before integration. The ODE then flows in a higher-dimensional space where the required separation is easy, since trajectories that would have to cross in the original space can pass one another by moving through the added dimensions. After integration, the model reads out from the augmented state."],
+    ["ul", ["Higher-dimensional flows can realize functions the original dimension forbids", "Trajectories become smoother, so adaptive solvers need fewer steps", "Training is often faster and more stable than the unaugmented model", "The extra dimensions add modest cost relative to the expressiveness gained"]],
+    ["code", ["python", "# augment: pad state with zeros before solving\nh_aug = torch.cat([h0, torch.zeros(batch, aug_dim)], dim=-1)\nh_T = odeint(f_aug, h_aug, t)[-1]\nout = readout(h_T)"]],
+    ["h2", "Why it matters"],
+    ["p", "Augmented neural ODEs show that the continuous-depth framework's limits are not fundamental to the idea but to the dimensionality it is given. The fix mirrors a familiar trick elsewhere in machine learning: lift data into a higher-dimensional space to make a hard separation easy. It preserves the constant-memory adjoint training of the base <a href=./neural-ode.html>neural ODE</a> while widening the class of functions it can learn."]
+  ],
+  "related": [["neural-ode", "Neural ODEs"], ["residual-connections", "Residual Connections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "capsule-networks",
+  "title": "Capsule Networks",
+  "cat": "neural-architectures",
+  "lede": "Capsule networks represent entities as vectors whose length encodes presence and whose orientation encodes properties, aiming to preserve part-whole spatial relationships.",
+  "body": [
+    ["h2", "Beyond scalar neurons"],
+    ["p", "A conventional neuron outputs a single scalar activation. A capsule instead outputs a vector. The vector's length represents the probability that a particular entity, such as an object or a part, is present, and its orientation encodes that entity's instantiation parameters, for example pose, scale, or deformation. The motivation is that pooling in ordinary convolutional networks discards precise spatial relationships, so a network can recognize that features are present without checking that they are arranged correctly."],
+    ["h3", "The squashing nonlinearity"],
+    ["p", "To keep vector lengths interpretable as probabilities, capsules apply a squashing function that shrinks short vectors toward zero and compresses long vectors to just under length one, while preserving direction. This makes the length a bounded confidence measure and lets the orientation carry the properties independently of the confidence."],
+    ["h3", "Part-whole agreement"],
+    ["p", "Lower-level capsules representing parts vote for the pose of higher-level capsules representing wholes, by multiplying their output with a learned transformation matrix. When many parts agree on the same whole, for instance the eyes, nose, and mouth all predicting a consistent face pose, the higher capsule activates strongly. This agreement mechanism, resolved by <a href=./dynamic-routing-capsules.html>dynamic routing</a>, is what encourages the network to respect part-whole geometry."],
+    ["ul", ["Vector outputs preserve pose information that pooling would discard", "Aims for viewpoint robustness through explicit transformation matrices", "Reconstruction of the input from active capsules can act as a regularizer", "Routing is iterative and computationally heavier than a forward pass"]],
+    ["h2", "Promise and difficulty"],
+    ["p", "Capsule networks capture an appealing intuition about how vision might encode structured, hierarchical scenes, and they showed strong results on small, controlled datasets. In practice the routing procedure is expensive, and the approach has been hard to scale to large, complex images relative to convolutional and transformer models. The core routing algorithm is detailed in <a href=./dynamic-routing-capsules.html>dynamic routing between capsules</a>."]
+  ],
+  "related": [["dynamic-routing-capsules", "Dynamic Routing"], ["vision-transformer-vit", "Vision Transformer"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dynamic-routing-capsules",
+  "title": "Dynamic Routing Between Capsules",
+  "cat": "neural-architectures",
+  "lede": "Dynamic routing iteratively assigns lower-level capsule outputs to the higher-level capsules whose predictions they most agree with.",
+  "body": [
+    ["h2", "Routing by agreement"],
+    ["p", "In a <a href=./capsule-networks.html>capsule network</a>, each lower-level capsule must decide which higher-level capsule to send its output to. Rather than fixing this with pooling or learned weights alone, dynamic routing decides it at inference time based on agreement. A lower capsule's prediction for a higher capsule is its output multiplied by a learned transformation matrix. The routing algorithm then strengthens the connection when a prediction aligns with the higher capsule's actual output and weakens it otherwise."],
+    ["h3", "The iterative procedure"],
+    ["p", "Routing runs for a few iterations. Coupling coefficients between each lower and higher capsule start uniform and are normalized with a softmax. Each higher capsule computes its output as the coupling-weighted sum of the predictions reaching it, then squashes it. The agreement between each prediction and the resulting higher-capsule output, measured by a dot product, is added to the raw coupling logits, so agreeing predictions gain influence in the next iteration."],
+    ["code", ["python", "b = zeros(num_lower, num_higher)          # routing logits\nfor it in range(routing_iters):\n    c = softmax(b, dim=1)                  # couplings per lower capsule\n    s = (c[..., None] * predictions).sum(0)  # weighted sum per higher\n    v = squash(s)                          # higher-capsule outputs\n    b = b + (predictions * v).sum(-1)      # agreement update"]],
+    ["ul", ["Couplings are computed per input, not fixed after training", "A few iterations, typically three, are enough in practice", "Agreement concentrates each part on the whole it best explains", "The transformation matrices are the only learned routing parameters"]],
+    ["h2", "Interpretation and cost"],
+    ["p", "Dynamic routing implements a soft clustering: predictions that cluster together in the higher capsule's output space reinforce each other, so the network favors interpretations where many parts agree on a consistent whole. This is what gives capsule networks their part-whole reasoning. The drawback is that iterative routing must run for every forward pass and does not parallelize as cleanly as a single matrix multiply, which is one reason the approach has been hard to scale relative to <a href=./vision-transformer-vit.html>transformers</a> and convolutional networks."]
+  ],
+  "related": [["capsule-networks", "Capsule Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "spiking-neural-networks",
+  "title": "Spiking Neural Networks",
+  "cat": "neural-architectures",
+  "lede": "Spiking neural networks communicate with discrete timed events rather than continuous values, modeling neurons that integrate inputs and fire when a threshold is crossed.",
+  "body": [
+    ["h2", "Event-driven computation"],
+    ["p", "Spiking neural networks (SNNs) are inspired closely by biological neurons. Instead of passing continuous activations, neurons communicate with spikes: discrete, all-or-nothing events at particular moments in time. A neuron integrates the spikes it receives into a membrane potential, and when that potential crosses a threshold it emits a spike and resets. Information is carried by which neurons spike and when, so the network is inherently temporal and event-driven rather than evaluated once per input."],
+    ["h3", "The leaky integrate-and-fire model"],
+    ["p", "The most common neuron model is leaky integrate-and-fire (LIF). Its membrane potential rises with incoming weighted spikes and decays, or leaks, toward rest over time. When the potential exceeds a threshold, the neuron fires and the potential is reset. This captures the essential dynamics, temporal integration, leakage, thresholding, and reset, while remaining cheap to simulate, and it is the workhorse for most SNN research."],
+    ["code", ["python", "# leaky integrate-and-fire step\nV = beta * V + I                 # decay then integrate input\nspike = (V >= threshold).float()\nV = V - spike * threshold        # reset by subtraction"]],
+    ["h3", "The training difficulty"],
+    ["p", "The spike-generating threshold is a step function whose derivative is zero almost everywhere and undefined at the threshold, so ordinary backpropagation cannot flow gradients through it. This is the central obstacle to training SNNs, and it is addressed by <a href=./surrogate-gradient-learning.html>surrogate gradients</a>, which substitute a smooth approximation of the step during the backward pass while keeping the true spike in the forward pass."],
+    ["ul", ["Sparse, event-driven activity can be very energy-efficient on suitable hardware", "Neuromorphic chips execute SNNs with low power by processing only spikes", "Time is a first-class dimension, natural for temporal and sensor data", "Discrete spikes make gradient-based training harder than for standard networks"]],
+    ["h2", "Where they fit"],
+    ["p", "SNNs are most attractive where energy and latency matter and where inputs are naturally event-based, such as data from event cameras or continuous sensor streams. On neuromorphic hardware the sparse spiking activity can dramatically reduce power compared with dense continuous networks. They remain less mature than mainstream deep learning for large-scale accuracy, and much current work focuses on closing that gap through better training methods and architectures."]
+  ],
+  "related": [["surrogate-gradient-learning", "Surrogate Gradients"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "surrogate-gradient-learning",
+  "title": "Surrogate Gradient Learning",
+  "cat": "neural-architectures",
+  "lede": "Surrogate gradients let spiking networks train with backpropagation by replacing the non-differentiable spike function's derivative with a smooth stand-in.",
+  "body": [
+    ["h2", "The non-differentiability problem"],
+    ["p", "A spiking neuron fires when its membrane potential crosses a threshold, an operation described by a step function. The step's derivative is zero everywhere except at the threshold, where it is a spike (a Dirac delta). Backpropagation multiplies gradients along the chain, so a zero derivative blocks the learning signal entirely, and the delta is unusable numerically. This is why <a href=./spiking-neural-networks.html>spiking neural networks</a> cannot be trained directly with gradient descent."],
+    ["h3", "Surrogate derivatives"],
+    ["p", "The surrogate gradient method keeps the true, hard spike in the forward pass, so the network's computation is unchanged, but during the backward pass it replaces the step's derivative with a smooth, bell-shaped function centered at the threshold. Common choices are the derivative of a fast sigmoid, a triangular function, or a Gaussian. The surrogate is large near the threshold, where a small change in potential could flip the spike, and small far from it, providing a usable gradient without altering the forward behavior."],
+    ["code", ["python", "class SpikeFn(torch.autograd.Function):\n    @staticmethod\n    def forward(ctx, v):\n        ctx.save_for_backward(v)\n        return (v >= 0).float()          # hard spike\n    @staticmethod\n    def backward(ctx, grad):\n        v, = ctx.saved_tensors\n        surrogate = 1.0 / (1.0 + (5*v.abs()))**2   # smooth stand-in\n        return grad * surrogate"]],
+    ["ul", ["Forward pass uses the exact spike, so inference behavior is faithful", "Backward pass uses a smooth surrogate to let gradients flow", "The surrogate's width and shape are tunable hyperparameters", "Enables backpropagation through time across the network's temporal steps"]],
+    ["h2", "Training through time"],
+    ["p", "Because spiking dynamics unfold over discrete time steps, training uses backpropagation through time: the network is unrolled over its steps and gradients are accumulated across them, with the surrogate applied at every spike. This is the same unrolling used for recurrent networks, combined with the surrogate trick. Surrogate gradient learning has become the dominant way to train accurate deep <a href=./spiking-neural-networks.html>spiking networks</a>, narrowing the gap with conventional deep learning while preserving the energy advantages of sparse spiking."]
+  ],
+  "related": [["spiking-neural-networks", "Spiking Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "state-space-models-s4",
+  "title": "Structured State-Space Models (S4)",
+  "cat": "neural-architectures",
+  "lede": "Structured state-space models represent a sequence layer as a linear dynamical system, computed as a long convolution to capture very long-range dependencies efficiently.",
+  "body": [
+    ["h2", "A linear system as a layer"],
+    ["p", "A structured state-space model (S4) treats a sequence layer as a continuous linear dynamical system: a hidden state evolves according to dx/dt = A x + B u, and the output is y = C x + D u, where u is the input signal. Discretized to the time steps of a sequence, this defines a linear recurrence. The appeal is that a well-chosen state matrix A can retain information over thousands of steps, addressing the long-range dependency problem that defeats ordinary recurrent networks."],
+    ["h3", "Recurrence and convolution duality"],
+    ["p", "Because the recurrence is linear, unrolling it shows the output is a convolution of the input with a fixed kernel determined by A, B, and C. S4 exploits this duality: it trains and runs on long sequences as a single long convolution, computed efficiently in the frequency domain, and can switch to the recurrent form for step-by-step inference. This gives parallel training like a convolutional model and fast autoregressive generation like a recurrent one."],
+    ["ul", ["Linear recurrence, so no vanishing-gradient nonlinearity in the state path", "Convolutional view enables parallel training over the whole sequence", "Recurrent view enables constant-memory streaming inference", "Cost grows roughly linearly with sequence length, unlike quadratic attention"]],
+    ["h3", "The HiPPO initialization"],
+    ["p", "The key to S4's memory is how A is initialized. The HiPPO framework derives a special structured matrix that makes the state optimally compress the history of the input onto a basis of orthogonal polynomials. Starting from this matrix, rather than a random one, is what lets S4 remember signals over extremely long ranges; a random linear recurrence would not."],
+    ["h2", "Significance"],
+    ["p", "S4 showed that a carefully structured linear model can beat attention on tasks demanding very long context while scaling linearly in sequence length. Its main limitation is that the convolution kernel is fixed regardless of input content, unlike attention which is data-dependent. That gap motivated the selective mechanism of <a href=./mamba-selective-ssm.html>Mamba</a>, which lets the state-space parameters vary with the input. S4 is a strong alternative to the <a href=./flash-attention.html>attention-based</a> transformer for long-sequence modeling."]
+  ],
+  "related": [["mamba-selective-ssm", "Mamba"], ["temporal-convolutional-networks", "TCN"], ["flash-attention", "Flash Attention"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mamba-selective-ssm",
+  "title": "Mamba and Selective State-Space Models",
+  "cat": "neural-architectures",
+  "lede": "Mamba makes state-space model parameters depend on the input, giving content-aware selectivity with linear-time sequence processing and no attention matrix.",
+  "body": [
+    ["h2", "Making state-space models selective"],
+    ["p", "Classical <a href=./state-space-models-s4.html>structured state-space models</a> use parameters that are fixed across the sequence, so the same linear recurrence is applied to every input regardless of content. This is efficient but limits the model's ability to decide what to keep and what to forget based on what it is currently reading. Mamba addresses this by making the state-space parameters, specifically the input and step-size terms, functions of the input at each position. The recurrence becomes selective: it can focus on relevant tokens and ignore irrelevant ones, an ability previously associated mainly with attention."],
+    ["h3", "The cost of selectivity"],
+    ["p", "Once the parameters vary with the input, the elegant convolution shortcut of S4 no longer applies, because the kernel is no longer fixed. Mamba recovers efficiency with a hardware-aware parallel scan: it computes the recurrence with a work-efficient prefix-scan algorithm and keeps intermediate states in fast on-chip memory rather than writing them to slower memory. This makes the selective recurrence practical at scale despite losing the convolutional form."],
+    ["ul", ["Input-dependent parameters give content-aware filtering of the sequence", "Linear time and memory in sequence length, unlike quadratic attention", "Constant-memory recurrent inference, well suited to long generations", "A parallel scan on-chip preserves training throughput"]],
+    ["h3", "Architecture"],
+    ["p", "A Mamba block wraps the selective state-space layer with input and output projections and a gating branch, replacing the attention-plus-MLP pattern of a transformer with a single homogeneous block that is repeated. There is no explicit token-to-token attention matrix, so memory does not grow with the square of the sequence length."],
+    ["h2", "Trade-offs"],
+    ["p", "Mamba is competitive with transformers on language and other sequence tasks while scaling far better to long contexts, which makes it attractive for very long documents, audio, and genomic sequences. Its recurrent state is a fixed-size summary of the past, so unlike attention it cannot look back at an arbitrary earlier token with perfect fidelity; it must have stored what it needs. Hybrid designs that interleave Mamba blocks with occasional <a href=./flash-attention.html>attention</a> layers aim to combine both strengths."]
+  ],
+  "related": [["state-space-models-s4", "S4"], ["flash-attention", "Flash Attention"], ["linear-attention", "Linear Attention"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "flash-attention",
+  "title": "Flash Attention",
+  "cat": "neural-architectures",
+  "lede": "Flash attention computes exact attention faster by tiling the calculation to keep intermediate results in fast on-chip memory, never materializing the full score matrix.",
+  "body": [
+    ["h2", "The memory bottleneck"],
+    ["p", "Standard attention computes a score matrix of size sequence-length squared, applies a softmax, and multiplies by the values. On a modern accelerator the arithmetic is cheap relative to moving that large matrix between high-bandwidth memory and the fast on-chip memory near the compute units. Attention is therefore memory-bound: the bottleneck is reading and writing the score matrix, not the multiplications themselves. Flash attention removes this bottleneck without changing the result."],
+    ["h3", "Tiling and the online softmax"],
+    ["p", "Flash attention splits the queries, keys, and values into blocks and processes them in tiles that fit in on-chip memory. For each query block it walks over key blocks, accumulating the output incrementally. The challenge is the softmax, which normally needs the whole row to compute its denominator. Flash attention uses an online softmax that maintains a running maximum and running normalization as it sees each block, rescaling the partial output so the final result is exactly the standard softmax attention."],
+    ["ul", ["Exact attention, not an approximation, with identical numerical outputs up to floating-point order", "Memory use grows linearly, not quadratically, in sequence length", "The large score matrix is never written to slow memory", "Fewer memory reads and writes yield large wall-clock speedups"]],
+    ["code", ["python", "# conceptual online softmax accumulation per key block\nm_new = max(m, block_max)\nl = exp(m - m_new)*l + exp(block_max - m_new)*block_sum\nacc = exp(m - m_new)*acc + exp(block_scores - m_new) @ V_block\nm = m_new"]],
+    ["h2", "Impact"],
+    ["p", "Flash attention made longer context lengths practical by cutting both the memory footprint and the time of the attention layer, and it also reduces memory in the backward pass by recomputing the scores from stored statistics instead of storing the whole matrix. It is a systems-level optimization: the mathematics of <a href=./gpt-decoder-only-models.html>attention</a> is unchanged, but the schedule of computation respects the memory hierarchy. Where an approximation is acceptable, <a href=./sparse-attention.html>sparse</a> and <a href=./linear-attention.html>linear</a> attention reduce cost further by changing what is computed."]
+  ],
+  "related": [["sparse-attention", "Sparse Attention"], ["linear-attention", "Linear Attention"], ["gpt-decoder-only-models", "Decoder-Only Models"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sparse-attention",
+  "title": "Sparse Attention",
+  "cat": "neural-architectures",
+  "lede": "Sparse attention restricts each token to attend to a chosen subset of positions, cutting the quadratic cost of full attention while preserving important connections.",
+  "body": [
+    ["h2", "Not every pair needs a score"],
+    ["p", "Full self-attention lets every token attend to every other token, which costs time and memory proportional to the square of the sequence length. For long sequences this becomes the dominant expense. Sparse attention observes that most of those pairwise interactions carry little weight, so it computes attention only over a structured subset of positions for each query, reducing the cost while keeping the connections that matter most."],
+    ["h3", "Common sparsity patterns"],
+    ["ul", ["Sliding window: each token attends to a fixed number of nearby tokens, capturing local context", "Dilated or strided: attend to positions at regular gaps to reach farther with the same budget", "Global tokens: a few designated tokens attend to and are attended by everything, carrying summary information", "Block-local: partition the sequence into blocks and attend within and between selected blocks"]],
+    ["p", "Practical long-sequence models combine patterns, for example a sliding window for local detail plus a handful of global tokens for long-range routing. This mixture keeps cost near linear in sequence length while still allowing information to travel across the whole sequence through the global tokens."],
+    ["h3", "Learned versus fixed sparsity"],
+    ["p", "Fixed patterns are chosen in advance and are simple and hardware-friendly. Learned sparsity instead selects which positions to attend to based on content, for example by clustering or hashing similar queries and keys together so that likely-relevant pairs share a bucket. Learned schemes can be more accurate per unit of compute but add complexity and can be harder to implement efficiently on accelerators."],
+    ["h2", "Trade-offs"],
+    ["p", "Sparse attention is an approximation: if two tokens that genuinely interact are never allowed to attend to each other, the model cannot capture that relationship, so the pattern must be chosen to match the task's dependency structure. Where exactness is required, <a href=./flash-attention.html>flash attention</a> reduces the cost of full attention without approximating. Where a different mathematical reformulation is acceptable, <a href=./linear-attention.html>linear attention</a> achieves linear scaling by another route."]
+  ],
+  "related": [["flash-attention", "Flash Attention"], ["linear-attention", "Linear Attention"], ["multi-query-attention", "Multi-Query Attention"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "linear-attention",
+  "title": "Linear Attention",
+  "cat": "neural-architectures",
+  "lede": "Linear attention replaces the softmax with a kernel feature map, reordering the computation so cost grows linearly rather than quadratically with sequence length.",
+  "body": [
+    ["h2", "Reordering the matrix products"],
+    ["p", "Standard attention computes softmax(Q K^T) V. The product Q K^T forms a matrix of size sequence-length squared, which is the source of quadratic cost. Linear attention removes the softmax and replaces it with a feature map phi applied to queries and keys, so attention becomes a normalized product of phi(Q), phi(K), and V. Without the softmax coupling the terms, the associative law lets the model compute phi(K)^T V first, a small matrix of size feature-dimension by value-dimension, and then multiply by phi(Q). This reordering makes the cost linear in sequence length."],
+    ["h3", "The kernel feature map"],
+    ["p", "The feature map phi must keep attention weights non-negative so the result stays a valid weighted average. A common choice is an elementwise function such as ELU plus one. The map approximates the exponential similarity that softmax provides; the closer the approximation, the nearer linear attention comes to the accuracy of full attention. Different feature maps trade fidelity against simplicity."],
+    ["h3", "The recurrent form"],
+    ["p", "For causal (autoregressive) generation, linear attention has a recurrent view: it maintains a running summary matrix S = sum of phi(k) outer v over past positions, updated one token at a time. Each new output is phi(q) times S, normalized. This gives constant memory and constant per-step cost during generation, unlike standard attention whose cost per step grows with the length of the history."],
+    ["code", ["python", "# causal linear attention, streaming update\nphi_q, phi_k = feature_map(q), feature_map(k)\nS = S + torch.outer(phi_k, v)        # running key-value summary\nz = z + phi_k                        # running normalizer\nout = (phi_q @ S) / (phi_q @ z + 1e-6)"]],
+    ["h2", "Where it stands"],
+    ["p", "Linear attention scales gracefully to very long sequences and gives streaming inference with fixed memory, which connects it conceptually to recurrent and state-space models such as <a href=./mamba-selective-ssm.html>Mamba</a>. Its weakness is accuracy: the softmax's sharp, content-dependent focus is hard to reproduce with a fixed feature map, so linear attention can underperform full attention on tasks needing precise long-range recall. For exact attention at lower cost, see <a href=./flash-attention.html>flash attention</a>."]
+  ],
+  "related": [["flash-attention", "Flash Attention"], ["sparse-attention", "Sparse Attention"], ["mamba-selective-ssm", "Mamba"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "multi-query-attention",
+  "title": "Multi-Query and Grouped-Query Attention",
+  "cat": "neural-architectures",
+  "lede": "Multi-query attention shares a single set of keys and values across all attention heads, shrinking the memory needed to cache them during generation.",
+  "body": [
+    ["h2", "The generation memory problem"],
+    ["p", "During autoregressive generation, a transformer caches the keys and values of all previous tokens so it does not recompute them at each step. This key-value cache grows with sequence length and with the number of attention heads, and moving it from memory becomes the main cost of long generations. Multi-query attention (MQA) attacks this directly by changing how many key and value projections the heads use."],
+    ["h3", "Sharing keys and values"],
+    ["p", "In standard multi-head attention, each head has its own query, key, and value projections. MQA keeps a separate query projection per head, preserving the diversity of what each head looks for, but shares one key projection and one value projection across all heads. The key-value cache therefore holds a single head's worth of keys and values instead of one per head, cutting its size by roughly the number of heads."],
+    ["ul", ["Query heads stay independent, so representational diversity is largely retained", "The key-value cache shrinks dramatically, easing the memory bottleneck", "Faster generation because less data moves per step", "A small quality drop can occur versus full multi-head attention"]],
+    ["h3", "Grouped-query as the middle ground"],
+    ["p", "Grouped-query attention (GQA) interpolates between the extremes. Instead of one shared key-value pair (MQA) or one per head (standard attention), it partitions the query heads into a few groups, each sharing one key-value pair. With, say, eight groups over many heads, GQA recovers most of the quality of full attention while keeping most of the memory savings of MQA. It has become the default in many large models for this reason."],
+    ["h2", "Practical role"],
+    ["p", "MQA and GQA are architectural choices aimed squarely at inference efficiency for <a href=./gpt-decoder-only-models.html>decoder-only models</a>, complementary to systems optimizations like <a href=./flash-attention.html>flash attention</a>. Flash attention speeds up the attention computation itself; grouped-query attention reduces how much key-value data must be stored and moved. Combined, they let large models generate long sequences with far lower memory and latency than the original multi-head design."]
+  ],
+  "related": [["flash-attention", "Flash Attention"], ["gpt-decoder-only-models", "Decoder-Only Models"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rotary-position-embeddings",
+  "title": "Rotary Position Embeddings",
+  "cat": "neural-architectures",
+  "lede": "Rotary position embeddings encode position by rotating query and key vectors, so attention depends on the relative distance between tokens.",
+  "body": [
+    ["h2", "Position through rotation"],
+    ["p", "Transformers need a way to encode token order, since attention is otherwise order-blind. Rotary position embeddings (RoPE) do this by rotating each pair of dimensions in the query and key vectors by an angle proportional to the token's position. Different dimension pairs rotate at different frequencies, from fast to slow, so together they encode position across many scales. Crucially, the rotation is applied to the queries and keys before the attention dot product, not added to the token embeddings."],
+    ["h3", "Why relative position emerges"],
+    ["p", "The dot product between a rotated query at position m and a rotated key at position n depends only on their difference m minus n, because rotating both by their respective angles and taking the inner product leaves a function of the relative angle. This means RoPE gives the model relative position information for free within the standard attention operation, combining the simplicity of absolute encodings with the generalization benefits of relative ones."],
+    ["code", ["python", "# apply rotation to pairs of dimensions at position m\ntheta = 1.0 / (10000 ** (torch.arange(0, d, 2)/d))\nangles = m * theta\nq_rot = q_even*cos(angles) - q_odd*sin(angles)   # rotate each pair\nk_rot = k_even*cos(angles) - k_odd*sin(angles)"]],
+    ["ul", ["Injects relative position directly into the attention score", "No learned position table, so it is parameter-free", "Rotations preserve vector norms, keeping magnitudes stable", "Extends to longer sequences than seen in training, especially with frequency scaling"]],
+    ["h2", "Length extrapolation"],
+    ["p", "Because position enters as a continuous rotation, RoPE can be adapted to context lengths beyond training by scaling the rotation frequencies, for example stretching the effective positions so a longer sequence maps onto the range the model already understands. This makes RoPE a practical choice for models that must handle variable and growing context windows. It has largely replaced additive learned positions like those in <a href=./vit-patch-embeddings.html>ViT</a> in modern <a href=./gpt-decoder-only-models.html>decoder-only models</a>."]
+  ],
+  "related": [["vit-patch-embeddings", "Positional Encoding"], ["gpt-decoder-only-models", "Decoder-Only Models"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rmsnorm",
+  "title": "RMSNorm",
+  "cat": "neural-architectures",
+  "lede": "RMSNorm normalizes activations by their root-mean-square alone, dropping the mean-centering of layer normalization for a cheaper, equally effective operation.",
+  "body": [
+    ["h2", "Simplifying layer normalization"],
+    ["p", "Layer normalization stabilizes training by rescaling each activation vector to zero mean and unit variance, then applying a learned scale and shift. RMSNorm (root-mean-square normalization) argues that the mean-centering step contributes little to the benefit, and that the real stabilizer is the rescaling. It therefore normalizes each vector by its root-mean-square value only, skipping the subtraction of the mean and the associated bias term."],
+    ["h3", "The computation"],
+    ["p", "For an activation vector x, RMSNorm computes the root-mean-square as the square root of the mean of the squared elements, divides x by that value, and multiplies by a learned per-dimension gain. There is no mean subtraction and typically no learned bias. This removes one reduction over the vector and one subtraction per element, which is a measurable saving when the operation runs in every block of a very deep model."],
+    ["code", ["python", "def rmsnorm(x, gain, eps=1e-6):\n    rms = x.pow(2).mean(-1, keepdim=True).add(eps).sqrt()\n    return x / rms * gain"]],
+    ["ul", ["Fewer operations than layer norm: no mean, no re-centering", "Preserves the direction of the activation vector, only rescaling its length", "One learned parameter per dimension, the gain, and usually no bias", "Empirically matches layer norm's stability in transformers"]],
+    ["h3", "Why it works"],
+    ["p", "The essential job of normalization in a deep residual network is to keep the scale of activations consistent as they pass through many layers, preventing the growth or collapse that would destabilize gradients. Rescaling by the root-mean-square achieves this scale control; the mean offset is largely handled by the learned parameters and the residual structure. RMSNorm's success is evidence that re-centering was not doing much of the work."],
+    ["h2", "Adoption"],
+    ["p", "RMSNorm has become the default normalization in many large <a href=./gpt-decoder-only-models.html>decoder-only models</a>, usually in a pre-norm configuration where it is applied to the input of each sublayer before attention or the MLP. It sits alongside other normalization variants like <a href=./groupnorm.html>group normalization</a>, each suited to different settings; RMSNorm's niche is efficient, stable training of very large sequence models."]
+  ],
+  "related": [["groupnorm", "Group Normalization"], ["layer-normalization-variants", "Normalization Variants"], ["residual-connections", "Residual Connections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "groupnorm",
+  "title": "Group Normalization",
+  "cat": "neural-architectures",
+  "lede": "Group normalization splits channels into groups and normalizes within each group per sample, giving batch-independent normalization for vision models.",
+  "body": [
+    ["h2", "Removing the batch dependence"],
+    ["p", "Batch normalization normalizes each channel using statistics computed across the batch, which works well with large batches but degrades when batches are small, because the estimated mean and variance become noisy. Group normalization (GroupNorm) avoids this by computing statistics within a single sample. It divides a layer's channels into a fixed number of groups and normalizes the activations within each group, using the same mean and variance for every spatial location in that group."],
+    ["h3", "The computation"],
+    ["p", "For one sample, the channels are partitioned into G groups. Within each group, GroupNorm computes the mean and variance over all channels in the group and all spatial positions, normalizes those activations, and then applies a learned per-channel scale and shift. Because the statistics come from one sample, the result does not depend on batch size at all, so the same normalization behaves identically at training and inference and across any batch size."],
+    ["ul", ["Batch-independent, so it is stable at batch size one", "Identical behavior in training and inference, with no running statistics to maintain", "The number of groups is a hyperparameter; the extremes recover other norms", "Well suited to detection, segmentation, and video where memory forces small batches"]],
+    ["h3", "Relation to other norms"],
+    ["p", "GroupNorm generalizes a family. With one group containing all channels it becomes layer normalization; with each channel in its own group it becomes instance normalization. Choosing an intermediate number of groups, often thirty-two, balances between these and tends to work best for convolutional vision networks. Unlike <a href=./rmsnorm.html>RMSNorm</a>, which targets transformers, GroupNorm is designed for the channel structure of convolutional feature maps."],
+    ["code", ["python", "import torch.nn as nn\nnorm = nn.GroupNorm(num_groups=32, num_channels=256)\n# statistics computed per-sample within each group of channels"]],
+    ["h2", "When to use it"],
+    ["p", "GroupNorm is the standard replacement for batch normalization when batches must be small, which is common in high-resolution vision and 3D tasks where memory is tight. It trades a small accuracy gap against very large-batch batch normalization for robustness across batch sizes and a simpler inference path. It is one of several <a href=./layer-normalization-variants.html>normalization variants</a> a designer selects based on the data structure and training regime."]
+  ],
+  "related": [["rmsnorm", "RMSNorm"], ["layer-normalization-variants", "Normalization Variants"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "layer-normalization-variants",
+  "title": "Normalization Variants Compared",
+  "cat": "neural-architectures",
+  "lede": "Batch, layer, instance, and group normalization differ only in which axes they compute statistics over, and that choice determines where each works best.",
+  "body": [
+    ["h2", "One idea, several axes"],
+    ["p", "Normalization layers all do the same thing: subtract a mean, divide by a standard deviation, then apply a learned scale and shift. What separates the popular variants is only the set of axes over which the mean and variance are computed. Understanding a normalization method reduces to answering: which dimensions are pooled to estimate the statistics, and which are kept separate?"],
+    ["h3", "The four common choices"],
+    ["ul", ["Batch norm: statistics over the batch and spatial axes, per channel; depends on batch size", "Layer norm: statistics over the feature or channel axis, per sample; batch-independent", "Instance norm: statistics per sample and per channel over spatial positions; used in style transfer", "Group norm: statistics per sample over groups of channels; a middle ground"]],
+    ["p", "Batch norm's use of batch statistics couples samples together and makes its behavior differ between training and inference, which is powerful with large batches but fragile with small ones. The other three compute statistics within a single sample, so they behave identically regardless of batch size."],
+    ["h3", "Pre-norm versus post-norm"],
+    ["p", "Where the normalization sits relative to the residual connection also matters. Post-norm, the original transformer placement, applies normalization after the residual add. Pre-norm applies it to the sublayer input before attention or the MLP. Pre-norm keeps a clean residual path and trains deep stacks more stably, which is why it dominates modern large models, often paired with <a href=./rmsnorm.html>RMSNorm</a>."],
+    ["h2", "Choosing a variant"],
+    ["p", "The choice follows the data and the training regime. Convolutional vision with large batches historically favored batch norm; small-batch vision favors <a href=./groupnorm.html>group norm</a>; sequence models favor layer norm or RMSNorm because sequence length and batch vary and batch statistics would be unreliable. All variants serve the same purpose within a <a href=./residual-connections.html>residual network</a>: keeping activation scales controlled so gradients stay well behaved through great depth."]
+  ],
+  "related": [["rmsnorm", "RMSNorm"], ["groupnorm", "Group Normalization"], ["residual-connections", "Residual Connections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "adamw-optimizer",
+  "title": "AdamW Optimizer",
+  "cat": "neural-architectures",
+  "lede": "AdamW fixes how Adam applies weight decay, decoupling it from the adaptive gradient scaling to make regularization behave as intended.",
+  "body": [
+    ["h2", "Adam with corrected weight decay"],
+    ["p", "Adam adapts the step size for each parameter using running estimates of the first and second moments of its gradients. The original Adam implemented weight decay by adding an L2 penalty to the loss, which folds the decay term into the gradient. AdamW showed this is wrong when combined with adaptive scaling: the penalty gets divided by the same per-parameter factor as the gradient, so parameters with large gradient histories are decayed less, distorting the regularization. AdamW instead applies weight decay directly to the weights, decoupled from the adaptive update."],
+    ["h3", "The decoupled update"],
+    ["p", "AdamW performs the ordinary Adam step from the gradient, then separately shrinks each weight toward zero by a factor proportional to the learning rate and the weight-decay coefficient. Because the decay no longer passes through the second-moment normalization, every parameter is regularized by the same relative amount, which is what weight decay is supposed to do. This small change consistently improves generalization for large models."],
+    ["code", ["python", "# per step, after computing Adam's m_hat and v_hat\nw = w - lr * m_hat / (v_hat.sqrt() + eps)   # adaptive gradient step\nw = w - lr * weight_decay * w               # decoupled decay"]],
+    ["ul", ["Weight decay is applied to weights, not merged into the gradient", "Regularization strength is consistent across parameters", "Keeps Adam's fast, robust adaptivity and gentle warmup behavior", "The de facto optimizer for transformers and large language models"]],
+    ["h2", "Practical notes"],
+    ["p", "AdamW's momentum and variance estimates are bias-corrected in early steps so the initial updates are not artificially small. It is usually paired with a <a href=./learning-rate-schedules.html>learning-rate schedule</a> that warms up then decays, and weight decay is commonly excluded from bias and normalization parameters, which should not be pulled toward zero. Compared with <a href=./rmsprop-optimizer.html>RMSprop</a>, AdamW adds momentum and the corrected decay; compared with <a href=./lion-optimizer.html>Lion</a>, it stores more state per parameter but is well understood and reliable."]
+  ],
+  "related": [["rmsprop-optimizer", "RMSprop"], ["lamb-optimizer", "LAMB"], ["lion-optimizer", "Lion"], ["learning-rate-schedules", "LR Schedules"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rmsprop-optimizer",
+  "title": "RMSprop Optimizer",
+  "cat": "neural-architectures",
+  "lede": "RMSprop scales each parameter's step by a running average of its squared gradients, adapting the learning rate per parameter to handle varying gradient magnitudes.",
+  "body": [
+    ["h2", "Per-parameter step sizes"],
+    ["p", "Different parameters in a network often see gradients of very different magnitudes, so a single global learning rate is either too large for some or too small for others. RMSprop addresses this by keeping, for each parameter, an exponentially decaying running average of its recent squared gradients, then dividing the gradient by the square root of that average. Parameters with consistently large gradients take smaller steps, and parameters with small gradients take larger ones, equalizing progress across the network."],
+    ["h3", "The update rule"],
+    ["p", "At each step RMSprop updates the running mean-square v = rho*v + (1-rho)*g^2, where g is the gradient and rho is a decay factor near 0.9. It then updates the parameter by subtracting the learning rate times g divided by the square root of v plus a small constant for numerical safety. The division normalizes the effective step so it is roughly scale-invariant with respect to the gradient magnitude."],
+    ["code", ["python", "v = rho * v + (1 - rho) * g**2\nw = w - lr * g / (v.sqrt() + eps)"]],
+    ["ul", ["Adapts the step size separately for each parameter", "The running average forgets old gradients, tracking the current landscape", "Handles non-stationary objectives well, which suits recurrent networks", "Does not include momentum by default, unlike Adam"]],
+    ["h3", "Relation to Adam"],
+    ["p", "RMSprop is effectively the second-moment half of <a href=./adamw-optimizer.html>Adam</a>. Adam adds a running average of the gradient itself, giving momentum, and bias-corrects both averages in early steps. RMSprop's simplicity makes it a useful baseline and it remains effective for certain recurrent and reinforcement-learning settings, but for large-scale supervised training Adam and AdamW are usually preferred because momentum accelerates convergence in flat directions."],
+    ["h2", "Origins and use"],
+    ["p", "RMSprop grew from the earlier Adagrad, which accumulated squared gradients without forgetting and so let the effective step decay to nearly zero over long training. Replacing the sum with an exponentially decaying average fixed that, keeping the adaptivity alive indefinitely. RMSprop is still a solid, low-memory optimizer where a full Adam state is unnecessary or where the objective shifts over time."]
+  ],
+  "related": [["adamw-optimizer", "AdamW"], ["lamb-optimizer", "LAMB"], ["learning-rate-schedules", "LR Schedules"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "lamb-optimizer",
+  "title": "LAMB Optimizer",
+  "cat": "neural-architectures",
+  "lede": "LAMB rescales each layer's update to match the norm of its weights, enabling stable training at very large batch sizes.",
+  "body": [
+    ["h2", "Optimizing for huge batches"],
+    ["p", "Training large models faster often means increasing the batch size so more work runs in parallel. But naively scaling the learning rate with the batch size makes training unstable, because different layers tolerate different step magnitudes. LAMB (Layer-wise Adaptive Moments for Batch training) was designed to make very large-batch training reliable, most famously cutting the wall-clock time to pretrain BERT by allowing batch sizes in the tens of thousands."],
+    ["h3", "Layer-wise trust ratio"],
+    ["p", "LAMB starts from an Adam-style update, computing bias-corrected first and second moment estimates and forming a candidate step for each parameter. It then applies a layer-wise trust ratio: for each layer it scales the update so that the ratio of the update's norm to the weights' norm is controlled. Concretely, it multiplies the layer's update by the norm of its weights divided by the norm of its raw update. A layer with large weights gets a proportionally larger step, and a layer with small weights a smaller one, keeping every layer's relative change consistent."],
+    ["code", ["python", "step = m_hat / (v_hat.sqrt() + eps) + weight_decay * w\ntrust = w.norm() / (step.norm() + eps)      # per layer\nw = w - lr * trust * step"]],
+    ["ul", ["Normalizes update size relative to weight size, per layer", "Keeps training stable when batches are very large", "Builds on the Adam moment estimates", "Enables high data-parallel throughput without loss of accuracy"]],
+    ["h2", "When it helps"],
+    ["p", "LAMB matters when the goal is to shorten training by scaling batch size across many accelerators, since the trust ratio prevents any single layer from taking a destabilizing step. At ordinary batch sizes it offers little over <a href=./adamw-optimizer.html>AdamW</a> and adds computation for the per-layer norms. The layer-wise trust idea generalizes an earlier method, LARS, which applied the same normalization to plain momentum SGD; LAMB combines it with Adam's adaptivity. See <a href=./learning-rate-schedules.html>learning-rate schedules</a> for the warmup that large-batch training also requires."]
+  ],
+  "related": [["adamw-optimizer", "AdamW"], ["lion-optimizer", "Lion"], ["learning-rate-schedules", "LR Schedules"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "lion-optimizer",
+  "title": "Lion Optimizer",
+  "cat": "neural-architectures",
+  "lede": "Lion updates each weight by the sign of a momentum-smoothed gradient, using less memory than Adam while remaining competitive on large models.",
+  "body": [
+    ["h2", "A sign-based update"],
+    ["p", "Lion (EvoLved Sign Momentum) is an optimizer discovered through automated search over optimizer programs. Its defining feature is that the update direction for every parameter is a sign: plus one or minus one, scaled by the learning rate. This means every weight moves by the same magnitude each step, with only the direction varying. It stands apart from adaptive methods like Adam, which scale each step by an estimate of the gradient's variance."],
+    ["h3", "How it works"],
+    ["p", "Lion maintains a single momentum buffer, an exponential moving average of past gradients. At each step it forms an interpolation between the current gradient and the momentum, takes the sign of that combination, and updates the weight by the negative learning rate times that sign, plus decoupled weight decay. It then updates the momentum buffer with a second, typically slower, decay rate. Because it stores only one buffer per parameter instead of two, it uses less optimizer memory than Adam."],
+    ["code", ["python", "update = torch.sign(beta1*m + (1-beta1)*g)\nw = w - lr * (update + weight_decay * w)\nm = beta2*m + (1-beta2)*g            # momentum for next step"]],
+    ["ul", ["One momentum buffer per parameter, so lower memory than Adam", "Uniform update magnitude from the sign operation", "Typically needs a smaller learning rate and larger weight decay than AdamW", "Competitive on large vision and language models in reported results"]],
+    ["h2", "Trade-offs and tuning"],
+    ["p", "Because the step size is decoupled from gradient magnitude, Lion behaves differently from adaptive optimizers and needs its own hyperparameter tuning: the effective step is set purely by the learning rate, so that rate is usually roughly an order of magnitude smaller than for <a href=./adamw-optimizer.html>AdamW</a>, and weight decay is set larger to compensate. The sign update also acts as a form of regularization by ignoring how confident the gradient is. Lion is attractive when optimizer memory is a constraint at large scale, though AdamW remains the more predictable default."]
+  ],
+  "related": [["adamw-optimizer", "AdamW"], ["rmsprop-optimizer", "RMSprop"], ["lamb-optimizer", "LAMB"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "learning-rate-schedules",
+  "title": "Learning-Rate Schedules",
+  "cat": "neural-architectures",
+  "lede": "A learning-rate schedule changes the step size over training, typically warming up then decaying, to balance fast early progress against stable final convergence.",
+  "body": [
+    ["h2", "Why a fixed rate is not enough"],
+    ["p", "The learning rate is the single most influential hyperparameter in training. Too large and training diverges or oscillates; too small and it crawls. A fixed value forces one compromise for the whole run, but the ideal step size changes: early on the model benefits from large steps to move quickly, while late in training small steps help settle into a good minimum. A schedule varies the rate over time to match these phases."],
+    ["h3", "Warmup"],
+    ["p", "Many modern models begin with a warmup, in which the learning rate rises linearly from near zero to its peak over the first few hundred or thousand steps. At initialization the gradient statistics used by adaptive optimizers are unreliable and the model is fragile, so a large step can destabilize it. Warmup lets those statistics settle and the weights find a reasonable region before full-size steps are taken. It is essential for large transformers and large-batch training."],
+    ["h3", "Decay shapes"],
+    ["ul", ["Step decay: cut the rate by a factor at fixed milestones", "Cosine decay: smoothly follow half a cosine curve down to a small floor", "Linear decay: decrease linearly to zero over the run", "Exponential decay: multiply by a constant factor each step", "Inverse square root: decay proportional to one over the square root of the step"]],
+    ["p", "Cosine decay after warmup is a common default because its smooth descent spends time at both high and low rates without abrupt jumps. The related warmup-plus-decay pattern is detailed in <a href=./warmup-and-cosine-decay.html>warmup and cosine decay</a>."],
+    ["h2", "Practical guidance"],
+    ["p", "The peak learning rate, the warmup length, and the decay shape interact and are usually tuned together. Cyclical schedules that raise and lower the rate repeatedly can help escape poor regions, and restarts can improve some tasks. For fine-tuning a pretrained model, a small peak rate with a short warmup and linear decay is standard, as noted in <a href=./bert-fine-tuning.html>fine-tuning</a>. The schedule is chosen alongside the optimizer, since methods like <a href=./adamw-optimizer.html>AdamW</a> and <a href=./lion-optimizer.html>Lion</a> respond differently to the same curve."]
+  ],
+  "related": [["warmup-and-cosine-decay", "Warmup and Cosine Decay"], ["adamw-optimizer", "AdamW"], ["weight-initialization", "Weight Initialization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "warmup-and-cosine-decay",
+  "title": "Warmup and Cosine Decay",
+  "cat": "neural-architectures",
+  "lede": "The warmup-then-cosine schedule ramps the learning rate up briefly, then lowers it along a cosine curve to a small floor, a widely used default.",
+  "body": [
+    ["h2", "A two-phase schedule"],
+    ["p", "Warmup with cosine decay is one of the most common <a href=./learning-rate-schedules.html>learning-rate schedules</a> for training deep networks. It has two phases. In the first, the learning rate increases linearly from a small value to its peak over a set number of warmup steps. In the second, the rate follows the shape of half a cosine wave, descending smoothly from the peak toward a small final value over the remaining steps. The combination gives a gentle start, a strong middle, and a soft landing."],
+    ["h3", "The cosine curve"],
+    ["p", "During decay, the rate at step t is set to a floor plus half the difference between peak and floor, times one plus the cosine of pi times the fraction of decay steps completed. Early in decay the cosine is flat near its top, so the rate stays high and the model keeps making rapid progress. Near the end the curve flattens again at the bottom, so the rate lingers at small values, letting the model settle into a minimum without overshooting."],
+    ["code", ["python", "import math\ndef lr_at(step, warm, total, peak, floor=0.0):\n    if step < warm:\n        return peak * step / warm\n    p = (step - warm) / (total - warm)\n    return floor + 0.5*(peak-floor)*(1 + math.cos(math.pi*p))"]],
+    ["ul", ["Warmup avoids early instability while optimizer statistics settle", "The cosine spends time at both high and low rates without sharp jumps", "A nonzero floor prevents the rate from reaching exactly zero too early", "Widely used for both pretraining and long training runs"]],
+    ["h2", "Variations"],
+    ["p", "Cosine schedules can include restarts, where the rate jumps back to a high value and decays again, forming warm restarts that sometimes improve results by re-exploring the loss surface. For continued or resumed training, practitioners sometimes extend the schedule rather than restarting cold. The choice of peak rate and warmup length still dominates outcomes, so those are tuned first; the cosine shape is a robust default once they are set. It pairs naturally with <a href=./adamw-optimizer.html>AdamW</a>."]
+  ],
+  "related": [["learning-rate-schedules", "LR Schedules"], ["adamw-optimizer", "AdamW"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "weight-initialization",
+  "title": "Weight Initialization",
+  "cat": "neural-architectures",
+  "lede": "Weight initialization sets the starting values of parameters so that signals and gradients keep a stable scale through a deep network at the first step.",
+  "body": [
+    ["h2", "Why the starting point matters"],
+    ["p", "Before training begins, weights must be set to some values. Setting them all to zero is fatal, because every neuron in a layer would compute the same thing and receive the same gradient, so they could never differentiate. Random values break this symmetry, but the scale of that randomness is critical. If weights are too large, activations grow layer by layer and explode; too small, and they shrink toward zero. Either extreme makes gradients vanish or explode, stalling training in a deep network."],
+    ["h3", "Variance-preserving schemes"],
+    ["p", "Principled initializations choose the variance of the random weights so that the variance of activations stays roughly constant as signals pass forward, and gradients stay stable passing backward. Xavier (Glorot) initialization sets the variance based on the number of inputs and outputs of a layer, appropriate for symmetric nonlinearities like tanh. He (Kaiming) initialization scales by the number of inputs and accounts for the fact that a rectified linear unit zeroes out about half its inputs, so it doubles the variance to compensate. He initialization is the standard for ReLU-family networks."],
+    ["code", ["python", "import math, torch\n# He (Kaiming) normal for a ReLU layer with fan_in inputs\nstd = math.sqrt(2.0 / fan_in)\nW = torch.randn(fan_out, fan_in) * std"]],
+    ["ul", ["Xavier: variance from fan-in and fan-out, for tanh and similar", "He: variance from fan-in with a factor of two, for ReLU", "Biases usually start at zero", "Orthogonal initialization keeps signal norms exactly preserved, useful for deep or recurrent stacks"]],
+    ["h2", "Interaction with modern designs"],
+    ["p", "Good initialization matters most in the first steps of training; once <a href=./layer-normalization-variants.html>normalization</a> and <a href=./residual-connections.html>residual connections</a> are in place, they actively maintain signal scale and reduce sensitivity to the exact initialization. Even so, very deep residual networks benefit from initializing the residual branches small, so the network starts close to an identity map and gradually learns to deviate. Combined with a warmup <a href=./learning-rate-schedules.html>schedule</a>, careful initialization keeps training stable from the very first update."]
+  ],
+  "related": [["residual-connections", "Residual Connections"], ["layer-normalization-variants", "Normalization Variants"], ["learning-rate-schedules", "LR Schedules"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "residual-connections",
+  "title": "Residual Connections",
+  "cat": "neural-architectures",
+  "lede": "A residual connection adds a layer's input to its output, letting networks learn refinements to the identity and making very deep stacks trainable.",
+  "body": [
+    ["h2", "Learning a residual"],
+    ["p", "A residual connection, the defining idea of ResNet, reroutes a layer's input directly to its output by addition: the block computes y = x + F(x), where F is the layer's transformation. Instead of learning the full desired mapping, the block only needs to learn the difference, or residual, from the identity. If the best thing a block can do is pass its input through unchanged, it can simply learn F(x) near zero, which is far easier than learning an identity mapping from scratch through nonlinear layers."],
+    ["h3", "Solving the degradation problem"],
+    ["p", "Before residual connections, making networks deeper past a point made them worse, not just harder to train but higher in training error, a degradation not explained by overfitting. Residual connections resolved this. Because the identity path is always available, adding layers cannot hurt: extra blocks can learn to do nothing. This let networks grow to hundreds and even a thousand layers and keep improving, a leap that reshaped deep learning."],
+    ["h3", "The gradient highway"],
+    ["p", "The addition also helps gradients. During backpropagation the derivative flows through the identity path with a factor of one, so it reaches early layers undiminished even when the transformation branch attenuates it. This shortcut prevents the vanishing gradients that otherwise plague deep stacks and is why residual connections appear in nearly every modern deep architecture."],
+    ["code", ["python", "def residual_block(x):\n    return x + F(x)      # F: conv-norm-relu-conv, or attention/MLP"]],
+    ["ul", ["Enables training of networks hundreds of layers deep", "Gives gradients a direct, undiminished path to early layers", "Each block learns a refinement rather than a full transformation", "Foundational to transformers, ResNets, and most modern designs"]],
+    ["h2", "Reach and variants"],
+    ["p", "Residual connections are everywhere: every transformer block wraps its attention and MLP sublayers in them, paired with <a href=./layer-normalization-variants.html>normalization</a>. Their continuous-time limit motivates <a href=./neural-ode.html>neural ODEs</a>, which read the update as a differential equation step. A denser alternative that concatenates rather than adds features is described in <a href=./dense-connectivity-densenet.html>dense connectivity</a>."]
+  ],
+  "related": [["dense-connectivity-densenet", "Dense Connectivity"], ["neural-ode", "Neural ODEs"], ["highway-networks", "Highway Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dense-connectivity-densenet",
+  "title": "Dense Connectivity (DenseNet)",
+  "cat": "neural-architectures",
+  "lede": "DenseNet connects each layer to every earlier layer by concatenation, maximizing feature reuse and gradient flow with few parameters.",
+  "body": [
+    ["h2", "Every layer sees every earlier layer"],
+    ["p", "DenseNet takes connectivity further than residual networks. Within a dense block, each layer receives the concatenated feature maps of all preceding layers as its input, and its own output is passed on to every subsequent layer. Where a residual block adds its input to its output, a dense block concatenates, so features are preserved intact rather than summed. A block of L layers therefore has L(L+1)/2 direct connections instead of L."],
+    ["h3", "Growth rate and feature reuse"],
+    ["p", "Each layer contributes a small, fixed number of new feature maps, called the growth rate, often just a few dozen channels. Because every layer can access all features produced before it, the network does not need to relearn or copy information forward, so each layer can be narrow. This aggressive feature reuse lets DenseNet reach strong accuracy with notably fewer parameters than a comparable plain or residual network."],
+    ["ul", ["Concatenation preserves earlier features rather than summing them", "A small growth rate keeps each layer narrow and parameter-efficient", "Strong implicit deep supervision, since early features reach the loss directly", "Transition layers with pooling and 1x1 convolution reduce size between blocks"]],
+    ["h3", "Managing the concatenation"],
+    ["p", "Because inputs concatenate, feature-map count grows within a block, so DenseNet is organized into several dense blocks separated by transition layers. A transition layer applies a 1x1 convolution to compress the channel count and a pooling operation to reduce spatial size, keeping the model's width and resolution manageable between blocks."],
+    ["code", ["python", "# within a dense block\nfeatures = [x]\nfor layer in layers:\n    out = layer(torch.cat(features, dim=1))   # see all prior features\n    features.append(out)\nx = torch.cat(features, dim=1)"]],
+    ["h2", "Comparison with residuals"],
+    ["p", "Both DenseNet and <a href=./residual-connections.html>residual networks</a> create short paths from early layers to the output, easing gradient flow and enabling depth. The difference is additive versus concatenative combination: residuals are memory-light and now dominant, especially in transformers, while DenseNet's concatenation maximizes reuse and parameter efficiency at the cost of higher memory for the growing feature stack. DenseNet remains a strong choice where parameter count is the binding constraint."]
+  ],
+  "related": [["residual-connections", "Residual Connections"], ["highway-networks", "Highway Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "siamese-networks",
+  "title": "Siamese Networks",
+  "cat": "neural-architectures",
+  "lede": "Siamese networks pass two inputs through the same shared-weight encoder and compare their embeddings, learning similarity rather than fixed class labels.",
+  "body": [
+    ["h2", "Two towers, shared weights"],
+    ["p", "A Siamese network processes a pair of inputs through two identical subnetworks that share exactly the same weights. Each input is mapped to an embedding, and the network's decision is based on the distance or similarity between the two embeddings rather than on classifying either input directly. Because the same function is applied to both inputs, the comparison is symmetric and the learned embedding space is consistent for any input, whether or not it was seen during training."],
+    ["h3", "Learning similarity"],
+    ["p", "The network is trained on pairs labeled as similar or dissimilar. A contrastive loss pulls the embeddings of a similar pair close together and pushes the embeddings of a dissimilar pair apart, but only until they are at least a set margin distance apart. Once dissimilar pairs are far enough, they contribute no further loss, which focuses learning on the hard, nearby cases. The result is an embedding space where distance encodes semantic similarity."],
+    ["code", ["python", "import torch.nn.functional as F\nd = F.pairwise_distance(f(x1), f(x2))          # shared encoder f\n# y=1 similar, y=0 dissimilar; margin m\nloss = y * d.pow(2) + (1-y) * F.relu(m - d).pow(2)"]],
+    ["ul", ["Weight sharing guarantees both inputs are embedded by the same function", "Learns a metric space instead of a fixed set of classes", "Well suited to verification: are these two inputs the same identity?", "Handles new classes at inference without retraining, given a reference example"]],
+    ["h2", "Where they excel"],
+    ["p", "Siamese networks shine in verification and one-shot or few-shot settings, such as signature or face verification, where the classes are open-ended and each may have only one or a few examples. Rather than learning to name every class, the model learns whether two inputs match, which generalizes to identities never seen in training by comparing against a stored reference embedding. The three-input extension that compares an anchor to a positive and a negative simultaneously is covered in <a href=./triplet-networks.html>triplet networks</a>, and the broader objective in <a href=./contrastive-loss-metric-learning.html>metric learning</a>."]
+  ],
+  "related": [["triplet-networks", "Triplet Networks"], ["contrastive-loss-metric-learning", "Metric Learning"], ["clip-contrastive-multimodal", "CLIP"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "triplet-networks",
+  "title": "Triplet Networks",
+  "cat": "neural-architectures",
+  "lede": "Triplet networks learn embeddings from an anchor, a positive, and a negative example, enforcing that the anchor sits closer to the positive than to the negative.",
+  "body": [
+    ["h2", "Three inputs at once"],
+    ["p", "A triplet network extends the <a href=./siamese-networks.html>Siamese</a> idea from pairs to triples. Each training example is a triplet: an anchor, a positive that should be similar to the anchor, and a negative that should be dissimilar. All three pass through the same shared-weight encoder. The objective is relative: the anchor must be closer to the positive than to the negative by at least a margin. This relative formulation is often easier to satisfy and more informative than the absolute distances a pairwise contrastive loss enforces."],
+    ["h3", "The triplet loss"],
+    ["p", "The triplet loss is the hinge of the distance from anchor to positive minus the distance from anchor to negative plus a margin. When the anchor is already much closer to the positive than to the negative, the loss is zero and no update happens. When the ordering is wrong or the gap is too small, the loss is positive and pushes the positive nearer and the negative farther. Only the relative arrangement matters, not the absolute distances."],
+    ["code", ["python", "import torch.nn.functional as F\nd_pos = F.pairwise_distance(f(anchor), f(positive))\nd_neg = F.pairwise_distance(f(anchor), f(negative))\nloss = F.relu(d_pos - d_neg + margin).mean()"]],
+    ["h3", "Triplet mining"],
+    ["p", "Most random triplets already satisfy the margin and contribute nothing to learning, so training efficiency depends on choosing hard triplets. Hard-negative mining selects negatives that are close to the anchor, and semi-hard mining picks negatives that are farther than the positive but still within the margin. Mining within each batch is the usual practice, since it reuses computed embeddings and finds informative triplets cheaply."],
+    ["ul", ["Relative constraint often trains more stably than absolute pairwise distances", "The margin sets how much separation is required", "Hard and semi-hard mining are essential for efficient training", "Produces embeddings for retrieval, clustering, and verification"]],
+    ["h2", "Use and relatives"],
+    ["p", "Triplet networks are a staple of face recognition and image retrieval, where the goal is an embedding space whose geometry reflects identity or content. They are one member of the broader family described in <a href=./contrastive-loss-metric-learning.html>metric learning</a>, which also includes the batch-wide contrastive objective used by <a href=./clip-contrastive-multimodal.html>CLIP</a>."]
+  ],
+  "related": [["siamese-networks", "Siamese Networks"], ["contrastive-loss-metric-learning", "Metric Learning"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "contrastive-loss-metric-learning",
+  "title": "Contrastive Loss and Metric Learning",
+  "cat": "neural-architectures",
+  "lede": "Metric learning trains embeddings so that distance reflects semantic similarity, using contrastive objectives that attract similar items and repel dissimilar ones.",
+  "body": [
+    ["h2", "Learning a distance"],
+    ["p", "Metric learning aims to learn a mapping from inputs to vectors such that the ordinary distance between vectors matches a meaningful notion of similarity: similar items land near each other, dissimilar items far apart. Instead of predicting fixed labels, the network shapes an embedding space whose geometry is the output. This is powerful for retrieval, clustering, verification, and any task where the set of categories is open-ended or where similarity, not classification, is the goal."],
+    ["h3", "From pairs to batches"],
+    ["p", "The simplest objective is the pairwise contrastive loss used in <a href=./siamese-networks.html>Siamese networks</a>, which pulls similar pairs together and pushes dissimilar pairs apart up to a margin. The <a href=./triplet-networks.html>triplet loss</a> compares an anchor to a positive and a negative at once. Modern approaches go further and contrast against many negatives simultaneously. The InfoNCE loss treats one positive against a batch of negatives as a classification problem: identify the positive among the candidates, scaled by a temperature that controls how sharply the model separates them."],
+    ["code", ["python", "import torch, torch.nn.functional as F\n# InfoNCE: query q, positive k+, negatives k-\nlogits = torch.cat([q@kp[:,None], q@kn.t()], dim=1) / temperature\nlabels = torch.zeros(len(q), dtype=torch.long)   # positive at index 0\nloss = F.cross_entropy(logits, labels)"]],
+    ["ul", ["More negatives per positive generally give a stronger, more stable signal", "Temperature tunes how hard the model pushes apart near-neighbors", "Embeddings are usually normalized so distance becomes an angle", "The same loss underlies much of modern self-supervised learning"]],
+    ["h2", "Self-supervision and beyond"],
+    ["p", "Contrastive metric learning drives a large family of self-supervised methods that learn representations without labels by treating two augmented views of the same input as a positive pair and other inputs as negatives. The batch-wide contrastive objective is exactly what aligns images and text in <a href=./clip-contrastive-multimodal.html>CLIP</a>. Whether framed as pairs, triplets, or batch classification, the common thread is shaping an embedding space where distance carries meaning."]
+  ],
+  "related": [["siamese-networks", "Siamese Networks"], ["triplet-networks", "Triplet Networks"], ["clip-contrastive-multimodal", "CLIP"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "memory-augmented-networks",
+  "title": "Memory-Augmented Neural Networks",
+  "cat": "neural-architectures",
+  "lede": "Memory-augmented networks pair a controller with an external, addressable memory it can read from and write to, separating computation from storage.",
+  "body": [
+    ["h2", "Adding an external memory"],
+    ["p", "A recurrent network stores everything it remembers in a fixed-size hidden state, which limits how much it can hold and entangles storage with computation. Memory-augmented neural networks add a separate external memory: a matrix of slots that a controller network reads from and writes to through differentiable operations. This decouples what the network computes from what it stores, giving it a larger, structured place to keep information and retrieve it later, closer to how a computer separates a processor from its memory."],
+    ["h3", "Differentiable addressing"],
+    ["p", "For the whole system to train by gradient descent, the memory access must be differentiable. Rather than reading a single slot with a hard index, the controller produces a set of weights over all slots, typically a soft attention distribution, and reads a weighted average of their contents. Writing works similarly: an erase and an add vector, weighted across slots, update the memory smoothly. Because every operation is continuous, gradients flow back through reads and writes into the controller."],
+    ["ul", ["Storage capacity scales with memory size, independent of the controller", "Content-based addressing retrieves slots by similarity to a query", "Location-based addressing supports iteration and sequential access", "Reading and writing are soft and differentiable, enabling end-to-end training"]],
+    ["h3", "What it enables"],
+    ["p", "With external memory a network can learn algorithm-like behaviors that require holding and manipulating intermediate results: copying a sequence, sorting, associative recall, and answering questions that need many facts. These tasks are hard for a fixed hidden state because they demand more storage than it provides and a way to address specific pieces of it on demand."],
+    ["h2", "Notable designs"],
+    ["p", "The <a href=./neural-turing-machines.html>Neural Turing Machine</a> and its successor the Differentiable Neural Computer are the canonical examples, combining content and location addressing with mechanisms for allocating and freeing memory. The soft, content-based read is closely related to the attention mechanism that later dominated <a href=./gpt-decoder-only-models.html>transformers</a>, and the idea of retrieving relevant stored information at inference reappears in <a href=./retrieval-augmented-generation.html>retrieval-augmented generation</a>."]
+  ],
+  "related": [["neural-turing-machines", "Neural Turing Machines"], ["pointer-networks", "Pointer Networks"], ["retrieval-augmented-generation", "RAG"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "neural-turing-machines",
+  "title": "Neural Turing Machines",
+  "cat": "neural-architectures",
+  "lede": "A Neural Turing Machine couples a neural controller to a differentiable memory using content and location-based addressing, learning simple algorithms end to end.",
+  "body": [
+    ["h2", "A learnable computer"],
+    ["p", "The Neural Turing Machine (NTM) is an early <a href=./memory-augmented-networks.html>memory-augmented network</a> designed to resemble a computer with a learnable program. It has a controller, usually a recurrent or feedforward network, and an external memory matrix. The controller emits read and write heads that access the memory through fully differentiable operations, so the entire machine, controller and memory access alike, trains by gradient descent on input-output examples. The goal was to show a network could learn algorithmic procedures rather than only pattern recognition."],
+    ["h3", "Addressing mechanisms"],
+    ["p", "The NTM's distinctive feature is how its heads choose where to read and write, blending two mechanisms. Content-based addressing produces weights by comparing a key the controller emits against each memory slot's contents, focusing on similar slots. Location-based addressing then lets the head shift its focus along the memory by a learned amount, enabling iteration and relative movement. Interpolation and sharpening steps combine and concentrate these weights into a final distribution over slots."],
+    ["ul", ["Content addressing finds slots by similarity to a query key", "Location addressing shifts the focus for sequential and iterative access", "Write heads use erase and add vectors to update slots", "All operations are differentiable, so the whole machine trains end to end"]],
+    ["h3", "What it learned"],
+    ["p", "NTMs learned to perform tasks such as copying a sequence and reproducing it, repeated copying, associative recall, and simple sorting, generalizing to longer sequences than seen in training in some cases. These results were significant because they showed a neural network could induce a reusable procedure with memory, not just a fixed mapping."],
+    ["h2", "Legacy and successors"],
+    ["p", "The NTM inspired the Differentiable Neural Computer, which added dynamic memory allocation and a mechanism to track the order in which slots were written, improving its handling of complex data structures like graphs. The content-based read is a close relative of the attention that later became central to <a href=./gpt-decoder-only-models.html>transformers</a>. A model that outputs positions into its input, rather than reading a memory, is described in <a href=./pointer-networks.html>pointer networks</a>."]
+  ],
+  "related": [["memory-augmented-networks", "Memory-Augmented Networks"], ["pointer-networks", "Pointer Networks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pointer-networks",
+  "title": "Pointer Networks",
+  "cat": "neural-architectures",
+  "lede": "Pointer networks use attention as the output itself, selecting positions in the input sequence rather than tokens from a fixed vocabulary.",
+  "body": [
+    ["h2", "Outputs that point"],
+    ["p", "Ordinary sequence-to-sequence models produce outputs from a fixed vocabulary decided before training. Some problems have outputs that are positions in the input, and whose valid range depends on the input length, so a fixed vocabulary does not fit. Pointer networks solve this by repurposing the attention mechanism: instead of using attention weights to blend a context vector, the network uses the attention distribution over input positions directly as its output, pointing at whichever input element to select next."],
+    ["h3", "Attention as a selector"],
+    ["p", "At each output step the decoder computes an attention score for every input position, comparing its current state against each input's encoding. A softmax over these scores yields a distribution over input positions, and the highest, or a sampled one, is the chosen output. Because the number of positions equals the input length, the output space automatically grows and shrinks with the input, which a standard classifier over a fixed vocabulary cannot do."],
+    ["code", ["python", "# at decoder step, score each input position i\nu_i = v.tanh(W1 @ enc_i + W2 @ dec_state)   # scalar per input position\np = softmax(u)                               # distribution over positions\nchoice = p.argmax()                          # point to an input element"]],
+    ["ul", ["Output vocabulary is the input positions, so it scales with input size", "No fixed maximum output symbol set", "Naturally suited to selecting, ordering, or subsetting the input", "Built entirely on the attention mechanism"]],
+    ["h2", "Where they apply"],
+    ["p", "Pointer networks fit combinatorial problems whose answer is an arrangement or selection of the inputs, such as finding a convex hull, ordering points for a traveling-salesman-style tour, or extractive summarization where the output words are copied from the source. The same copy mechanism was later folded into general sequence models as a copy or pointer-generator hybrid, letting a model either generate a vocabulary token or point to and copy an input token. The idea grew from the attention used in <a href=./memory-augmented-networks.html>memory-augmented</a> and translation models."]
+  ],
+  "related": [["memory-augmented-networks", "Memory-Augmented Networks"], ["neural-turing-machines", "Neural Turing Machines"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "retrieval-augmented-generation",
+  "title": "Retrieval-Augmented Generation",
+  "cat": "neural-architectures",
+  "lede": "Retrieval-augmented generation fetches relevant documents from an external store and conditions a generative model on them, grounding outputs in retrievable knowledge.",
+  "body": [
+    ["h2", "Parametric plus non-parametric knowledge"],
+    ["p", "A language model stores what it knows in its weights, which is fixed after training, hard to update, and prone to confabulation when asked about facts it never learned well. Retrieval-augmented generation (RAG) adds a second, non-parametric source of knowledge: an external collection of documents that the system searches at inference time. The model first retrieves passages relevant to the query, then generates its answer conditioned on both the query and the retrieved text, grounding its output in explicit, inspectable evidence."],
+    ["h3", "The two stages"],
+    ["p", "Retrieval usually works by embedding the query and every document into a shared vector space and finding the nearest documents by similarity, a dense retrieval that captures meaning beyond keyword overlap. The top passages are then concatenated with the query and passed to the generator, which attends over them while producing its response. Some systems retrain the retriever and generator jointly; many combine an off-the-shelf retriever with an off-the-shelf model, which is simpler and still effective."],
+    ["ul", ["Knowledge can be updated by changing the document store, without retraining", "Answers can cite the retrieved sources, improving verifiability", "Reduces confabulation by grounding generation in real passages", "Retrieval quality bounds answer quality: missing evidence cannot be used"]],
+    ["h3", "Design choices that matter"],
+    ["p", "The document chunk size, the number of passages retrieved, how they are ranked and ordered, and how the generator is prompted all affect results. Too little retrieved context starves the model; too much dilutes the relevant evidence and can exceed the context window. Re-ranking retrieved passages with a stronger model and filtering low-relevance ones are common refinements."],
+    ["h2", "Relation to memory and attention"],
+    ["p", "RAG is the practical, large-scale cousin of <a href=./memory-augmented-networks.html>memory-augmented networks</a>: the document store is an external memory, and dense retrieval is a content-based read. It differs in that the memory holds raw text and the read is a discrete search over a large index rather than a soft attention over slots. By separating storage from the generator, RAG lets a model draw on far more knowledge than its parameters could hold, and keeps that knowledge current."]
+  ],
+  "related": [["memory-augmented-networks", "Memory-Augmented Networks"], ["autoregressive-language-modeling", "Autoregressive Modeling"], ["mixture-of-experts-routing", "Mixture of Experts"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mixture-of-experts-routing",
+  "title": "Mixture-of-Experts Routing",
+  "cat": "neural-architectures",
+  "lede": "A mixture of experts routes each input to a few specialized subnetworks out of many, growing total capacity while keeping per-input computation low.",
+  "body": [
+    ["h2", "Conditional computation"],
+    ["p", "A mixture of experts (MoE) layer replaces a single dense subnetwork with many parallel expert subnetworks and a small router that decides which experts handle each input. Rather than every input passing through every parameter, each token is sent to only a few experts. This is conditional computation: the model can hold a very large number of parameters, and therefore a large capacity, while the cost of processing any single input stays roughly constant because only a fraction of the experts activate."],
+    ["h3", "The router"],
+    ["p", "For each token the router computes a score for every expert, usually with a small linear layer followed by a softmax, and selects the top few, often one or two. The token is processed by just those experts, and their outputs are combined weighted by the router's scores. Because only the selected experts run, the added parameters do not add proportional compute. The router is trained jointly with the experts, learning which inputs each expert should specialize in."],
+    ["code", ["python", "scores = softmax(router(x))              # (num_experts,)\ntopk = scores.topk(k)                    # choose k experts\ny = sum(w * experts[i](x) for i, w in zip(topk.indices, topk.values))"]],
+    ["h3", "Load balancing"],
+    ["p", "Left alone, the router tends to favor a few experts, leaving others untrained and wasting capacity. To prevent this collapse, MoE layers add an auxiliary load-balancing loss that encourages tokens to spread evenly across experts, and they cap how many tokens each expert accepts per batch, dropping or rerouting overflow. Getting this balance right is central to training MoE models well."],
+    ["ul", ["Total parameters can be very large while per-token compute stays low", "Only a few experts run per token, so cost is nearly constant", "A load-balancing loss keeps all experts in use", "Experts often specialize, though not always in human-interpretable ways"]],
+    ["h2", "Where it fits"],
+    ["p", "MoE layers commonly replace the feedforward blocks of a <a href=./gpt-decoder-only-models.html>transformer</a>, letting a model scale parameter count far beyond a dense model of the same per-token cost. The trade-offs are systems complexity, since experts must be distributed across devices, and memory, since all experts must be stored even though few run at a time. Routing to specialized modules is a recurring theme, related in spirit to the conditional weight generation of <a href=./hypernetworks.html>hypernetworks</a>."]
+  ],
+  "related": [["gpt-decoder-only-models", "Decoder-Only Models"], ["hypernetworks", "Hypernetworks"], ["retrieval-augmented-generation", "RAG"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "hypernetworks",
+  "title": "Hypernetworks",
+  "cat": "neural-architectures",
+  "lede": "A hypernetwork is a network that generates the weights of another network, letting one model produce parameters adapted to a context or task.",
+  "body": [
+    ["h2", "A network that writes weights"],
+    ["p", "A hypernetwork is a neural network whose output is the weights of a second network, called the target or primary network. Instead of learning the target's parameters directly, training learns the hypernetwork, which then produces those parameters from some input, such as a layer index, a task descriptor, or a context vector. This indirection lets the model generate parameters that adapt to the situation and often expresses many target weights with far fewer hypernetwork parameters, a form of weight compression through sharing."],
+    ["h3", "How it is used"],
+    ["p", "In the simplest case a small hypernetwork takes an embedding for each layer of a deep target network and emits that layer's weight matrix, so the whole target is generated from a compact set of layer embeddings plus the shared hypernetwork. In a conditional case the hypernetwork takes a task or context input and produces weights specialized to it, enabling fast adaptation without storing a separate full model per task. The target network then runs normally on its data using the generated weights."],
+    ["code", ["python", "# generate a target layer's weights from a context vector\nW = hypernet(context).view(out_dim, in_dim)   # produced weights\ny = x @ W.t()                                   # target uses them"]],
+    ["ul", ["One hypernetwork can produce weights for many layers or many tasks", "Often far fewer learned parameters than the target it generates", "Enables conditional, context-dependent behavior without swapping models", "Gradients flow through the generated weights back into the hypernetwork"]],
+    ["h2", "Applications"],
+    ["p", "Hypernetworks appear in several settings. In meta-learning and few-shot learning they generate task-adapted weights from a small support set. In continual learning they can produce per-task weights from task embeddings, reducing interference between tasks. They also underlie some parameter-efficient adaptation methods, where a small network emits the low-rank updates applied to a frozen backbone. Conceptually they share the theme of conditional computation with <a href=./mixture-of-experts-routing.html>mixture-of-experts</a> routing, which selects among fixed experts rather than generating weights, and both aim to make a model's behavior depend flexibly on its input."]
+  ],
+  "related": [["mixture-of-experts-routing", "Mixture of Experts"], ["neural-ode", "Neural ODEs"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "highway-networks",
+  "title": "Highway Networks",
+  "cat": "neural-architectures",
+  "lede": "Highway networks use learned gates to control how much of each layer's input passes through unchanged versus transformed, an early route to training very deep networks.",
+  "body": [
+    ["h2", "Gated depth"],
+    ["p", "Highway networks were among the first architectures to train networks of many dozens of layers. They borrow the gating idea from LSTMs and apply it to depth. Each layer computes both a transformed version of its input and a learned transform gate that decides, per element, how much of the transformed output to use versus how much of the original input to carry straight through. When the gate is closed, the input passes unchanged, giving information a clear path through many layers."],
+    ["h3", "The gating equations"],
+    ["p", "A highway layer outputs y = H(x)*T(x) + x*(1 - T(x)), where H is the transformation, T is the transform gate produced by a sigmoid, and the carry portion is one minus the gate. If T is near zero the layer acts as an identity; if T is near one it acts as a normal transformation. The gate is learned, so the network decides for itself which layers should transform and which should mostly pass information along."],
+    ["code", ["python", "T = torch.sigmoid(W_t @ x + b_t)      # transform gate\nH = relu(W_h @ x + b_h)               # transformation\ny = H * T + x * (1 - T)               # carry the rest"]],
+    ["ul", ["Learned gates modulate transformation versus carry, per element", "Enables training of networks tens of layers deep", "Bias the transform gate negative at init so layers start near identity", "A direct precursor to the residual connection"]],
+    ["h2", "Relation to residual networks"],
+    ["p", "Highway networks and <a href=./residual-connections.html>residual connections</a> both create shortcut paths that let information and gradients skip transformations, and both made great depth trainable. The difference is that a highway layer gates the shortcut with a learned, input-dependent weight, while a residual connection uses a fixed, ungated identity add. The residual's simpler form proved easier to optimize and scale, so it largely superseded gating for depth, but highway networks established the core insight that a learnable pass-through path is what unlocks very deep training."]
+  ],
+  "related": [["residual-connections", "Residual Connections"], ["dense-connectivity-densenet", "Dense Connectivity"]],
+  "seo_type": "TechArticle"
+}
+]

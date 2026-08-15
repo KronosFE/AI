@@ -1,0 +1,1188 @@
+[
+{
+  "slug": "digital-twin-fundamentals",
+  "title": "Digital Twin Fundamentals",
+  "cat": "digital-twins",
+  "lede": "A digital twin is a living model kept in step with a physical system through a continuous flow of measured data.",
+  "body": [
+    ["h2", "What a twin is"],
+    ["p", "A digital twin is a computational model of a specific physical asset that is continuously updated from that asset's sensors, so the model tracks the real system's state over its life. The defining feature is the closed data loop: measurements flow into the model, the model is corrected, and the corrected model produces predictions and decisions that flow back toward the asset or its operators. A model that runs once and is never reconciled with data is a simulation, not a twin."],
+    ["h3", "The three parts"],
+    ["ul", ["A physical asset instrumented with sensors that report its condition", "A model or federation of models that reproduce the asset's behavior", "A bidirectional data link that keeps the two synchronized and returns insight"]],
+    ["p", "The value of a twin comes from asking questions the physical asset cannot answer safely or quickly: what happens if this parameter is pushed higher, how much life remains in this component, which of several actions best protects the machine. Because the twin runs faster than real time on a surrogate, or in parallel on full physics, it explores futures the hardware only lives once."],
+    ["h3", "Twins in fusion"],
+    ["p", "For a fusion power plant the twin must span plasma physics, electromagnetics, neutronics, heat transport, and structural response, coupled through shared boundaries. Kronos develops twins for two designs: the breeder Hyperion, a deuterium-tritium spherical tokamak, and the burner, a deuterium-helium-3 tandem-mirror generator housed as Aegis and MetroVolt. Both machines are at the design and simulation stage; construction begins in the second quarter of 2027 and first tritium for the first-of-a-kind breeder is targeted near 2030. No hardware net-gain claim is made before that milestone."],
+    ["p", "Because the machines are not yet built, today's artifact is a high-fidelity three-dimensional model rather than a data-fed twin. The engineering work described across this section is the method by which that model becomes a predictive twin once sensors exist to feed it. See <a href=./digital-twin-roadmap-3d-to-foak.html>the roadmap from 3D model to operational twin</a>."],
+    ["h3", "Why the distinction matters"],
+    ["p", "Calling a model a twin sets an obligation: it must be validated against the real asset and it must degrade gracefully when data is missing or wrong. The rest of this section covers the methods that make that obligation achievable, from data assimilation to validation."]
+  ],
+  "related": [["twin-vs-simulation-vs-model", "Twin vs Simulation vs Model"], ["digital-twin-roadmap-3d-to-foak", "Roadmap: 3D Model to FOAK"], ["twin-architecture-overview", "Twin Architecture"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-vs-simulation-vs-model",
+  "title": "Twin, Simulation, and Model Compared",
+  "cat": "digital-twins",
+  "lede": "A model describes behavior, a simulation runs it forward, and a twin keeps a simulation locked to a real asset with live data.",
+  "body": [
+    ["h2", "Three related ideas"],
+    ["p", "The words model, simulation, and digital twin are often used loosely. They name three distinct things, and the difference is the degree of coupling to a specific physical object. Getting the vocabulary right prevents overclaiming, which matters for a machine that is not yet built."],
+    ["h3", "Model"],
+    ["p", "A model is a mathematical description of how a system behaves: equations, parameters, and boundary conditions. A magnetohydrodynamic equilibrium code, a lumped thermal network, a fatigue curve for a structural alloy, all are models. A model is a static description; it does not by itself represent any particular unit or any particular moment in time."],
+    ["h3", "Simulation"],
+    ["p", "A simulation is a model executed forward in time or across a parameter sweep to produce predicted behavior. Simulations answer design questions and generate the training data for surrogates. They can be generic, describing a class of machines, and they need no connection to a real asset. Today's Kronos three-dimensional model of Hyperion and the burner is elaborate simulation, not a twin."],
+    ["h3", "Digital twin"],
+    ["p", "A twin is a simulation bound to one specific physical unit through a data assimilation loop. It carries an estimate of that unit's current internal state, updates that estimate as sensors report, and adjusts its own parameters to match observed drift. Two identical machines have two different twins, because each accumulates its own history of wear, calibration, and operating conditions."],
+    ["h3", "A useful test"],
+    ["ul", ["Can it describe behavior in equations? It is at least a model.", "Does it run forward to predict? It is a simulation.", "Is it corrected continuously by data from one named unit? It is a twin."]],
+    ["p", "The progression is cumulative. A twin contains models and runs simulations; what makes it a twin is the live reconciliation. See <a href=./data-assimilation-basics.html>data assimilation</a> for the mechanism that performs that reconciliation, and <a href=./twin-fidelity-levels.html>fidelity levels</a> for how much physics a twin needs to carry."]
+  ],
+  "related": [["digital-twin-fundamentals", "Digital Twin Fundamentals"], ["data-assimilation-basics", "Data Assimilation Basics"], ["twin-fidelity-levels", "Twin Fidelity Levels"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-fidelity-levels",
+  "title": "Levels of Twin Fidelity",
+  "cat": "digital-twins",
+  "lede": "Twins span a ladder from status mirrors to full predictive physics; the right rung depends on the question being asked.",
+  "body": [
+    ["h2", "Fidelity is a choice, not a maximum"],
+    ["p", "More physics is not automatically better. A twin exists to answer questions within a time and accuracy budget, and higher fidelity costs computation, data, and validation effort. Engineering a twin means choosing the lowest fidelity that answers the question reliably, and reserving heavy physics for the questions that demand it."],
+    ["h3", "A ladder of fidelity"],
+    ["ul", ["Descriptive: mirrors current sensor values and derived indicators, no forward prediction", "Diagnostic: adds state estimation to infer quantities that are not directly measured", "Predictive: rolls the estimated state forward to forecast behavior and remaining life", "Prescriptive: evaluates candidate actions and recommends or executes the best"]],
+    ["p", "Most operational twins are a federation running different rungs at once: a descriptive layer for the control room refreshing many times per second, a diagnostic layer reconstructing plasma or thermal state, and a slower predictive layer forecasting component life over campaigns."],
+    ["h3", "Matching fidelity to the question"],
+    ["p", "Reconstructing the magnetic equilibrium of the Hyperion breeder plasma for control needs a fast reduced model that runs inside the control cycle. Predicting fatigue accumulation in a magnet support after thousands of pulses can use an offline high-fidelity structural model run overnight. Forecasting tritium inventory across the breeding blanket needs neutronics coupled to chemistry, updated per campaign rather than per millisecond."],
+    ["h3", "Fidelity and honesty"],
+    ["p", "Because both Kronos machines are pre-construction, every twin fidelity claim rests on validated simulation, not on operating data. The honest posture is to state that clearly: the twin's predictive skill will be established only after the first-of-a-kind breeder produces data near 2030. Until then fidelity is bounded by how well the underlying physics codes have been verified and cross-checked, not by how well the twin has tracked a running plant."],
+    ["p", "See <a href=./surrogate-models-for-twins.html>surrogate models</a> for how high fidelity is made fast enough for the control cycle, and <a href=./twin-validation-verification-uq.html>validation and verification</a> for how fidelity claims are tested."]
+  ],
+  "related": [["twin-architecture-overview", "Twin Architecture"], ["surrogate-models-for-twins", "Surrogate Models for Twins"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-architecture-overview",
+  "title": "Digital Twin Architecture",
+  "cat": "digital-twins",
+  "lede": "A twin is a layered federation: sensing and ingestion, a physics or surrogate core, an assimilation loop, and a decision and interface layer.",
+  "body": [
+    ["h2", "Layers of a twin"],
+    ["p", "A working twin is not a single program but a layered federation of components, each with its own update rate, ownership, and failure behavior. Separating the layers keeps the fast control-relevant parts independent of the slow analytics, so a slow analysis never stalls a real-time loop."],
+    ["h3", "Sensing and ingestion"],
+    ["p", "Sensors and diagnostics produce raw signals; the ingestion layer timestamps, calibrates, validates, and buffers them. It rejects bad channels, aligns clocks, and presents clean measurement vectors to the estimator. For a fusion machine this layer must handle wildly different rates, from magnetic pickup coils sampled thousands of times per second to neutron activation samples analyzed between campaigns."],
+    ["h3", "Model core"],
+    ["p", "The core holds the physics: full-fidelity codes for offline use and surrogate models fast enough for the loop. It advances the estimated state and produces predicted observations to compare against real ones. See <a href=./surrogate-models-for-twins.html>surrogate models</a>."],
+    ["h3", "Assimilation loop"],
+    ["p", "The assimilation layer fuses model predictions with incoming measurements to maintain a best current state estimate with quantified uncertainty. This is where a Kalman or ensemble or particle filter lives. It is the heart that makes the federation a twin rather than a simulator. See <a href=./data-assimilation-basics.html>data assimilation</a>."],
+    ["h3", "Decision and interface"],
+    ["p", "The top layer turns state estimates into value: what-if studies, control recommendations, maintenance forecasts, and operator displays. It may feed a model-predictive controller or simply advise humans. See <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a>."],
+    ["h3", "Cross-cutting concerns"],
+    ["ul", ["Timing and determinism for the real-time path", "Data standards so components interoperate", "Security across the sensor-to-actuator boundary", "Versioning so every prediction is traceable to model and data provenance"]],
+    ["p", "Kronos builds this architecture around both machines. The breeder Hyperion and the burner share the pattern but differ in the physics carried in the core, because a spherical tokamak and a tandem-mirror generator have different dominant behaviors."]
+  ],
+  "related": [["twin-software-stack", "Twin Software Stack"], ["data-assimilation-basics", "Data Assimilation Basics"], ["coupling-twin-to-control-system", "Coupling the Twin to Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "data-assimilation-basics",
+  "title": "Data Assimilation Basics",
+  "cat": "digital-twins",
+  "lede": "Data assimilation blends an imperfect model forecast with imperfect measurements to produce a state estimate better than either alone.",
+  "body": [
+    ["h2", "The core problem"],
+    ["p", "A model predicts what a system's state should be; sensors measure part of that state with noise. Neither is exact. Data assimilation is the systematic combination of the two, weighting each by how much it is trusted, to produce an estimate with smaller error than the model or the data on its own. It is the mechanism that turns a simulation into a twin."],
+    ["h3", "Forecast and analysis"],
+    ["p", "Assimilation alternates two steps. The forecast step advances the state and its uncertainty forward using the model. The analysis step corrects that forecast when a measurement arrives, pulling the estimate toward the data by an amount set by their relative uncertainties. The cycle repeats every time new data comes in, so the estimate is continuously refreshed."],
+    ["h3", "The weighting principle"],
+    ["p", "The optimal weight given to a measurement rises when the measurement is precise and falls when the forecast is already confident. Written loosely, the update is: new estimate = forecast + gain times (measurement minus predicted measurement), where the gain grows with forecast uncertainty and shrinks with measurement noise. Every major method, from the Kalman filter to variational schemes, is a way of computing that gain under different assumptions."],
+    ["h3", "Families of methods"],
+    ["ul", ["Sequential filters that update as each observation arrives: Kalman, ensemble Kalman, particle filters", "Variational methods that fit a whole time window at once: three- and four-dimensional variational assimilation", "Hybrids that combine ensemble-estimated uncertainty with variational fitting"]],
+    ["h3", "Why fusion needs it"],
+    ["p", "Many quantities that matter in a fusion plant cannot be measured directly: the internal current profile of the Hyperion plasma, the temperature deep inside a breeding blanket, the true state of a magnet after many pulses. Assimilation infers these hidden states from the signals that can be measured, which is exactly what a predictive twin requires. See <a href=./kalman-filter.html>the Kalman filter</a> for the foundational method."],
+    ["p", "Because the machines are pre-construction, assimilation is developed and tested today against simulated observations, a practice called an observing-system simulation experiment, described under <a href=./twin-validation-verification-uq.html>validation</a>."]
+  ],
+  "related": [["kalman-filter", "The Kalman Filter"], ["state-estimation-basics", "State Estimation Basics"], ["sensor-fusion", "Sensor Fusion"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "kalman-filter",
+  "title": "The Kalman Filter",
+  "cat": "digital-twins",
+  "lede": "The Kalman filter is the optimal recursive estimator for a linear system with Gaussian noise, and the ancestor of most twin assimilation.",
+  "body": [
+    ["h2", "An optimal recursive estimator"],
+    ["p", "The Kalman filter estimates the hidden state of a linear dynamical system disturbed by noise, using a stream of noisy measurements. It is recursive: it keeps only the current estimate and its uncertainty, folding in each new measurement without reprocessing history. For linear dynamics with Gaussian noise it is provably the minimum-variance estimator, which is why it anchors the field."],
+    ["h3", "State and covariance"],
+    ["p", "The filter carries two objects: a state vector, the best estimate of the quantities of interest, and a covariance matrix, the uncertainty in that estimate and the correlations among its components. Both are propagated in time and both are corrected at each measurement."],
+    ["h3", "The two steps"],
+    ["p", "Predict: advance the state through the system model and grow the covariance by the process noise. Update: compute the Kalman gain from the current covariance and the measurement noise, then correct the state toward the measurement and shrink the covariance. The gain is the formal answer to how much to trust the new data."],
+    ["code", ["python", "import numpy as np\n\ndef kalman_step(x, P, z, F, Q, H, R):\n    # predict\n    x = F @ x\n    P = F @ P @ F.T + Q\n    # update\n    y = z - H @ x                 # innovation\n    S = H @ P @ H.T + R           # innovation covariance\n    K = P @ H.T @ np.linalg.inv(S)  # Kalman gain\n    x = x + K @ y\n    P = (np.eye(len(x)) - K @ H) @ P\n    return x, P"]],
+    ["h3", "Assumptions and their limits"],
+    ["p", "The classical filter assumes linear dynamics and measurement, Gaussian noise, and known noise statistics. Real fusion systems are strongly nonlinear, so the plain filter is used mostly for near-linear subsystems such as some magnet or power-supply dynamics. Nonlinear extensions handle the rest: see <a href=./extended-kalman-filter.html>the extended</a> and <a href=./unscented-kalman-filter.html>unscented</a> variants, and <a href=./ensemble-kalman-filter.html>the ensemble filter</a> for high-dimensional fields."],
+    ["p", "In a Kronos twin the filter's covariance is as valuable as its state, because honest uncertainty on an inferred quantity, such as an unmeasured internal temperature, is what makes a prediction trustworthy. See <a href=./uncertainty-quantification-twins.html>uncertainty quantification</a>."]
+  ],
+  "related": [["extended-kalman-filter", "Extended Kalman Filter"], ["ensemble-kalman-filter", "Ensemble Kalman Filter"], ["state-estimation-basics", "State Estimation Basics"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "extended-kalman-filter",
+  "title": "Extended Kalman Filter",
+  "cat": "digital-twins",
+  "lede": "The extended Kalman filter applies the Kalman update to nonlinear systems by linearizing the dynamics around the current estimate.",
+  "body": [
+    ["h2", "Kalman for nonlinear systems"],
+    ["p", "Most physical systems, including plasmas and thermal-hydraulic loops, are nonlinear. The extended Kalman filter keeps the Kalman structure of predict and update but replaces the linear system matrices with the Jacobians, the local first derivatives, of the nonlinear model evaluated at the current estimate. In effect it linearizes the world afresh at every step."],
+    ["h3", "How it works"],
+    ["p", "The state is advanced through the full nonlinear model, but the covariance is propagated using the Jacobian of that model. Likewise the measurement is predicted through the full nonlinear observation function, while the gain uses the Jacobian of that function. Everything else matches the classical filter."],
+    ["h3", "Strengths"],
+    ["ul", ["Reuses the mature and cheap Kalman machinery", "Works well when nonlinearity is mild over one time step", "Provides a covariance estimate at low cost"]],
+    ["h3", "Weaknesses"],
+    ["ul", ["Requires Jacobians, which may be hard or expensive to derive", "Linearization error grows with strong nonlinearity and can diverge", "Assumes the posterior stays roughly Gaussian, which fails near instabilities"]],
+    ["h3", "When to reach for something else"],
+    ["p", "If deriving Jacobians is impractical or the dynamics turn sharply, the <a href=./unscented-kalman-filter.html>unscented filter</a> avoids linearization by propagating chosen sample points, and the <a href=./ensemble-kalman-filter.html>ensemble filter</a> handles very high-dimensional states. For strongly non-Gaussian, multi-modal situations, such as competing plasma scenarios, a <a href=./particle-filter.html>particle filter</a> may be required."],
+    ["p", "In a Kronos twin the extended filter is a reasonable default for moderately nonlinear subsystems, for example tracking coupled temperatures and flows in a cooling loop of the breeder Hyperion, where the physics is smooth and Jacobians are available from the thermal model. Its covariance output feeds directly into remaining-life and control decisions."]
+  ],
+  "related": [["kalman-filter", "The Kalman Filter"], ["unscented-kalman-filter", "Unscented Kalman Filter"], ["particle-filter", "Particle Filter"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "unscented-kalman-filter",
+  "title": "Unscented Kalman Filter",
+  "cat": "digital-twins",
+  "lede": "The unscented Kalman filter captures nonlinearity by propagating a small deterministic set of sample points instead of linearizing.",
+  "body": [
+    ["h2", "Sampling instead of linearizing"],
+    ["p", "The extended Kalman filter approximates a nonlinear function by its slope; the unscented filter approximates the probability distribution instead. It chooses a small set of carefully placed points, called sigma points, that capture the mean and covariance of the current estimate, pushes each through the full nonlinear model, and reconstructs the mean and covariance of the result from where the points land."],
+    ["h3", "The unscented transform"],
+    ["p", "For a state of dimension n the filter uses about 2n+1 sigma points, spread around the mean along the covariance directions. Because the points go through the real model, the transform captures curvature that a single Jacobian misses, and it is accurate to a higher order for many distributions. No derivatives are needed."],
+    ["h3", "Advantages over the extended filter"],
+    ["ul", ["No Jacobians, so it works with black-box or non-differentiable models", "Higher accuracy for moderately strong nonlinearity", "Comparable computational cost for modest state dimension"]],
+    ["h3", "Limits"],
+    ["p", "The number of sigma points grows with the state dimension, so for very large fields the unscented filter becomes expensive and the ensemble approach is preferred. It still assumes the posterior is well described by a mean and covariance, so it struggles with strongly multi-modal distributions where a <a href=./particle-filter.html>particle filter</a> is appropriate."],
+    ["h3", "Use in a fusion twin"],
+    ["p", "The unscented filter suits subsystems that are nonlinear but not enormous, and where the model is available only as a solver rather than as clean equations. An example in a Kronos twin is estimating coupled magnet current and temperature margin in the burner's high-field plug region, where the model is a solver and derivatives are awkward, yet the state dimension is small enough for sigma points to remain cheap. Its uncertainty output feeds the same decision and control layers as any other filter."]
+  ],
+  "related": [["extended-kalman-filter", "Extended Kalman Filter"], ["ensemble-kalman-filter", "Ensemble Kalman Filter"], ["particle-filter", "Particle Filter"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ensemble-kalman-filter",
+  "title": "Ensemble Kalman Filter",
+  "cat": "digital-twins",
+  "lede": "The ensemble Kalman filter represents uncertainty with a population of model runs, making Kalman assimilation feasible for very large states.",
+  "body": [
+    ["h2", "A Monte Carlo Kalman filter"],
+    ["p", "When the state is a high-dimensional field, such as temperature over a whole blanket or a magnetic configuration on a grid, storing and propagating a full covariance matrix is impossible. The ensemble Kalman filter solves this by representing the state distribution with a modest population of full model runs, an ensemble, and estimating the needed covariances from the spread of that population."],
+    ["h3", "How it runs"],
+    ["p", "Each ensemble member is advanced through the full nonlinear model in the forecast step. The scatter of the members gives a sample covariance. When a measurement arrives, every member is nudged toward the data using a gain built from that sample covariance, with a small random perturbation added to the observation so the updated spread stays honest. The ensemble mean is the state estimate; the spread is the uncertainty."],
+    ["h3", "Why it scales"],
+    ["ul", ["Cost grows with ensemble size, typically tens to a few hundred members, not with state dimension squared", "No Jacobians and no explicit covariance matrix are needed", "It parallelizes naturally, since members are independent during the forecast"]],
+    ["h3", "Practical hazards"],
+    ["p", "Small ensembles produce noisy covariances and spurious long-range correlations; this is controlled by localization, which suppresses correlations between distant points, and by inflation, which counteracts the tendency of the ensemble to grow overconfident. Both are standard and both must be tuned."],
+    ["h3", "Fusion relevance"],
+    ["p", "The ensemble filter is the natural choice for assimilating field-like quantities in a Kronos twin: reconstructing distributed temperature and tritium concentration through the Hyperion breeding blanket, or a neutron flux map, where the state is large and the model is an expensive solver. Because members are independent, they map cleanly onto parallel and surrogate-accelerated computation. See <a href=./surrogate-models-for-twins.html>surrogate models</a> and <a href=./ensemble-forecasting-twin.html>ensemble forecasting</a>."]
+  ],
+  "related": [["kalman-filter", "The Kalman Filter"], ["ensemble-forecasting-twin", "Ensemble Forecasting in Twins"], ["neutronics-twin", "Neutronics Twin"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "particle-filter",
+  "title": "Particle Filters",
+  "cat": "digital-twins",
+  "lede": "Particle filters represent any probability distribution with weighted samples, handling nonlinearity and multiple competing hypotheses.",
+  "body": [
+    ["h2", "Beyond Gaussian assumptions"],
+    ["p", "Kalman-family filters assume the state distribution is a single bell curve. When it is not, for example when a system might be in one of several distinct regimes, a particle filter is needed. It represents the distribution by a cloud of weighted samples, called particles, each a complete possible state. The cloud can take any shape, including several separate peaks."],
+    ["h3", "The algorithm"],
+    ["ul", ["Predict: advance every particle through the model, adding process noise", "Weight: score each particle by how well it explains the new measurement", "Resample: draw a new equally weighted set, favoring high-weight particles, discarding poor ones"]],
+    ["p", "The weighted average of the particles is the state estimate, and their spread is the uncertainty. Because each particle is a full nonlinear model run, no linearization and no Gaussian assumption is required."],
+    ["h3", "The cost and the fix"],
+    ["p", "Particle filters are expensive: reliable coverage of a high-dimensional state can need enormous numbers of particles, a difficulty known as the curse of dimensionality. They also suffer degeneracy, where one particle takes almost all the weight; resampling and improved proposal distributions mitigate this. In practice particle filters are used on low- to moderate-dimensional states, or on a few critical variables, rather than on full fields, where the <a href=./ensemble-kalman-filter.html>ensemble filter</a> is preferred."],
+    ["h3", "Where multi-modality matters"],
+    ["p", "In a fusion twin, competing hypotheses are real. A diagnostic pattern might be consistent with either a benign fluctuation or the onset of an instability; a fault signature might match two different failing components. A particle filter can carry both explanations at once, with their probabilities, until data resolves which is true. That honesty about ambiguity is exactly what a twin owes an operator. See <a href=./twin-anomaly-detection.html>anomaly detection</a> and <a href=./disruption-prediction-twin.html>disruption prediction</a>."]
+  ],
+  "related": [["ensemble-kalman-filter", "Ensemble Kalman Filter"], ["bayesian-filtering-overview", "Bayesian Filtering Overview"], ["twin-anomaly-detection", "Anomaly Detection in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "bayesian-filtering-overview",
+  "title": "Bayesian Filtering Overview",
+  "cat": "digital-twins",
+  "lede": "Bayesian filtering is the common framework behind Kalman, ensemble, and particle methods: recursively updating a belief with each observation.",
+  "body": [
+    ["h2", "One framework, many algorithms"],
+    ["p", "The Kalman, ensemble, and particle filters look different but are all instances of one idea: recursive Bayesian estimation. The filter maintains a probability distribution over the hidden state, its belief, and updates that belief every time an observation arrives, using Bayes' rule. The algorithms differ only in how they represent and propagate the distribution."],
+    ["h3", "Predict and correct in Bayesian terms"],
+    ["p", "The predict step uses the system dynamics to spread the belief forward in time, a convolution with the transition model. The correct step multiplies the predicted belief by the likelihood of the new observation and renormalizes. This is exactly Bayes' rule with the forecast as the prior and the measurement likelihood as the evidence."],
+    ["h3", "How the methods specialize it"],
+    ["ul", ["Kalman filter: belief is Gaussian, dynamics linear, so the update is a closed-form formula", "Extended and unscented filters: keep the Gaussian belief but handle nonlinear dynamics approximately", "Ensemble filter: represent the Gaussian belief with samples for high dimensions", "Particle filter: represent an arbitrary belief with weighted samples"]],
+    ["h3", "Why the framework helps"],
+    ["p", "Seeing all filters as approximations of the same Bayesian recursion makes the trade-offs clear. Choosing a filter is choosing which approximation the problem tolerates: Gaussian or not, differentiable or not, low or high dimension. It also clarifies what every filter delivers, a full distribution rather than a single number, which is what allows a twin to report calibrated uncertainty."],
+    ["h3", "In a fusion twin"],
+    ["p", "A Kronos twin uses different specializations for different subsystems, but all share this Bayesian backbone, so their uncertainty estimates combine coherently. The framework also connects to offline calibration, where the same Bayesian logic estimates fixed model parameters rather than time-varying state. See <a href=./calibration-and-parameter-estimation.html>calibration and parameter estimation</a> and <a href=./data-assimilation-basics.html>data assimilation</a>."]
+  ],
+  "related": [["data-assimilation-basics", "Data Assimilation Basics"], ["particle-filter", "Particle Filters"], ["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "state-estimation-basics",
+  "title": "State Estimation Basics",
+  "cat": "digital-twins",
+  "lede": "State estimation infers the hidden internal condition of a system from partial, noisy measurements of its outputs.",
+  "body": [
+    ["h2", "Seeing the unseen"],
+    ["p", "The state of a system is the smallest set of variables that, together with future inputs, determines its future behavior. Most of those variables cannot be measured directly. State estimation is the discipline of reconstructing them from the signals that can be measured. It is the intellectual core of any predictive twin, because prediction requires knowing where the system is now."],
+    ["h3", "State, input, output"],
+    ["p", "A dynamical model relates three things: the state that evolves internally, the inputs that drive it, and the outputs that sensors observe. The estimator runs the model forward using known inputs, compares predicted outputs to measured ones, and corrects the state to close the gap. The correction is where filtering enters."],
+    ["h3", "Why partial observation is the norm"],
+    ["p", "Sensors are limited by cost, access, and survivability. In a fusion machine, few diagnostics can look inside a burning plasma or a neutron-loaded blanket, so most of the state is hidden by necessity. Estimation lets a handful of robust external measurements stand in for a dense internal picture the machine can never carry directly."],
+    ["h3", "Estimation versus curve fitting"],
+    ["p", "State estimation differs from fitting a curve to data because it respects the physics: the reconstructed state must be consistent with the governing equations, not merely close to the points. This constraint sharply reduces ambiguity and lets the estimator infer quantities no single sensor sees, by combining many partial views through the model."],
+    ["h3", "In the Kronos twins"],
+    ["p", "For the breeder Hyperion, state estimation reconstructs the plasma equilibrium, including the internal current profile that no diagnostic measures directly. For the burner, it infers plug and throat conditions in the tandem mirror. In both cases the estimated state, with its uncertainty, is the object every downstream layer consumes. See <a href=./observability-and-controllability.html>observability</a> for when reconstruction is even possible, and <a href=./plasma-state-reconstruction.html>plasma state reconstruction</a> for the fusion-specific method."]
+  ],
+  "related": [["observability-and-controllability", "Observability and Controllability"], ["plasma-state-reconstruction", "Plasma State Reconstruction"], ["data-assimilation-basics", "Data Assimilation Basics"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "observability-and-controllability",
+  "title": "Observability and Controllability",
+  "cat": "digital-twins",
+  "lede": "Observability asks whether sensors can reveal the internal state; controllability asks whether actuators can steer it.",
+  "body": [
+    ["h2", "Two questions before you build"],
+    ["p", "Before a twin can estimate a state or a controller can regulate it, two structural questions must be answered. Observability: do the available measurements contain enough information to reconstruct the full internal state? Controllability: can the available actuators drive the state anywhere it needs to go? Both are properties of the system and its instrumentation, not of any particular algorithm."],
+    ["h3", "Observability"],
+    ["p", "A state is observable if distinct internal conditions always produce distinguishable measurement histories. If two different states would look identical to every sensor, no estimator, however clever, can tell them apart. Checking observability early tells the designers where diagnostics must be added so the twin can see what it needs to see."],
+    ["h3", "Controllability"],
+    ["p", "A state is controllable if some sequence of allowed inputs can move it from any starting point to any target. Uncontrollable directions are ones the actuators simply cannot influence; those must be handled by design margin rather than by control. For a fusion machine this shapes the choice and placement of coils, heating, and fueling systems."],
+    ["h3", "Degrees, not absolutes"],
+    ["p", "In practice observability and controllability are matters of degree. A state may be weakly observable, technically reconstructable but only with large uncertainty, or weakly controllable, steerable only slowly or with heavy actuator effort. Quantifying these degrees guides where to invest in better sensors or stronger actuators."],
+    ["h3", "For the Kronos machines"],
+    ["p", "Observability analysis of the Hyperion breeder guides diagnostic placement so the plasma equilibrium and internal profiles can be reconstructed from survivable external measurements. Controllability analysis of the burner's tandem-mirror plug fields determines whether the high-field plug and throat conditions can be steered by the planned coil and heating set. Both analyses are done today on the design models, before hardware exists, which is exactly when they are most useful. See <a href=./state-estimation-basics.html>state estimation</a> and <a href=./model-predictive-control-basics.html>model-predictive control</a>."]
+  ],
+  "related": [["state-estimation-basics", "State Estimation Basics"], ["model-predictive-control-basics", "Model-Predictive Control Basics"], ["sensor-fusion", "Sensor Fusion"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sensor-fusion",
+  "title": "Sensor Fusion",
+  "cat": "digital-twins",
+  "lede": "Sensor fusion combines many imperfect, partial measurements into one estimate more accurate and complete than any single sensor.",
+  "body": [
+    ["h2", "The whole from partial views"],
+    ["p", "No single sensor sees everything, and every sensor is noisy. Sensor fusion is the combination of readings from many sensors, of the same or different kinds, into a unified estimate that is more accurate, more complete, and more robust than any one of them. In a twin, fusion is performed inside the assimilation loop, weighting each sensor by its trustworthiness."],
+    ["h3", "Complementary, competitive, cooperative"],
+    ["ul", ["Complementary: sensors cover different parts of the system, together giving a fuller picture", "Competitive: sensors measure the same quantity, so agreement builds confidence and disagreement flags faults", "Cooperative: sensors that individually reveal little combine to infer something neither sees alone"]],
+    ["h3", "How the weighting works"],
+    ["p", "Each measurement enters with a noise model describing its expected error. The estimator trusts precise, well-characterized sensors more and noisy ones less, and it accounts for correlations, so two sensors sharing a common error are not double-counted. The result is a state estimate whose uncertainty reflects the full sensor set."],
+    ["h3", "Handling disagreement"],
+    ["p", "When redundant sensors disagree beyond their noise, fusion must decide which to believe. Techniques range from voting among redundant channels to statistical outlier rejection to explicitly modeling the possibility that a sensor has failed. This gatekeeping is what keeps one bad channel from corrupting the whole estimate."],
+    ["h3", "Fusion in the Kronos twins"],
+    ["p", "A fusion machine carries diagnostics of many types on very different timescales: magnetic, thermal, optical, neutron, and structural. Fusing them lets the twin reconstruct states no single diagnostic reveals, for example combining magnetic and pressure measurements to infer the Hyperion plasma equilibrium. It also provides graceful degradation: if a diagnostic is lost, the estimate widens rather than fails. See <a href=./sensor-fusion-diagnostics.html>diagnostic fusion in fusion machines</a> and <a href=./data-assimilation-basics.html>data assimilation</a>."]
+  ],
+  "related": [["sensor-fusion-diagnostics", "Diagnostic Fusion in Fusion Machines"], ["data-assimilation-basics", "Data Assimilation Basics"], ["twin-anomaly-detection", "Anomaly Detection in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sensor-fusion-diagnostics",
+  "title": "Diagnostic Fusion in Fusion Machines",
+  "cat": "digital-twins",
+  "lede": "Fusion plants carry magnetic, optical, neutron, and thermal diagnostics; fusing them reconstructs plasma and machine states no one diagnostic sees.",
+  "body": [
+    ["h2", "A diverse diagnostic set"],
+    ["p", "A fusion machine is watched by many diagnostic families, each sensitive to a different physical process and each with its own noise, latency, and survivability. A predictive twin fuses them so their strengths add and their blind spots are covered. The following families are representative of what the Kronos machines will carry."],
+    ["h3", "The families"],
+    ["ul", ["Magnetic: pickup coils and flux loops sensing fields and currents, fast and robust, the backbone of equilibrium reconstruction", "Optical and spectroscopic: light emission revealing temperature, density, and impurity content", "Neutron and particle: counts and spectra reporting the fusion reaction rate and its distribution", "Thermal: thermocouples and infrared sensing heat loads on internal surfaces", "Structural and electrical: strain, vibration, and power-supply signals reporting machine health"]],
+    ["h3", "Why fusion of diagnostics is essential"],
+    ["p", "The most important quantities are hidden. The internal current profile of the Hyperion plasma, its pressure profile, and the true heat flux to plasma-facing surfaces cannot be measured directly. Combining magnetic measurements with pressure and radiation data through a physics model reconstructs them, a technique that treats every diagnostic as a partial constraint on one consistent state."],
+    ["h3", "Cross-checking and fault detection"],
+    ["p", "Because families overlap, fusion also polices sensor health. If the neutron rate implies a fusion power inconsistent with the temperature and density from spectroscopy, one of them is wrong, and the twin flags it rather than silently averaging. This cross-diagnostic consistency is a first line of anomaly detection."],
+    ["h3", "Differences between the machines"],
+    ["p", "The breeder Hyperion, a spherical tokamak, leans heavily on magnetic and neutron diagnostics for its deuterium-tritium plasma. The burner, a deuterium-helium-3 tandem-mirror generator with a 26.49 tesla plug and a low neutron fraction of 5.44 percent, weights its diagnostic fusion toward magnetic, particle, and direct-conversion electrical signals. The twin architecture is shared; the diagnostic weighting is machine-specific. See <a href=./plasma-state-reconstruction.html>plasma state reconstruction</a>."]
+  ],
+  "related": [["sensor-fusion", "Sensor Fusion"], ["plasma-state-reconstruction", "Plasma State Reconstruction"], ["equilibrium-reconstruction", "Equilibrium Reconstruction"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "real-time-model-updating",
+  "title": "Real-Time Model Updating",
+  "cat": "digital-twins",
+  "lede": "A twin must revise not only its state but its own parameters as the real machine drifts, wears, and reveals mismodeled physics.",
+  "body": [
+    ["h2", "Two kinds of update"],
+    ["p", "A twin updates its state continuously, but a machine also changes in ways the fixed model does not capture: surfaces erode, calibrations drift, seals age, and physics that was approximated turns out to matter. Real-time model updating is the slower revision of the model's own parameters and structure to keep it faithful over the asset's life, distinct from the fast state estimate."],
+    ["h3", "Parameter estimation on the fly"],
+    ["p", "The simplest form treats uncertain model parameters as extra states and lets the filter estimate them alongside the fast dynamics, a technique called state augmentation. Slowly varying quantities, such as a heat-transfer coefficient that changes as a surface fouls, are tracked this way. The filter's uncertainty on the parameter reveals when a change is real rather than noise."],
+    ["h3", "Detecting structural mismatch"],
+    ["p", "When the residuals, the persistent gap between predicted and measured outputs, show a pattern the current model cannot explain, the model structure itself is wrong. This is a signal to bring in higher-fidelity physics, add a missing effect, or retrain a surrogate. Distinguishing a parameter drift from a structural error is a core skill of a maintained twin."],
+    ["h3", "Guardrails"],
+    ["ul", ["Constrain updates to physically plausible ranges so the twin never fits itself into nonsense", "Update parameters slowly relative to state, separating the two timescales", "Log every change so a prediction can be traced to the model version that made it"]],
+    ["h3", "In the Kronos program"],
+    ["p", "Before hardware exists, model updating is exercised against simulated drift to prove the machinery works. After the first-of-a-kind breeder Hyperion operates near 2030, real erosion and calibration drift will drive genuine updates. Because both machines run in fleets, the burner as Aegis and MetroVolt units, updates learned on one unit can inform priors for others while each unit keeps its own twin. See <a href=./calibration-and-parameter-estimation.html>calibration</a> and <a href=./predictive-maintenance.html>predictive maintenance</a>."]
+  ],
+  "related": [["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"], ["predictive-maintenance", "Predictive Maintenance"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "surrogate-models-for-twins",
+  "title": "Surrogate Models for Twins",
+  "cat": "digital-twins",
+  "lede": "Surrogates are fast approximations of expensive physics codes, letting a twin run inside real-time and assimilation loops.",
+  "body": [
+    ["h2", "Fast stand-ins for heavy physics"],
+    ["p", "High-fidelity fusion codes, for plasma equilibrium, neutron transport, or structural response, can take minutes to days per run. A twin that must react within a control cycle or run hundreds of ensemble members cannot wait. A surrogate model is a fast approximation, trained on runs of the expensive code, that reproduces its outputs in milliseconds while carrying an estimate of its own error."],
+    ["h3", "How surrogates are built"],
+    ["ul", ["Sample the expensive model across the operating envelope using a space-filling design", "Fit a fast approximator to the input-output pairs", "Test on held-out points to measure accuracy and flag where the fit is weak"]],
+    ["h3", "Common families"],
+    ["p", "Reduced-order models compress the physics onto a small number of dominant modes and remain interpretable. Gaussian processes give a prediction with calibrated uncertainty and suit smaller datasets. Neural networks handle large, high-dimensional data. Each is covered in its own page: <a href=./reduced-order-models.html>reduced-order models</a>, <a href=./gaussian-process-surrogates.html>Gaussian processes</a>, and <a href=./neural-network-surrogates.html>neural networks</a>."],
+    ["h3", "The uncertainty obligation"],
+    ["p", "A surrogate is only safe in a twin if it knows where it is unreliable. Outside the region it was trained on, a surrogate can be confidently wrong. A trustworthy surrogate reports an error estimate and refuses to extrapolate silently, handing back to the full physics code when the query leaves its valid domain."],
+    ["h3", "Role in the Kronos twins"],
+    ["p", "Surrogates are what make a physically rich twin of the Hyperion breeder or the burner run fast enough to matter: to reconstruct equilibrium inside the control cycle, to power hundreds of ensemble members for uncertainty, and to sweep thousands of what-if scenarios overnight. They are trained today on the same validated simulations that anchor the three-dimensional model, and they will be retrained against real data once the machines operate. See <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a>."]
+  ],
+  "related": [["reduced-order-models", "Reduced-Order Models"], ["gaussian-process-surrogates", "Gaussian Process Surrogates"], ["neural-network-surrogates", "Neural Network Surrogates"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "reduced-order-models",
+  "title": "Reduced-Order Models",
+  "cat": "digital-twins",
+  "lede": "Reduced-order models compress high-dimensional physics onto a few dominant modes, keeping physical meaning while running fast.",
+  "body": [
+    ["h2", "Fewer variables, same behavior"],
+    ["p", "Many physical systems, though described by millions of grid values, actually evolve on a low-dimensional surface: a handful of patterns explain most of the behavior. A reduced-order model finds those patterns and rewrites the physics in terms of a few coefficients, cutting computation by orders of magnitude while preserving the governing structure."],
+    ["h3", "Proper orthogonal decomposition"],
+    ["p", "The most common method collects snapshots from full simulations, then extracts the modes that capture the most variance across them, an operation closely related to principal component analysis. Keeping the leading modes and discarding the rest yields a compact basis. The full physics equations are then projected onto that basis, producing a small system that runs quickly."],
+    ["h3", "Strengths"],
+    ["ul", ["Retains physical interpretability, since modes are spatial patterns with meaning", "Respects conservation laws when the projection is done carefully", "Fast enough for real-time and ensemble use"]],
+    ["h3", "Limits"],
+    ["p", "Reduced-order models are accurate only within the regime whose snapshots trained them; sharp events like instabilities or shocks may need many modes or specialized treatment. Projection can also introduce stability issues that require care. When a system is strongly nonlinear or changes regime, data-driven surrogates such as neural networks may capture it better, at the cost of interpretability."],
+    ["h3", "In a fusion twin"],
+    ["p", "Reduced-order models suit the smooth, dominant-mode parts of a fusion machine: thermal fields in a cooling loop, quasi-static magnetic configurations, and structural response under routine loads. For the Hyperion breeder, a reduced thermal model can track blanket temperatures fast enough for the twin while remaining transparent to engineers. Where the physics turns sharply, such as near a plasma instability, the twin blends reduced-order models with the richer surrogates and, when needed, the full codes. See <a href=./surrogate-models-for-twins.html>surrogate models</a> and <a href=./thermal-hydraulic-twin.html>thermal-hydraulic twin</a>."]
+  ],
+  "related": [["surrogate-models-for-twins", "Surrogate Models for Twins"], ["neural-network-surrogates", "Neural Network Surrogates"], ["thermal-hydraulic-twin", "Thermal-Hydraulic Twin"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gaussian-process-surrogates",
+  "title": "Gaussian Process Surrogates",
+  "cat": "digital-twins",
+  "lede": "Gaussian processes are surrogates that return both a prediction and a calibrated uncertainty, ideal where data is scarce and honesty matters.",
+  "body": [
+    ["h2", "Predictions with error bars"],
+    ["p", "A Gaussian process is a probabilistic surrogate that models an unknown function as a distribution over functions. Given training points, it returns for any new input both a mean prediction and a variance, an honest statement of how uncertain that prediction is. This built-in uncertainty is why Gaussian processes are favored in twins where trusting a fast approximation blindly would be dangerous."],
+    ["h3", "How it works"],
+    ["p", "The method assumes that outputs at nearby inputs are correlated, with the strength of correlation set by a kernel function. Near training data the prediction is confident and the variance small; far from any data the prediction reverts toward the prior mean and the variance grows. The surrogate therefore signals its own ignorance, which is exactly what a twin needs when a query leaves the trained region."],
+    ["h3", "Where it fits"],
+    ["ul", ["Smaller datasets, since fitting cost grows steeply with the number of points", "Smooth functions of modest input dimension", "Situations where calibrated uncertainty is more valuable than raw speed"]],
+    ["h3", "Limits and remedies"],
+    ["p", "Standard Gaussian processes scale poorly to very large datasets and high input dimensions. Sparse approximations and specialized methods extend them, but for very large problems neural networks are often preferred. The kernel choice encodes assumptions about smoothness and must be selected with care."],
+    ["h3", "Use in the Kronos twins"],
+    ["p", "Gaussian process surrogates suit the parts of a fusion twin where expensive simulations are few and uncertainty must be reported honestly: mapping a small set of costly neutronics runs of the Hyperion blanket, or interpolating structural-life results across load cases. Their uncertainty feeds directly into the twin's decision layer, so a recommendation carries a defensible confidence rather than a bare number. See <a href=./uncertainty-quantification-twins.html>uncertainty quantification</a> and <a href=./calibration-and-parameter-estimation.html>calibration</a>."]
+  ],
+  "related": [["surrogate-models-for-twins", "Surrogate Models for Twins"], ["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"], ["neural-network-surrogates", "Neural Network Surrogates"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "neural-network-surrogates",
+  "title": "Neural Network Surrogates",
+  "cat": "digital-twins",
+  "lede": "Neural networks approximate expensive physics across large, high-dimensional datasets, trading interpretability for speed and scale.",
+  "body": [
+    ["h2", "Learning the physics response"],
+    ["p", "A neural network surrogate learns the mapping from a physics code's inputs to its outputs by training on many examples. Once trained, it evaluates in milliseconds, regardless of how long the original code took. Networks handle large, high-dimensional, strongly nonlinear relationships that reduced-order models and Gaussian processes struggle with, which makes them attractive for the hardest parts of a twin."],
+    ["h3", "Architectures for physical fields"],
+    ["ul", ["Fully connected networks for scalar inputs mapping to scalar or small vector outputs", "Convolutional networks for spatial field data such as flux or temperature maps", "Operator-learning networks that map whole input functions to output functions across resolutions"]],
+    ["h3", "Physics-informed training"],
+    ["p", "Purely data-driven networks can violate conservation laws between training points. Physics-informed training adds the governing equations as penalties, so the network is rewarded for respecting the physics as well as fitting the data. This improves accuracy where data is sparse and reduces unphysical predictions, an important safeguard in a twin."],
+    ["h3", "The extrapolation hazard"],
+    ["p", "Neural networks can be confidently wrong outside their training region, and unlike a Gaussian process a plain network does not report its own uncertainty. Twins address this by pairing networks with uncertainty methods, such as ensembles of networks or Bayesian layers, and by detecting when an input lies outside the trained domain and deferring to full physics. A surrogate that cannot say it does not know has no place in a safety-relevant loop."],
+    ["h3", "Role in the Kronos twins"],
+    ["p", "Network surrogates carry the large, nonlinear jobs: fast plasma-equilibrium reconstruction for the Hyperion breeder inside the control cycle, and rapid response surfaces for the burner's tandem-mirror plug behavior. They are trained today on validated simulations and will be re-trained on real data after first tritium near 2030, with their uncertainty always reported. See <a href=./surrogate-models-for-twins.html>surrogate models</a> and <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a>."]
+  ],
+  "related": [["surrogate-models-for-twins", "Surrogate Models for Twins"], ["gaussian-process-surrogates", "Gaussian Process Surrogates"], ["reduced-order-models", "Reduced-Order Models"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "model-predictive-control-basics",
+  "title": "Model-Predictive Control Basics",
+  "cat": "digital-twins",
+  "lede": "Model-predictive control repeatedly plans a short future using a model, applies the first step, then re-plans as new data arrives.",
+  "body": [
+    ["h2", "Control by looking ahead"],
+    ["p", "Model-predictive control, MPC, is a control strategy that uses a model to look into the near future. At each step it predicts how the system will respond to a range of possible actions over a short horizon, chooses the action sequence that best meets the goals while respecting limits, applies only the first action, and then repeats with fresh measurements. This constant re-planning is what makes it robust."],
+    ["h3", "The optimization at its heart"],
+    ["p", "Each step solves an optimization: minimize a cost that penalizes deviation from targets and excessive actuator effort, subject to constraints that encode physical and safety limits. Because constraints are explicit, MPC naturally keeps the system inside its safe envelope, which conventional controllers do only indirectly."],
+    ["h3", "Why the horizon and re-planning matter"],
+    ["ul", ["Looking ahead lets the controller act before a limit is reached, not after", "Applying only the first step and re-planning corrects for model error and disturbances", "Explicit constraints keep every planned action feasible and safe"]],
+    ["h3", "The cost of MPC"],
+    ["p", "Solving an optimization every control step is demanding, especially with a detailed model. This is the direct reason twins invest in fast surrogates: MPC needs a model it can evaluate many times within one control period. The accuracy of the model sets the quality of the plan, so MPC and the twin are tightly linked."],
+    ["h3", "In a fusion machine"],
+    ["p", "Fusion plants must hold plasma and machine states inside narrow, hard limits while rejecting disturbances, which is exactly what MPC does well. For the Hyperion breeder, MPC can regulate shape and internal profiles against actuator and stability limits; for the burner, it can manage the high-field tandem-mirror configuration. Feeding MPC from the twin's live state estimate closes the loop. See <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a> and <a href=./coupling-twin-to-control-system.html>coupling the twin to control</a>."]
+  ],
+  "related": [["twin-in-the-loop-mpc", "Twin-in-the-Loop Control"], ["coupling-twin-to-control-system", "Coupling the Twin to Control"], ["observability-and-controllability", "Observability and Controllability"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-in-the-loop-mpc",
+  "title": "Twin-in-the-Loop Control",
+  "cat": "digital-twins",
+  "lede": "Placing the twin inside the control loop gives the controller a live, corrected model to plan against, not a fixed design model.",
+  "body": [
+    ["h2", "The controller's window into the machine"],
+    ["p", "A conventional controller acts on measurements alone. A twin-in-the-loop controller acts on the twin's continuously corrected estimate of the full internal state, and plans against the twin's model of how the machine will respond. The twin supplies both the present, an assimilated state, and the future, a fast model for prediction. This is the natural pairing of a digital twin with model-predictive control."],
+    ["h3", "How the loop runs"],
+    ["ul", ["The twin assimilates the latest measurements into a state estimate with uncertainty", "The controller uses the twin's surrogate to predict responses to candidate actions", "It selects the action that best meets goals within safety constraints", "The action is applied, the machine responds, and the cycle repeats"]],
+    ["h3", "Why it is powerful"],
+    ["p", "Because the controller plans against a model that tracks the real, aging machine rather than an idealized design, its predictions stay accurate as the machine drifts. Because the twin reconstructs hidden states, the controller can regulate quantities no sensor measures directly, such as an internal plasma profile. And because the twin carries uncertainty, the controller can act cautiously when the estimate is poor."],
+    ["h3", "Timing discipline"],
+    ["p", "The whole loop must finish within the control period. This forces a strict separation between the fast surrogate-based path that runs in the loop and the slow full-physics path that runs alongside to check and retrain it. Any component that cannot meet the deadline stays out of the real-time path. See <a href=./real-time-computing-for-twins.html>real-time computing</a>."],
+    ["h3", "In the Kronos program"],
+    ["p", "Twin-in-the-loop control is developed today in simulation, controller and twin exercised against a high-fidelity model of the plant, a practice that will validate the loop before it ever touches hardware. It applies to both machines: shape and profile control for the Hyperion breeder, and plug-field management for the burner. No claim is made that these loops have run on hardware; the machines are not built. See <a href=./hardware-in-the-loop-testing.html>hardware-in-the-loop testing</a>."]
+  ],
+  "related": [["model-predictive-control-basics", "Model-Predictive Control Basics"], ["coupling-twin-to-control-system", "Coupling the Twin to Control"], ["real-time-computing-for-twins", "Real-Time Computing for Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "what-if-scenario-simulation",
+  "title": "What-If Scenario Simulation",
+  "cat": "digital-twins",
+  "lede": "Starting from the twin's current state, what-if simulation explores futures the real machine can experience only once, and safely.",
+  "body": [
+    ["h2", "Rehearsing the future"],
+    ["p", "A physical machine lives each moment once. A twin, anchored to the machine's current estimated state, can branch that moment into many hypothetical futures and run each forward. This is what-if scenario simulation: exploring the consequences of an action, a disturbance, or a fault before, or instead of, letting it happen on the real hardware."],
+    ["h3", "What the questions look like"],
+    ["ul", ["If we raise the heating on this schedule, does any limit get crossed?", "If a coolant pump degrades, how long until a temperature limit is reached?", "If this coil trips, what is the safest recovery sequence?", "How much operating margin remains before a chosen constraint binds?"]],
+    ["h3", "Anchoring to the present"],
+    ["p", "The value comes from starting each scenario at the twin's real, assimilated state, complete with the machine's current wear and calibration, not at a generic design point. A scenario that begins where the machine actually is gives an answer relevant to this unit, now. Running many scenarios also needs fast surrogates, since a useful study may sweep thousands of cases."],
+    ["h3", "Carrying uncertainty forward"],
+    ["p", "An honest what-if propagates the uncertainty in the starting state, so the answer is a distribution of futures, not a single line. If the twin is unsure where the machine is, it must be unsure where each scenario leads, and it should say so. This connects what-if studies to ensemble methods and uncertainty quantification."],
+    ["h3", "In the Kronos twins"],
+    ["p", "Because both machines are pre-construction, what-if simulation today runs entirely on the design models, and its role is to shape operating procedures, control strategies, and safety cases before hardware exists. After the Hyperion breeder operates near 2030, the same machinery will answer live operational questions anchored to real state. What-if studies also feed operator training and maintenance planning. See <a href=./operator-training-simulator.html>operator training simulators</a> and <a href=./ensemble-forecasting-twin.html>ensemble forecasting</a>."]
+  ],
+  "related": [["operator-training-simulator", "Operator Training Simulators"], ["ensemble-forecasting-twin", "Ensemble Forecasting in Twins"], ["predictive-maintenance", "Predictive Maintenance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "operator-training-simulator",
+  "title": "Operator Training Simulators",
+  "cat": "digital-twins",
+  "lede": "A twin-based training simulator lets operators practice normal, off-normal, and emergency operations on a faithful virtual machine.",
+  "body": [
+    ["h2", "Practice without consequence"],
+    ["p", "Operators of complex plants must be fluent in situations that are rare, dangerous, or impossible to stage on the real machine. A training simulator built on the same models as the twin provides a faithful virtual plant where operators can rehearse startup, steady operation, upsets, and emergencies until their responses are practiced and correct. The heritage is aviation and nuclear plant training, where simulators are mandatory."],
+    ["h3", "What it must reproduce"],
+    ["ul", ["The plant's real dynamics, including how it responds to operator actions", "The control room interface, so muscle memory transfers to the real console", "Realistic fault and instability scenarios, including cascading failures", "Correct timescales, so operators learn how much time they truly have"]],
+    ["h3", "Shared models, different purpose"],
+    ["p", "The simulator and the operational twin draw on the same physics and surrogates, which keeps training consistent with reality and lets improvements to one benefit the other. The difference is direction: the twin tracks the real machine, while the simulator drives a virtual machine from scripted scenarios. Because the models are shared, scenarios discovered by the twin's what-if studies become training exercises."],
+    ["h3", "Value before hardware exists"],
+    ["p", "For a machine not yet built, a training simulator is unusually valuable early. Operating procedures, alarm responses, and emergency protocols for the Hyperion breeder and the burner can be developed, tested, and refined on the simulator during design, so that trained crews and mature procedures are ready when construction, beginning in the second quarter of 2027, completes. The simulator becomes a design tool as much as a training tool."],
+    ["h3", "Fidelity and honesty"],
+    ["p", "A training simulator must be honest about what it does and does not represent. Until real machine data exists, its behavior is only as good as the validated design models, and trainers should treat rare-event fidelity as provisional. As data arrives after first tritium near 2030, the simulator is refined to match observed behavior. See <a href=./what-if-scenario-simulation.html>what-if scenario simulation</a> and <a href=./twin-validation-verification-uq.html>validation</a>."]
+  ],
+  "related": [["what-if-scenario-simulation", "What-If Scenario Simulation"], ["twin-visualization-hmi", "Twin Visualization and Interfaces"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "predictive-maintenance",
+  "title": "Predictive Maintenance",
+  "cat": "digital-twins",
+  "lede": "A twin forecasts when components will need attention by tracking their real accumulated stress, replacing fixed schedules with condition-based action.",
+  "body": [
+    ["h2", "Maintenance driven by condition, not calendar"],
+    ["p", "Traditional maintenance is scheduled by the calendar or by run hours, which either services healthy parts too early or misses parts wearing faster than expected. Predictive maintenance uses the twin's estimate of each component's true condition to forecast when it will actually need attention, so work is done when the part needs it and not before."],
+    ["h3", "How the twin enables it"],
+    ["ul", ["It estimates hidden condition variables, such as internal temperature history or accumulated fatigue, that no gauge reads directly", "It rolls those estimates forward under expected operation to forecast when a limit is approached", "It carries uncertainty, so maintenance can be planned with a defensible confidence margin"]],
+    ["h3", "From symptom to cause"],
+    ["p", "A twin does not merely flag that a signal has drifted; because it embeds the physics, it can attribute the drift to a cause, distinguishing, for example, a fouling heat exchanger from a failing pump that produce similar temperature symptoms. Correct attribution turns an alarm into an actionable work order."],
+    ["h3", "Fleet learning"],
+    ["p", "When many similar units operate, condition patterns and failure precursors learned on one unit inform the priors for others, while each unit keeps its own twin and its own history. A precursor seen before a failure on one machine becomes an early-warning signature watched for across the fleet."],
+    ["h3", "In the Kronos machines"],
+    ["p", "Fusion plants have components under severe, coupled loads: superconducting magnets, plasma-facing surfaces, and neutron-exposed structures. Predictive maintenance targets exactly these. For the Hyperion breeder, the twin will track magnet thermal-mechanical cycling and blanket structural exposure; for the burner, the high-field plug magnets. Since the burner is planned as fleets in the Aegis and MetroVolt housings, fleet learning is directly relevant. All of this is developed today on models and becomes data-driven after the machines operate. See <a href=./component-life-tracking.html>component-life tracking</a> and <a href=./remaining-useful-life.html>remaining useful life</a>."]
+  ],
+  "related": [["component-life-tracking", "Component-Life Tracking"], ["remaining-useful-life", "Remaining Useful Life"], ["structural-fatigue-twin", "Structural and Fatigue Twin"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "component-life-tracking",
+  "title": "Component-Life Tracking",
+  "cat": "digital-twins",
+  "lede": "A twin keeps a running ledger of the accumulated damage in each critical component, based on its real operating history.",
+  "body": [
+    ["h2", "A damage ledger per component"],
+    ["p", "Many components fail not from a single event but from accumulated exposure: thermal cycles, mechanical loads, radiation dose, and chemical attack that add up over a lifetime. Component-life tracking is the twin's running ledger of this accumulation for each critical part, computed from the part's actual, estimated operating history rather than from nominal assumptions."],
+    ["h3", "Damage models"],
+    ["ul", ["Fatigue: cyclic stress accumulates damage toward a limit, often summed by a linear cumulative rule", "Creep: sustained load at temperature causes slow permanent deformation over time", "Radiation damage: neutron dose changes material properties, tracked as accumulated exposure", "Wear and erosion: surface loss from particle bombardment or flow, integrated over exposure"]],
+    ["h3", "Why the twin is needed"],
+    ["p", "The loads that drive these mechanisms are usually not measured directly at the point that matters, deep inside a structure or on a surface no gauge can reach. The twin reconstructs the local stress, temperature, and flux from external measurements through its physics model, then integrates the appropriate damage rule. Without state estimation, life tracking would rest on crude worst-case assumptions."],
+    ["h3", "Uncertainty in the ledger"],
+    ["p", "Both the reconstructed loads and the damage models carry uncertainty, so the ledger is a range, not a single figure. Reporting that range honestly is what lets operators decide with known confidence how much margin remains. A life estimate without an uncertainty band invites either premature replacement or unexpected failure."],
+    ["h3", "In the Kronos twins"],
+    ["p", "The neutron environment makes life tracking central to a fusion plant. In the Hyperion breeder, deuterium-tritium fusion produces 14 million-electron-volt neutrons that dose the blanket and structures; the twin will integrate that dose per component. The burner, a deuterium-helium-3 machine, has a much lower neutron fraction of 5.44 percent, changing the balance of damage mechanisms its twin tracks toward thermal and magnetic cycling. See <a href=./remaining-useful-life.html>remaining useful life</a> and <a href=./structural-fatigue-twin.html>structural and fatigue twin</a>."]
+  ],
+  "related": [["predictive-maintenance", "Predictive Maintenance"], ["remaining-useful-life", "Remaining Useful Life"], ["structural-fatigue-twin", "Structural and Fatigue Twin"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "remaining-useful-life",
+  "title": "Remaining Useful Life",
+  "cat": "digital-twins",
+  "lede": "Remaining useful life is the twin's forecast of how much longer a component can serve before it must be repaired or replaced.",
+  "body": [
+    ["h2", "How much life is left"],
+    ["p", "Remaining useful life, RUL, is the projected time or number of cycles a component can continue operating before it reaches a defined end-of-life condition. It is the forward projection of a life ledger: given accumulated damage now and expected future operation, when will the damage cross its limit? A good RUL estimate turns condition monitoring into planning."],
+    ["h3", "Two ways to estimate it"],
+    ["ul", ["Physics-based: extrapolate a damage model forward under expected loads, using the twin's estimated current state as the starting point", "Data-driven: learn degradation trajectories from histories of similar components and match the current one to them", "Hybrid: use physics for the mechanism and data to calibrate rates and capture unmodeled effects"]],
+    ["h3", "The role of the future load"],
+    ["p", "RUL depends not only on damage so far but on how the machine will be run next. A component's remaining life is longer under gentle operation and shorter under aggressive operation. A twin therefore reports RUL conditioned on an operating scenario, and can show how changing operation would extend life, linking maintenance to control and planning."],
+    ["h3", "Uncertainty is the point"],
+    ["p", "An RUL number without an uncertainty band is misleading. The useful output is a distribution: a most-likely remaining life and a confidence interval, so operators can choose a service point with a chosen safety margin. Narrowing that band as more data accrues is a measure of the twin maturing."],
+    ["h3", "In the Kronos program"],
+    ["p", "Before hardware exists, RUL methods are exercised on simulated degradation to prove they behave. After the Hyperion breeder operates near 2030, real damage data will calibrate the rates. Because the burner is planned as fleets of Aegis and MetroVolt units, degradation histories accumulate across many similar machines, strengthening data-driven RUL over time. Every estimate is reported with its uncertainty and traced to the model version that produced it. See <a href=./predictive-maintenance.html>predictive maintenance</a> and <a href=./component-life-tracking.html>component-life tracking</a>."]
+  ],
+  "related": [["component-life-tracking", "Component-Life Tracking"], ["predictive-maintenance", "Predictive Maintenance"], ["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-validation-verification-uq",
+  "title": "Twin Validation and Verification",
+  "cat": "digital-twins",
+  "lede": "Verification asks whether the twin solves its equations correctly; validation asks whether those equations match reality.",
+  "body": [
+    ["h2", "Two different questions"],
+    ["p", "A twin makes decisions, so its trustworthiness must be earned, not assumed. Two distinct questions govern that trust. Verification: are the models implemented and solved correctly, free of numerical and coding error? Validation: do the models actually reproduce the behavior of the real system? A twin can be perfectly verified and still wrong, if its physics does not match the world."],
+    ["h3", "Verification methods"],
+    ["ul", ["Compare against known analytical solutions where they exist", "Check convergence as the numerical resolution is refined", "Cross-check independent codes against each other on the same problem", "Test conservation of mass, energy, and charge as internal consistency checks"]],
+    ["h3", "Validation methods"],
+    ["p", "Validation compares model predictions to measured data the model did not see during its construction. It is graded: a twin validated on routine operation is not thereby validated for rare instabilities. Honest validation states its domain, the range of conditions over which the twin has actually been tested against reality."],
+    ["h3", "Validation before hardware"],
+    ["p", "Because the Kronos machines are not built, validation against their own operating data is not yet possible. The available substitutes are validation of the component physics codes against existing experiments and published data, cross-code verification, and observing-system simulation experiments, in which the twin assimilates synthetic data from a high-fidelity reference model to prove the assimilation machinery works. These build confidence in method while being explicit that plant-level validation waits for first tritium near 2030."],
+    ["h3", "The honest posture"],
+    ["p", "No net-gain claim is made for either machine before the first-of-a-kind breeder Hyperion operates. The twin's predictive skill is likewise unproven at the plant level until then. Stating the validation domain plainly, and refusing to extrapolate the twin's authority beyond it, is the discipline that keeps the program credible. See <a href=./uncertainty-quantification-twins.html>uncertainty quantification</a> and <a href=./twin-fidelity-levels.html>fidelity levels</a>."]
+  ],
+  "related": [["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"], ["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"], ["twin-fidelity-levels", "Twin Fidelity Levels"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "uncertainty-quantification-twins",
+  "title": "Uncertainty Quantification in Twins",
+  "cat": "digital-twins",
+  "lede": "A twin's predictions are only useful with honest error bars; uncertainty quantification produces and propagates those bars.",
+  "body": [
+    ["h2", "Why every twin output needs a range"],
+    ["p", "A twin exists to inform decisions, and a decision needs to know not just the best estimate but how much to trust it. Uncertainty quantification, UQ, is the systematic production of calibrated uncertainty on every state estimate, forecast, and recommendation the twin makes. A prediction without an error band is not actionable; it is a guess dressed as a fact."],
+    ["h3", "Sources of uncertainty"],
+    ["ul", ["Measurement noise in the sensors feeding the twin", "Model error where the physics is approximate or a surrogate is imperfect", "Parameter uncertainty in coefficients that are not precisely known", "Aleatory variability, the genuine randomness in the system itself"]],
+    ["h3", "Aleatory versus epistemic"],
+    ["p", "UQ distinguishes uncertainty that is irreducible, the aleatory part inherent in the process, from uncertainty that more data or better models could reduce, the epistemic part. The distinction matters because it tells operators whether an uncertain forecast can be sharpened by gathering more information or must simply be managed."],
+    ["h3", "Propagation"],
+    ["p", "Uncertainty must be carried through every step, from sensors through state estimation, forward prediction, and into recommendations, so the final error band reflects all contributing sources. Filters propagate it in their covariances; ensembles propagate it through spread; and surrogates must add their own approximation error. Truncating this chain anywhere produces false confidence."],
+    ["h3", "In the Kronos twins"],
+    ["p", "Given that both machines are pre-construction, UQ carries extra weight: much of the twin's uncertainty today is epistemic, reflecting that the physics is validated against related experiments rather than against the machines themselves. Reporting that honestly, and shrinking it as data arrives after first tritium near 2030, is central to the program's credibility. Frozen design numbers such as the Hyperion Q of 3.424 or the burner's 26.49 tesla plug are stated as design points, and the twin's job is to bound how real operation will differ. See <a href=./twin-validation-verification-uq.html>validation</a> and <a href=./ensemble-forecasting-twin.html>ensemble forecasting</a>."]
+  ],
+  "related": [["twin-validation-verification-uq", "Twin Validation and Verification"], ["ensemble-forecasting-twin", "Ensemble Forecasting in Twins"], ["gaussian-process-surrogates", "Gaussian Process Surrogates"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "calibration-and-parameter-estimation",
+  "title": "Calibration and Parameter Estimation",
+  "cat": "digital-twins",
+  "lede": "Calibration tunes a model's fixed parameters so its predictions match data, turning a generic model into a twin of one specific unit.",
+  "body": [
+    ["h2", "Fitting the model to the machine"],
+    ["p", "Every model carries parameters that are known only approximately: heat-transfer coefficients, friction factors, effective transport rates. Calibration is the process of estimating these parameters from measured data so the model reproduces the behavior of one specific machine. It is distinct from state estimation: state changes moment to moment, while calibrated parameters are fixed or slowly varying properties of the unit."],
+    ["h3", "The Bayesian view"],
+    ["p", "Calibration is naturally posed as Bayesian inference: start from a prior belief about each parameter, based on physics and prior experience, then update it with data to a posterior that is narrower and better centered. The output is not a single tuned value but a distribution, capturing how well the data actually pins each parameter down. Poorly identified parameters stay wide, honestly signaling what the data cannot resolve."],
+    ["h3", "Identifiability"],
+    ["p", "Not every parameter can be recovered from the available data; some affect the measurements too weakly, and some trade off against each other so only a combination is determined. Identifiability analysis reveals this before calibration, guiding either better experiments or acceptance that a parameter must be fixed from independent knowledge."],
+    ["h3", "Guard against overfitting"],
+    ["p", "A model with many free parameters can be tuned to match any dataset while predicting poorly on new data. Calibration must be validated on data held out from the fitting, and priors must be kept physically meaningful so the fit does not wander into unphysical territory. This connects calibration directly to validation."],
+    ["h3", "In the Kronos program"],
+    ["p", "Until hardware exists, calibration targets are the component experiments and reference simulations that underpin the design, and the machinery is proven on synthetic data. After the Hyperion breeder operates near 2030, calibration will tune each unit's twin to its own construction and behavior. For the burner fleet in Aegis and MetroVolt housings, calibration on one unit provides informed priors for the next while each keeps its own posterior. See <a href=./real-time-model-updating.html>real-time model updating</a> and <a href=./bayesian-filtering-overview.html>Bayesian filtering</a>."]
+  ],
+  "related": [["real-time-model-updating", "Real-Time Model Updating"], ["bayesian-filtering-overview", "Bayesian Filtering Overview"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-software-stack",
+  "title": "Digital Twin Software Stack",
+  "cat": "digital-twins",
+  "lede": "A twin is assembled from ingestion, modeling, assimilation, orchestration, storage, and interface layers, each with distinct requirements.",
+  "body": [
+    ["h2", "The stack that runs a twin"],
+    ["p", "A twin is a software system as much as a physics system. It comprises several cooperating layers, and separating them cleanly is what lets the fast, safety-relevant parts stay reliable while the analytics evolve. The layers below describe a representative stack for a plant twin."],
+    ["h3", "The layers"],
+    ["ul", ["Ingestion: acquire, timestamp, calibrate, and validate sensor streams at many rates", "Time-series and historian storage: retain raw and derived signals for replay and analysis", "Model services: full-physics codes and fast surrogates, each callable with versioning", "Assimilation engine: run the filters that fuse data with models into a state estimate", "Orchestration: schedule the real-time path separately from batch analytics", "Interface and API: deliver estimates, forecasts, and displays to operators and controllers"]],
+    ["h3", "Two paths, one system"],
+    ["p", "The real-time path, feeding state estimation and control, must be deterministic and meet hard deadlines. The analytics path, running what-if studies, life tracking, and retraining, tolerates longer times and heavier computation. The stack keeps these physically and logically separate so a heavy analysis never delays a control-relevant estimate."],
+    ["h3", "Reproducibility and provenance"],
+    ["p", "Every output must be traceable: which model version, which data window, which parameter set produced it. This demands disciplined versioning of code, models, and data, and immutable logging of decisions. Without provenance a twin's recommendation cannot be audited, which is unacceptable for a safety-relevant plant."],
+    ["h3", "In the Kronos program"],
+    ["p", "The stack for the Hyperion breeder and the burner is being built around the existing three-dimensional model, extending it from a static representation toward the layered, data-fed system described here. Choices such as open standards and clear interfaces are made now so that when sensors exist, near 2030 for the first breeder, the ingestion and assimilation layers can be connected without redesign. See <a href=./data-pipelines-and-ingestion.html>data pipelines</a>, <a href=./twin-data-standards.html>data standards</a>, and <a href=./real-time-computing-for-twins.html>real-time computing</a>."]
+  ],
+  "related": [["twin-architecture-overview", "Twin Architecture"], ["data-pipelines-and-ingestion", "Data Pipelines and Ingestion"], ["real-time-computing-for-twins", "Real-Time Computing for Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "coupling-twin-to-control-system",
+  "title": "Coupling the Twin to Control",
+  "cat": "digital-twins",
+  "lede": "Connecting a twin to the plant control system demands strict timing, safety isolation, and clear authority between advisory and active roles.",
+  "body": [
+    ["h2", "From insight to action"],
+    ["p", "A twin becomes most valuable when its state estimates and forecasts reach the control system. But the control system governs a machine with hard safety limits, so the coupling must be deliberate: what the twin is allowed to do, how fast it must respond, and how the plant stays safe if the twin fails or is wrong."],
+    ["h3", "Advisory versus active roles"],
+    ["ul", ["Advisory: the twin informs operators and provides state estimates, but humans and conventional controllers act", "Supervisory: the twin adjusts setpoints or selects strategies within bounds enforced elsewhere", "Active: the twin's model is inside the fast control loop, as in twin-in-the-loop control"]],
+    ["p", "Deeper coupling gives more capability and demands more assurance. A prudent program earns each level in turn, starting advisory and moving inward only as validation supports it."],
+    ["h3", "Safety isolation"],
+    ["p", "The plant protection system, which trips the machine on a genuine limit violation, must be independent of the twin. It relies on direct, simple, highly reliable measurements, not on model inference. This ensures that even a badly wrong twin cannot defeat the last line of defense. The twin optimizes; the protection system protects; the two are separated by design."],
+    ["h3", "Timing and failure behavior"],
+    ["p", "Any twin function inside the control loop must meet the loop's deadline every cycle, and must have a defined safe behavior if it cannot: hand back to a conventional controller, freeze at the last good estimate, or trigger a controlled shutdown. Undefined behavior on a missed deadline is not acceptable in a real-time safety context. See <a href=./real-time-computing-for-twins.html>real-time computing</a> and <a href=./twin-latency-timing.html>latency and timing</a>."],
+    ["h3", "In the Kronos machines"],
+    ["p", "The coupling is designed today in simulation, twin and control system exercised together against a high-fidelity plant model, so the interfaces, authority levels, and failure responses are settled before the Hyperion breeder or the burner is built. No claim is made that a twin has controlled hardware; construction begins in the second quarter of 2027. See <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a> and <a href=./twin-cybersecurity.html>twin cybersecurity</a>."]
+  ],
+  "related": [["twin-in-the-loop-mpc", "Twin-in-the-Loop Control"], ["real-time-computing-for-twins", "Real-Time Computing for Twins"], ["twin-cybersecurity", "Twin Cybersecurity"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "real-time-computing-for-twins",
+  "title": "Real-Time Computing for Twins",
+  "cat": "digital-twins",
+  "lede": "The control-relevant parts of a twin must produce answers within hard deadlines, which shapes their algorithms and hardware.",
+  "body": [
+    ["h2", "Deadlines, not just speed"],
+    ["p", "Real-time computing is not about being fast on average; it is about guaranteeing an answer within a deadline every single time. A control loop that must run at a fixed rate cannot tolerate an occasional slow cycle. The parts of a twin that feed control therefore live under hard-real-time discipline, which constrains the algorithms, the software, and the hardware they use."],
+    ["h3", "What determinism requires"],
+    ["ul", ["Bounded worst-case execution time, not just a good typical time", "Algorithms with predictable cost, avoiding iterations that might not converge in time", "Fast surrogates in place of unbounded physics solves", "A real-time operating environment that does not introduce unpredictable delays"]],
+    ["h3", "Why surrogates are mandatory here"],
+    ["p", "A full physics solve has variable and often long runtime, unacceptable in the loop. Surrogates provide a fixed, small, predictable cost, which is exactly what a deadline demands. This is one of the strongest practical reasons a twin invests in surrogate modeling: not only speed, but the bounded, repeatable timing that real-time control requires."],
+    ["h3", "Separating fast from slow"],
+    ["p", "The twin runs a fast path under real-time constraints for state estimation and control, and a slow path without deadlines for analytics, retraining, and full-physics checks. The slow path can correct and improve the fast path between deadlines, but never blocks it. This separation is a recurring theme across the twin architecture."],
+    ["h3", "In the Kronos twins"],
+    ["p", "Fusion control loops for the Hyperion breeder and the burner run at demanding rates, so their twin-derived functions are engineered for bounded timing from the start. The design is validated in simulation, on representative real-time hardware, before any machine exists, so that timing behavior is proven ahead of construction beginning in the second quarter of 2027. See <a href=./twin-latency-timing.html>latency and timing</a> and <a href=./coupling-twin-to-control-system.html>coupling to control</a>."]
+  ],
+  "related": [["twin-latency-timing", "Twin Latency and Timing"], ["coupling-twin-to-control-system", "Coupling the Twin to Control"], ["surrogate-models-for-twins", "Surrogate Models for Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-latency-timing",
+  "title": "Twin Latency and Timing",
+  "cat": "digital-twins",
+  "lede": "End-to-end latency, from sensor to corrected estimate to action, sets what a twin can control and must be budgeted deliberately.",
+  "body": [
+    ["h2", "The latency budget"],
+    ["p", "Every stage between a sensor reading and a resulting action adds delay: acquisition, transmission, ingestion, assimilation, prediction, decision, and actuation. The sum is the end-to-end latency, and it determines which phenomena a twin can react to. Fast instabilities demand short loops; slow drifts tolerate long ones. Designing a twin means budgeting this latency stage by stage and holding each stage to its share."],
+    ["h3", "Where delay accumulates"],
+    ["ul", ["Sensing and digitization of the raw signal", "Network transport from diagnostic to compute", "Ingestion: timestamping, calibration, validation", "Assimilation and model evaluation to update the estimate", "Decision and command generation", "Actuator response, which has its own physical delay"]],
+    ["h3", "Time alignment"],
+    ["p", "Measurements arrive at different times and with different delays. A twin must align them to a common time base, accounting for each channel's known latency, or it will fuse data from different moments as if simultaneous, corrupting the estimate. Precise, shared clocks and characterized per-channel delays are prerequisites for correct assimilation."],
+    ["h3", "Latency versus fidelity"],
+    ["p", "There is a direct tension: richer models take longer, but longer loops react to less. The resolution is layering, a fast low-latency loop for control-critical states and slower high-fidelity analyses running alongside. The twin does not choose one fidelity; it runs several at the latencies each application can accept."],
+    ["h3", "In the Kronos machines"],
+    ["p", "The Hyperion breeder's plasma-control-relevant phenomena set tight latency targets for its fast estimation path, while blanket thermal and life-tracking functions run on much longer budgets. The burner's tandem-mirror plug dynamics similarly define its fast-loop latency. These budgets are set and tested in simulation now, before the hardware and its real diagnostic and network delays exist, so the architecture can meet them once built. See <a href=./real-time-computing-for-twins.html>real-time computing</a>."]
+  ],
+  "related": [["real-time-computing-for-twins", "Real-Time Computing for Twins"], ["data-pipelines-and-ingestion", "Data Pipelines and Ingestion"], ["coupling-twin-to-control-system", "Coupling the Twin to Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "data-pipelines-and-ingestion",
+  "title": "Data Pipelines and Ingestion",
+  "cat": "digital-twins",
+  "lede": "The ingestion layer turns raw, messy sensor streams into clean, aligned, validated data the twin can trust.",
+  "body": [
+    ["h2", "Garbage in, garbage out"],
+    ["p", "A twin is only as good as the data feeding it. The ingestion layer stands between the sensors and the models, and its job is to deliver clean, correctly timed, validated measurements. Skimping here corrupts everything downstream: an estimator fed bad data produces confident nonsense. Ingestion is unglamorous and decisive."],
+    ["h3", "What ingestion does"],
+    ["ul", ["Acquire streams from many diagnostics at very different rates", "Timestamp against a common, precise clock", "Apply calibrations to convert raw counts to physical units", "Validate: range checks, rate-of-change checks, cross-channel consistency", "Flag or reject bad channels and record why", "Buffer and route data to the real-time path and to storage"]],
+    ["h3", "Handling missing and bad data"],
+    ["p", "Sensors drop out, saturate, and drift. The pipeline must detect these conditions and mark the data accordingly, so the estimator can widen its uncertainty or fall back on other sensors rather than treating a stuck reading as truth. Graceful handling of missing data is what gives a twin its robustness."],
+    ["h3", "Batch and stream"],
+    ["p", "Some data flows continuously and must be processed as it arrives, the streaming path feeding real-time estimation. Other data, such as post-campaign material samples in a fusion plant, arrives in batches and is processed on its own schedule. A mature pipeline handles both and reconciles them into one consistent record."],
+    ["h3", "In the Kronos program"],
+    ["p", "For the Hyperion breeder and the burner, the ingestion layer must span magnetic signals sampled thousands of times per second, optical and neutron diagnostics, and slow structural and material measurements. It is being designed now against the diagnostic set defined in the machine design, so that when hardware exists the pipeline is ready. Until then it is exercised with simulated and reference data. See <a href=./sensor-fusion-diagnostics.html>diagnostic fusion</a> and <a href=./twin-data-standards.html>data standards</a>."]
+  ],
+  "related": [["twin-software-stack", "Digital Twin Software Stack"], ["twin-data-standards", "Twin Data Standards"], ["sensor-fusion-diagnostics", "Diagnostic Fusion in Fusion Machines"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-data-standards",
+  "title": "Twin Data Standards and Interoperability",
+  "cat": "digital-twins",
+  "lede": "Shared data models and interfaces let a twin's many components, and successive units, exchange information without bespoke glue.",
+  "body": [
+    ["h2", "A common language for the twin"],
+    ["p", "A twin is a federation of components built by different teams over a long time: sensors, models, filters, controllers, and displays. Without agreed data formats and interfaces, connecting them becomes an ever-growing tangle of bespoke adapters that is fragile and hard to evolve. Standards define a common language so components interoperate and can be replaced independently."],
+    ["h3", "What needs standardizing"],
+    ["ul", ["Signal identity: unambiguous names and metadata for every measurement", "Units and calibration provenance, carried with the data", "Time representation, so all components share one notion of when", "Model interfaces, so a surrogate can replace a full code behind the same contract", "State and uncertainty representation, so estimates pass cleanly between layers"]],
+    ["h3", "Domain conventions"],
+    ["p", "The fusion community has developed data schemas for describing machine and plasma quantities in a machine-independent way, so that analysis tools can move between devices. Adopting and extending such conventions, rather than inventing private formats, keeps a twin's data usable by the wider ecosystem of physics and engineering tools and eases collaboration."],
+    ["h3", "Interoperability across units"],
+    ["p", "When a design is built as a fleet, standards let the twins of different units share tooling, comparisons, and learned patterns while each keeps its own data. A precursor identified on one unit can be searched for on others only if their data speaks the same language. Standards are what make fleet learning practical rather than aspirational."],
+    ["h3", "In the Kronos program"],
+    ["p", "The Hyperion breeder and the burner are being described in shared, versioned data models now, so their twins interoperate and so the burner fleet, in Aegis and MetroVolt housings, can be compared unit to unit later. Committing to standards early, before construction begins in the second quarter of 2027, avoids the costly retrofit of imposing them on a running system. See <a href=./data-pipelines-and-ingestion.html>data pipelines</a> and <a href=./twin-governance-lifecycle.html>twin governance</a>."]
+  ],
+  "related": [["data-pipelines-and-ingestion", "Data Pipelines and Ingestion"], ["twin-software-stack", "Digital Twin Software Stack"], ["twin-governance-lifecycle", "Twin Governance and Lifecycle"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-cybersecurity",
+  "title": "Twin Cybersecurity",
+  "cat": "digital-twins",
+  "lede": "A twin coupled to a plant is a cyber-physical system; its data paths and any control authority must be secured against tampering.",
+  "body": [
+    ["h2", "Security for a cyber-physical system"],
+    ["p", "A twin connects sensors, models, and potentially actuators across a network, which makes it a cyber-physical system with a real attack surface. If an adversary can corrupt the data a twin ingests, or the commands it issues, they can degrade decisions or, in the worst case, endanger the machine. Security is therefore a design requirement, not an add-on."],
+    ["h3", "The threats"],
+    ["ul", ["Tampering with sensor data to mislead the state estimate", "Injecting false commands where the twin has control authority", "Denial of service that starves the real-time loop of data", "Theft of model and design information", "Corruption of stored history, undermining life tracking and audits"]],
+    ["h3", "Defenses"],
+    ["p", "Standard practice applies: authenticate and encrypt data in transit, validate inputs, segment networks so a breach in analytics cannot reach control, and enforce least privilege. The twin's own consistency checks help too, because a physics-based estimator can flag data that is physically implausible, catching some tampering that pure signal checks would miss."],
+    ["h3", "Isolation of protection"],
+    ["p", "The single most important principle is that the plant protection system, which enforces hard safety limits, is independent of the twin and its network. Even a fully compromised twin must not be able to defeat protection. This isolation, already required for safety and failure tolerance, doubles as the ultimate security backstop. See <a href=./coupling-twin-to-control-system.html>coupling to control</a>."],
+    ["h3", "In the Kronos program"],
+    ["p", "Security for the Hyperion breeder and the burner twins is architected now, so that authentication, segmentation, and protection isolation are built in rather than retrofitted onto a running plant. For the burner fleet in defense-oriented Aegis housings and data-center MetroVolt housings, the security posture is set to the demands of those environments. Design decisions made before construction, beginning in the second quarter of 2027, are far cheaper and stronger than later patches."]
+  ],
+  "related": [["coupling-twin-to-control-system", "Coupling the Twin to Control"], ["twin-governance-lifecycle", "Twin Governance and Lifecycle"], ["twin-data-standards", "Twin Data Standards"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "hardware-in-the-loop-testing",
+  "title": "Hardware-in-the-Loop Testing",
+  "cat": "digital-twins",
+  "lede": "Hardware-in-the-loop testing runs real control hardware against a simulated plant, validating the twin and controllers before the machine exists.",
+  "body": [
+    ["h2", "Real controllers, simulated plant"],
+    ["p", "Hardware-in-the-loop, HIL, testing connects real control and estimation hardware to a high-fidelity simulation of the plant that runs in real time. The controller cannot tell it is talking to a simulation rather than the real machine. This lets engineers exercise the actual control and twin software, on the actual hardware, against realistic and even dangerous scenarios, long before a physical plant is available."],
+    ["h3", "Why it matters for a machine not yet built"],
+    ["p", "For a plant under design, HIL is the closest thing to operating experience. It validates that the real-time twin meets its deadlines on real hardware, that control strategies behave, and that failure responses work, all without risking a machine that does not yet exist. It turns the design-phase simulation into a genuine test bed for the software that will one day run the plant."],
+    ["h3", "The fidelity requirement"],
+    ["ul", ["The plant simulation must run in real time to interact with real hardware", "It must be faithful enough that the controller's behavior transfers to the real machine", "It must reproduce sensor characteristics, including noise and latency", "It must be able to inject faults and off-normal conditions on demand"]],
+    ["h3", "The honesty boundary"],
+    ["p", "HIL validates the control and estimation system against a model, not against reality. Its results are only as trustworthy as the plant model, and it cannot substitute for validation on the real machine. It reduces risk and matures the software; it does not prove the physics. Keeping that boundary clear prevents overclaiming."],
+    ["h3", "In the Kronos program"],
+    ["p", "HIL testing exercises the twin-in-the-loop control for both the Hyperion breeder and the burner against their high-fidelity plant models on representative real-time hardware. This is where timing, failure behavior, and control strategies are hardened ahead of construction, beginning in the second quarter of 2027, and ahead of first tritium for the first breeder near 2030. See <a href=./twin-in-the-loop-mpc.html>twin-in-the-loop control</a> and <a href=./operator-training-simulator.html>operator training simulators</a>."]
+  ],
+  "related": [["twin-in-the-loop-mpc", "Twin-in-the-Loop Control"], ["real-time-computing-for-twins", "Real-Time Computing for Twins"], ["operator-training-simulator", "Operator Training Simulators"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "plasma-state-reconstruction",
+  "title": "Plasma State Reconstruction",
+  "cat": "digital-twins",
+  "lede": "Plasma state reconstruction infers the internal condition of a confined plasma from external diagnostics through a physics model.",
+  "body": [
+    ["h2", "Seeing inside the plasma"],
+    ["p", "The interior of a confined fusion plasma is largely inaccessible to direct measurement; the most important quantities, the current, pressure, and magnetic-field profiles, cannot be sampled point by point. Plasma state reconstruction infers these internal fields from external and line-integrated diagnostics, constrained by the equations that govern the plasma. It is the fusion-specific heart of a plasma twin."],
+    ["h3", "The reconstruction problem"],
+    ["p", "The task is an inverse problem: find the internal state that is consistent with both the measurements and the physics. It is typically ill-posed, meaning many internal states could roughly fit the data, so the physics constraints and prior information are essential to pick the physically valid one. This is why reconstruction is done through a model rather than by direct inversion."],
+    ["h3", "Diagnostics used"],
+    ["ul", ["Magnetic measurements from coils and loops, constraining fields and total current", "Pressure information from temperature and density diagnostics", "Line-integrated measurements that constrain profiles along viewing chords", "Radiation and particle diagnostics informing composition and reaction rate"]],
+    ["h3", "From static to dynamic"],
+    ["p", "Traditional reconstruction solves for a snapshot. A twin turns this into a continuous, dynamic estimate by embedding reconstruction inside a data-assimilation loop, so the plasma state is tracked in time with uncertainty, and can be predicted a short way ahead for control. This is the bridge from classical equilibrium fitting to a live plasma twin. See <a href=./equilibrium-reconstruction.html>equilibrium reconstruction</a>."],
+    ["h3", "In the Kronos machines"],
+    ["p", "For the Hyperion breeder, a spherical tokamak with negative triangularity of -0.30 and a plasma current of 9.86 mega-amperes, reconstruction supplies the shape and internal profiles that control depends on, since no diagnostic measures the internal current directly. For the burner, a tandem-mirror configuration, the reconstructed state describes plug and throat conditions. Both are developed today on design models and validated against related experiments, pending real data after first tritium near 2030. See <a href=./disruption-prediction-twin.html>disruption prediction</a>."]
+  ],
+  "related": [["equilibrium-reconstruction", "Equilibrium Reconstruction"], ["state-estimation-basics", "State Estimation Basics"], ["disruption-prediction-twin", "Disruption Prediction"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "equilibrium-reconstruction",
+  "title": "Equilibrium Reconstruction",
+  "cat": "digital-twins",
+  "lede": "Equilibrium reconstruction solves for the magnetic configuration that balances plasma pressure against magnetic forces and fits the diagnostics.",
+  "body": [
+    ["h2", "Balancing pressure and field"],
+    ["p", "A magnetically confined plasma settles into an equilibrium where the outward push of plasma pressure is balanced by magnetic forces. Equilibrium reconstruction finds the specific configuration, the flux surfaces, current distribution, and pressure profile, that both satisfies this force balance and matches the measured diagnostics. It is the foundational calculation of tokamak state estimation."],
+    ["h3", "The governing relation"],
+    ["p", "In an axisymmetric tokamak the force balance is captured by a single elliptic partial differential equation relating the magnetic flux to the pressure and current profiles. Reconstruction adjusts the free profile functions until the computed magnetic signals match the measured ones, subject to that equation. The classic implementations solve this repeatedly until convergence."],
+    ["h3", "Constraints and inputs"],
+    ["ul", ["Magnetic measurements at the boundary from coils and flux loops", "Internal constraints from pressure and current-direction diagnostics when available", "The force-balance equation itself, which sharply limits admissible solutions", "Prior expectations on the smoothness of profiles"]],
+    ["h3", "Fast reconstruction for control"],
+    ["p", "Standard reconstruction is too slow for the fast control loop, so simplified or surrogate versions are used in real time, with full reconstruction run alongside for accuracy. Turning the reconstruction into a fast surrogate is one of the clearest applications of surrogate modeling in a plasma twin, giving the controller a continuously updated equilibrium within its deadline. See <a href=./surrogate-models-for-twins.html>surrogate models</a>."],
+    ["h3", "In the Hyperion breeder"],
+    ["p", "The Hyperion breeder is a spherical tokamak, a compact configuration with a tight aspect ratio, operating at a plasma current of 9.86 mega-amperes with negative triangularity of -0.30 and an on-axis field near 8 tesla, rising to a peak of 16.84 tesla at the coils. Equilibrium reconstruction supplies its shape and internal profiles to the twin and controller. The spherical geometry places specific demands on diagnostic coverage, analyzed through observability studies on the design model today, before hardware exists. See <a href=./plasma-state-reconstruction.html>plasma state reconstruction</a>."]
+  ],
+  "related": [["plasma-state-reconstruction", "Plasma State Reconstruction"], ["surrogate-models-for-twins", "Surrogate Models for Twins"], ["observability-and-controllability", "Observability and Controllability"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "disruption-prediction-twin",
+  "title": "Disruption Prediction",
+  "cat": "digital-twins",
+  "lede": "A twin can watch for the precursors of a plasma disruption and forecast its onset in time for the machine to respond.",
+  "body": [
+    ["h2", "The event a tokamak most wants to avoid"],
+    ["p", "A disruption is a sudden loss of plasma confinement in a tokamak, releasing stored energy quickly and imposing severe thermal and mechanical loads on the machine. Predicting a disruption early enough to act, whether to steer the plasma back to safety or to trigger a controlled shutdown, is one of the most important functions a plasma twin can provide."],
+    ["h3", "Precursors"],
+    ["p", "Disruptions are usually preceded by warning signs: growing magnetic fluctuations, changes in the plasma profiles, and drifts toward known stability limits. A twin that reconstructs the internal state can watch how close the plasma is to those limits, combining a physics understanding of stability boundaries with pattern recognition of precursor signatures."],
+    ["h3", "Physics-based and data-driven prediction"],
+    ["ul", ["Physics-based: track the plasma's margin to known stability boundaries using the reconstructed state", "Data-driven: learn precursor patterns from histories of disruptive and non-disruptive behavior", "Hybrid: use physics to define the danger zone and data to sharpen the timing"]],
+    ["h3", "The cost of errors"],
+    ["p", "Prediction must balance two failure modes: missing a real disruption is dangerous, while too many false alarms needlessly interrupt operation. A twin quantifies this trade-off explicitly and reports its confidence, so the response, gentle correction or a hard trip, can be matched to the certainty and the time remaining. Carrying competing hypotheses, as a particle filter does, is natural here. See <a href=./particle-filter.html>particle filters</a>."],
+    ["h3", "In the Kronos program"],
+    ["p", "Disruption prediction applies to the Hyperion breeder, a spherical tokamak; the burner, being a tandem mirror rather than a tokamak, faces different loss mechanisms and its twin watches for those instead. Because the machines are not built, prediction methods are developed today on simulations and on published disruption data from other devices, with the honest caveat that plant-specific skill can only be established once the breeder operates near 2030. Predicting the event well is also central to protecting component life. See <a href=./component-life-tracking.html>component-life tracking</a>."]
+  ],
+  "related": [["plasma-state-reconstruction", "Plasma State Reconstruction"], ["particle-filter", "Particle Filters"], ["twin-anomaly-detection", "Anomaly Detection in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "tritium-breeding-cycle-twin",
+  "title": "Tritium Breeding Cycle Twin",
+  "cat": "digital-twins",
+  "lede": "A breeder twin tracks the tritium produced, bred, extracted, and consumed, closing the fuel cycle accounting in real time.",
+  "body": [
+    ["h2", "Accounting for the fuel"],
+    ["p", "A deuterium-tritium plant must breed at least as much tritium as it burns, because tritium is scarce and decays. The breeding blanket surrounds the plasma with lithium, which captures fusion neutrons and produces tritium. A twin of the breeding cycle tracks the full inventory, how much is produced, bred, extracted, stored, and consumed, and forecasts whether the cycle stays closed."],
+    ["h3", "The tritium breeding ratio"],
+    ["p", "The key figure of merit is the tritium breeding ratio, the tritium bred per tritium consumed. It must exceed one, with margin, for a plant to be self-sufficient. The Hyperion breeder is designed to a tritium breeding ratio of 1.8, a deliberate margin above unity. A twin does not assume this number; it tracks the effective, as-operated breeding ratio from neutronics and extraction data, and flags any shortfall against the design intent."],
+    ["h3", "What the twin couples"],
+    ["ul", ["Neutron production from the plasma, tied to the reconstructed reaction rate", "Neutron transport and capture in the blanket, producing tritium", "Extraction efficiency and holdup of tritium in materials", "Storage inventory and the tritium fed back to the plasma"]],
+    ["h3", "Why estimation is essential"],
+    ["p", "Tritium inventory is notoriously hard to measure directly, since tritium hides in materials and moves through many stages. The twin reconstructs the inventory from indirect measurements and neutronics, with uncertainty, providing an accounting that direct instruments cannot. This matters for both operations and the strict accountancy that tritium handling requires."],
+    ["h3", "In the Hyperion breeder"],
+    ["p", "The Hyperion breeder is a deuterium-tritium spherical tokamak whose purpose includes breeding tritium. Its twin couples neutronics, blanket chemistry, and inventory tracking to monitor the cycle against the design breeding ratio of 1.8. All of this is developed today on validated neutronics and design models; the effective breeding ratio can only be measured once the machine operates, with first tritium targeted near 2030, and no self-sufficiency claim is made before then. See <a href=./neutronics-twin.html>neutronics twin</a>."]
+  ],
+  "related": [["neutronics-twin", "Neutronics Twin"], ["component-life-tracking", "Component-Life Tracking"], ["ensemble-kalman-filter", "Ensemble Kalman Filter"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnet-system-twin",
+  "title": "Magnet System Twin",
+  "cat": "digital-twins",
+  "lede": "A magnet twin tracks current, temperature margin, mechanical load, and quench risk in the superconducting coils that confine the plasma.",
+  "body": [
+    ["h2", "Watching the coils"],
+    ["p", "The superconducting magnets are among the most highly stressed and least replaceable parts of a fusion machine. They carry enormous currents to produce strong fields, must stay below their critical temperature, and endure large mechanical forces. A magnet twin tracks their electrical, thermal, and mechanical state, forecasts remaining life, and watches for the conditions that could lead to a quench."],
+    ["h3", "Temperature margin and quench"],
+    ["p", "A superconductor carries current without resistance only below a critical surface set by temperature, field, and current density. The temperature margin is how much warming the coil can tolerate before it leaves the superconducting state. If a spot warms past the margin, resistance appears and heats further, a runaway called a quench that can damage the magnet. A twin estimates the margin continuously and flags erosion of it well before a quench."],
+    ["h3", "What the twin tracks"],
+    ["ul", ["Coil currents and the resulting field, tied to the plasma configuration", "Temperature and coolant conditions, giving the temperature margin", "Mechanical stress from magnetic forces and thermal cycling", "Accumulated fatigue over the many cycles of operation"]],
+    ["h3", "Why estimation is needed"],
+    ["p", "The hottest spot and the highest stress point inside a coil are usually not where sensors sit. The twin reconstructs the internal thermal and mechanical fields from the sensors that do exist, through electromagnetic and structural models, so it can act on the true worst case rather than on what a gauge happens to read. This reconstruction is what turns scattered measurements into a quench-margin estimate."],
+    ["h3", "In the Kronos machines"],
+    ["p", "The Hyperion breeder operates at an on-axis field near 8 tesla with a peak of 16.84 tesla at the coils; the burner reaches 26.49 tesla in its tandem-mirror plug and 17 tesla at the throat, among the most demanding magnet requirements of any design. Their magnet twins track margin, stress, and fatigue against these design points. The methods are built on the design and materials models today, before hardware exists, and will be calibrated to each coil once the machines operate. See <a href=./structural-fatigue-twin.html>structural and fatigue twin</a> and <a href=./predictive-maintenance.html>predictive maintenance</a>."]
+  ],
+  "related": [["structural-fatigue-twin", "Structural and Fatigue Twin"], ["predictive-maintenance", "Predictive Maintenance"], ["burner-tandem-mirror-twin", "Burner Tandem-Mirror Twin"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "burner-tandem-mirror-twin",
+  "title": "Burner Tandem-Mirror Twin",
+  "cat": "digital-twins",
+  "lede": "The burner twin tracks the plug and throat fields, plasma confinement, and direct energy conversion of a deuterium-helium-3 tandem mirror.",
+  "body": [
+    ["h2", "A different machine, a different twin"],
+    ["p", "The Kronos burner is not a tokamak but a tandem-mirror generator, a linear magnetic configuration that confines plasma between high-field magnetic plugs. Its twin therefore carries different physics from the breeder's: the dominant concerns are the plug and throat fields, the confinement of ions along the axis, and the direct conversion of charged-particle energy to electricity. It burns deuterium and helium-3, a reaction that produces far fewer neutrons than deuterium-tritium."],
+    ["h3", "The plug and throat"],
+    ["p", "A tandem mirror confines plasma by making the magnetic field stronger at the ends, forming plugs that reflect particles back toward the center. The burner design uses a plug field of 26.49 tesla and a throat field of 17 tesla. The twin reconstructs the plasma conditions in and between these regions, since confinement quality depends sensitively on the plug fields and on the electric potentials they help establish."],
+    ["h3", "Low neutron fraction"],
+    ["ul", ["Deuterium-helium-3 fusion yields mostly charged particles, not neutrons", "The burner's neutron fraction is 5.44 percent, low compared with a deuterium-tritium machine", "This shifts the twin's life tracking toward thermal and magnetic cycling over neutron damage", "It also enables direct energy conversion of the charged-particle output"]],
+    ["h3", "Direct energy conversion"],
+    ["p", "Because most of the fusion energy leaves as charged particles, the burner can convert their kinetic energy to electricity directly, rather than only as heat. The twin tracks the direct-conversion system's performance as part of the plant state, coupling plasma output to the conversion stage."],
+    ["h3", "Two housings, one machine"],
+    ["p", "The burner is deployed in two housings: Aegis, for fixed defense installations, and MetroVolt, for data centers. The underlying machine and its twin physics are the same; the housings differ in siting and integration. Because these are planned as fleets, the burner twin is designed for fleet learning from the start. Everything here rests on design and simulation models; construction begins in the second quarter of 2027 and no net-gain claim is made before the first-of-a-kind breeder operates near 2030. See <a href=./magnet-system-twin.html>magnet system twin</a>."]
+  ],
+  "related": [["magnet-system-twin", "Magnet System Twin"], ["tritium-breeding-cycle-twin", "Tritium Breeding Cycle Twin"], ["predictive-maintenance", "Predictive Maintenance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "neutronics-twin",
+  "title": "Neutronics Twin",
+  "cat": "digital-twins",
+  "lede": "A neutronics twin tracks the fusion neutron field and its effects: heating, breeding, activation, and material damage throughout the machine.",
+  "body": [
+    ["h2", "Following the neutrons"],
+    ["p", "Fusion neutrons carry a large share of the energy and pass through matter, depositing heat, breeding tritium, activating materials, and damaging structures. A neutronics twin tracks where these neutrons go and what they do, providing the fields that drive heating, tritium breeding, and component life throughout the machine. It couples the plasma source to nearly every structural and materials concern."],
+    ["h3", "What the neutron field drives"],
+    ["ul", ["Volumetric heating deposited in the blanket and structures", "Tritium production through neutron capture in lithium", "Activation of materials, creating radioactive isotopes", "Displacement damage that changes material properties over time"]],
+    ["h3", "The computational challenge"],
+    ["p", "Neutron transport is expensive to compute accurately, traditionally by Monte Carlo methods that trace many particle histories. This is far too slow for a real-time twin, so the neutronics twin relies on precomputed response functions and surrogates: relate the plasma neutron source, which the plasma twin estimates, to the fields elsewhere through fast mappings validated against full transport calculations. See <a href=./surrogate-models-for-twins.html>surrogate models</a>."],
+    ["h3", "Coupling to other twins"],
+    ["p", "The neutronics twin is a hub. It takes the neutron source strength and distribution from the plasma state estimate, and it feeds heating into the thermal twin, tritium production into the breeding-cycle twin, and damage rates into the life-tracking twin. Getting this coupling right is what makes the plant twin coherent rather than a set of disconnected models."],
+    ["h3", "In the Kronos machines"],
+    ["p", "The two machines differ sharply in their neutron environment. The Hyperion breeder, burning deuterium and tritium, produces intense 14 million-electron-volt neutrons that drive its tritium breeding, designed to a breeding ratio of 1.8, and dominate its material damage. The burner, burning deuterium and helium-3, has a neutron fraction of only 5.44 percent, so its neutronics twin carries a much smaller load. Both are built on validated neutron-transport models today, with real activation and damage data available only after the machines operate. See <a href=./tritium-breeding-cycle-twin.html>tritium breeding cycle twin</a> and <a href=./thermal-hydraulic-twin.html>thermal-hydraulic twin</a>."]
+  ],
+  "related": [["tritium-breeding-cycle-twin", "Tritium Breeding Cycle Twin"], ["thermal-hydraulic-twin", "Thermal-Hydraulic Twin"], ["component-life-tracking", "Component-Life Tracking"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "thermal-hydraulic-twin",
+  "title": "Thermal-Hydraulic Twin",
+  "cat": "digital-twins",
+  "lede": "A thermal-hydraulic twin tracks heat generation, transport, and removal through the coolant loops that keep the machine within limits.",
+  "body": [
+    ["h2", "Managing the heat"],
+    ["p", "A fusion machine generates intense heat, in the plasma-facing surfaces, in the blanket from neutron deposition, and in the magnets, and that heat must be carried away by coolant loops without any surface exceeding its limit. A thermal-hydraulic twin tracks the generation, transport, and removal of this heat, estimating temperatures and flows throughout, including at points no sensor can reach."],
+    ["h3", "What it models"],
+    ["ul", ["Heat sources: neutron deposition, plasma exhaust to surfaces, magnet losses", "Conduction through solid structures to the coolant channels", "Convection in the coolant and its flow distribution", "Heat rejection at the plant's ultimate heat sink"]],
+    ["h3", "Reconstructing internal temperatures"],
+    ["p", "The temperatures that matter most, at plasma-facing surfaces and inside structures, are the hardest to measure. The twin reconstructs them from accessible measurements, coolant inlet and outlet temperatures, flow rates, and the neutron heating from the neutronics twin, through a thermal model. Reduced-order thermal models make this fast enough for the loop while staying interpretable. See <a href=./reduced-order-models.html>reduced-order models</a>."],
+    ["h3", "Detecting degradation"],
+    ["p", "Over time, cooling degrades: surfaces foul, channels partially block, pumps wear. Because the twin knows what the temperatures should be for a given heat load and flow, a growing gap between predicted and measured temperatures reveals degradation and helps localize it, feeding predictive maintenance before a limit is threatened. See <a href=./predictive-maintenance.html>predictive maintenance</a>."],
+    ["h3", "In the Kronos machines"],
+    ["p", "For the Hyperion breeder, the thermal-hydraulic twin manages the large neutron-driven heat load in the blanket and the exhaust load on plasma-facing surfaces. For the burner, with its low neutron fraction of 5.44 percent, more of the heat arrives as charged-particle exhaust and much of the energy is handled by direct conversion, changing the balance the thermal twin tracks. Both are built on validated thermal-hydraulic models now, with calibration to real hardware after the machines operate. See <a href=./neutronics-twin.html>neutronics twin</a>."]
+  ],
+  "related": [["neutronics-twin", "Neutronics Twin"], ["reduced-order-models", "Reduced-Order Models"], ["predictive-maintenance", "Predictive Maintenance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "structural-fatigue-twin",
+  "title": "Structural and Fatigue Twin",
+  "cat": "digital-twins",
+  "lede": "A structural twin reconstructs the stresses in load-bearing components and integrates them into an accumulated-damage estimate over the machine's life.",
+  "body": [
+    ["h2", "Tracking mechanical health"],
+    ["p", "Fusion machines subject their structures to large, cyclic, and sometimes sudden loads: magnetic forces on coils and supports, thermal stresses from temperature swings, and pressure loads in coolant systems. A structural twin reconstructs the stresses in load-bearing components from measurements and load estimates, then integrates them into an accumulated-damage figure that tracks how close each part is to a structural limit."],
+    ["h3", "The loads"],
+    ["ul", ["Magnetic forces, which are enormous in high-field regions and vary with operation", "Thermal stresses from heating and cooling cycles", "Pressure loads in coolant and vacuum boundaries", "Transient loads from events such as disruptions in a tokamak"]],
+    ["h3", "Fatigue accumulation"],
+    ["p", "Cyclic loading accumulates fatigue damage even when each cycle is well within the static strength. A common approach counts stress cycles and sums their damage contributions toward a limit, with the material's fatigue curve setting how many cycles of a given amplitude a part can survive. The twin performs this counting on the reconstructed, as-operated stresses rather than on nominal assumptions, giving a per-component damage ledger."],
+    ["h3", "Reconstructing stress"],
+    ["p", "The highest stresses often occur at internal features, welds, and stress concentrations where no gauge can sit. The twin reconstructs them from surface strain measurements, load estimates from the magnet and thermal twins, and a structural model. Where the full model is too slow, a reduced-order or surrogate structural model provides fast estimates, with high-fidelity finite-element analysis run offline for detail. See <a href=./component-life-tracking.html>component-life tracking</a>."],
+    ["h3", "In the Kronos machines"],
+    ["p", "The magnet supports of both machines are prime targets, given the fields involved, an on-axis 8 tesla and 16.84 tesla peak in the Hyperion breeder, and 26.49 tesla in the burner plug. For the breeder, the twin also tracks transient loads from potential disruptions and the effect of neutron damage on material strength. These methods are built on validated structural and materials models today; real fatigue data accrues only once the machines cycle, after first tritium near 2030. See <a href=./magnet-system-twin.html>magnet system twin</a> and <a href=./remaining-useful-life.html>remaining useful life</a>."]
+  ],
+  "related": [["component-life-tracking", "Component-Life Tracking"], ["magnet-system-twin", "Magnet System Twin"], ["remaining-useful-life", "Remaining Useful Life"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-anomaly-detection",
+  "title": "Anomaly Detection in Twins",
+  "cat": "digital-twins",
+  "lede": "A twin flags anomalies as persistent, unexplained gaps between what it predicts and what the sensors report.",
+  "body": [
+    ["h2", "The residual as an alarm"],
+    ["p", "A twin continuously predicts what its sensors should read and compares that to what they do read. The gap, called the residual or innovation, should hover near zero within the known noise if all is well. A residual that grows or shows structure means something is happening the model does not expect: a developing fault, a sensor failure, or physics the twin is missing. Watching residuals is the most natural anomaly detector a twin has."],
+    ["h3", "Why a twin detects better than a threshold"],
+    ["p", "A simple alarm trips when a signal crosses a fixed limit, which misses subtle problems and cries wolf during normal transients. A twin knows what each signal should be given the current state and operation, so it can flag a signal that is abnormal for the circumstances even while still within its absolute limits. It detects the unexpected, not merely the extreme."],
+    ["h3", "From detection to diagnosis"],
+    ["ul", ["Detect: a residual departs from its expected statistics", "Isolate: which sensors and states are involved narrows the location", "Diagnose: the physics model links the pattern to a candidate cause", "Assess: the twin estimates severity and how much time remains"]],
+    ["h3", "Ambiguity and multiple hypotheses"],
+    ["p", "One anomaly can have several explanations, a real fault or a failing sensor that mimics one. A twin can carry competing hypotheses with their probabilities until more data resolves them, rather than committing prematurely. Methods that represent multiple modes, such as particle filters, suit this directly. See <a href=./particle-filter.html>particle filters</a>."],
+    ["h3", "In the Kronos twins"],
+    ["p", "For the Hyperion breeder and the burner, residual-based detection watches for developing magnet, thermal, and structural problems, and for plasma behavior drifting from expectation. Because both machines are pre-construction, detectors are tuned today against simulated faults injected into the design model, an approach that establishes their behavior before real faults can occur. Cross-diagnostic consistency, from sensor fusion, adds a second detection layer. See <a href=./sensor-fusion-diagnostics.html>diagnostic fusion</a> and <a href=./disruption-prediction-twin.html>disruption prediction</a>."]
+  ],
+  "related": [["particle-filter", "Particle Filters"], ["sensor-fusion-diagnostics", "Diagnostic Fusion in Fusion Machines"], ["predictive-maintenance", "Predictive Maintenance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ensemble-forecasting-twin",
+  "title": "Ensemble Forecasting in Twins",
+  "cat": "digital-twins",
+  "lede": "Running many perturbed twin copies forward produces a distribution of futures, quantifying forecast uncertainty rather than a single guess.",
+  "body": [
+    ["h2", "Many futures, not one"],
+    ["p", "A single forward run of a twin gives one prediction, with no sense of how reliable it is. Ensemble forecasting runs many copies of the twin forward from slightly different starting states and parameters, sampled from the current uncertainty, and reads the spread of the results as the forecast uncertainty. The technique is borrowed from weather prediction, where it transformed forecasting into a probabilistic discipline."],
+    ["h3", "How it works"],
+    ["ul", ["Sample the current state and uncertain parameters to seed a set of members", "Run each member forward under the scenario of interest", "Read the mean as the central forecast and the spread as the uncertainty", "Read the fraction of members crossing a limit as the probability of that outcome"]],
+    ["h3", "Answering probabilistic questions"],
+    ["p", "Because the output is a distribution, an ensemble answers questions a single run cannot: what is the chance a temperature limit is exceeded in the next hour, or how likely is a component to reach end of life before a planned outage. These probabilistic answers are what decision-makers actually need, since operating a plant is managing risk, not chasing a point estimate."],
+    ["h3", "The cost, and how surrogates pay it"],
+    ["p", "Running hundreds of members is expensive with full physics. Surrogates make ensembles practical by reducing each member to a fast evaluation, and because members are independent they parallelize cleanly. The ensemble Kalman filter uses the same idea for state estimation, so ensembles serve both assimilation and forecasting. See <a href=./ensemble-kalman-filter.html>ensemble Kalman filter</a> and <a href=./surrogate-models-for-twins.html>surrogate models</a>."],
+    ["h3", "In the Kronos twins"],
+    ["p", "Ensemble forecasting lets the Hyperion breeder and the burner twins report the probability of crossing operational and life limits under candidate operating plans, carrying forward the honest uncertainty that pre-construction models carry. Today the ensembles run on design models and validated surrogates; after the machines operate, the starting-state uncertainty will shrink as real data tightens the estimates. See <a href=./uncertainty-quantification-twins.html>uncertainty quantification</a> and <a href=./what-if-scenario-simulation.html>what-if scenario simulation</a>."]
+  ],
+  "related": [["ensemble-kalman-filter", "Ensemble Kalman Filter"], ["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"], ["what-if-scenario-simulation", "What-If Scenario Simulation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-visualization-hmi",
+  "title": "Twin Visualization and Interfaces",
+  "cat": "digital-twins",
+  "lede": "A twin's insight reaches people through interfaces that must present state, uncertainty, and recommendations clearly and without misleading.",
+  "body": [
+    ["h2", "The last mile to the human"],
+    ["p", "A twin's estimates and forecasts are useless if the people who must act on them cannot understand them quickly and correctly. The visualization and human-machine interface layer turns internal state, uncertainty, and recommendations into displays that support fast, sound decisions, in the control room, in engineering review, and in maintenance planning. Poor presentation can make a good twin dangerous."],
+    ["h3", "Showing the hidden state"],
+    ["p", "Much of a twin's value is reconstructing quantities no sensor shows. Visualization must make these inferred fields legible, for example a reconstructed temperature or stress distribution over a component, while clearly distinguishing measured from inferred, so an operator never mistakes an estimate for a direct reading."],
+    ["h3", "Showing uncertainty honestly"],
+    ["ul", ["Display error bands, not just point values, so confidence is visible", "Signal when an estimate is degraded, for example after losing a sensor", "Make the boundary of the twin's validated domain visible, so extrapolation is flagged", "Avoid false precision that implies more certainty than exists"]],
+    ["h3", "Layering by role"],
+    ["p", "Different users need different views. An operator needs a fast, uncluttered picture of the machine's health and any required action. An engineer needs to drill into the physics behind an estimate. A maintenance planner needs component-life forecasts. A well-designed interface layers these so each user sees what they need without drowning in the rest. The three-dimensional model of the machine is a natural spatial backbone for these views."],
+    ["h3", "In the Kronos program"],
+    ["p", "The existing three-dimensional model of the Hyperion breeder and the burner provides a spatial canvas onto which twin state can be projected: temperatures on surfaces, stresses in supports, margins in magnets. Building the interface on that model now, during design, means the visual language is ready and tested before the machines operate. The same interface serves the operator training simulator. See <a href=./operator-training-simulator.html>operator training simulators</a> and <a href=./digital-twin-roadmap-3d-to-foak.html>the roadmap</a>."]
+  ],
+  "related": [["operator-training-simulator", "Operator Training Simulators"], ["digital-twin-roadmap-3d-to-foak", "Roadmap: 3D Model to FOAK"], ["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-governance-lifecycle",
+  "title": "Twin Governance and Lifecycle",
+  "cat": "digital-twins",
+  "lede": "A twin is a long-lived asset that must be versioned, audited, and maintained across the whole life of the machine it represents.",
+  "body": [
+    ["h2", "A twin outlives any release"],
+    ["p", "A twin is not a project that ships once; it lives as long as the machine, evolving as models improve, sensors change, and the machine ages. Governance is the discipline that keeps a long-lived twin trustworthy: versioning, provenance, change control, and clear ownership, so that every decision the twin informs can be traced and defended years later."],
+    ["h3", "Provenance and traceability"],
+    ["p", "Every estimate, forecast, and recommendation must be traceable to the model version, data window, and parameters that produced it. When a twin advises a safety-relevant action, or when an incident is later reviewed, the ability to reconstruct exactly what the twin knew and computed is essential. This demands immutable logging and disciplined versioning of code, models, and data together."],
+    ["h3", "Change control"],
+    ["ul", ["Model updates are reviewed and validated before deployment, not slipped in silently", "Changes are versioned so results before and after remain distinguishable", "The validated domain is re-checked when models change", "Rollback is possible if an update degrades performance"]],
+    ["h3", "The lifecycle stages"],
+    ["p", "A twin passes through design, where it is built from simulation before hardware exists; commissioning, where it is calibrated to the real machine; operation, where it is used and continuously updated; and decommissioning, where its accumulated history informs the end of the machine's life. Each stage has different validation status and different obligations, and honest governance states which stage a twin is in."],
+    ["h3", "In the Kronos program"],
+    ["p", "The Hyperion breeder and the burner twins are in the design stage: built on validated simulation, not yet calibrated to hardware. Governance now means version-controlling the models and data schemas, recording the provenance of every design-stage result, and setting the change-control process before it is stress-tested by real operation. For the burner fleet in Aegis and MetroVolt housings, governance also defines how per-unit twins and fleet-level learning coexist without confusing the record. See <a href=./digital-twin-roadmap-3d-to-foak.html>the roadmap</a> and <a href=./twin-data-standards.html>data standards</a>."]
+  ],
+  "related": [["digital-twin-roadmap-3d-to-foak", "Roadmap: 3D Model to FOAK"], ["twin-data-standards", "Twin Data Standards"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "digital-twin-roadmap-3d-to-foak",
+  "title": "Roadmap: 3D Model to FOAK",
+  "cat": "digital-twins",
+  "lede": "The path from today's three-dimensional model to an operational twin at first-of-a-kind runs through simulation, hardware-in-the-loop, and commissioning.",
+  "body": [
+    ["h2", "Where the twin is now"],
+    ["p", "Today the Kronos artifact is a high-fidelity three-dimensional model of the Hyperion breeder and the burner: rich in geometry and physics, but a simulation, not a twin, because no physical machine yet feeds it data. The roadmap below describes how that model becomes a predictive twin, keeping each step honest about what has and has not been proven. The machines are not built; construction begins in the second quarter of 2027 and first tritium for the first breeder is targeted near 2030."],
+    ["h3", "Stage 1: physics-complete model, now"],
+    ["p", "Assemble and verify the coupled physics, plasma, magnets, neutronics, thermal, and structural, and cross-check against related experiments and published data. Build surrogates and prove the assimilation, control, and life-tracking machinery on synthetic data through observing-system simulation experiments. This is design-stage work, establishing method without claiming plant-level validation."],
+    ["h3", "Stage 2: control and twin software, through construction"],
+    ["ul", ["Harden the real-time estimation and control software", "Validate timing and failure behavior with hardware-in-the-loop testing", "Develop operating procedures and the training simulator", "Fix data standards, pipelines, and governance before hardware exists"]],
+    ["h3", "Stage 3: commissioning at first-of-a-kind"],
+    ["p", "When the first breeder is built and begins operation, the twin is connected to real sensors and calibrated to the real machine for the first time. Predictions are compared to reality, models are corrected, and the validated domain begins to be established from operating data. This is when the simulation genuinely becomes a twin. No hardware net-gain claim is made before this milestone."],
+    ["h3", "Stage 4: operation and fleet, beyond FOAK"],
+    ["p", "In operation the twin is used and continuously updated, its uncertainty shrinking as data accrues. As further breeder units and the burner fleet, in Aegis and MetroVolt housings, come online, per-unit twins share learned patterns while each keeps its own history. The roadmap ends not at a fixed point but at a maintained, evolving twin that lives as long as the machines. See <a href=./twin-governance-lifecycle.html>twin governance</a> and <a href=./twin-validation-verification-uq.html>validation</a>."]
+  ],
+  "related": [["digital-twin-fundamentals", "Digital Twin Fundamentals"], ["twin-governance-lifecycle", "Twin Governance and Lifecycle"], ["hardware-in-the-loop-testing", "Hardware-in-the-Loop Testing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "variational-data-assimilation",
+  "title": "Variational Data Assimilation",
+  "cat": "digital-twins",
+  "lede": "Variational assimilation fits the model to a whole window of observations at once by minimizing a mismatch cost, complementing sequential filters.",
+  "body": [
+    ["h2", "Fitting a window, not a step"],
+    ["p", "Sequential filters update the state each time an observation arrives. Variational data assimilation takes a different route: it considers a whole time window of observations together and finds the state trajectory that best fits all of them at once, by minimizing a cost that penalizes mismatch to the data and departure from the prior. Weather centers pioneered this approach, and it complements the filtering family."],
+    ["h3", "Three- and four-dimensional variants"],
+    ["ul", ["Three-dimensional variational assimilation fits observations at a single analysis time", "Four-dimensional variational assimilation fits observations spread across a time window, using the model to link them", "The four-dimensional form respects the dynamics, producing a trajectory consistent with both data and physics"]],
+    ["h3", "The cost function and the adjoint"],
+    ["p", "The cost sums the squared, uncertainty-weighted mismatches between predicted and observed quantities, plus a term keeping the solution near the prior. Minimizing it over a whole trajectory efficiently requires the adjoint of the model, a construct that computes the cost's gradient in one backward pass. Building and maintaining an adjoint is the main practical burden of the four-dimensional method."],
+    ["h3", "Filters versus variational"],
+    ["p", "Filters are naturally sequential and give uncertainty directly through their covariances; variational methods use whole windows and can enforce physical consistency across time, but need extra work for uncertainty. Hybrid schemes combine an ensemble's flow-dependent uncertainty with a variational fit, capturing the strengths of both. The right choice depends on the problem and the available model infrastructure. See <a href=./ensemble-kalman-filter.html>the ensemble filter</a>."],
+    ["h3", "In a fusion twin"],
+    ["p", "Variational assimilation suits reanalysis of a completed pulse or campaign, where fitting a whole window at once produces the most consistent reconstruction for later study, feeding calibration and model improvement. For the Hyperion breeder, a four-dimensional reconstruction of a discharge gives a coherent history of the plasma state; for slower plant systems it reconciles batches of measurements. As with all Kronos twin methods, it is exercised on simulated data today and calibrated to real machines after they operate. See <a href=./data-assimilation-basics.html>data assimilation</a>."]
+  ],
+  "related": [["data-assimilation-basics", "Data Assimilation Basics"], ["ensemble-kalman-filter", "Ensemble Kalman Filter"], ["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "smoothing-vs-filtering",
+  "title": "Smoothing versus Filtering",
+  "cat": "digital-twins",
+  "lede": "Filtering estimates the state now from data up to now; smoothing improves past estimates using data that arrived later.",
+  "body": [
+    ["h2", "Two questions about time"],
+    ["p", "Estimation comes in two flavors distinguished by which data they use. Filtering estimates the current state using all observations up to the present, the right tool for real-time operation and control. Smoothing revisits a past state using observations from both before and after it, producing a better estimate in hindsight. Both matter to a twin, for different purposes."],
+    ["h3", "Why smoothing is more accurate"],
+    ["p", "An estimate of a past moment can be sharpened by data that came after it, because later measurements constrain what the earlier state must have been to lead to them. Smoothing uses this future information, so its estimates of past states are less uncertain than the filtered estimates were at the time. The cost is that it is not causal: it cannot be done in real time, only after the fact."],
+    ["h3", "Uses of each"],
+    ["ul", ["Filtering: real-time state estimation, control, live anomaly detection", "Smoothing: post-pulse and post-campaign reanalysis, calibration, training-data generation", "Prediction: rolling the filtered state forward, used for forecasts and what-if studies"]],
+    ["h3", "Fixed-lag smoothing"],
+    ["p", "A middle ground, fixed-lag smoothing, produces improved estimates a short, fixed time behind real time, accepting a small delay to gain accuracy. This suits functions that can tolerate a brief lag, giving better estimates than pure filtering without waiting for a whole campaign to finish."],
+    ["h3", "In a fusion twin"],
+    ["p", "A Kronos twin filters in real time to drive control of the Hyperion breeder and the burner, but smooths after each pulse or campaign to produce the most accurate reconstruction for physics study, calibration, and life accounting. The smoothed history is also the cleanest training data for surrogates and the best record for governance. Both are built on the same models exercised on simulated data today, with real application after the machines operate. See <a href=./calibration-and-parameter-estimation.html>calibration</a> and <a href=./variational-data-assimilation.html>variational assimilation</a>."]
+  ],
+  "related": [["data-assimilation-basics", "Data Assimilation Basics"], ["variational-data-assimilation", "Variational Data Assimilation"], ["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-model-coupling",
+  "title": "Coupling Multi-Physics Models",
+  "cat": "digital-twins",
+  "lede": "A plant twin is a federation of coupled physics models that must exchange boundary information consistently without instability.",
+  "body": [
+    ["h2", "One machine, many physics"],
+    ["p", "No single code captures a fusion plant. The plasma, magnets, neutron field, coolant, and structure each have their own physics and their own solver, yet they are tightly linked: neutrons heat the coolant, fields stress the structure, temperatures shift material properties. A plant twin couples these models so information flows across their shared boundaries consistently. Getting the coupling right is as important as any individual model."],
+    ["h3", "How models exchange"],
+    ["ul", ["Neutronics passes heating and damage rates to thermal and structural models", "The plasma state sets the neutron source and the heat exhaust to surfaces", "Thermal fields feed temperatures into structural and magnet models", "Structural deformation and magnet fields feed back to the plasma boundary"]],
+    ["h3", "Weak versus strong coupling"],
+    ["p", "Weak coupling exchanges information once per step and is simple but can lose accuracy or stability when the physics interact strongly. Strong coupling iterates the exchange within each step until the models agree, which is more accurate but more expensive. A twin chooses the coupling strength per interaction: strong where feedback is tight and fast, weak where it is loose and slow."],
+    ["h3", "Timescale separation"],
+    ["p", "The coupled physics span timescales from the fast plasma to the slow accumulation of structural fatigue. A twin exploits this separation, running fast-coupled subsystems together in the real-time path while updating slow interactions, such as damage accumulation, far less often. Mixing timescales naively wastes computation or misses fast feedback."],
+    ["h3", "In the Kronos twins"],
+    ["p", "For the Hyperion breeder, tight coupling among plasma, magnets, and control runs fast, while neutronics-driven breeding and structural damage update on slower cadences. For the burner, plasma and high-field plug coupling dominates the fast path while its low neutron fraction of 5.44 percent lightens the neutronics coupling. The coupled federation is verified against standalone codes and cross-checks today, with real cross-validation after the machines operate. See <a href=./neutronics-twin.html>neutronics twin</a> and <a href=./thermal-hydraulic-twin.html>thermal-hydraulic twin</a>."]
+  ],
+  "related": [["neutronics-twin", "Neutronics Twin"], ["thermal-hydraulic-twin", "Thermal-Hydraulic Twin"], ["twin-architecture-overview", "Twin Architecture"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "surrogate-accelerated-twin",
+  "title": "Surrogate-Accelerated Twins",
+  "cat": "digital-twins",
+  "lede": "Surrogate acceleration blends fast approximations with occasional full-physics runs, keeping a twin both quick and trustworthy.",
+  "body": [
+    ["h2", "Fast most of the time, exact when it counts"],
+    ["p", "A twin needs speed for control and ensembles but accuracy for trust. A surrogate-accelerated twin resolves the tension by using fast surrogates for the great majority of evaluations while calling the full physics code occasionally, to check the surrogate, to handle inputs outside its trained region, and to generate fresh training data. The result is a twin that is quick in the common case and correct in the demanding one."],
+    ["h3", "The multifidelity idea"],
+    ["p", "Multifidelity methods combine many cheap, approximate evaluations with a few expensive, accurate ones to get the best of both. The cheap model captures the trend; the expensive model corrects the level and the hard cases. A twin arranges its models into such a hierarchy and spends its computation where it buys the most accuracy per unit time."],
+    ["h3", "Knowing when to escalate"],
+    ["ul", ["Detect when a query lies outside the surrogate's trained domain and defer to full physics", "Trigger a full run when residuals suggest the surrogate is drifting", "Periodically sample full-physics runs to monitor and retrain the surrogate", "Escalate automatically for safety-relevant decisions that warrant the cost"]],
+    ["h3", "Closing the loop with retraining"],
+    ["p", "Full-physics runs triggered during operation, and smoothed reconstructions of real behavior, become new training data. Retraining the surrogates on this data keeps them accurate as the machine and its operating envelope evolve, and steadily shrinks how often escalation is needed. The twin thus improves itself over its life, under the change-control discipline of governance. See <a href=./real-time-model-updating.html>real-time model updating</a>."],
+    ["h3", "In the Kronos twins"],
+    ["p", "Surrogate acceleration is what lets a physically rich twin of the Hyperion breeder or the burner run inside a control cycle and across large ensembles, while retaining the option to fall back to validated full-physics codes for the hard or safety-critical cases. Today both surrogates and full codes run on design models; after the machines operate, real data retrains the surrogates. See <a href=./surrogate-models-for-twins.html>surrogate models</a> and <a href=./real-time-computing-for-twins.html>real-time computing</a>."]
+  ],
+  "related": [["surrogate-models-for-twins", "Surrogate Models for Twins"], ["real-time-computing-for-twins", "Real-Time Computing for Twins"], ["real-time-model-updating", "Real-Time Model Updating"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "innovation-sequence-monitoring",
+  "title": "Innovation Sequence Monitoring",
+  "cat": "digital-twins",
+  "lede": "The statistics of a filter's innovations reveal whether the twin is healthy, overconfident, or missing physics.",
+  "body": [
+    ["h2", "The filter watching itself"],
+    ["p", "Every time a filter processes a measurement it computes an innovation, the difference between the observed value and what the filter predicted. Over time these innovations form a sequence whose statistics are a sensitive diagnostic of the filter's health. A well-tuned filter with a correct model produces innovations that are small, unbiased, and uncorrelated in time. Departures from this are informative."],
+    ["h3", "What healthy innovations look like"],
+    ["ul", ["Zero mean: no persistent bias between model and reality", "Magnitude consistent with the predicted innovation covariance", "No time correlation: each innovation is unpredictable from the last", "No structure tied to operating conditions"]],
+    ["h3", "Reading the failures"],
+    ["p", "Innovations larger than predicted mean the filter is overconfident, its covariance too small, so it under-weights new data; inflation or retuning is needed. A nonzero mean signals a bias, a miscalibrated sensor or a systematic model error. Time correlation in the innovations means the model is missing dynamics the data contains, a cue to raise fidelity or update the model structure. The innovation sequence thus tells the operator not just that something is wrong but what kind of wrong."],
+    ["h3", "A bridge to anomaly detection"],
+    ["p", "Innovation monitoring and anomaly detection are the same idea seen from two sides: anomaly detection asks whether the residual signals a fault in the machine, while innovation monitoring asks whether it signals a fault in the twin. Distinguishing the two, a real machine event versus a model or sensor problem, is a core skill, and consistent innovations are what let the twin trust its own alarms. See <a href=./twin-anomaly-detection.html>anomaly detection</a>."],
+    ["h3", "In the Kronos twins"],
+    ["p", "For the Hyperion breeder and the burner, innovation monitoring is a standing health check on every filter in the twin, run continuously so that miscalibration or missing physics is caught early. During the design stage it is exercised on synthetic data to confirm the filters are correctly tuned before real measurements exist. It underpins the honest reporting of uncertainty the program insists on. See <a href=./uncertainty-quantification-twins.html>uncertainty quantification</a> and <a href=./kalman-filter.html>the Kalman filter</a>."]
+  ],
+  "related": [["twin-anomaly-detection", "Anomaly Detection in Twins"], ["kalman-filter", "The Kalman Filter"], ["uncertainty-quantification-twins", "Uncertainty Quantification in Twins"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "twin-data-replay-reanalysis",
+  "title": "Data Replay and Reanalysis",
+  "cat": "digital-twins",
+  "lede": "Storing raw data lets a twin be re-run later with better models, extracting new insight from old operation.",
+  "body": [
+    ["h2", "Operation, kept for later"],
+    ["p", "A twin makes its best estimate in real time under strict deadlines, using the models it had at the moment. But if the raw sensor data is stored faithfully, the whole operation can be replayed later, through improved models, better assimilation, and hindsight smoothing, to extract more than was possible live. Reanalysis turns a historian archive into a renewable source of insight."],
+    ["h3", "Why reanalysis pays"],
+    ["ul", ["Later models are more accurate, so old data yields better reconstructions", "Smoothing uses future data to sharpen past estimates the real-time filter could not", "New questions can be asked of past operation without re-running the machine", "It produces clean, consistent training data for surrogates"]],
+    ["h3", "The requirement: store the raw data"],
+    ["p", "Reanalysis is only possible if the original measurements, with full metadata and provenance, are preserved. Storing only derived estimates throws away the ability to reconsider them. This is why the twin's storage layer keeps raw signals, not just conclusions, and why data standards and time alignment matter: a future reanalysis must be able to reconstruct exactly what the sensors saw and when. See <a href=./twin-data-standards.html>data standards</a>."],
+    ["h3", "Reanalysis and validation"],
+    ["p", "Reanalysis is also how a twin's earlier predictions are checked against what actually happened, a direct form of validation. Comparing a past forecast to the smoothed reconstruction of the real outcome measures the twin's skill and reveals where its models need work, feeding the change-controlled improvement cycle. See <a href=./twin-validation-verification-uq.html>validation</a>."],
+    ["h3", "In the Kronos program"],
+    ["p", "For the Hyperion breeder and the burner, faithful raw-data retention is designed in from the start, so that every pulse and campaign can be reanalyzed as models mature. Before the machines operate, reanalysis is rehearsed on simulated campaigns; afterward it becomes a primary way the twins learn from real operation and the burner fleet compares experience across units. See <a href=./smoothing-vs-filtering.html>smoothing versus filtering</a> and <a href=./twin-governance-lifecycle.html>twin governance</a>."]
+  ],
+  "related": [["smoothing-vs-filtering", "Smoothing versus Filtering"], ["twin-data-standards", "Twin Data Standards"], ["twin-validation-verification-uq", "Twin Validation and Verification"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "fleet-twins-and-transfer",
+  "title": "Fleet Twins and Transfer Learning",
+  "cat": "digital-twins",
+  "lede": "When many similar machines run, their twins share learned patterns and priors while each keeps its own state and history.",
+  "body": [
+    ["h2", "Many machines, shared learning"],
+    ["p", "A single machine's twin learns only from that machine. When a design is built as a fleet, the twins can learn from each other: a behavior, fault precursor, or calibration insight discovered on one unit can inform the others. Fleet twins balance two needs, each unit keeps its own individual twin, tracking its own wear and history, while the fleet accumulates shared knowledge that improves every unit."],
+    ["h3", "What is shared and what is not"],
+    ["ul", ["Shared: model structure, learned failure precursors, prior distributions for parameters", "Shared: surrogates trained on pooled data across units", "Individual: the current state estimate of each unit", "Individual: each unit's calibration, wear ledger, and operating history"]],
+    ["h3", "Transfer learning"],
+    ["p", "Transfer learning uses knowledge gained on one system to accelerate learning on another. A new unit need not start from ignorance; it inherits informed priors from the fleet and refines them with its own data. This is especially valuable early in a unit's life, when it has little history of its own, and for rare events that no single unit sees often but the fleet does."],
+    ["h3", "The pitfalls"],
+    ["p", "Units are similar but not identical, differing in construction, siting, and duty. Naively pooling their data can wash out real individual differences or transfer a pattern that does not apply. Sound fleet learning models the units as related but distinct, so shared knowledge informs each unit's twin without overriding what that unit's own data says."],
+    ["h3", "In the Kronos program"],
+    ["p", "The burner is planned as fleets, deployed in Aegis housings for fixed defense installations and MetroVolt housings for data centers, making fleet learning directly applicable: the same machine in many units, ideal for shared precursors and transferred priors. Successive breeder units likewise benefit as they come online. Fleet learning is designed into the twin architecture and data standards now, and becomes active once multiple units operate, after first tritium near 2030. See <a href=./twin-data-standards.html>data standards</a> and <a href=./predictive-maintenance.html>predictive maintenance</a>."]
+  ],
+  "related": [["predictive-maintenance", "Predictive Maintenance"], ["twin-data-standards", "Twin Data Standards"], ["calibration-and-parameter-estimation", "Calibration and Parameter Estimation"]],
+  "seo_type": "TechArticle"
+}
+]

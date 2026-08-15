@@ -1,0 +1,3089 @@
+[
+ {
+  "slug": "scientific-machine-learning-overview",
+  "title": "Scientific Machine Learning",
+  "cat": "scientific-ml",
+  "lede": "Scientific machine learning fuses data-driven models with the governing equations, symmetries, and constraints of physical systems.",
+  "body": [
+   [
+    "h2",
+    "A hybrid discipline"
+   ],
+   [
+    "p",
+    "Scientific machine learning (SciML) sits between classical numerical simulation and general-purpose machine learning. Pure simulation starts from known equations and integrates them forward; pure machine learning starts from data and fits a flexible function. SciML combines both: it uses known physics to constrain what a network can learn, and uses data to fill gaps where the physics is incomplete or too expensive to resolve."
+   ],
+   [
+    "p",
+    "The motivation is practical. Many physical models are accurate but slow, or fast but crude. A trained surrogate can approximate an expensive solver in milliseconds, and a physics-informed loss can keep a data-driven model from producing results that violate conservation of mass, momentum, or energy."
+   ],
+   [
+    "h2",
+    "The main families"
+   ],
+   [
+    "ul",
+    [
+     "Physics-informed networks that add the residual of a differential equation to the training loss",
+     "Neural operators that learn mappings between whole functions rather than between points",
+     "Differentiable simulators whose solver itself supports gradient-based learning and inversion",
+     "Equation discovery methods that recover symbolic laws directly from data",
+     "Hybrid closure models that correct a coarse physical model with a learned residual"
+    ]
+   ],
+   [
+    "h2",
+    "Why constraints help"
+   ],
+   [
+    "p",
+    "A neural network with millions of parameters can fit almost any finite dataset, including its noise. Encoding physics reduces the space of admissible solutions, which improves generalization from limited data and makes extrapolation less reckless. Constraints can be soft (penalty terms) or hard (architectures that satisfy a law exactly by construction)."
+   ],
+   [
+    "h2",
+    "Where it is used"
+   ],
+   [
+    "p",
+    "SciML is applied to fluid dynamics, materials modeling, climate, and plasma physics. In fusion, learned surrogates and operators are studied for accelerating equilibrium and transport calculations for design machines such as the <b>Hyperion</b> breeder, a D-T spherical tokamak whose design studies rely on many repeated solver evaluations. Such models accelerate design sweeps; they do not replace verified physics or claim measured performance from hardware that is not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "physics-informed-neural-networks",
+    "PINNs"
+   ],
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "differentiable-simulation",
+    "Differentiable Simulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "physics-informed-neural-networks",
+  "title": "Physics-Informed Neural Networks",
+  "cat": "scientific-ml",
+  "lede": "A PINN trains a neural network to satisfy a differential equation by penalizing the equation's residual at sampled points inside the domain.",
+  "body": [
+   [
+    "h2",
+    "The core idea"
+   ],
+   [
+    "p",
+    "A physics-informed neural network (PINN) represents the solution of a differential equation as a neural network u(x,t) with trainable weights. Instead of fitting only measured data, it also enforces that the network obeys the governing equation. This is done by computing the equation's residual through automatic differentiation and adding it to the loss."
+   ],
+   [
+    "p",
+    "For a PDE written as N[u]=0 with boundary and initial conditions, the total loss combines several terms: a data term where measurements exist, a residual term evaluated at interior collocation points, and terms for the boundary and initial conditions. Minimizing this loss drives the network toward a function that both matches data and satisfies the physics."
+   ],
+   [
+    "h2",
+    "Why automatic differentiation matters"
+   ],
+   [
+    "p",
+    "The derivatives in the residual, such as du/dt or the Laplacian of u, are obtained exactly from the network by <a href=./differentiable-simulation.html>automatic differentiation</a>, not by finite differences on a grid. This means a PINN is mesh-free: collocation points can be scattered anywhere in the domain, and the network is a continuous function you can query at any coordinate."
+   ],
+   [
+    "h2",
+    "A minimal residual"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import torch\n# residual of the 1D heat equation u_t = alpha u_xx\ndef residual(net, x, t, alpha):\n    xt = torch.stack([x, t], dim=1).requires_grad_(True)\n    u = net(xt)\n    g = torch.autograd.grad(u, xt, torch.ones_like(u), create_graph=True)[0]\n    u_x, u_t = g[:,0:1], g[:,1:2]\n    u_xx = torch.autograd.grad(u_x, xt, torch.ones_like(u_x), create_graph=True)[0][:,0:1]\n    return u_t - alpha * u_xx"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and limits"
+   ],
+   [
+    "p",
+    "PINNs handle irregular geometries, high dimensions, and sparse data gracefully, and they solve forward and inverse problems with the same code. They can be slow to train and struggle with stiff, multi-scale, or sharply advective problems, where the loss landscape is hard to optimize. They are a flexible tool, not a universal replacement for finite-element or spectral solvers."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-and-collocation",
+    "PINN Loss and Collocation"
+   ],
+   [
+    "pinn-training-pathologies",
+    "PINN Training Pathologies"
+   ],
+   [
+    "inverse-problems-ml",
+    "Inverse Problems with ML"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-loss-and-collocation",
+  "title": "PINN Loss and Collocation Points",
+  "cat": "scientific-ml",
+  "lede": "The PINN objective is a weighted sum of residual, boundary, initial, and data losses evaluated at sampled collocation points.",
+  "body": [
+   [
+    "h2",
+    "Anatomy of the loss"
+   ],
+   [
+    "p",
+    "A physics-informed network is trained on a composite loss. The residual loss measures how far the network is from satisfying the PDE at interior points. The boundary loss enforces conditions on the domain edge. The initial loss fixes the state at t=0. An optional data loss ties the network to any real measurements. Each term is a mean squared quantity over its own set of sample points."
+   ],
+   [
+    "p",
+    "The full objective is L = w_r L_res + w_b L_bc + w_i L_ic + w_d L_data, where the weights w balance the terms. Choosing these weights is one of the central practical difficulties: if the residual weight dominates, boundary conditions drift; if it is too small, the network ignores the physics."
+   ],
+   [
+    "h2",
+    "Collocation points"
+   ],
+   [
+    "p",
+    "Collocation points are the coordinates where the residual is evaluated. Because a PINN is mesh-free, these can be drawn uniformly at random, on a grid, or from a low-discrepancy sequence such as Latin hypercube or Sobol sampling. More points give a finer enforcement of the equation but cost more per training step."
+   ],
+   [
+    "h2",
+    "Adaptive sampling"
+   ],
+   [
+    "p",
+    "Uniform sampling wastes effort where the solution is smooth and under-resolves where it is sharp. Adaptive schemes place more points where the residual is currently large, refining the network's attention on difficult regions such as boundary layers or shock fronts. Residual-based resampling can markedly improve accuracy on advection-dominated problems."
+   ],
+   [
+    "h2",
+    "Weighting strategies"
+   ],
+   [
+    "ul",
+    [
+     "Fixed manual weights, tuned by trial and error",
+     "Gradient-normalization schemes that balance the magnitude of each term's gradient",
+     "Neural tangent kernel analysis that predicts which term converges too slowly",
+     "Treating the weights as learnable parameters in a min-max formulation"
+    ]
+   ],
+   [
+    "p",
+    "Getting the balance right often matters more than the network's size or depth. A well-weighted small network frequently beats a poorly balanced large one."
+   ]
+  ],
+  "related": [
+   [
+    "physics-informed-neural-networks",
+    "PINNs"
+   ],
+   [
+    "pinn-training-pathologies",
+    "PINN Training Pathologies"
+   ],
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-training-pathologies",
+  "title": "PINN Training Pathologies",
+  "cat": "scientific-ml",
+  "lede": "Physics-informed networks fail in characteristic ways: stiff gradients, spectral bias, and imbalanced loss terms that stall optimization.",
+  "body": [
+   [
+    "h2",
+    "Why PINNs are hard to train"
+   ],
+   [
+    "p",
+    "A physics-informed network minimizes a loss built from differential operators, which makes its optimization landscape much rougher than an ordinary regression. Several distinct pathologies recur across problems, and recognizing them is the first step to fixing them."
+   ],
+   [
+    "h2",
+    "Spectral bias"
+   ],
+   [
+    "p",
+    "Neural networks trained by gradient descent learn low-frequency components first and high-frequency components very slowly. For solutions with fine structure this spectral bias means the network captures the smooth background quickly but never resolves sharp features. Fourier feature embeddings or sinusoidal activations widen the effective frequency band and mitigate the problem."
+   ],
+   [
+    "h2",
+    "Gradient imbalance"
+   ],
+   [
+    "p",
+    "When the residual, boundary, and data terms produce gradients of very different magnitudes, the optimizer follows the loudest term and neglects the others. The result is a network that satisfies, say, the interior equation while ignoring boundary conditions. Adaptive loss weighting rebalances the terms so each contributes comparably to each update."
+   ],
+   [
+    "h2",
+    "Stiffness and multi-scale physics"
+   ],
+   [
+    "p",
+    "Stiff systems, with dynamics spanning many time scales, create a loss surface with steep, narrow valleys. Plain gradient descent oscillates or crawls. Domain decomposition in time, curriculum schemes that grow the domain gradually, and causal training that respects the arrow of time all help by breaking one hard problem into a sequence of easier ones."
+   ],
+   [
+    "h2",
+    "Diagnosis checklist"
+   ],
+   [
+    "ul",
+    [
+     "Loss plateaus early: suspect spectral bias; add Fourier features",
+     "One condition satisfied, another ignored: rebalance loss weights",
+     "Training diverges on transient problems: enforce temporal causality",
+     "Accuracy good inside, poor near edges: add or reweight boundary points"
+    ]
+   ],
+   [
+    "p",
+    "These failures are not signs that PINNs are unusable; they are well-characterized and each has established remedies. Careful diagnosis usually turns a stalled run into a convergent one."
+   ]
+  ],
+  "related": [
+   [
+    "physics-informed-neural-networks",
+    "PINNs"
+   ],
+   [
+    "pinn-loss-and-collocation",
+    "PINN Loss and Collocation"
+   ],
+   [
+    "scientific-machine-learning-overview",
+    "Scientific ML"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "inverse-problems-ml",
+  "title": "Inverse Problems with Machine Learning",
+  "cat": "scientific-ml",
+  "lede": "Inverse problems infer hidden parameters or fields from indirect measurements, and machine learning provides fast, regularized estimators.",
+  "body": [
+   [
+    "h2",
+    "Forward versus inverse"
+   ],
+   [
+    "p",
+    "A forward problem maps causes to effects: given material properties and sources, predict the observed signal. An inverse problem runs backward: given noisy measurements, recover the underlying parameters or fields that produced them. Inverse problems are often ill-posed, meaning the solution may be non-unique or extremely sensitive to measurement noise."
+   ],
+   [
+    "h2",
+    "Classical framing"
+   ],
+   [
+    "p",
+    "The standard approach minimizes a data-misfit term plus a regularizer that encodes prior knowledge, such as smoothness or sparsity. This Tikhonov-style formulation stabilizes the problem but requires many forward solves inside an optimization loop, which is expensive when each forward model is a full simulation."
+   ],
+   [
+    "h2",
+    "How machine learning helps"
+   ],
+   [
+    "ul",
+    [
+     "A learned surrogate replaces the costly forward model, so each optimization step is cheap",
+     "A network can be trained to map measurements directly to parameters, giving instant estimates",
+     "Physics-informed networks absorb unknown parameters as extra trainable variables",
+     "Generative priors constrain solutions to a learned manifold of plausible fields"
+    ]
+   ],
+   [
+    "h2",
+    "PINNs for inversion"
+   ],
+   [
+    "p",
+    "A physics-informed network is naturally suited to inversion. Unknown coefficients in the governing equation, such as a diffusivity or a source strength, become trainable parameters alongside the network weights. Minimizing the combined residual and data loss recovers both the field and the unknown physics at once, without a separate outer loop."
+   ],
+   [
+    "h2",
+    "Uncertainty is essential"
+   ],
+   [
+    "p",
+    "Because inverse problems are ill-posed, a single best-fit answer can be misleading. Sound practice reports a distribution over solutions, using Bayesian methods, ensembles, or conformal bounds. In fusion, equilibrium reconstruction is a classic inverse problem: internal plasma profiles are inferred from external magnetic and other diagnostics, and quantifying the ambiguity in that reconstruction matters as much as the point estimate."
+   ]
+  ],
+  "related": [
+   [
+    "physics-informed-neural-networks",
+    "PINNs"
+   ],
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "data-assimilation-ml",
+    "Data Assimilation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neural-operators-overview",
+  "title": "Neural Operators",
+  "cat": "scientific-ml",
+  "lede": "Neural operators learn mappings between function spaces, so one trained model can solve a whole family of PDEs at any resolution.",
+  "body": [
+   [
+    "h2",
+    "From functions to functions"
+   ],
+   [
+    "p",
+    "A conventional network maps a fixed-size vector to another vector. A neural operator instead maps an entire input function to an entire output function. For a differential equation this means learning the operator that takes a coefficient field, boundary data, or initial condition to the corresponding solution field. One trained operator can then solve every instance in a family of problems, not just one."
+   ],
+   [
+    "h2",
+    "Why this is powerful"
+   ],
+   [
+    "p",
+    "Because the target is an operator between infinite-dimensional spaces, a properly built neural operator is discretization-invariant: it can be trained on one grid resolution and evaluated on another without retraining. This separates the learned mapping from the numerical mesh, a property finite-dimensional networks do not have."
+   ],
+   [
+    "h2",
+    "The general recipe"
+   ],
+   [
+    "p",
+    "Most neural operators lift the input function into a higher-dimensional latent representation, apply several layers that mix information globally across the domain, then project back to the output function. The global mixing is the key ingredient: solving a PDE couples every point to every other point, so a purely local architecture cannot capture the operator."
+   ],
+   [
+    "h2",
+    "Leading architectures"
+   ],
+   [
+    "ul",
+    [
+     "DeepONet, which splits the operator into a branch network for the input function and a trunk network for the query location",
+     "The Fourier neural operator, which performs global mixing as a multiplication in the frequency domain",
+     "Graph neural operators, which handle irregular meshes through message passing",
+     "Wavelet and low-rank variants that trade global reach for efficiency"
+    ]
+   ],
+   [
+    "h2",
+    "Where they fit"
+   ],
+   [
+    "p",
+    "Neural operators shine when the same class of equation must be solved thousands of times with varying inputs, as in design sweeps, uncertainty propagation, or real-time control. They are surrogates: fast approximations trained against a trusted solver, validated on held-out cases before being trusted for new inputs."
+   ]
+  ],
+  "related": [
+   [
+    "deeponet",
+    "DeepONet"
+   ],
+   [
+    "fourier-neural-operator",
+    "Fourier Neural Operator"
+   ],
+   [
+    "operator-learning-theory",
+    "Operator Learning Theory"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deeponet",
+  "title": "DeepONet",
+  "cat": "scientific-ml",
+  "lede": "DeepONet learns an operator by combining a branch network that encodes the input function with a trunk network that encodes the query point.",
+  "body": [
+   [
+    "h2",
+    "The branch-trunk design"
+   ],
+   [
+    "p",
+    "DeepONet is built on a simple factorization. To approximate an operator G that maps an input function u to an output function G(u), it uses two subnetworks. The branch network reads samples of u at a fixed set of sensor locations and outputs a vector of coefficients. The trunk network reads a query coordinate y and outputs a vector of basis values. The predicted output at y is the dot product of these two vectors."
+   ],
+   [
+    "p",
+    "This structure mirrors a classical expansion: the trunk learns a set of basis functions of the output coordinate, and the branch learns the coefficients that combine them for a particular input. The universal approximation theorem for operators guarantees that such a form can approximate any continuous operator to arbitrary accuracy given enough width."
+   ],
+   [
+    "h2",
+    "Inputs and sensors"
+   ],
+   [
+    "p",
+    "The input function is presented to the branch as its values at fixed sensor points. These sensors must be the same for every training and test example, though the output can be queried at any coordinate through the trunk. This makes DeepONet flexible in the output space while fixed in how it ingests the input."
+   ],
+   [
+    "h2",
+    "A schematic"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# G(u)(y) approx  sum_k b_k(u_sensors) * t_k(y)\nb = branch(u_sensors)     # shape [batch, p]\nt = trunk(y)              # shape [batch, p]\nout = (b * t).sum(dim=-1) # operator evaluated at y"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Flexible output sampling: query the solution anywhere without a grid",
+     "Solid theoretical backing through the operator approximation theorem",
+     "Sensitive to sensor placement and to distribution shift in the inputs",
+     "Often paired with a physics-informed loss to reduce data requirements"
+    ]
+   ],
+   [
+    "h2",
+    "Physics-informed variant"
+   ],
+   [
+    "p",
+    "A physics-informed DeepONet adds the PDE residual of the predicted output to the loss, computed by automatic differentiation through the trunk coordinate. This lets the operator be trained with far fewer labeled solution pairs, because the equation itself supplies most of the supervision."
+   ]
+  ],
+  "related": [
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "fourier-neural-operator",
+    "Fourier Neural Operator"
+   ],
+   [
+    "physics-informed-neural-networks",
+    "PINNs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fourier-neural-operator",
+  "title": "Fourier Neural Operator",
+  "cat": "scientific-ml",
+  "lede": "The Fourier neural operator performs global mixing by multiplying in the frequency domain, giving a resolution-invariant PDE surrogate.",
+  "body": [
+   [
+    "h2",
+    "Global mixing through the FFT"
+   ],
+   [
+    "p",
+    "The Fourier neural operator (FNO) tackles the central need of any PDE surrogate: coupling every point in the domain to every other point. It does this efficiently by moving to the frequency domain. Each layer transforms its input with a fast Fourier transform, multiplies the low-frequency modes by learned complex weights, transforms back, and adds a local linear term. The frequency multiplication is a global convolution done cheaply."
+   ],
+   [
+    "h2",
+    "Why truncate modes"
+   ],
+   [
+    "p",
+    "Only the lowest Fourier modes are kept and given learnable weights; higher modes are discarded in the spectral path. This truncation acts as a smoothing prior and keeps the parameter count fixed regardless of grid size. The residual local path restores fine detail that the truncated spectral path cannot represent."
+   ],
+   [
+    "h2",
+    "Discretization invariance"
+   ],
+   [
+    "p",
+    "Because the learned weights act on Fourier modes rather than grid points, an FNO trained at one resolution can be evaluated at a higher resolution with the same weights. This zero-shot super-resolution is a defining feature: the operator is defined on functions, and the grid is merely how those functions are sampled."
+   ],
+   [
+    "h2",
+    "One spectral layer"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import torch\ndef spectral_conv(x, weights, modes):\n    xf = torch.fft.rfft(x)                 # to frequency domain\n    out = torch.zeros_like(xf)\n    out[..., :modes] = xf[..., :modes] * weights  # mix low modes\n    return torch.fft.irfft(out, n=x.shape[-1])"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and caveats"
+   ],
+   [
+    "ul",
+    [
+     "Fast and accurate on smooth, periodic-friendly problems",
+     "Resolution invariance enables training cheap and evaluating fine",
+     "Native FFT assumes a regular grid; complex geometries need extensions",
+     "Truncation limits sharp discontinuities unless mode count is raised"
+    ]
+   ],
+   [
+    "p",
+    "FNOs have become a standard baseline for learned PDE surrogates on structured domains, and geometry-adapted variants extend them to irregular meshes."
+   ]
+  ],
+  "related": [
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "deeponet",
+    "DeepONet"
+   ],
+   [
+    "super-resolution-simulations",
+    "Simulation Super-Resolution"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "operator-learning-theory",
+  "title": "Operator Learning Theory",
+  "cat": "scientific-ml",
+  "lede": "Operator learning studies when and how mappings between infinite-dimensional function spaces can be approximated and generalized from data.",
+  "body": [
+   [
+    "h2",
+    "What is being approximated"
+   ],
+   [
+    "p",
+    "Operator learning asks a more ambitious question than ordinary regression. Instead of approximating a function from numbers to numbers, it approximates an operator that takes a function as input and returns a function as output. The solution map of a differential equation is exactly such an operator: it sends each coefficient field or initial condition to its solution."
+   ],
+   [
+    "h2",
+    "Universal approximation for operators"
+   ],
+   [
+    "p",
+    "The theoretical foundation is a universal approximation theorem for operators. It states that a sufficiently wide branch-trunk network, the structure behind DeepONet, can approximate any continuous operator between compact sets of functions to any desired accuracy. This is the operator analogue of the classical result for functions and justifies the whole enterprise."
+   ],
+   [
+    "h2",
+    "Discretization invariance"
+   ],
+   [
+    "p",
+    "A well-posed operator learner should not depend on the mesh used to sample its inputs and outputs. Formally, it should converge to a fixed continuous operator as the discretization is refined. Architectures that satisfy this, such as the Fourier neural operator, can transfer across resolutions; those that do not are really finite-dimensional models in disguise."
+   ],
+   [
+    "h2",
+    "Sources of error"
+   ],
+   [
+    "ul",
+    [
+     "Approximation error: the finite network cannot represent the true operator exactly",
+     "Discretization error: inputs and outputs are sampled on a finite grid",
+     "Generalization error: training covers only part of the input function space",
+     "Optimization error: training does not reach the best achievable weights"
+    ]
+   ],
+   [
+    "h2",
+    "Generalization and coverage"
+   ],
+   [
+    "p",
+    "Because the input space is infinite-dimensional, no finite dataset covers it fully. Guarantees rely on assumptions that inputs come from a restricted class, such as functions with bounded smoothness or drawn from a known random field. Extrapolation to inputs unlike the training distribution is where operator learners, like all surrogates, must be validated carefully rather than trusted blindly."
+   ],
+   [
+    "p",
+    "These theoretical results explain both the promise and the limits of learned surrogates used to accelerate repeated solver evaluations in engineering design."
+   ]
+  ],
+  "related": [
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "deeponet",
+    "DeepONet"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "graph-neural-operators",
+  "title": "Graph Neural Operators",
+  "cat": "scientific-ml",
+  "lede": "Graph neural operators learn PDE solution maps on irregular meshes by passing messages between neighboring nodes and edges.",
+  "body": [
+   [
+    "h2",
+    "When the grid is not a grid"
+   ],
+   [
+    "p",
+    "The Fourier neural operator relies on a regular grid for its fast transform. Many engineering domains, however, are meshed with irregular, unstructured elements that conform to complex geometry. Graph neural operators handle these by treating the mesh as a graph: nodes are mesh points, edges connect neighbors, and information flows along the edges."
+   ],
+   [
+    "h2",
+    "Message passing as integration"
+   ],
+   [
+    "p",
+    "Each layer updates a node's latent state by aggregating messages from its neighbors, weighted by learned functions of the edge geometry. Stacking layers widens the receptive field, letting distant parts of the domain influence one another, which approximates the global coupling that PDE solutions require. This mirrors how a numerical stencil spreads information across a mesh over successive steps."
+   ],
+   [
+    "h2",
+    "Multi-scale graphs"
+   ],
+   [
+    "p",
+    "A single-resolution graph spreads information slowly, one hop per layer. Multi-level constructions add coarse graphs that connect distant nodes directly, so long-range interactions propagate in few layers. This is the graph analogue of multigrid and is essential for problems where boundaries influence the whole interior."
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Handles arbitrary geometry and adaptive meshes naturally",
+     "Discretization-aware: can be evaluated on refined or coarsened meshes",
+     "More expensive per step than grid-based spectral methods",
+     "Long-range coupling needs many layers or explicit multi-scale structure"
+    ]
+   ],
+   [
+    "h2",
+    "Where they fit"
+   ],
+   [
+    "p",
+    "Graph neural operators suit structural, fluid, and electromagnetic problems posed on the kind of conforming meshes used in engineering analysis. For a shaped device such as the <b>Hyperion</b> breeder, whose spherical-tokamak geometry and negative triangularity of -0.30 demand body-fitted meshes, mesh-native surrogates are a natural complement to grid-based operators. As always, they are trained against and validated by trusted solvers, not treated as ground truth themselves."
+   ]
+  ],
+  "related": [
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "fourier-neural-operator",
+    "Fourier Neural Operator"
+   ],
+   [
+    "message-passing",
+    "Message Passing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "differentiable-simulation",
+  "title": "Differentiable Simulation",
+  "cat": "scientific-ml",
+  "lede": "A differentiable simulator computes gradients of its outputs with respect to its inputs, enabling gradient-based design, control, and learning.",
+  "body": [
+   [
+    "h2",
+    "Simulation you can differentiate"
+   ],
+   [
+    "p",
+    "A differentiable simulator is a physics solver written so that automatic differentiation can propagate derivatives through every step of the computation. Beyond producing an output, it produces the sensitivity of that output to every input parameter. This turns simulation from a forward-only black box into a component that fits directly inside gradient-based optimization and learning."
+   ],
+   [
+    "h2",
+    "Automatic differentiation"
+   ],
+   [
+    "p",
+    "Automatic differentiation records the elementary operations a program performs and applies the chain rule to compute exact derivatives, up to floating-point precision. Reverse mode, the same mechanism as backpropagation, is efficient when there are few outputs and many inputs, which is the usual situation in design optimization where a single objective depends on thousands of parameters."
+   ],
+   [
+    "h2",
+    "What gradients unlock"
+   ],
+   [
+    "ul",
+    [
+     "Design optimization: adjust geometry or material parameters to minimize an objective",
+     "Inverse problems: recover unknown inputs that reproduce observed outputs",
+     "Control: tune actuation to steer a system toward a target trajectory",
+     "Hybrid learning: train a neural network embedded inside the physics loop"
+    ]
+   ],
+   [
+    "h2",
+    "A tiny example"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import torch\n# differentiate a simple explicit time step\ndef step(u, dt, alpha):\n    lap = torch.roll(u,1) - 2*u + torch.roll(u,-1)\n    return u + dt*alpha*lap\nu = torch.zeros(64, requires_grad=True); u.data[32]=1.0\nout = step(u, 0.1, 0.5).sum()\nout.backward()   # du_out/du available in u.grad"
+    ]
+   ],
+   [
+    "h2",
+    "Costs and cautions"
+   ],
+   [
+    "p",
+    "Reverse-mode differentiation stores intermediate states, so memory grows with the number of time steps; checkpointing trades recomputation for memory. Long unrolled simulations can produce exploding or vanishing gradients, and chaotic systems make gradients meaningless beyond a short horizon. Used within its limits, differentiable simulation is a bridge between classical solvers and machine learning."
+   ]
+  ],
+  "related": [
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ],
+   [
+    "adjoint-method-ml",
+    "Adjoint Method"
+   ],
+   [
+    "inverse-problems-ml",
+    "Inverse Problems"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "differentiable-physics",
+  "title": "Differentiable Physics",
+  "cat": "scientific-ml",
+  "lede": "Differentiable physics embeds known physical laws as differentiable program components so learning and simulation share one gradient path.",
+  "body": [
+   [
+    "h2",
+    "Physics as a differentiable layer"
+   ],
+   [
+    "p",
+    "Differentiable physics treats a physical model, a fluid solver, a contact model, an optics propagator, as a differentiable layer that can be inserted anywhere in a machine-learning pipeline. Because the layer passes gradients, a network placed before or after it can be trained end to end, with the physics enforcing correctness and the network handling whatever the physics leaves open."
+   ],
+   [
+    "h2",
+    "Why not learn everything"
+   ],
+   [
+    "p",
+    "A pure neural network must rediscover conservation laws, symmetries, and dynamics from data, which is wasteful when those laws are already known exactly. Differentiable physics hard-codes the known part and learns only the unknown part, such as a subgrid closure or an uncertain material parameter. The learned component is small and interpretable, and the model respects physics by construction."
+   ],
+   [
+    "h2",
+    "Typical arrangements"
+   ],
+   [
+    "ul",
+    [
+     "Network estimates parameters, physics propagates them forward and the loss compares to data",
+     "Physics produces a coarse prediction, network corrects the residual error",
+     "Network proposes control actions, differentiable dynamics evaluate their long-term effect",
+     "Learned and physical layers alternate within a single unrolled solver"
+    ]
+   ],
+   [
+    "h2",
+    "Solver-in-the-loop training"
+   ],
+   [
+    "p",
+    "A key advantage is training the network against the actual solver rather than against pre-computed snapshots. The network sees how its outputs propagate through the physics over many steps and is corrected for errors that only appear after long rollouts. This solver-in-the-loop scheme produces models that stay stable far longer than those trained on single-step targets."
+   ],
+   [
+    "h2",
+    "Limits"
+   ],
+   [
+    "p",
+    "The physics component must be implemented differentiably, which excludes many legacy solvers and non-smooth operations without special handling. Chaotic dynamics limit how far gradients remain useful. Where these constraints are met, differentiable physics offers accuracy from known laws with the flexibility of learning for the rest."
+   ]
+  ],
+  "related": [
+   [
+    "differentiable-simulation",
+    "Differentiable Simulation"
+   ],
+   [
+    "hybrid-physics-ml",
+    "Hybrid Physics-ML"
+   ],
+   [
+    "conservation-constrained-networks",
+    "Conservation-Constrained Networks"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "adjoint-method-ml",
+  "title": "The Adjoint Method",
+  "cat": "scientific-ml",
+  "lede": "The adjoint method computes the gradient of an objective with respect to many parameters at a cost independent of the number of parameters.",
+  "body": [
+   [
+    "h2",
+    "The scaling problem it solves"
+   ],
+   [
+    "p",
+    "Gradient-based design must know how an objective changes as each of possibly thousands of parameters varies. Computing this by finite differences requires one extra simulation per parameter, which is hopeless at scale. The adjoint method computes the entire gradient with one forward solve and one backward, adjoint, solve, regardless of how many parameters there are."
+   ],
+   [
+    "h2",
+    "Forward and adjoint"
+   ],
+   [
+    "p",
+    "Given a system that solves state equations for a state u depending on parameters p, and an objective J(u,p), the adjoint method introduces an auxiliary adjoint variable. Solving the adjoint equation, which runs backward and is driven by the sensitivity of J to the state, yields the gradient of J with respect to p through a simple final combination. The forward solve fixes the state; the adjoint solve fixes the sensitivities."
+   ],
+   [
+    "h2",
+    "Relation to backpropagation"
+   ],
+   [
+    "p",
+    "Backpropagation in neural networks is the adjoint method applied to the composition of layers. Reverse-mode automatic differentiation and the discrete adjoint of a solver compute the same quantity. This equivalence is why differentiable simulators and neural networks can be trained with the same optimizers and the same chain-rule machinery."
+   ],
+   [
+    "h2",
+    "Continuous versus discrete adjoint"
+   ],
+   [
+    "ul",
+    [
+     "Continuous adjoint: derive the adjoint PDE first, then discretize it",
+     "Discrete adjoint: differentiate the already-discretized solver directly",
+     "Discrete adjoints give gradients consistent with the actual numerics",
+     "Continuous adjoints can be cleaner but may mismatch the discrete objective"
+    ]
+   ],
+   [
+    "h2",
+    "Where it is used"
+   ],
+   [
+    "p",
+    "Adjoint methods are standard in aerodynamic shape optimization, seismic inversion, and any design task with a scalar objective and many parameters. In magnetic-confinement design, adjoint techniques help optimize coil shapes and plasma profiles efficiently, complementing learned surrogates that provide fast approximate evaluations during exploratory sweeps."
+   ]
+  ],
+  "related": [
+   [
+    "differentiable-simulation",
+    "Differentiable Simulation"
+   ],
+   [
+    "inverse-problems-ml",
+    "Inverse Problems"
+   ],
+   [
+    "physics-constrained-optimization",
+    "Physics-Constrained Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "symbolic-regression",
+  "title": "Symbolic Regression",
+  "cat": "scientific-ml",
+  "lede": "Symbolic regression searches the space of mathematical expressions for a compact formula that fits data and can be read and interpreted.",
+  "body": [
+   [
+    "h2",
+    "Learning formulas, not weights"
+   ],
+   [
+    "p",
+    "Most machine learning fits the parameters of a fixed model. Symbolic regression instead searches over the structure of the model itself, looking for an explicit algebraic expression, a combination of variables, constants, and operators, that reproduces the data. The output is a readable equation rather than a black box, which is why it is prized in the sciences."
+   ],
+   [
+    "h2",
+    "The search space"
+   ],
+   [
+    "p",
+    "Candidate expressions are built from a chosen set of operators, such as addition, multiplication, exponentials, and trigonometric functions, applied to the input variables and constants. This space is combinatorially vast and non-differentiable in its structure, so the search is a discrete optimization problem rather than a smooth one."
+   ],
+   [
+    "h2",
+    "Balancing fit and simplicity"
+   ],
+   [
+    "p",
+    "A perfect fit to noisy data usually means an overfit, tangled expression. Symbolic regression therefore optimizes a trade-off between accuracy and complexity, favoring short expressions. Reporting the accuracy-versus-complexity frontier, rather than a single formula, lets a scientist choose a law that is both faithful and parsimonious."
+   ],
+   [
+    "h2",
+    "How the search proceeds"
+   ],
+   [
+    "ul",
+    [
+     "Genetic programming evolves a population of expression trees by mutation and crossover",
+     "Sparse regression selects a few active terms from a fixed library of candidate functions",
+     "Neural-guided search uses a network to propose promising expression structures",
+     "Physical constraints prune candidates that violate units or known symmetries"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and limits"
+   ],
+   [
+    "p",
+    "When the underlying law really is a compact formula, symbolic regression can recover it and generalize far beyond the training range, unlike an opaque interpolator. It struggles when the true relationship is genuinely complex, when data are scarce or very noisy, and when the operator set omits the functions the law actually needs. It is most powerful as a hypothesis generator that a domain expert then tests."
+   ]
+  ],
+  "related": [
+   [
+    "genetic-programming-sr",
+    "Genetic Programming"
+   ],
+   [
+    "sparse-regression-sindy",
+    "Sparse Regression and SINDy"
+   ],
+   [
+    "equation-discovery",
+    "Equation Discovery"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "genetic-programming-sr",
+  "title": "Genetic Programming for Symbolic Regression",
+  "cat": "scientific-ml",
+  "lede": "Genetic programming evolves a population of expression trees through selection, crossover, and mutation to discover fitting formulas.",
+  "body": [
+   [
+    "h2",
+    "Expressions as trees"
+   ],
+   [
+    "p",
+    "Genetic programming represents each candidate formula as a tree: internal nodes are operators such as plus or times, and leaves are variables or constants. Evaluating the tree on the inputs produces a prediction. This representation is flexible enough to encode any algebraic expression and easy to modify by rearranging subtrees."
+   ],
+   [
+    "h2",
+    "The evolutionary loop"
+   ],
+   [
+    "p",
+    "A population of random trees is scored by a fitness function that rewards accuracy and penalizes size. The fittest trees are selected to reproduce. Crossover swaps subtrees between two parents, mixing partial solutions. Mutation randomly alters a node or subtree, injecting new structure. Repeating selection, crossover, and mutation over many generations drives the population toward better formulas."
+   ],
+   [
+    "h2",
+    "Controlling bloat"
+   ],
+   [
+    "p",
+    "Left unchecked, trees grow ever larger without improving fit, a phenomenon called bloat. Countermeasures include penalizing size in the fitness score, capping tree depth, and periodically simplifying expressions algebraically. Managing bloat is essential to keep the discovered laws readable."
+   ],
+   [
+    "h2",
+    "Practical ingredients"
+   ],
+   [
+    "ul",
+    [
+     "Operator set: choose functions appropriate to the domain, not everything at once",
+     "Constant optimization: tune numeric constants with a local optimizer after structure search",
+     "Diversity maintenance: preserve varied structures to avoid premature convergence",
+     "Multi-objective selection: keep the whole accuracy-complexity frontier"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and cautions"
+   ],
+   [
+    "p",
+    "Genetic programming makes no assumption about the form of the law and can discover structure that library-based methods miss. It is stochastic, so results vary between runs, and it can be slow because each generation evaluates many candidates. Running several seeds and keeping only expressions that recur is a sound way to separate genuine structure from lucky fits."
+   ]
+  ],
+  "related": [
+   [
+    "symbolic-regression",
+    "Symbolic Regression"
+   ],
+   [
+    "sparse-regression-sindy",
+    "Sparse Regression and SINDy"
+   ],
+   [
+    "equation-discovery",
+    "Equation Discovery"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sparse-regression-sindy",
+  "title": "Sparse Regression and SINDy",
+  "cat": "scientific-ml",
+  "lede": "SINDy discovers governing equations by selecting a few active terms from a large library of candidate functions using sparse regression.",
+  "body": [
+   [
+    "h2",
+    "The idea in one line"
+   ],
+   [
+    "p",
+    "Sparse Identification of Nonlinear Dynamics (SINDy) assumes that the equations governing a system are sparse: only a handful of possible terms actually appear. It builds a large library of candidate functions of the state and uses sparse regression to pick the few whose combination best reproduces the observed time derivatives."
+   ],
+   [
+    "h2",
+    "How it works"
+   ],
+   [
+    "p",
+    "From measured trajectories, one estimates the state and its time derivative. A library matrix is formed whose columns are candidate terms, constants, linear terms, quadratic products, trigonometric functions, and so on, evaluated along the trajectory. Sparse regression then solves for a coefficient vector with few nonzeros such that the library times the coefficients approximates the derivative. The nonzero entries name the active terms."
+   ],
+   [
+    "h2",
+    "Enforcing sparsity"
+   ],
+   [
+    "p",
+    "Sparsity is the crucial ingredient that turns a fit into a discovery. Sequential thresholded least squares repeatedly solves a least-squares problem and zeros out small coefficients, converging to a compact model. The threshold controls how aggressively terms are pruned and directly shapes which equation is recovered."
+   ],
+   [
+    "h2",
+    "A sketch"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Theta: library evaluated on data (n x L), dXdt: derivatives (n x d)\nXi = lstsq(Theta, dXdt)\nfor _ in range(10):\n    small = abs(Xi) < threshold\n    Xi[small] = 0\n    for j in range(dXdt.shape[1]):\n        keep = ~small[:, j]\n        Xi[keep, j] = lstsq(Theta[:, keep], dXdt[:, j])"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and limits"
+   ],
+   [
+    "ul",
+    [
+     "Recovers interpretable, closed-form dynamics when the model is truly sparse",
+     "Fast and convex once the library is fixed",
+     "Sensitive to noise because it needs accurate derivative estimates",
+     "Can only find terms that are present in the chosen library"
+    ]
+   ],
+   [
+    "p",
+    "SINDy is a leading tool for data-driven equation discovery, especially when smoothing or weak formulations are used to blunt the noise in derivative estimation."
+   ]
+  ],
+  "related": [
+   [
+    "symbolic-regression",
+    "Symbolic Regression"
+   ],
+   [
+    "equation-discovery",
+    "Equation Discovery"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "equation-discovery",
+  "title": "Equation Discovery",
+  "cat": "scientific-ml",
+  "lede": "Equation discovery infers the governing laws of a system directly from data, aiming for compact, physically meaningful models.",
+  "body": [
+   [
+    "h2",
+    "The goal"
+   ],
+   [
+    "p",
+    "Equation discovery seeks the mathematical laws that generated observed data, not just a predictor. Where a black-box model answers only what happens next, a discovered equation explains why, exposing the structure of the dynamics in a form a scientist can inspect, test, and connect to theory."
+   ],
+   [
+    "h2",
+    "Families of methods"
+   ],
+   [
+    "ul",
+    [
+     "Sparse regression over a candidate library, as in SINDy, for differential equations",
+     "Symbolic regression via genetic programming for free-form algebraic laws",
+     "Neural approaches that learn a differentiable model then distill it to symbols",
+     "Grammar- or physics-guided search that restricts candidates to dimensionally valid forms"
+    ]
+   ],
+   [
+    "h2",
+    "The role of priors"
+   ],
+   [
+    "p",
+    "Data alone rarely single out one law; many expressions fit a finite sample. Physical priors break the tie. Dimensional consistency rejects expressions with mismatched units. Known symmetries and conservation laws prune whole regions of the search space. Requiring simplicity favors laws that generalize. These priors are what make discovery reliable rather than a curve-fitting exercise."
+   ],
+   [
+    "h2",
+    "Validation"
+   ],
+   [
+    "p",
+    "A discovered equation must earn trust. The strongest test is extrapolation: a genuine law predicts regimes absent from the training data, while an overfit expression fails there. Reproducibility across independent datasets and stability across noise realizations are further checks. A candidate that survives these is a hypothesis worth deeper study, not a settled truth."
+   ],
+   [
+    "h2",
+    "Where it helps"
+   ],
+   [
+    "p",
+    "Equation discovery is valuable when the mechanism is unknown or a fast reduced model is needed for a well-understood but expensive system. In plasma and fusion research it is explored for finding compact closures and reduced transport relations from simulation and experiment, always cross-checked against first-principles models rather than replacing them."
+   ]
+  ],
+  "related": [
+   [
+    "sparse-regression-sindy",
+    "Sparse Regression and SINDy"
+   ],
+   [
+    "symbolic-regression",
+    "Symbolic Regression"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gaussian-process-regression",
+  "title": "Gaussian Process Regression",
+  "cat": "scientific-ml",
+  "lede": "A Gaussian process places a distribution over functions, giving predictions with calibrated uncertainty that grows away from the data.",
+  "body": [
+   [
+    "h2",
+    "A distribution over functions"
+   ],
+   [
+    "p",
+    "A Gaussian process (GP) treats an unknown function as a random object: any finite set of its values is jointly Gaussian. It is specified by a mean function, often taken as zero, and a covariance or kernel function that says how correlated the function's values are at two inputs. Nearby inputs are strongly correlated, so the function is smooth; distant inputs are nearly independent."
+   ],
+   [
+    "h2",
+    "Prediction by conditioning"
+   ],
+   [
+    "p",
+    "Given training data, prediction at a new input is done by conditioning the joint Gaussian on the observed values. This yields both a predictive mean and a predictive variance in closed form. The mean interpolates the data; the variance is small near observations and grows in regions with no data, giving an honest measure of what the model does not know."
+   ],
+   [
+    "h2",
+    "The equations"
+   ],
+   [
+    "p",
+    "With kernel matrix K on training inputs, noise variance s2, observations y, and cross-covariance k* to a test point, the predictive mean is k*^T (K + s2 I)^-1 y and the predictive variance is k(x*,x*) minus k*^T (K + s2 I)^-1 k*. The single matrix inverse is shared across all predictions."
+   ],
+   [
+    "h2",
+    "Strengths"
+   ],
+   [
+    "ul",
+    [
+     "Built-in, calibrated uncertainty estimates",
+     "Works well with very few data points",
+     "Flexible behavior chosen through the kernel",
+     "Interpretable hyperparameters such as length scale and signal amplitude"
+    ]
+   ],
+   [
+    "h2",
+    "The cost"
+   ],
+   [
+    "p",
+    "The exact method requires inverting an n-by-n matrix, which scales as the cube of the number of points and becomes impractical beyond a few thousand observations. Sparse and approximate GPs address this. Despite the cost, GPs remain the default choice when data are expensive and honest uncertainty matters, as in the design of physical experiments and surrogate-based optimization."
+   ]
+  ],
+  "related": [
+   [
+    "gp-kernels",
+    "GP Kernels"
+   ],
+   [
+    "kriging",
+    "Kriging"
+   ],
+   [
+    "sparse-gaussian-processes",
+    "Sparse Gaussian Processes"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gp-kernels",
+  "title": "Gaussian Process Kernels",
+  "cat": "scientific-ml",
+  "lede": "The kernel of a Gaussian process encodes assumptions about smoothness, scale, and structure, and choosing it is the main modeling decision.",
+  "body": [
+   [
+    "h2",
+    "The kernel is the model"
+   ],
+   [
+    "p",
+    "In a Gaussian process almost all of the modeling assumptions live in the kernel, the function that sets the covariance between the function's values at two inputs. It determines how smooth the sampled functions are, how quickly correlations decay with distance, and what periodic or structured behavior is expected. Choosing a kernel is choosing what kind of function you believe generated the data."
+   ],
+   [
+    "h2",
+    "Common kernels"
+   ],
+   [
+    "ul",
+    [
+     "Squared exponential (RBF): infinitely smooth functions, controlled by a length scale",
+     "Matern: a tunable smoothness parameter gives rougher, more realistic samples",
+     "Periodic: functions that repeat with a fixed period",
+     "Linear: recovers Bayesian linear regression as a special case"
+    ]
+   ],
+   [
+    "h2",
+    "Hyperparameters and their meaning"
+   ],
+   [
+    "p",
+    "Each kernel carries hyperparameters with clear interpretations. The length scale sets how far apart inputs must be before their outputs decorrelate; a short length scale gives wiggly functions, a long one gives flat trends. The signal variance sets the vertical amplitude of variation. A separate noise variance accounts for measurement error in the observations."
+   ],
+   [
+    "h2",
+    "Building compound kernels"
+   ],
+   [
+    "p",
+    "Kernels can be added and multiplied to compose structure. A sum of a smooth trend kernel and a periodic kernel models a rising signal with seasonal oscillation. A product combines behaviors, such as a periodic pattern whose amplitude decays over distance. This algebra lets a modeler encode rich prior knowledge without leaving the Gaussian process framework."
+   ],
+   [
+    "h2",
+    "Choosing well"
+   ],
+   [
+    "p",
+    "The right kernel encodes real prior knowledge; the wrong one forces the data to fight the assumptions. When knowledge is thin, the Matern family is a safe default because its smoothness parameter can itself be selected. Hyperparameters are then learned by maximizing the marginal likelihood, letting the data refine the human choice of kernel form."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "gp-hyperparameter-learning",
+    "GP Hyperparameter Learning"
+   ],
+   [
+    "kriging",
+    "Kriging"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gp-hyperparameter-learning",
+  "title": "Learning GP Hyperparameters",
+  "cat": "scientific-ml",
+  "lede": "Gaussian process hyperparameters are set by maximizing the marginal likelihood, which balances data fit against model complexity automatically.",
+  "body": [
+   [
+    "h2",
+    "What must be tuned"
+   ],
+   [
+    "p",
+    "A Gaussian process has a few interpretable hyperparameters, typically a length scale, a signal variance, and an observation noise variance. Their values decide whether the fitted function is smooth or wiggly, confident or cautious. Setting them well is what separates a useful GP from a misleading one."
+   ],
+   [
+    "h2",
+    "The marginal likelihood"
+   ],
+   [
+    "p",
+    "The principled way to choose hyperparameters is to maximize the marginal likelihood, the probability of the observed data under the GP with those hyperparameters, integrating over all possible functions. This quantity has a built-in Occam balance: it rewards fitting the data but penalizes models flexible enough to fit anything. There is no need for a separate validation set."
+   ],
+   [
+    "h2",
+    "The objective"
+   ],
+   [
+    "p",
+    "The log marginal likelihood has three parts: a data-fit term y^T (K+s2 I)^-1 y, a complexity penalty equal to the log determinant of (K+s2 I), and a constant. Maximizing it trades these off. Its gradients with respect to the hyperparameters are available in closed form, so gradient-based optimizers converge quickly."
+   ],
+   [
+    "h2",
+    "Practical concerns"
+   ],
+   [
+    "ul",
+    [
+     "The objective can be multimodal, so try several random restarts",
+     "A short length scale plus low noise can overfit; watch for it",
+     "The matrix inverse must be numerically stable; add a small jitter to the diagonal",
+     "Standardize inputs and outputs so default initial values are reasonable"
+    ]
+   ],
+   [
+    "h2",
+    "Interpreting the result"
+   ],
+   [
+    "p",
+    "Learned hyperparameters carry meaning. A long length scale says the function varies slowly; a large fitted noise says the data are noisy or the model is missing structure. In automatic relevance determination, a separate length scale per input dimension is learned, and very long ones reveal inputs the model finds irrelevant, a built-in form of feature selection."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "gp-kernels",
+    "GP Kernels"
+   ],
+   [
+    "sparse-gaussian-processes",
+    "Sparse Gaussian Processes"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kriging",
+  "title": "Kriging",
+  "cat": "scientific-ml",
+  "lede": "Kriging is Gaussian process interpolation developed in geostatistics, predicting a spatial field with a best linear unbiased estimator.",
+  "body": [
+   [
+    "h2",
+    "Origins and equivalence"
+   ],
+   [
+    "p",
+    "Kriging arose in geostatistics to estimate mineral concentrations from scattered boreholes and is named after the mining engineer D. G. Krige. Mathematically it is the same object as Gaussian process regression: a best linear unbiased predictor of a spatial field, with a variance that quantifies the estimate's reliability. The vocabulary differs, but the equations coincide."
+   ],
+   [
+    "h2",
+    "The variogram"
+   ],
+   [
+    "p",
+    "Geostatistics describes spatial correlation through the variogram, which measures how the expected squared difference between two field values grows with the distance between them. The variogram is fit to the data and then translated into the covariance function used for prediction. Its range, sill, and nugget correspond to a GP's length scale, signal variance, and noise variance."
+   ],
+   [
+    "h2",
+    "Kinds of kriging"
+   ],
+   [
+    "ul",
+    [
+     "Simple kriging: assumes a known constant mean",
+     "Ordinary kriging: estimates an unknown constant mean from the data",
+     "Universal kriging: allows a spatially varying trend, such as a polynomial",
+     "Co-kriging: uses correlated secondary variables to improve estimates"
+    ]
+   ],
+   [
+    "h2",
+    "Why the variance matters"
+   ],
+   [
+    "p",
+    "Kriging returns not only an estimate at each unsampled location but also a kriging variance that is zero at observations and rises with distance from them. This map of uncertainty is used to decide where new samples would be most informative, the foundation of sampling design and, in modern surrogate optimization, of acquisition functions that choose the next expensive evaluation."
+   ],
+   [
+    "h2",
+    "Modern use"
+   ],
+   [
+    "p",
+    "Beyond geoscience, kriging is a workhorse for building surrogate models of expensive simulations. An engineer runs a computer experiment at a limited set of design points, fits a kriging surrogate, and uses it to explore the design space cheaply while the variance flags regions where the surrogate should not yet be trusted."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ],
+   [
+    "active-learning-surrogates",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sparse-gaussian-processes",
+  "title": "Sparse Gaussian Processes",
+  "cat": "scientific-ml",
+  "lede": "Sparse Gaussian processes summarize a large dataset with a small set of inducing points, cutting the cubic cost of exact inference.",
+  "body": [
+   [
+    "h2",
+    "The scaling wall"
+   ],
+   [
+    "p",
+    "Exact Gaussian process inference inverts a matrix whose size is the number of data points, costing time that grows as the cube of that number. Past a few thousand observations this is prohibitive. Sparse Gaussian processes recover most of the accuracy at a fraction of the cost by compressing the data into a small set of representative points."
+   ],
+   [
+    "h2",
+    "Inducing points"
+   ],
+   [
+    "p",
+    "The central device is a set of inducing points, a handful of pseudo-inputs, far fewer than the data, that act as a summary of the full training set. The GP is approximated so that all information flows through these inducing points. Their locations and associated values are treated as parameters and optimized, so the summary adapts to the data rather than being placed arbitrarily."
+   ],
+   [
+    "h2",
+    "Variational formulation"
+   ],
+   [
+    "p",
+    "The most widely used approach casts the approximation as variational inference. It defines an approximate posterior anchored at the inducing points and minimizes its divergence from the true posterior. This gives a principled objective, a lower bound on the marginal likelihood, that jointly tunes the inducing locations, the kernel hyperparameters, and the noise level."
+   ],
+   [
+    "h2",
+    "What it buys"
+   ],
+   [
+    "ul",
+    [
+     "Cost scales with the number of inducing points, not the dataset size",
+     "Enables mini-batch training on very large datasets",
+     "Retains calibrated predictive uncertainty, unlike many fast approximations",
+     "Number of inducing points trades accuracy against speed"
+    ]
+   ],
+   [
+    "h2",
+    "When to use it"
+   ],
+   [
+    "p",
+    "Sparse GPs are the practical choice when the appeal of a Gaussian process, honest uncertainty and few assumptions, is needed at a data scale that exact inference cannot reach. The main tuning decision is how many inducing points to allow: too few underfit and overstate uncertainty, too many erode the speed advantage."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "gp-hyperparameter-learning",
+    "GP Hyperparameter Learning"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hybrid-physics-ml",
+  "title": "Hybrid Physics-ML Models",
+  "cat": "scientific-ml",
+  "lede": "Hybrid models combine a trusted physical model with a learned component that corrects its errors or supplies its missing pieces.",
+  "body": [
+   [
+    "h2",
+    "The best of both"
+   ],
+   [
+    "p",
+    "Pure physics models are reliable but incomplete or coarse; pure data models are flexible but ignorant of known laws. A hybrid physics-ML model keeps the physics for what it does well and adds a learned component for what it does poorly. The result generalizes better than a black box and is more accurate than physics alone, using less data than either extreme."
+   ],
+   [
+    "h2",
+    "Common patterns"
+   ],
+   [
+    "ul",
+    [
+     "Residual correction: physics gives a baseline, a network learns the leftover error",
+     "Parameter learning: a network infers uncertain coefficients the physics then uses",
+     "Closure modeling: a network supplies an unresolved subgrid term to a coarse solver",
+     "Physics-guided loss: a data model is penalized for violating known equations"
+    ]
+   ],
+   [
+    "h2",
+    "Residual learning"
+   ],
+   [
+    "p",
+    "The most common pattern predicts the discrepancy between a physical model and reality. Because the physics captures the bulk of the behavior, the residual is small and structured, so a modest network learns it from limited data. This keeps the model anchored to physics: where the network has no data, the prediction defaults to the physical baseline rather than to nonsense."
+   ],
+   [
+    "h2",
+    "Keeping physics dominant"
+   ],
+   [
+    "p",
+    "A well-designed hybrid ensures the learned part cannot override the physics arbitrarily. Bounding the correction, regularizing it toward zero, and enforcing conservation on the combined output all keep the physics in charge. This matters most under extrapolation, where the data-driven part is least trustworthy and the physical prior is the safeguard."
+   ],
+   [
+    "h2",
+    "Application in modeling"
+   ],
+   [
+    "p",
+    "Hybrid models are studied for turbulence closures, chemical kinetics, and plasma transport, where first-principles terms are known but expensive subscale effects must be modeled. For design machines such as the <b>Hyperion</b> breeder, a hybrid surrogate can accelerate repeated transport evaluations while remaining tethered to the underlying equations, and its outputs are validated against full solvers before use."
+   ]
+  ],
+  "related": [
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ],
+   [
+    "neural-closure-models",
+    "Neural Closure Models"
+   ],
+   [
+    "conservation-constrained-networks",
+    "Conservation-Constrained Networks"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neural-closure-models",
+  "title": "Neural Closure Models",
+  "cat": "scientific-ml",
+  "lede": "Neural closures learn the unresolved subgrid terms of a coarse simulation, letting a cheap grid approximate expensive high-resolution physics.",
+  "body": [
+   [
+    "h2",
+    "The closure problem"
+   ],
+   [
+    "p",
+    "When continuous physics is averaged or coarsened, the resulting equations contain terms that depend on scales the coarse model does not resolve. These unknown terms must be expressed through the resolved variables to close the system. Turbulence is the classic example: the effect of small eddies on the large-scale flow appears as a stress that the coarse equations cannot compute directly."
+   ],
+   [
+    "h2",
+    "Closures learned from data"
+   ],
+   [
+    "p",
+    "Traditional closures are hand-crafted approximations with limited accuracy. A neural closure instead learns the unresolved term as a function of the resolved state, trained on high-fidelity data or on filtered fully resolved simulations. The learned closure can capture patterns that simple algebraic models miss, improving the coarse simulation without paying for full resolution."
+   ],
+   [
+    "h2",
+    "Training against the solver"
+   ],
+   [
+    "p",
+    "A closure trained only to match instantaneous subgrid terms often destabilizes long simulations. Better results come from training the closure inside the coarse solver over many time steps, so it is optimized for the trajectories it will actually produce. This solver-in-the-loop training, which requires a differentiable solver, yields closures that stay stable over long rollouts."
+   ],
+   [
+    "h2",
+    "Guarding physics"
+   ],
+   [
+    "ul",
+    [
+     "Enforce conservation so the closure cannot create or destroy conserved quantities",
+     "Respect symmetries such as rotation and reflection through the architecture",
+     "Bound the closure's magnitude to prevent runaway feedback",
+     "Fall back to a physical closure where inputs leave the training regime"
+    ]
+   ],
+   [
+    "h2",
+    "Outlook"
+   ],
+   [
+    "p",
+    "Neural closures are among the most promising uses of scientific machine learning because they attack a genuine bottleneck: the cost of resolving small scales. They are surrogates for expensive physics, validated against resolved simulations, and are used to extend the reach of coarse models rather than to assert new physical results."
+   ]
+  ],
+  "related": [
+   [
+    "hybrid-physics-ml",
+    "Hybrid Physics-ML"
+   ],
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "conservation-constrained-networks",
+  "title": "Conservation-Law-Constrained Networks",
+  "cat": "scientific-ml",
+  "lede": "These networks are built so their predictions satisfy conservation laws exactly, rather than only approximately through a penalty.",
+  "body": [
+   [
+    "h2",
+    "Soft versus hard constraints"
+   ],
+   [
+    "p",
+    "A network can be encouraged to respect a conservation law by adding a penalty for violating it, a soft constraint that is only approximately satisfied. A stronger approach builds the law into the architecture so it holds exactly by construction, a hard constraint. Hard constraints guarantee physical consistency even far from the training data, which soft penalties cannot promise."
+   ],
+   [
+    "h2",
+    "Enforcing conservation by construction"
+   ],
+   [
+    "p",
+    "A common technique predicts fluxes rather than the quantity itself, then computes the change in the conserved quantity as the divergence of those fluxes. Because a divergence form conserves the integral exactly in a discrete sense, the total mass, momentum, or energy is preserved no matter what the network outputs. The network is free to be wrong about details but cannot break the balance."
+   ],
+   [
+    "h2",
+    "Symmetry and invariance"
+   ],
+   [
+    "p",
+    "Noether's theorem ties conservation laws to symmetries: energy conservation to time-translation invariance, momentum to space translation, angular momentum to rotation. Building the corresponding symmetry into a network, so its predictions transform correctly under these operations, can enforce the associated conservation law and improve data efficiency at the same time."
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Hard constraints guarantee physical validity but restrict the architecture",
+     "Soft penalties are simple and general but only approximate",
+     "Flux-form and Hamiltonian structures cover common conservation laws",
+     "Some constraints are difficult to impose exactly and default to penalties"
+    ]
+   ],
+   [
+    "h2",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "In long simulations, small conservation errors accumulate until the result drifts far from physical reality. A network that conserves the right quantities exactly stays trustworthy over long horizons. For energy systems, where balances of particles and energy are central, respecting conservation is not a nicety but a requirement for a model to be taken seriously."
+   ]
+  ],
+  "related": [
+   [
+    "hamiltonian-neural-networks",
+    "Hamiltonian Neural Networks"
+   ],
+   [
+    "equivariant-networks-science",
+    "Equivariant Networks"
+   ],
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hamiltonian-neural-networks",
+  "title": "Hamiltonian Neural Networks",
+  "cat": "scientific-ml",
+  "lede": "Hamiltonian neural networks learn a scalar energy function whose derivatives generate the dynamics, conserving energy by construction.",
+  "body": [
+   [
+    "h2",
+    "Learning the energy, not the flow"
+   ],
+   [
+    "p",
+    "Classical mechanics can be written in Hamiltonian form: a single scalar function, the Hamiltonian, encodes the total energy, and the equations of motion follow from its partial derivatives. A Hamiltonian neural network learns this scalar function from data rather than learning the velocity field directly. The dynamics are then obtained by differentiating the learned Hamiltonian."
+   ],
+   [
+    "h2",
+    "How conservation emerges"
+   ],
+   [
+    "p",
+    "Hamilton's equations state that position derivatives equal the gradient of the Hamiltonian with respect to momentum, and momentum derivatives equal the negative gradient with respect to position. Because the network's outputs are built from these gradients, the resulting flow conserves the learned Hamiltonian exactly along trajectories. Energy conservation is not enforced by a penalty; it is a mathematical consequence of the structure."
+   ],
+   [
+    "h2",
+    "Training"
+   ],
+   [
+    "p",
+    "The network takes the phase-space state, position and momentum, and outputs a single scalar. Automatic differentiation computes the required gradients, and the predicted time derivatives are compared to observed ones. The loss is an ordinary regression on the derivatives, but the architecture guarantees the physics of the resulting motion."
+   ],
+   [
+    "h2",
+    "Benefits"
+   ],
+   [
+    "ul",
+    [
+     "Long-term stability: trajectories do not spiral in or out as energy drifts",
+     "Better extrapolation than a network that learns the flow field directly",
+     "Physically meaningful learned quantity: the energy function itself",
+     "Extends to Lagrangian and Poisson formulations for constrained systems"
+    ]
+   ],
+   [
+    "h2",
+    "Limits"
+   ],
+   [
+    "p",
+    "The clean guarantees assume the system is conservative. Real systems with friction, driving, or dissipation are not purely Hamiltonian and need extensions that add damping or forcing terms. Where energy is genuinely conserved, however, Hamiltonian networks capture the dynamics with fewer data and far greater long-horizon reliability than unstructured models."
+   ]
+  ],
+  "related": [
+   [
+    "conservation-constrained-networks",
+    "Conservation-Constrained Networks"
+   ],
+   [
+    "lagrangian-neural-networks",
+    "Lagrangian Neural Networks"
+   ],
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "lagrangian-neural-networks",
+  "title": "Lagrangian Neural Networks",
+  "cat": "scientific-ml",
+  "lede": "Lagrangian neural networks learn a system's Lagrangian, deriving physically consistent dynamics even in arbitrary or constrained coordinates.",
+  "body": [
+   [
+    "h2",
+    "Why a Lagrangian view"
+   ],
+   [
+    "p",
+    "The Lagrangian formulation of mechanics is built around a single scalar, the Lagrangian, usually the kinetic minus the potential energy. The equations of motion follow from the Euler-Lagrange equations. A Lagrangian neural network learns this scalar and lets the physics machinery produce the dynamics, so the learned model obeys the structure of mechanics."
+   ],
+   [
+    "h2",
+    "Advantage over the Hamiltonian form"
+   ],
+   [
+    "p",
+    "A Hamiltonian network needs canonical coordinates, position and conjugate momentum, which are not always available or convenient. A Lagrangian network works directly in generalized coordinates and velocities, which are what sensors and simulations usually provide. This makes it applicable to systems with awkward coordinates or constraints where momenta are hard to define."
+   ],
+   [
+    "h2",
+    "Deriving the dynamics"
+   ],
+   [
+    "p",
+    "From the learned Lagrangian, the Euler-Lagrange equations give the accelerations. Working these out requires second derivatives of the Lagrangian and the inversion of a mass matrix, all obtainable by automatic differentiation. The network thus predicts accelerations that are guaranteed to arise from some Lagrangian, keeping the dynamics physically consistent."
+   ],
+   [
+    "h2",
+    "Properties"
+   ],
+   [
+    "ul",
+    [
+     "Operates in generalized coordinates without requiring momenta",
+     "Conserves energy for conservative systems by construction",
+     "Handles holonomic constraints naturally through coordinate choice",
+     "Costlier per step because of the required matrix inversion"
+    ]
+   ],
+   [
+    "h2",
+    "Use and caveats"
+   ],
+   [
+    "p",
+    "Lagrangian networks suit robotics, multibody mechanics, and any setting where coordinates are dictated by geometry rather than convenience. Like Hamiltonian networks, they assume conservative dynamics unless extended with dissipation. Their value is encoding the deep structure of mechanics into a learned model, which pays off in data efficiency and stable long-term prediction."
+   ]
+  ],
+  "related": [
+   [
+    "hamiltonian-neural-networks",
+    "Hamiltonian Neural Networks"
+   ],
+   [
+    "conservation-constrained-networks",
+    "Conservation-Constrained Networks"
+   ],
+   [
+    "differentiable-physics",
+    "Differentiable Physics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "equivariant-networks-science",
+  "title": "Equivariant Neural Networks",
+  "cat": "scientific-ml",
+  "lede": "Equivariant networks are built so that transforming the input, by rotation or reflection, transforms the output the same way, encoding symmetry.",
+  "body": [
+   [
+    "h2",
+    "Symmetry as a prior"
+   ],
+   [
+    "p",
+    "Physical laws respect symmetries: rotate an experiment and the physics rotates with it. A model of such a system should behave the same way. An equivariant network guarantees this by construction: if the input is rotated, the output rotates correspondingly. This is stronger than invariance, where the output does not change, and it is exactly what vector and tensor fields require."
+   ],
+   [
+    "h2",
+    "Why it helps learning"
+   ],
+   [
+    "p",
+    "Encoding symmetry means the network need not learn separately how the system behaves in every orientation; one example teaches all rotated versions at once. This sharply reduces the data needed and rules out unphysical predictions that break the symmetry. The symmetry is baked in rather than hoped for, so it holds even on inputs unlike the training set."
+   ],
+   [
+    "h2",
+    "How it is built"
+   ],
+   [
+    "p",
+    "Equivariant layers restrict the allowed operations to those that commute with the symmetry group. For rotations in three dimensions, this leads to networks whose features carry definite transformation types, scalars, vectors, and higher tensors, and whose layers mix them only in symmetry-preserving ways. Group convolutions generalize the idea to discrete symmetries such as reflections and lattice rotations."
+   ],
+   [
+    "h2",
+    "Where it matters"
+   ],
+   [
+    "ul",
+    [
+     "Molecular and materials modeling, where energy is rotation-invariant and forces are equivariant",
+     "Fluid and field problems, where velocity and stress transform as tensors",
+     "Any system whose governing equations are isotropic",
+     "Point-cloud and mesh data with no preferred orientation"
+    ]
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "p",
+    "Equivariant architectures are more constrained and can be harder to implement and slower than generic networks, and they only help when the symmetry is real. When the physics genuinely possesses the symmetry, though, the payoff in data efficiency and physical fidelity is substantial, which is why equivariant models dominate machine-learned potentials in chemistry and materials science."
+   ]
+  ],
+  "related": [
+   [
+    "conservation-constrained-networks",
+    "Conservation-Constrained Networks"
+   ],
+   [
+    "hybrid-physics-ml",
+    "Hybrid Physics-ML"
+   ],
+   [
+    "scientific-machine-learning-overview",
+    "Scientific ML"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "uncertainty-quantification-ml",
+  "title": "Uncertainty Quantification in ML",
+  "cat": "scientific-ml",
+  "lede": "Uncertainty quantification separates noise in the data from ignorance in the model, so predictions come with honest, actionable error bars.",
+  "body": [
+   [
+    "h2",
+    "Why point predictions are not enough"
+   ],
+   [
+    "p",
+    "A single predicted number hides how much the model actually knows. For scientific and engineering decisions, the reliability of a prediction matters as much as its value. Uncertainty quantification (UQ) attaches a calibrated measure of confidence to each prediction, distinguishing regions the model understands from regions where it is guessing."
+   ],
+   [
+    "h2",
+    "Two kinds of uncertainty"
+   ],
+   [
+    "p",
+    "Aleatoric uncertainty is irreducible noise inherent in the data, measurement error or genuine randomness, that more data cannot remove. Epistemic uncertainty is the model's own ignorance, which shrinks as more data are collected. Separating the two is important: epistemic uncertainty tells you where new data would help, while aleatoric uncertainty tells you the floor on achievable accuracy."
+   ],
+   [
+    "h2",
+    "Methods"
+   ],
+   [
+    "ul",
+    [
+     "Bayesian neural networks: place distributions over weights and infer them",
+     "Deep ensembles: train several models and use their spread as uncertainty",
+     "Monte Carlo dropout: sample dropout masks at prediction time",
+     "Gaussian processes: give exact predictive variance in closed form",
+     "Conformal prediction: wrap any model in distribution-free coverage guarantees"
+    ]
+   ],
+   [
+    "h2",
+    "Calibration"
+   ],
+   [
+    "p",
+    "An uncertainty estimate is only useful if it is calibrated: when the model says it is ninety percent confident, it should be right about ninety percent of the time. Calibration is checked on held-out data with reliability diagrams and scores such as the expected calibration error. An overconfident model is often more dangerous than an inaccurate but honest one."
+   ],
+   [
+    "h2",
+    "Why it matters for science"
+   ],
+   [
+    "p",
+    "Scientific decisions carry consequences, so a surrogate used in design must report where it can be trusted. Uncertainty flags extrapolation beyond the training regime, guides where to run expensive high-fidelity simulations next, and keeps a fast learned model from being mistaken for verified physics. UQ is what makes a surrogate safe to use rather than merely fast."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-neural-networks",
+    "Bayesian Neural Networks"
+   ],
+   [
+    "deep-ensembles-uq",
+    "Deep Ensembles"
+   ],
+   [
+    "conformal-prediction",
+    "Conformal Prediction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bayesian-neural-networks",
+  "title": "Bayesian Neural Networks",
+  "cat": "scientific-ml",
+  "lede": "Bayesian neural networks treat weights as distributions rather than fixed values, yielding predictions with principled uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Weights as distributions"
+   ],
+   [
+    "p",
+    "A standard neural network learns a single best value for each weight. A Bayesian neural network instead maintains a probability distribution over each weight, expressing uncertainty about the right value. Prediction averages over these distributions, so the output is itself a distribution whose spread reflects the model's confidence."
+   ],
+   [
+    "h2",
+    "The Bayesian recipe"
+   ],
+   [
+    "p",
+    "One starts with a prior over the weights, updates it with the observed data through Bayes' rule to obtain a posterior, and predicts by integrating over that posterior. The integral is intractable for real networks because the posterior over millions of weights has no closed form, so the practical work is in approximating it."
+   ],
+   [
+    "h2",
+    "Approximation methods"
+   ],
+   [
+    "ul",
+    [
+     "Variational inference: fit a simple distribution to the posterior by optimization",
+     "Markov chain Monte Carlo: sample weights from the posterior, accurate but costly",
+     "Laplace approximation: fit a Gaussian around a trained network's optimum",
+     "Monte Carlo dropout: interpret dropout as an approximate posterior"
+    ]
+   ],
+   [
+    "h2",
+    "What the uncertainty captures"
+   ],
+   [
+    "p",
+    "The spread of a Bayesian network's predictions grows in regions with little data and shrinks where data are dense, capturing epistemic uncertainty, the model's ignorance. Adding a learned noise term captures aleatoric uncertainty, the data's inherent randomness. Together they give a fuller picture than any point estimate."
+   ],
+   [
+    "h2",
+    "Costs and alternatives"
+   ],
+   [
+    "p",
+    "Bayesian neural networks are more expensive to train and to query than ordinary ones, and the quality of their uncertainty depends heavily on the approximation used. In practice, deep ensembles often match or beat them for uncertainty with less mathematical machinery. Bayesian networks remain valuable when a coherent probabilistic treatment or informative priors are important to the problem."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "deep-ensembles-uq",
+    "Deep Ensembles"
+   ],
+   [
+    "mc-dropout",
+    "Monte Carlo Dropout"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deep-ensembles-uq",
+  "title": "Deep Ensembles",
+  "cat": "scientific-ml",
+  "lede": "Deep ensembles quantify uncertainty by training several networks independently and measuring how much their predictions disagree.",
+  "body": [
+   [
+    "h2",
+    "Disagreement as uncertainty"
+   ],
+   [
+    "p",
+    "A deep ensemble trains several copies of a network from different random initializations, and possibly different data orderings, then combines their predictions. Where the members agree, the model is confident; where they disagree, uncertainty is high. This simple idea often gives better-calibrated uncertainty than more elaborate Bayesian schemes."
+   ],
+   [
+    "h2",
+    "Why independent training works"
+   ],
+   [
+    "p",
+    "Different initial weights lead the optimizer to different solutions that all fit the training data well but extrapolate differently. On inputs far from the data, these solutions diverge, so their spread grows, capturing epistemic uncertainty. Near the data they converge, so the spread is small. The ensemble thus reports low confidence exactly where it should."
+   ],
+   [
+    "h2",
+    "Making predictions"
+   ],
+   [
+    "p",
+    "For regression, the ensemble mean is the prediction and the variance across members estimates the uncertainty; each member can also output its own noise estimate to add aleatoric uncertainty. For classification, the averaged probabilities give both the prediction and a measure of disagreement. Combining the members is cheap once they are trained."
+   ],
+   [
+    "h2",
+    "Practical notes"
+   ],
+   [
+    "ul",
+    [
+     "Five to ten members usually capture most of the benefit",
+     "Members train independently, so training parallelizes perfectly",
+     "Prediction cost scales with the number of members",
+     "Diversity can be increased by varying architecture or data subsets"
+    ]
+   ],
+   [
+    "h2",
+    "Why they are popular"
+   ],
+   [
+    "p",
+    "Deep ensembles need no change to the base model, no special loss, and no approximate inference; any network can be ensembled. They are a strong default for uncertainty in scientific machine learning, where the main drawbacks, the memory and compute of several models, are usually acceptable given the value of trustworthy error bars on a surrogate."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "bayesian-neural-networks",
+    "Bayesian Neural Networks"
+   ],
+   [
+    "conformal-prediction",
+    "Conformal Prediction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mc-dropout",
+  "title": "Monte Carlo Dropout",
+  "cat": "scientific-ml",
+  "lede": "Monte Carlo dropout estimates uncertainty by keeping dropout active at prediction time and sampling many stochastic forward passes.",
+  "body": [
+   [
+    "h2",
+    "Dropout beyond training"
+   ],
+   [
+    "p",
+    "Dropout randomly zeros a fraction of a network's units during training to prevent overfitting, and is normally turned off when predicting. Monte Carlo dropout keeps it on at prediction time. Each forward pass then uses a different random subset of the network, so repeated passes on the same input give slightly different outputs. Their spread is an estimate of uncertainty."
+   ],
+   [
+    "h2",
+    "The theoretical link"
+   ],
+   [
+    "p",
+    "There is a formal argument that a network trained with dropout and weight decay approximates a particular Bayesian model, and that sampling dropout masks at prediction time approximates sampling from the posterior. This gives Monte Carlo dropout a probabilistic interpretation rather than being a mere heuristic, though the approximation is loose."
+   ],
+   [
+    "h2",
+    "How to use it"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import torch\ndef mc_predict(net, x, passes=50):\n    net.train()  # keep dropout active\n    with torch.no_grad():\n        ys = torch.stack([net(x) for _ in range(passes)])\n    return ys.mean(0), ys.std(0)  # prediction and uncertainty"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and weaknesses"
+   ],
+   [
+    "ul",
+    [
+     "Almost free: reuses a network already trained with dropout",
+     "Needs no change to training or architecture beyond having dropout layers",
+     "Uncertainty quality depends strongly on the dropout rate",
+     "Often less well-calibrated than deep ensembles"
+    ]
+   ],
+   [
+    "h2",
+    "When to reach for it"
+   ],
+   [
+    "p",
+    "Monte Carlo dropout is the cheapest way to get some uncertainty from an existing network, useful for a quick sense of where a model is unsure. When uncertainty must be reliable, for a surrogate that guides expensive decisions, deep ensembles or Gaussian processes are usually preferred. Monte Carlo dropout is a convenient first approximation, not a final answer."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "bayesian-neural-networks",
+    "Bayesian Neural Networks"
+   ],
+   [
+    "deep-ensembles-uq",
+    "Deep Ensembles"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "conformal-prediction",
+  "title": "Conformal Prediction",
+  "cat": "scientific-ml",
+  "lede": "Conformal prediction wraps any model in prediction intervals with a guaranteed coverage rate, without assuming a data distribution.",
+  "body": [
+   [
+    "h2",
+    "Guarantees without distribution assumptions"
+   ],
+   [
+    "p",
+    "Most uncertainty methods rely on modeling assumptions that may be wrong. Conformal prediction gives a distribution-free guarantee: for a chosen confidence level, its prediction sets contain the true value at least that fraction of the time, provided only that the data are exchangeable. It works around any underlying model, treating it as a black box."
+   ],
+   [
+    "h2",
+    "How it works"
+   ],
+   [
+    "p",
+    "A held-out calibration set is scored by a nonconformity measure, typically the size of the model's error on each calibration point. The quantile of these scores at the desired confidence level becomes a threshold. For a new input, the prediction set is all outputs whose nonconformity falls below that threshold. For regression this yields an interval; for classification, a set of plausible labels."
+   ],
+   [
+    "h2",
+    "A regression example"
+   ],
+   [
+    "p",
+    "Fit any regressor, then on a calibration set compute the absolute residuals. Take the quantile of those residuals corresponding to the target coverage, say the ninetieth percentile for ninety percent coverage. The interval for a new prediction is the point estimate plus or minus that quantile. The coverage guarantee holds regardless of whether the regressor is any good."
+   ],
+   [
+    "h2",
+    "Properties"
+   ],
+   [
+    "ul",
+    [
+     "Coverage is guaranteed in finite samples, not just asymptotically",
+     "Works with any model: linear, tree, or neural network",
+     "Interval width reflects difficulty when adaptive scores are used",
+     "Requires data exchangeability, which distribution shift can break"
+    ]
+   ],
+   [
+    "h2",
+    "Why it complements other methods"
+   ],
+   [
+    "p",
+    "Conformal prediction turns a model's uncertainty estimate into intervals with a stated coverage rate. It pairs well with Bayesian networks or ensembles: those provide a heuristic notion of confidence, and conformal calibration converts it into a guarantee. The main caveat is that the guarantee assumes the new data resemble the calibration data, so extrapolation still demands caution."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "deep-ensembles-uq",
+    "Deep Ensembles"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reduced-order-modeling-ml",
+  "title": "Reduced-Order Modeling with ML",
+  "cat": "scientific-ml",
+  "lede": "Reduced-order models compress a high-dimensional simulation into a few coordinates whose dynamics are cheap to evolve.",
+  "body": [
+   [
+    "h2",
+    "Why reduce"
+   ],
+   [
+    "p",
+    "A full simulation may track millions of variables at every time step, which is far too expensive for design sweeps, optimization, or real-time control. Reduced-order modeling exploits the fact that the meaningful behavior of many systems lives on a low-dimensional set. It finds a small number of coordinates that capture the dynamics and evolves those instead of the full state."
+   ],
+   [
+    "h2",
+    "Two steps"
+   ],
+   [
+    "p",
+    "Reduced-order modeling separates into finding a good low-dimensional representation and modeling the dynamics within it. The representation maps the high-dimensional state to a few latent coordinates and back. The reduced dynamics describe how those coordinates evolve in time. Machine learning can improve both steps over classical linear methods."
+   ],
+   [
+    "h2",
+    "Linear versus nonlinear reduction"
+   ],
+   [
+    "ul",
+    [
+     "Proper orthogonal decomposition finds the best linear subspace from data",
+     "Autoencoders learn a nonlinear manifold, often far more compact",
+     "Latent dynamics can be fit with regression, sparse models, or networks",
+     "Hybrid schemes combine a linear basis with a learned nonlinear correction"
+    ]
+   ],
+   [
+    "h2",
+    "Learning the latent dynamics"
+   ],
+   [
+    "p",
+    "Once the state is compressed, the evolution of the latent coordinates can be modeled by fitting an ordinary differential equation, applying sparse regression to discover a compact law, or training a recurrent or neural-ODE model. The reduced model is orders of magnitude cheaper to run than the full simulation while reproducing its key behavior."
+   ],
+   [
+    "h2",
+    "Uses and cautions"
+   ],
+   [
+    "p",
+    "Reduced-order models enable many-query tasks such as parameter studies, uncertainty propagation, and control that a full solver cannot support. Their accuracy holds only within the regime spanned by the training data; a reduced model asked about conditions it never saw can fail silently. Pairing it with an uncertainty estimate, and refreshing it as new full-order data arrive, keeps it honest."
+   ]
+  ],
+  "related": [
+   [
+    "pod-galerkin",
+    "POD and Galerkin Projection"
+   ],
+   [
+    "autoencoder-rom",
+    "Autoencoder ROM"
+   ],
+   [
+    "latent-space-dynamics",
+    "Latent-Space Dynamics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pod-galerkin",
+  "title": "POD and Galerkin Projection",
+  "cat": "scientific-ml",
+  "lede": "Proper orthogonal decomposition extracts an optimal linear basis from data, and Galerkin projection evolves the equations within it.",
+  "body": [
+   [
+    "h2",
+    "Finding the dominant modes"
+   ],
+   [
+    "p",
+    "Proper orthogonal decomposition (POD) analyzes a collection of simulation snapshots to find the linear directions, called modes, that capture the most variance. It is mathematically the singular value decomposition of the snapshot matrix. A handful of leading modes usually accounts for the vast majority of the system's energy, giving a compact basis for the state."
+   ],
+   [
+    "h2",
+    "Projecting the physics"
+   ],
+   [
+    "p",
+    "POD gives a basis but not the dynamics. Galerkin projection supplies them: it substitutes the reduced representation into the governing equations and projects the residual onto the retained modes. The result is a small system of ordinary differential equations for the modal coefficients, derived directly from the original physics rather than fit to data."
+   ],
+   [
+    "h2",
+    "The intrusive nature"
+   ],
+   [
+    "p",
+    "Galerkin projection is intrusive, meaning it needs access to the equations and often to the solver's operators. This yields a reduced model grounded in physics, but it can inherit instabilities, especially for advection-dominated or turbulent flows where truncated modes still carry important interactions. Stabilization and closure terms are often required."
+   ],
+   [
+    "h2",
+    "Strengths and weaknesses"
+   ],
+   [
+    "ul",
+    [
+     "Optimal linear compression for a given snapshot set",
+     "Physics-based reduced dynamics, not merely a data fit",
+     "Struggles with strongly nonlinear or transport-dominated problems",
+     "Linear basis can need many modes where an autoencoder needs few"
+    ]
+   ],
+   [
+    "h2",
+    "Where ML enters"
+   ],
+   [
+    "p",
+    "Machine learning augments the classical pipeline in several ways: learning a closure for the neglected modes, replacing the linear POD basis with a nonlinear autoencoder for greater compression, or fitting the reduced dynamics non-intrusively from data when the solver operators are unavailable. POD-Galerkin remains the reference against which these learned reduced models are measured."
+   ]
+  ],
+  "related": [
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ],
+   [
+    "autoencoder-rom",
+    "Autoencoder ROM"
+   ],
+   [
+    "dynamic-mode-decomposition",
+    "Dynamic Mode Decomposition"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "autoencoder-rom",
+  "title": "Autoencoder Reduced-Order Models",
+  "cat": "scientific-ml",
+  "lede": "An autoencoder learns a nonlinear low-dimensional coordinate system for a simulation, often far more compact than a linear basis.",
+  "body": [
+   [
+    "h2",
+    "Nonlinear compression"
+   ],
+   [
+    "p",
+    "Linear reduction by proper orthogonal decomposition is limited to flat subspaces. Many systems live on a curved, low-dimensional manifold that a linear basis captures poorly, needing many modes. An autoencoder learns a nonlinear encoder that maps the high-dimensional state to a few latent coordinates, and a decoder that reconstructs the state, capturing the curved manifold directly."
+   ],
+   [
+    "h2",
+    "Why fewer coordinates"
+   ],
+   [
+    "p",
+    "Because the encoder and decoder are nonlinear, they can represent structures that would require many linear modes. A traveling wave, for instance, needs a large linear basis but only one or two nonlinear latent coordinates. This sharper compression makes the downstream dynamics model smaller and cheaper while remaining accurate."
+   ],
+   [
+    "h2",
+    "Modeling latent dynamics"
+   ],
+   [
+    "p",
+    "With the state compressed, the evolution of the latent coordinates is modeled separately, by a neural ordinary differential equation, a recurrent network, or sparse regression on the latent variables. Training the encoder and the dynamics together, so the latent space is shaped to have simple dynamics, generally works better than training them in sequence."
+   ],
+   [
+    "h2",
+    "Design considerations"
+   ],
+   [
+    "ul",
+    [
+     "Latent dimension: too small loses fidelity, too large defeats the purpose",
+     "Physical constraints can be imposed on the latent dynamics",
+     "Convolutional encoders suit fields on structured grids",
+     "Reconstruction and dynamics losses must be balanced"
+    ]
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "p",
+    "Autoencoder reduced-order models can be dramatically more compact than linear ones, but they are harder to train, less interpretable, and offer weaker guarantees. Where a linear method suffices, it is often preferred for its transparency. Where the manifold is strongly curved, as in many transport-dominated flows, the nonlinear autoencoder earns its added complexity."
+   ]
+  ],
+  "related": [
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ],
+   [
+    "pod-galerkin",
+    "POD and Galerkin Projection"
+   ],
+   [
+    "latent-space-dynamics",
+    "Latent-Space Dynamics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "latent-space-dynamics",
+  "title": "Latent-Space Dynamics",
+  "cat": "scientific-ml",
+  "lede": "Latent-space dynamics models evolve a compressed representation forward in time, giving fast surrogates for high-dimensional simulations.",
+  "body": [
+   [
+    "h2",
+    "Dynamics in a small space"
+   ],
+   [
+    "p",
+    "Once a high-dimensional state is compressed to a few latent coordinates by a learned or linear encoder, the remaining task is to predict how those coordinates change over time. A latent-space dynamics model does this, evolving the compact representation forward and decoding back to the full state only when output is needed. The heavy lifting happens in the small space."
+   ],
+   [
+    "h2",
+    "Ways to model the evolution"
+   ],
+   [
+    "ul",
+    [
+     "Neural ordinary differential equations that learn a continuous latent flow",
+     "Recurrent networks that step the latent state discretely",
+     "Sparse regression that finds a compact symbolic latent law",
+     "Linear operators, as in Koopman and dynamic mode decomposition approaches"
+    ]
+   ],
+   [
+    "h2",
+    "Stability over long rollouts"
+   ],
+   [
+    "p",
+    "The central challenge is staying accurate over many steps. A model trained to predict only the next step accumulates error and can diverge. Training on multi-step rollouts, penalizing long-horizon error, and encouraging a well-conditioned latent flow all improve stability. Some approaches favor a linear latent evolution precisely because its long-term behavior is predictable."
+   ],
+   [
+    "h2",
+    "Encouraging simple dynamics"
+   ],
+   [
+    "p",
+    "The latent space is not unique; the encoder can be shaped so the dynamics within it are as simple as possible. Learning the encoder and the dynamics jointly lets the model choose coordinates in which the evolution is nearly linear or sparse, which makes the dynamics model smaller, more stable, and easier to interpret."
+   ],
+   [
+    "h2",
+    "Uses"
+   ],
+   [
+    "p",
+    "Latent-space dynamics power fast surrogates for control, forecasting, and design exploration where a full solver is too slow to run in the loop. Their reliability is bounded by the regime the training data cover, so an accompanying uncertainty estimate and periodic refresh from full-order simulations keep the surrogate trustworthy as conditions move."
+   ]
+  ],
+  "related": [
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ],
+   [
+    "koopman-operator-learning",
+    "Koopman Operator Learning"
+   ],
+   [
+    "autoencoder-rom",
+    "Autoencoder ROM"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "koopman-operator-learning",
+  "title": "Koopman Operator Learning",
+  "cat": "scientific-ml",
+  "lede": "The Koopman operator recasts nonlinear dynamics as a linear evolution of observables, enabling linear tools on nonlinear systems.",
+  "body": [
+   [
+    "h2",
+    "Linearizing without approximation"
+   ],
+   [
+    "p",
+    "Nonlinear dynamics are hard to analyze, but the Koopman viewpoint offers a striking alternative. Instead of tracking the state, it tracks functions of the state, called observables. The Koopman operator advances these observables in time and is exactly linear, even when the underlying dynamics are strongly nonlinear. The price is that the space of observables is infinite-dimensional."
+   ],
+   [
+    "h2",
+    "Finding good observables"
+   ],
+   [
+    "p",
+    "The practical challenge is choosing a finite set of observables whose evolution is approximately closed under the Koopman operator, so that the operator restricted to them stays linear. Classical dictionaries of candidate functions can work, but learning the observables with a neural network, an encoder into a coordinate system where the dynamics are linear, is often far more effective."
+   ],
+   [
+    "h2",
+    "Why linearity is valuable"
+   ],
+   [
+    "ul",
+    [
+     "Linear systems have a complete spectral theory: eigenvalues set growth and oscillation",
+     "Prediction, control, and stability analysis all have mature linear tools",
+     "Modes reveal coherent structures and their time scales",
+     "A linear latent evolution is stable and interpretable over long horizons"
+    ]
+   ],
+   [
+    "h2",
+    "Relation to dynamic mode decomposition"
+   ],
+   [
+    "p",
+    "Dynamic mode decomposition is the standard data-driven method for approximating the Koopman operator: it fits the best linear operator relating snapshots one step apart. Extended and deep variants enrich the observables, with neural network encoders learning the coordinates in which the dynamics become linear. These methods share the goal of a linear surrogate for nonlinear behavior."
+   ],
+   [
+    "h2",
+    "Limits"
+   ],
+   [
+    "p",
+    "Systems with multiple stable states or chaos cannot be captured globally by a finite linear model, because no finite set of observables closes the dynamics everywhere. Within a single regime, however, Koopman-based models give compact, stable, and interpretable surrogates, which is why they are widely used for reduced-order modeling and control."
+   ]
+  ],
+  "related": [
+   [
+    "dynamic-mode-decomposition",
+    "Dynamic Mode Decomposition"
+   ],
+   [
+    "latent-space-dynamics",
+    "Latent-Space Dynamics"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dynamic-mode-decomposition",
+  "title": "Dynamic Mode Decomposition",
+  "cat": "scientific-ml",
+  "lede": "Dynamic mode decomposition extracts spatial modes and their growth and oscillation rates directly from time-series simulation data.",
+  "body": [
+   [
+    "h2",
+    "Modes with a time signature"
+   ],
+   [
+    "p",
+    "Dynamic mode decomposition (DMD) analyzes a sequence of snapshots and finds spatial patterns, each tagged with a single complex frequency that sets how it grows, decays, and oscillates. Unlike proper orthogonal decomposition, whose modes are ranked only by energy, DMD modes each have a clean temporal behavior, making them a bridge between data and dynamical understanding."
+   ],
+   [
+    "h2",
+    "The algorithm"
+   ],
+   [
+    "p",
+    "DMD seeks the best linear operator that maps each snapshot to the next. It arranges snapshots into two matrices offset by one time step, then computes the operator that relates them, typically through a singular value decomposition for numerical stability. The eigenvalues of that operator give the modal frequencies and growth rates; its eigenvectors give the spatial modes."
+   ],
+   [
+    "h2",
+    "Connection to Koopman"
+   ],
+   [
+    "p",
+    "DMD is the leading practical approximation to the Koopman operator when the observables are just the raw state variables. Its modes approximate Koopman modes, and its eigenvalues approximate the Koopman spectrum. This link gives DMD a firm theoretical footing and motivates extensions that enrich the observables for stronger nonlinear systems."
+   ],
+   [
+    "h2",
+    "Uses"
+   ],
+   [
+    "ul",
+    [
+     "Identifying coherent structures and their frequencies in fluid flows",
+     "Short-horizon forecasting from a purely linear model",
+     "Detecting instability through growth rates of modes",
+     "Background-foreground separation in image and signal data"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and caveats"
+   ],
+   [
+    "p",
+    "DMD is equation-free, fast, and interpretable, needing only snapshots and no knowledge of the governing equations. Its linear nature limits it to regimes where a linear model is adequate, and it is sensitive to noise and to how snapshots are sampled. Within those bounds it is a powerful diagnostic and a useful building block for reduced-order and control models."
+   ]
+  ],
+  "related": [
+   [
+    "koopman-operator-learning",
+    "Koopman Operator Learning"
+   ],
+   [
+    "pod-galerkin",
+    "POD and Galerkin Projection"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "super-resolution-simulations",
+  "title": "Super-Resolution of Simulations",
+  "cat": "scientific-ml",
+  "lede": "Learned super-resolution reconstructs fine-scale simulation detail from a coarse field, mimicking a high-resolution run at lower cost.",
+  "body": [
+   [
+    "h2",
+    "Borrowing from images"
+   ],
+   [
+    "p",
+    "Image super-resolution turns a low-resolution picture into a plausible high-resolution one by learning the statistics of fine detail. The same idea applies to simulations: a network trained on paired coarse and fine fields learns to add physically consistent small-scale structure to a coarse result, approximating a costly high-resolution run at a fraction of the cost."
+   ],
+   [
+    "h2",
+    "How it is trained"
+   ],
+   [
+    "p",
+    "Training uses pairs of coarse and fine fields, the fine ones from expensive high-resolution simulations and the coarse ones from downsampling or from cheap low-resolution runs. The network learns the mapping from coarse to fine. Convolutional architectures suit fields on regular grids, while operator-based methods can change resolution natively without retraining."
+   ],
+   [
+    "h2",
+    "Keeping it physical"
+   ],
+   [
+    "p",
+    "Plain image networks can hallucinate detail that looks right but violates physics. Scientific super-resolution guards against this by adding constraints: penalizing violations of the governing equations, enforcing conservation of mass or energy between the coarse input and the fine output, and respecting known symmetries. The goal is detail that is not just plausible but consistent with the physics."
+   ],
+   [
+    "h2",
+    "Where it helps"
+   ],
+   [
+    "ul",
+    [
+     "Post-processing coarse runs to inspect fine features cheaply",
+     "Accelerating parameter sweeps that only need occasional fine detail",
+     "Enhancing low-resolution measurements or reconstructions",
+     "Providing fine initial guesses to speed a true high-resolution solve"
+    ]
+   ],
+   [
+    "h2",
+    "Honest limits"
+   ],
+   [
+    "p",
+    "Super-resolution can only reconstruct detail whose statistics resemble the training data; genuinely new phenomena at fine scales cannot be invented from a coarse field. It should be treated as an informed approximation, validated against true high-resolution simulations, not as a substitute for resolving the physics when the fine scales actually matter to the conclusion."
+   ]
+  ],
+  "related": [
+   [
+    "fourier-neural-operator",
+    "Fourier Neural Operator"
+   ],
+   [
+    "reduced-order-modeling-ml",
+    "Reduced-Order Modeling"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-modeling",
+  "title": "Surrogate Modeling",
+  "cat": "scientific-ml",
+  "lede": "A surrogate is a fast approximation of an expensive simulation, trained on solver outputs to enable many-query design and analysis.",
+  "body": [
+   [
+    "h2",
+    "Standing in for the solver"
+   ],
+   [
+    "p",
+    "Many engineering tasks require running a simulation thousands of times: optimizing a design, propagating uncertainty, or searching a parameter space. When each run is expensive, this is infeasible. A surrogate model, trained on a limited set of solver evaluations, approximates the input-output relationship and answers new queries in milliseconds, making these many-query tasks practical."
+   ],
+   [
+    "h2",
+    "Common surrogate types"
+   ],
+   [
+    "ul",
+    [
+     "Gaussian processes: excellent for few data points, with built-in uncertainty",
+     "Polynomial chaos expansions: efficient for smooth responses to random inputs",
+     "Neural networks: scale to high dimensions and large datasets",
+     "Neural operators: surrogate whole fields, not just scalar outputs"
+    ]
+   ],
+   [
+    "h2",
+    "Design of experiments"
+   ],
+   [
+    "p",
+    "A surrogate is only as good as the data it learns from. Choosing where to evaluate the expensive solver is a discipline in itself. Space-filling designs such as Latin hypercube sampling spread evaluations evenly, while adaptive strategies add points where the surrogate is most uncertain or where the objective is most promising, extracting the most information from each costly run."
+   ],
+   [
+    "h2",
+    "Validation is not optional"
+   ],
+   [
+    "p",
+    "A surrogate must be tested on solver outputs it did not see during training before it is trusted. Held-out error, cross-validation, and calibration checks all matter. A surrogate that fits its training points perfectly but fails on new ones is worse than useless because it hides its own unreliability behind apparent accuracy."
+   ],
+   [
+    "h2",
+    "Role in design"
+   ],
+   [
+    "p",
+    "Surrogates accelerate the exploration of design spaces, including for complex machines whose full physics is slow to simulate. They speed up sweeps and screening but do not replace the verified solver for final decisions, and they carry uncertainty estimates so that regions outside their training coverage are flagged rather than trusted."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "neural-operators-overview",
+    "Neural Operators"
+   ],
+   [
+    "active-learning-surrogates",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "active-learning-surrogates",
+  "title": "Active Learning for Surrogates",
+  "cat": "scientific-ml",
+  "lede": "Active learning chooses where to run an expensive simulation next, so a surrogate improves fastest with the fewest costly evaluations.",
+  "body": [
+   [
+    "h2",
+    "Spending evaluations wisely"
+   ],
+   [
+    "p",
+    "When each simulation is expensive, the placement of the next evaluation matters enormously. Active learning is the strategy of selecting new sample points to maximize what the surrogate learns per run, rather than sampling blindly. Guided by the surrogate's own uncertainty, it concentrates effort where it will most improve the model or most advance the goal."
+   ],
+   [
+    "h2",
+    "Acquisition functions"
+   ],
+   [
+    "p",
+    "The rule that scores candidate points is the acquisition function. For pure model improvement, it favors points where the surrogate is most uncertain. For optimization, it balances exploring uncertain regions against exploiting regions that look promising, as in expected improvement and upper confidence bound criteria used in Bayesian optimization. The next evaluation goes where the acquisition function is highest."
+   ],
+   [
+    "h2",
+    "Exploration versus exploitation"
+   ],
+   [
+    "ul",
+    [
+     "Pure exploration: sample the most uncertain region to refine the whole surrogate",
+     "Pure exploitation: sample near the current best to sharpen the optimum",
+     "Bayesian optimization balances the two automatically",
+     "Batch methods pick several diverse points for parallel simulation runs"
+    ]
+   ],
+   [
+    "h2",
+    "The loop"
+   ],
+   [
+    "p",
+    "Active learning proceeds in a cycle: fit the surrogate to current data, use the acquisition function to choose the next point, run the expensive simulation there, add the result, and repeat. Because it needs the surrogate's uncertainty, methods with calibrated uncertainty, such as Gaussian processes and ensembles, are the natural backbone of the loop."
+   ],
+   [
+    "h2",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "Active learning can reach a target accuracy or find an optimum with a small fraction of the evaluations that uniform sampling would need. For design studies built on costly physics simulations, this efficiency is often the difference between a study that is feasible and one that is not, which is why it is central to surrogate-based engineering."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ],
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ],
+   [
+    "multi-fidelity-modeling",
+    "Multi-Fidelity Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-fidelity-modeling",
+  "title": "Multi-Fidelity Modeling",
+  "cat": "scientific-ml",
+  "lede": "Multi-fidelity methods combine many cheap approximate runs with a few expensive accurate ones to build an accurate model efficiently.",
+  "body": [
+   [
+    "h2",
+    "Not all runs cost the same"
+   ],
+   [
+    "p",
+    "A physical system can often be simulated at several levels of fidelity: a coarse mesh or simplified physics is cheap but approximate, while a fine mesh or full physics is accurate but expensive. Multi-fidelity modeling exploits this hierarchy, using many cheap low-fidelity runs to learn the general shape of the response and a few costly high-fidelity runs to correct it."
+   ],
+   [
+    "h2",
+    "How the levels combine"
+   ],
+   [
+    "p",
+    "A common construction models the high-fidelity output as a transformed low-fidelity output plus a learned correction. The low-fidelity model, trained on abundant data, captures the trends; the correction, trained on scarce high-fidelity data, fixes the systematic bias. Because the correction is small and smooth, it can be learned from few points, so the accurate model costs far less than training on high-fidelity data alone."
+   ],
+   [
+    "h2",
+    "Methods"
+   ],
+   [
+    "ul",
+    [
+     "Co-kriging: a Gaussian process framework linking correlated fidelity levels",
+     "Multi-fidelity neural networks: separate subnetworks for trend and correction",
+     "Control variates: use cheap runs to reduce the variance of expensive estimates",
+     "Hierarchies of more than two levels for finely graded cost and accuracy"
+    ]
+   ],
+   [
+    "h2",
+    "When it pays off"
+   ],
+   [
+    "p",
+    "Multi-fidelity modeling helps most when the cheap and expensive models are well correlated, so the low-fidelity output genuinely predicts the high-fidelity trend. If the correlation is weak, the cheap runs add little and the method degrades toward using high-fidelity data alone. Checking the correlation between fidelities is the first step before committing to the approach."
+   ],
+   [
+    "h2",
+    "Use in engineering"
+   ],
+   [
+    "p",
+    "Design studies routinely have a ladder of models, from fast reduced physics to slow high-resolution simulation. Multi-fidelity methods let a study lean on the cheap models while spending its scarce expensive evaluations where they matter, delivering accuracy that neither level could provide economically on its own."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ],
+   [
+    "active-learning-surrogates",
+    "Active Learning"
+   ],
+   [
+    "gaussian-process-regression",
+    "GP Regression"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "physics-constrained-optimization",
+  "title": "Physics-Constrained Optimization",
+  "cat": "scientific-ml",
+  "lede": "Physics-constrained optimization searches for the best design while requiring that governing equations and physical limits are respected.",
+  "body": [
+   [
+    "h2",
+    "Optimizing subject to physics"
+   ],
+   [
+    "p",
+    "Engineering design is optimization: adjust parameters to minimize or maximize an objective. What distinguishes physics-constrained optimization is that the search must obey the laws of physics and hard operating limits at every candidate. A design that violates conservation, exceeds a stress limit, or is physically unrealizable is not a valid point in the search, no matter how good its objective."
+   ],
+   [
+    "h2",
+    "Enforcing the constraints"
+   ],
+   [
+    "ul",
+    [
+     "Equality constraints: the state must satisfy the governing equations",
+     "Inequality constraints: temperatures, stresses, or fields must stay within limits",
+     "Penalty methods: add a cost for violations, giving soft enforcement",
+     "Projection or barrier methods: keep every iterate inside the feasible region"
+    ]
+   ],
+   [
+    "h2",
+    "Gradients through the physics"
+   ],
+   [
+    "p",
+    "Efficient optimization needs the gradient of the objective and constraints with respect to the design parameters. When the constraints are simulations, these gradients come from adjoint methods or differentiable simulators, which supply the full sensitivity at a cost independent of the number of parameters. This is what makes optimization over high-dimensional designs tractable."
+   ],
+   [
+    "h2",
+    "The role of surrogates"
+   ],
+   [
+    "p",
+    "When each physics evaluation is expensive, a surrogate can stand in during the search, with the true solver used to check promising candidates. Surrogate-based optimization, guided by uncertainty-aware acquisition rules, finds good designs with few expensive runs. The surrogate's uncertainty also warns when the search strays into regions where it cannot be trusted."
+   ],
+   [
+    "h2",
+    "Application to fusion design"
+   ],
+   [
+    "p",
+    "Designing a confinement device is a physics-constrained optimization: shape, field, and profile parameters are tuned to meet performance targets while satisfying equilibrium, stability, and engineering limits. For the <b>Hyperion</b> breeder, a spherical tokamak, design studies explore such trade-offs in simulation, with parameters like plasma current near 9.86 MA emerging from constrained searches rather than being chosen freely. These are computational design results, not measurements from built hardware."
+   ]
+  ],
+  "related": [
+   [
+    "adjoint-method-ml",
+    "Adjoint Method"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ],
+   [
+    "differentiable-simulation",
+    "Differentiable Simulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-assimilation-ml",
+  "title": "Data Assimilation with ML",
+  "cat": "scientific-ml",
+  "lede": "Data assimilation blends a physical model with streaming observations to track a system's state, and ML sharpens every part of the loop.",
+  "body": [
+   [
+    "h2",
+    "Combining model and measurement"
+   ],
+   [
+    "p",
+    "Data assimilation is the art of keeping a model in step with reality. A physical model predicts how a system evolves; sparse, noisy observations arrive over time; assimilation merges the two to produce the best current estimate of the state, along with its uncertainty. Weather forecasting is the classic example, correcting a simulation with each new round of measurements."
+   ],
+   [
+    "h2",
+    "Classical methods"
+   ],
+   [
+    "p",
+    "The Kalman filter and its ensemble variants alternate a forecast step, which advances the state and its uncertainty through the model, with an update step, which nudges the estimate toward the observations in proportion to their relative reliability. Variational methods instead find the trajectory that best fits both the model and a window of observations, using adjoint gradients to do so."
+   ],
+   [
+    "h2",
+    "Where machine learning helps"
+   ],
+   [
+    "ul",
+    [
+     "Learned surrogates replace an expensive forecast model in the ensemble",
+     "Networks learn model error, correcting systematic biases from data",
+     "Learned observation operators map complex measurements to model variables",
+     "End-to-end learning tunes the whole assimilation scheme against outcomes"
+    ]
+   ],
+   [
+    "h2",
+    "Handling uncertainty"
+   ],
+   [
+    "p",
+    "Assimilation is inherently probabilistic: it tracks not just a state but a distribution over states. Machine learning fits naturally here through ensembles and Bayesian methods, which represent and propagate that uncertainty. A well-designed system reports how confident it is, growing its uncertainty between observations and shrinking it when data arrive."
+   ],
+   [
+    "h2",
+    "Relevance to operations"
+   ],
+   [
+    "p",
+    "Any system that runs while being measured can use assimilation to fuse a physics model with live sensor data for state estimation and short-term prediction. The learned components accelerate the model and correct its biases, while the physics keeps the estimate anchored. As with all surrogates, the learned parts are validated against trusted models and flagged where observations leave the regime they were trained on."
+   ]
+  ],
+  "related": [
+   [
+    "inverse-problems-ml",
+    "Inverse Problems"
+   ],
+   [
+    "uncertainty-quantification-ml",
+    "UQ in ML"
+   ],
+   [
+    "surrogate-modeling",
+    "Surrogate Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

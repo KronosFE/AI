@@ -1,0 +1,3220 @@
+[
+ {
+  "slug": "em-algorithm",
+  "title": "Expectation-Maximization Algorithm",
+  "cat": "machine-learning",
+  "lede": "EM iteratively fits models with latent variables by alternating a soft-assignment step with a maximum-likelihood update.",
+  "body": [
+   [
+    "h2",
+    "The problem EM solves"
+   ],
+   [
+    "p",
+    "Many models contain <b>latent</b> (unobserved) variables: which cluster a point came from, which state a system occupied, which topic a word belongs to. If those variables were known, fitting the model by maximum likelihood would be easy. Expectation-Maximization (EM) breaks the chicken-and-egg deadlock by alternating between estimating the latent variables and re-fitting the parameters."
+   ],
+   [
+    "h3",
+    "The two steps"
+   ],
+   [
+    "p",
+    "The <b>E-step</b> computes the expected value of the complete-data log-likelihood using the current parameters, which in practice means computing the posterior probability (responsibility) of each latent value for each data point. The <b>M-step</b> then maximizes that expected log-likelihood over the parameters, treating the responsibilities as soft labels."
+   ],
+   [
+    "p",
+    "Formally, EM maximizes a lower bound Q(theta | theta_old) = E[ log p(x, z | theta) ] where the expectation is over p(z | x, theta_old). Because each M-step increases Q and Q lower-bounds the true log-likelihood, the observed-data likelihood never decreases across iterations."
+   ],
+   [
+    "h3",
+    "Guarantees and limits"
+   ],
+   [
+    "p",
+    "EM converges monotonically to a stationary point of the likelihood, but that point may be a local maximum or a saddle, so multiple random restarts are standard. Convergence can be slow near flat regions, and degenerate solutions (a cluster collapsing onto one point with zero variance) require regularization or variance floors."
+   ],
+   [
+    "ul",
+    [
+     "Guaranteed non-decreasing likelihood each iteration",
+     "Sensitive to initialization; use several restarts",
+     "Generalizes to any latent-variable model with a tractable posterior",
+     "A generalized EM step that merely improves Q also converges"
+    ]
+   ],
+   [
+    "p",
+    "EM underlies <a href=./gaussian-mixture-models.html>Gaussian mixture models</a>, <a href=./hidden-markov-models.html>hidden Markov models</a> via <a href=./baum-welch-algorithm.html>Baum-Welch</a>, and many missing-data problems where the missingness itself is treated as a latent variable."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-mixture-models",
+    "Gaussian Mixtures"
+   ],
+   [
+    "baum-welch-algorithm",
+    "Baum-Welch"
+   ],
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gaussian-mixture-models",
+  "title": "Gaussian Mixture Models",
+  "cat": "machine-learning",
+  "lede": "A Gaussian mixture models data as a weighted sum of several Gaussian components, giving soft, probabilistic clustering.",
+  "body": [
+   [
+    "h2",
+    "A density built from Gaussians"
+   ],
+   [
+    "p",
+    "A Gaussian mixture model (GMM) represents a distribution as p(x) = sum_k pi_k N(x | mu_k, Sigma_k), where each component k has a mixing weight pi_k (summing to one), a mean mu_k, and a covariance Sigma_k. Any smooth density can be approximated arbitrarily well by enough components, which makes GMMs a flexible tool for clustering and density estimation."
+   ],
+   [
+    "h3",
+    "Fitting with EM"
+   ],
+   [
+    "p",
+    "Parameters are learned with the <a href=./em-algorithm.html>EM algorithm</a>. The E-step assigns each point a responsibility r_nk, the posterior probability it came from component k. The M-step updates each mean as the responsibility-weighted average of the points, each covariance similarly, and each weight as the average responsibility."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# One EM iteration for a GMM (sketch)\nresp = weights * gaussian_pdf(X, means, covs)   # E-step\nresp /= resp.sum(axis=1, keepdims=True)\nNk = resp.sum(axis=0)                            # M-step\nmeans = (resp.T @ X) / Nk[:, None]\nweights = Nk / len(X)"
+    ]
+   ],
+   [
+    "h3",
+    "Covariance structure and model choice"
+   ],
+   [
+    "p",
+    "The covariance can be full, diagonal, spherical, or tied across components. Diagonal covariances scale to high dimensions but assume axis-aligned clusters. The number of components is chosen by validation likelihood or information criteria such as BIC, which penalizes extra parameters."
+   ],
+   [
+    "h3",
+    "GMM versus k-means"
+   ],
+   [
+    "p",
+    "k-means is the hard-assignment, equal-spherical-variance limit of a GMM. GMMs add soft membership and elliptical shapes, at the cost of fitting covariances and risking singular components when a cluster collapses; a small ridge added to each covariance prevents this. GMMs are widely used for speaker models, background subtraction, and as flexible priors."
+   ],
+   [
+    "ul",
+    [
+     "Soft assignments express uncertainty near boundaries",
+     "BIC or held-out likelihood selects the component count",
+     "Regularize covariances to avoid singular collapse"
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "em-algorithm",
+    "EM Algorithm"
+   ],
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hidden-markov-models",
+  "title": "Hidden Markov Models",
+  "cat": "machine-learning",
+  "lede": "An HMM models a sequence of observations generated by a hidden state that evolves as a Markov chain.",
+  "body": [
+   [
+    "h2",
+    "States you cannot see"
+   ],
+   [
+    "p",
+    "A hidden Markov model (HMM) assumes an unobserved state sequence z_1..z_T that follows a Markov chain: the next state depends only on the current one through a transition matrix A. Each hidden state emits a visible observation through an emission distribution B. You observe the emissions and must infer the states or the parameters."
+   ],
+   [
+    "h3",
+    "The three canonical problems"
+   ],
+   [
+    "ul",
+    [
+     "<b>Evaluation</b>: compute the likelihood of an observation sequence, solved by the <a href=./forward-backward-algorithm.html>forward algorithm</a>",
+     "<b>Decoding</b>: find the most likely hidden path, solved by the <a href=./viterbi-algorithm.html>Viterbi algorithm</a>",
+     "<b>Learning</b>: estimate A and B from data, solved by <a href=./baum-welch-algorithm.html>Baum-Welch</a>, an EM instance"
+    ]
+   ],
+   [
+    "h3",
+    "The core assumptions"
+   ],
+   [
+    "p",
+    "Two independence assumptions make HMMs tractable: the current state depends only on the previous state (first-order Markov), and each observation depends only on the current state. These let the joint probability factor as a product of transitions and emissions, so dynamic programming over T steps and K states runs in O(T K^2) time."
+   ],
+   [
+    "p",
+    "Emissions can be discrete (a multinomial per state) or continuous (a Gaussian or Gaussian mixture per state). The state count is a modeling choice, often set by validation likelihood."
+   ],
+   [
+    "h3",
+    "Where HMMs are used"
+   ],
+   [
+    "p",
+    "HMMs power speech recognition front-ends, part-of-speech tagging, gene-finding in genomics, and gesture recognition. They are the generative counterpart to <a href=./conditional-random-fields.html>conditional random fields</a>, which model the same sequences discriminatively. When state dynamics are continuous rather than discrete, the analogous tool is the <a href=./kalman-filter.html>Kalman filter</a>."
+   ],
+   [
+    "p",
+    "The main limitation is the first-order assumption: real sequences often carry longer-range dependencies that a plain HMM cannot capture, motivating higher-order chains or neural sequence models."
+   ]
+  ],
+  "related": [
+   [
+    "forward-backward-algorithm",
+    "Forward-Backward"
+   ],
+   [
+    "viterbi-algorithm",
+    "Viterbi"
+   ],
+   [
+    "baum-welch-algorithm",
+    "Baum-Welch"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "forward-backward-algorithm",
+  "title": "Forward-Backward Algorithm",
+  "cat": "machine-learning",
+  "lede": "Forward-backward computes exact state posteriors in a hidden Markov model by two passes of dynamic programming.",
+  "body": [
+   [
+    "h2",
+    "Marginals over hidden states"
+   ],
+   [
+    "p",
+    "Given an observation sequence, we often want the posterior probability of each hidden state at each time step, p(z_t | x_1..x_T). The forward-backward algorithm computes all of these exactly in a single sweep forward and a single sweep backward, reusing shared sub-computations."
+   ],
+   [
+    "h3",
+    "The forward pass"
+   ],
+   [
+    "p",
+    "Define alpha_t(i) = p(x_1..x_t, z_t = i), the joint probability of the observations up to time t and being in state i. It recurses as alpha_t(j) = [ sum_i alpha_{t-1}(i) A_ij ] B_j(x_t), starting from the initial distribution. Summing alpha_T over all states gives the total sequence likelihood."
+   ],
+   [
+    "h3",
+    "The backward pass"
+   ],
+   [
+    "p",
+    "Define beta_t(i) = p(x_{t+1}..x_T | z_t = i), the probability of the remaining observations given state i now. It recurses backward as beta_t(i) = sum_j A_ij B_j(x_{t+1}) beta_{t+1}(j), starting from beta_T = 1. The state posterior is then proportional to alpha_t(i) beta_t(i)."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Forward recursion (log-space is safer in practice)\nalpha[0] = pi * B[:, x[0]]\nfor t in range(1, T):\n    alpha[t] = (alpha[t-1] @ A) * B[:, x[t]]\nlikelihood = alpha[T-1].sum()"
+    ]
+   ],
+   [
+    "h3",
+    "Numerical care and cost"
+   ],
+   [
+    "p",
+    "Naive products underflow for long sequences, so implementations either rescale alpha and beta at each step or work entirely in log-space with the log-sum-exp trick. The algorithm runs in O(T K^2) time and O(T K) memory. Its outputs are the E-step responsibilities used by <a href=./baum-welch-algorithm.html>Baum-Welch</a> to re-estimate transition and emission parameters."
+   ],
+   [
+    "p",
+    "Forward-backward gives smoothed estimates because each state benefits from evidence both before and after it; using only the forward pass gives filtered estimates that condition on the past alone."
+   ]
+  ],
+  "related": [
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ],
+   [
+    "viterbi-algorithm",
+    "Viterbi"
+   ],
+   [
+    "baum-welch-algorithm",
+    "Baum-Welch"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "viterbi-algorithm",
+  "title": "Viterbi Algorithm",
+  "cat": "machine-learning",
+  "lede": "Viterbi finds the single most probable hidden state sequence in an HMM using dynamic programming over paths.",
+  "body": [
+   [
+    "h2",
+    "The most likely path"
+   ],
+   [
+    "p",
+    "Forward-backward gives the probability of each state marginally, but often we want the single best joint explanation: the state sequence z_1..z_T with the highest posterior probability. The Viterbi algorithm computes it exactly by dynamic programming, replacing the sums of the forward algorithm with maximizations."
+   ],
+   [
+    "h3",
+    "The recursion"
+   ],
+   [
+    "p",
+    "Let delta_t(i) be the probability of the best path ending in state i at time t. It recurses as delta_t(j) = max_i [ delta_{t-1}(i) A_ij ] B_j(x_t). At each step the algorithm records which predecessor i achieved the maximum in a backpointer table psi_t(j)."
+   ],
+   [
+    "h3",
+    "Backtracking"
+   ],
+   [
+    "p",
+    "After the forward sweep, the algorithm picks the highest-probability final state and follows the backpointers from time T back to time 1, reconstructing the optimal path. This two-phase structure, a forward maximization then a backward trace, is the same pattern used across sequence alignment and shortest-path problems."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Viterbi in log-space\ndelta[0] = log(pi) + logB[:, x[0]]\nfor t in range(1, T):\n    scores = delta[t-1][:, None] + logA\n    psi[t] = scores.argmax(0)\n    delta[t] = scores.max(0) + logB[:, x[t]]\npath = backtrack(delta, psi)"
+    ]
+   ],
+   [
+    "h3",
+    "Properties"
+   ],
+   [
+    "p",
+    "Viterbi runs in O(T K^2) time and O(T K) memory. Working in log-space turns products into sums and avoids underflow. The most probable path is not the same as the sequence of individually most probable states: forward-backward can return a state assignment that has zero probability as a joint path, whereas Viterbi always returns a valid, self-consistent sequence."
+   ],
+   [
+    "p",
+    "The same algorithm decodes convolutional error-correcting codes and aligns speech frames to phoneme models, and it generalizes to <a href=./conditional-random-fields.html>conditional random fields</a> for structured prediction."
+   ]
+  ],
+  "related": [
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ],
+   [
+    "forward-backward-algorithm",
+    "Forward-Backward"
+   ],
+   [
+    "conditional-random-fields",
+    "CRFs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "baum-welch-algorithm",
+  "title": "Baum-Welch Algorithm",
+  "cat": "machine-learning",
+  "lede": "Baum-Welch learns HMM transition and emission parameters from unlabeled sequences by expectation-maximization.",
+  "body": [
+   [
+    "h2",
+    "Learning an HMM without labels"
+   ],
+   [
+    "p",
+    "When we observe sequences but never see the hidden states, we cannot count transitions and emissions directly. Baum-Welch is the special case of the <a href=./em-algorithm.html>EM algorithm</a> that estimates HMM parameters from these unlabeled sequences by iterating between inferring the hidden states softly and re-estimating the parameters."
+   ],
+   [
+    "h3",
+    "E-step: expected counts"
+   ],
+   [
+    "p",
+    "Using <a href=./forward-backward-algorithm.html>forward-backward</a>, the E-step computes gamma_t(i), the posterior probability of state i at time t, and xi_t(i,j), the posterior probability of transitioning from i to j between t and t+1. These are the soft equivalents of the counts we would tally if the states were observed."
+   ],
+   [
+    "h3",
+    "M-step: re-estimation"
+   ],
+   [
+    "p",
+    "The M-step turns expected counts into new parameters. The transition A_ij becomes the expected number of i-to-j transitions divided by the expected number of times in i. The initial distribution becomes gamma_1. For discrete emissions, B_j(v) becomes the expected time in j while emitting symbol v, normalized. Each M-step provably does not decrease the sequence likelihood."
+   ],
+   [
+    "ul",
+    [
+     "Iterate E and M until the log-likelihood change falls below a tolerance",
+     "Converges to a local optimum; use multiple random initializations",
+     "Add smoothing so unseen transitions or symbols keep small nonzero probability",
+     "For continuous emissions the M-step updates Gaussian means and covariances"
+    ]
+   ],
+   [
+    "h3",
+    "Practical notes"
+   ],
+   [
+    "p",
+    "Baum-Welch inherits EM local-optimum behavior, so initialization matters; a common trick is to seed emissions with a clustering of the observations. Training on many sequences aggregates the expected counts across all of them before the M-step. Because the likelihood surface is multimodal, reported results should note how many restarts were tried and how the best was selected."
+   ],
+   [
+    "p",
+    "When some sequences are labeled, a supervised count-and-normalize estimate can initialize Baum-Welch, blending labeled and unlabeled data."
+   ]
+  ],
+  "related": [
+   [
+    "em-algorithm",
+    "EM Algorithm"
+   ],
+   [
+    "forward-backward-algorithm",
+    "Forward-Backward"
+   ],
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "conditional-random-fields",
+  "title": "Conditional Random Fields",
+  "cat": "machine-learning",
+  "lede": "CRFs are discriminative models for structured prediction that score whole label sequences given the full input.",
+  "body": [
+   [
+    "h2",
+    "Modeling structure discriminatively"
+   ],
+   [
+    "p",
+    "A conditional random field (CRF) predicts a structured output, most often a label sequence, by modeling p(y | x) directly rather than the joint p(x, y). Unlike a <a href=./hidden-markov-models.html>hidden Markov model</a>, it does not model how the inputs are generated, which frees it to use rich, overlapping features of the entire input without worrying about their dependencies."
+   ],
+   [
+    "h3",
+    "The linear-chain form"
+   ],
+   [
+    "p",
+    "The most common variant is the linear-chain CRF, which scores a label sequence as a normalized exponential of a sum of feature functions over adjacent label pairs and the input: p(y | x) = (1/Z(x)) exp( sum_t sum_k w_k f_k(y_{t-1}, y_t, x, t) ). The partition function Z(x) sums over all label sequences and is computed efficiently by a forward-backward pass."
+   ],
+   [
+    "h3",
+    "Training and inference"
+   ],
+   [
+    "p",
+    "Training maximizes the conditional log-likelihood, whose gradient is the difference between observed feature counts and model-expected feature counts; the expectations come from forward-backward. Because the objective is convex in the weights, gradient methods reach the global optimum. At prediction time, the <a href=./viterbi-algorithm.html>Viterbi algorithm</a> finds the highest-scoring label sequence."
+   ],
+   [
+    "h3",
+    "Why discriminative helps"
+   ],
+   [
+    "p",
+    "Generative models must explain the inputs, which can waste capacity and force independence assumptions among features. CRFs sidestep this by conditioning on the input, so features such as capitalization, word shape, gazetteer membership, and neighboring words can overlap freely. This made linear-chain CRFs the standard for named-entity recognition and part-of-speech tagging before, and often layered on top of, neural encoders."
+   ],
+   [
+    "ul",
+    [
+     "Convex training objective yields a global optimum",
+     "Handles arbitrary, overlapping input features",
+     "Regularize weights to control overfitting",
+     "A CRF output layer still improves many neural taggers"
+    ]
+   ],
+   [
+    "p",
+    "General CRFs extend beyond chains to trees and grids, but exact inference is only tractable when the graph is simple; otherwise approximate inference is required."
+   ]
+  ],
+  "related": [
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ],
+   [
+    "viterbi-algorithm",
+    "Viterbi"
+   ],
+   [
+    "forward-backward-algorithm",
+    "Forward-Backward"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kalman-filter",
+  "title": "The Kalman Filter",
+  "cat": "machine-learning",
+  "lede": "The Kalman filter tracks a continuous hidden state over time by fusing a linear motion model with noisy measurements.",
+  "body": [
+   [
+    "h2",
+    "Estimating a moving state"
+   ],
+   [
+    "p",
+    "The Kalman filter is the continuous-state analogue of the hidden Markov model: the hidden state is a real-valued vector that evolves linearly with Gaussian noise, and measurements are linear functions of the state plus Gaussian noise. Under these assumptions it computes the exact posterior over the state at each time step, and that posterior stays Gaussian."
+   ],
+   [
+    "h3",
+    "Predict and update"
+   ],
+   [
+    "p",
+    "Each step has two phases. The <b>predict</b> phase pushes the current state estimate through the motion model, growing the covariance by the process noise. The <b>update</b> phase incorporates a new measurement, shrinking the covariance and pulling the estimate toward the observation by an amount set by the Kalman gain."
+   ],
+   [
+    "p",
+    "The Kalman gain balances trust: when measurement noise is large, the gain is small and the filter leans on its prediction; when the state uncertainty is large, the gain is large and the filter leans on the measurement. This optimal weighting minimizes the mean-squared estimation error for linear-Gaussian systems."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Predict\nx = F @ x\nP = F @ P @ F.T + Q\n# Update with measurement z\ny = z - H @ x\nS = H @ P @ H.T + R\nK = P @ H.T @ inv(S)\nx = x + K @ y\nP = (I - K @ H) @ P"
+    ]
+   ],
+   [
+    "h3",
+    "Nonlinear extensions"
+   ],
+   [
+    "p",
+    "Real systems are often nonlinear. The extended Kalman filter linearizes the model around the current estimate via Jacobians; the unscented Kalman filter propagates a set of sigma points through the true nonlinearity for better accuracy. When noise is non-Gaussian or highly multimodal, particle filters replace the Gaussian assumption with sampled hypotheses."
+   ],
+   [
+    "p",
+    "Kalman filters underpin navigation, sensor fusion, target tracking, and time-series smoothing, and the same recursion smooths states offline when a backward pass is added."
+   ]
+  ],
+  "related": [
+   [
+    "hidden-markov-models",
+    "Hidden Markov Models"
+   ],
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "collaborative-filtering",
+  "title": "Collaborative Filtering",
+  "cat": "machine-learning",
+  "lede": "Collaborative filtering recommends items by finding patterns in the preferences of many users, without item content.",
+  "body": [
+   [
+    "h2",
+    "Wisdom from co-occurrence"
+   ],
+   [
+    "p",
+    "Collaborative filtering (CF) predicts what a user will like from the accumulated behavior of many users, using only the interaction matrix of who engaged with what. It needs no descriptions of items or users: if people who agreed with you in the past liked an item, you probably will too. This makes CF powerful but reliant on having enough interaction history."
+   ],
+   [
+    "h3",
+    "Neighborhood methods"
+   ],
+   [
+    "p",
+    "The classic approach is memory-based. <b>User-based</b> CF finds users similar to the target (by cosine or Pearson similarity over shared ratings) and predicts from their ratings. <b>Item-based</b> CF instead measures similarity between items and recommends items close to those the user already liked; it is usually more stable because item-item similarities change slowly and can be precomputed."
+   ],
+   [
+    "h3",
+    "Model-based methods"
+   ],
+   [
+    "p",
+    "Neighborhood methods struggle as the matrix grows sparse. Model-based CF learns compact latent representations instead, most famously through <a href=./matrix-factorization.html>matrix factorization</a>, which embeds users and items in a shared low-dimensional space so that a dot product predicts preference. These models generalize better and scale to large catalogs."
+   ],
+   [
+    "h3",
+    "The hard problems"
+   ],
+   [
+    "ul",
+    [
+     "<b>Cold start</b>: new users or items have no history to draw on",
+     "<b>Sparsity</b>: most user-item pairs are unobserved",
+     "<b>Popularity bias</b>: frequent items dominate and crowd out the long tail",
+     "<b>Feedback loops</b>: recommendations shape the very data used to train the next model"
+    ]
+   ],
+   [
+    "p",
+    "Cold start is often addressed by falling back to content features or hybrid models. Popularity bias and feedback loops require deliberate evaluation on held-out time periods rather than random splits, so that the model is judged on genuinely future behavior. When feedback is implicit (clicks, plays) rather than explicit ratings, the modeling changes, as covered in <a href=./implicit-feedback-recommendation.html>implicit-feedback recommendation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "matrix-factorization",
+    "Matrix Factorization"
+   ],
+   [
+    "implicit-feedback-recommendation",
+    "Implicit Feedback"
+   ],
+   [
+    "alternating-least-squares",
+    "ALS"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "matrix-factorization",
+  "title": "Matrix Factorization for Recommendation",
+  "cat": "machine-learning",
+  "lede": "Matrix factorization embeds users and items in a shared latent space so their dot product predicts preference.",
+  "body": [
+   [
+    "h2",
+    "Low-rank structure in preferences"
+   ],
+   [
+    "p",
+    "Matrix factorization assumes the large, sparse user-item rating matrix R is approximately the product of two thin matrices: R ~ U V^T, where each user u has a latent vector p_u and each item i has a latent vector q_i. The predicted rating is their dot product p_u . q_i, optionally plus a global mean and user and item biases that capture how generous a user is or how well-liked an item is."
+   ],
+   [
+    "h3",
+    "The objective"
+   ],
+   [
+    "p",
+    "Learning minimizes the squared error over observed entries only, plus L2 regularization: sum over known (u,i) of (r_ui - mu - b_u - b_i - p_u . q_i)^2 + lambda(||p_u||^2 + ||q_i||^2). Crucially the sum runs over observed ratings, not the full matrix, so missing entries are ignored during fitting rather than treated as zero."
+   ],
+   [
+    "h3",
+    "How it is solved"
+   ],
+   [
+    "p",
+    "Two optimizers dominate. Stochastic gradient descent walks through observed ratings, nudging the relevant p_u and q_i after each. <a href=./alternating-least-squares.html>Alternating least squares</a> fixes one factor and solves a ridge regression for the other in closed form, then swaps, which parallelizes cleanly. Both converge to a low-rank fit; the latent dimension trades expressiveness against overfitting."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# SGD update for one observed rating\nerr = r_ui - (mu + b_u + b_i + p[u] @ q[i])\np[u] += lr * (err * q[i] - lam * p[u])\nq[i] += lr * (err * p[u] - lam * q[i])"
+    ]
+   ],
+   [
+    "h3",
+    "What the factors capture"
+   ],
+   [
+    "p",
+    "The learned latent dimensions often correspond to interpretable taste axes discovered automatically, such as genre or tone, though no such labels are supplied. Because the model is low-rank, it generalizes to unobserved pairs, which is exactly the recommendation task. It remains a strong, efficient baseline underlying much of <a href=./collaborative-filtering.html>collaborative filtering</a>, and can be extended with side features to ease cold start."
+   ]
+  ],
+  "related": [
+   [
+    "collaborative-filtering",
+    "Collaborative Filtering"
+   ],
+   [
+    "alternating-least-squares",
+    "ALS"
+   ],
+   [
+    "implicit-feedback-recommendation",
+    "Implicit Feedback"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "alternating-least-squares",
+  "title": "Alternating Least Squares",
+  "cat": "machine-learning",
+  "lede": "ALS fits matrix-factorization models by alternately solving closed-form least-squares problems for each factor.",
+  "body": [
+   [
+    "h2",
+    "Turning a hard problem into easy ones"
+   ],
+   [
+    "p",
+    "The <a href=./matrix-factorization.html>matrix factorization</a> objective is non-convex when both user factors P and item factors Q vary together, but it becomes a convex least-squares problem in one factor when the other is held fixed. Alternating least squares (ALS) exploits this: fix Q and solve for every user vector, then fix P and solve for every item vector, and repeat."
+   ],
+   [
+    "h3",
+    "The closed-form step"
+   ],
+   [
+    "p",
+    "With item factors fixed, each user vector p_u is the solution of a ridge regression against the items that user rated: p_u = (Q_u^T Q_u + lambda I)^{-1} Q_u^T r_u, where Q_u stacks the factors of the rated items. Each such solve is a small linear system of size equal to the latent dimension, independent across users, so the whole step is embarrassingly parallel."
+   ],
+   [
+    "h3",
+    "Why it is popular"
+   ],
+   [
+    "ul",
+    [
+     "Each half-step is a global optimum, so the objective decreases monotonically",
+     "User and item updates parallelize across machines with no shared state",
+     "No learning rate to tune, unlike stochastic gradient descent",
+     "Handles the implicit-feedback formulation efficiently with a weighted variant"
+    ]
+   ],
+   [
+    "h3",
+    "Implicit-feedback ALS"
+   ],
+   [
+    "p",
+    "For implicit signals such as plays or clicks, ALS is adapted by treating every entry as observed with a confidence that grows with the interaction count, and a preference of one for any positive interaction and zero otherwise. A precomputation trick keeps the per-user solve efficient despite the matrix now being dense in principle. This weighted ALS is a workhorse for large-scale <a href=./implicit-feedback-recommendation.html>implicit-feedback recommendation</a>."
+   ],
+   [
+    "p",
+    "The main trade-offs are memory for the factor matrices and the cost of the matrix inversions, which grow with the latent dimension cubed but stay cheap for the modest dimensions typical in practice."
+   ]
+  ],
+  "related": [
+   [
+    "matrix-factorization",
+    "Matrix Factorization"
+   ],
+   [
+    "collaborative-filtering",
+    "Collaborative Filtering"
+   ],
+   [
+    "implicit-feedback-recommendation",
+    "Implicit Feedback"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "implicit-feedback-recommendation",
+  "title": "Implicit-Feedback Recommendation",
+  "cat": "machine-learning",
+  "lede": "Implicit feedback infers preference from behavior like clicks and plays, where non-interaction is ambiguous.",
+  "body": [
+   [
+    "h2",
+    "No stars, only actions"
+   ],
+   [
+    "p",
+    "Most real recommendation data is implicit: users click, watch, purchase, or skip, but rarely rate. This differs sharply from explicit ratings. A positive action signals interest, but the absence of an action is ambiguous, it may mean dislike, or simply that the user never saw the item. Treating all non-interactions as negative is wrong, yet ignoring them entirely leaves nothing to contrast against."
+   ],
+   [
+    "h3",
+    "Confidence-weighted modeling"
+   ],
+   [
+    "p",
+    "A standard formulation replaces ratings with a binary preference (one if the user interacted, zero otherwise) and a confidence that scales with the interaction strength, for example c = 1 + alpha * count. Positive interactions get high confidence; unobserved pairs get low but nonzero confidence, so they gently pull predictions toward zero without being treated as certain dislikes. <a href=./alternating-least-squares.html>Weighted ALS</a> optimizes this efficiently."
+   ],
+   [
+    "h3",
+    "Ranking-first learning"
+   ],
+   [
+    "p",
+    "Because the goal is to order items rather than predict a number, many methods optimize ranking directly. Bayesian Personalized Ranking learns from triples (user, observed item, unobserved item) and pushes the observed item to rank above the unobserved one. Negative sampling makes this tractable by drawing a few unobserved items per positive rather than scoring the whole catalog."
+   ],
+   [
+    "h3",
+    "Evaluation that matches the task"
+   ],
+   [
+    "ul",
+    [
+     "Use ranking metrics: recall at k, NDCG, mean average precision",
+     "Split by time so the model predicts genuinely future behavior",
+     "Account for exposure bias: users can only interact with what was shown",
+     "Watch popularity bias, which ranking metrics can reward superficially"
+    ]
+   ],
+   [
+    "p",
+    "Implicit feedback is the dominant regime for streaming, retail, and content platforms, and it connects directly to <a href=./collaborative-filtering.html>collaborative filtering</a> and <a href=./matrix-factorization.html>matrix factorization</a> with the confidence and sampling adaptations above."
+   ]
+  ],
+  "related": [
+   [
+    "collaborative-filtering",
+    "Collaborative Filtering"
+   ],
+   [
+    "alternating-least-squares",
+    "ALS"
+   ],
+   [
+    "matrix-factorization",
+    "Matrix Factorization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "isolation-forest",
+  "title": "Isolation Forest",
+  "cat": "machine-learning",
+  "lede": "Isolation forest detects anomalies by how quickly random partitioning isolates a point from the rest.",
+  "body": [
+   [
+    "h2",
+    "Anomalies are easy to isolate"
+   ],
+   [
+    "p",
+    "Isolation forest turns the usual anomaly logic around. Instead of modeling what normal data looks like and flagging deviations, it directly exploits the fact that anomalies are few and different, which makes them easy to separate. If you repeatedly split the data on random features at random thresholds, an outlier tends to fall into its own region after only a few cuts, while a normal point needs many."
+   ],
+   [
+    "h3",
+    "How the trees are built"
+   ],
+   [
+    "p",
+    "The algorithm builds many isolation trees, each on a small random subsample. At every node it picks a random feature and a random split value between that feature range, recursing until points are isolated or a depth limit is reached. The <b>path length</b> from the root to a point is its isolation depth. Averaging path lengths across trees gives a robust estimate."
+   ],
+   [
+    "h3",
+    "The anomaly score"
+   ],
+   [
+    "p",
+    "Short average path lengths mean easy isolation and thus high anomaly scores. The raw path length is normalized against the expected path length of an unsuccessful binary-search-tree lookup so scores are comparable across dataset sizes, yielding a value between zero and one where values near one indicate anomalies."
+   ],
+   [
+    "ul",
+    [
+     "Linear time and low memory: no distance or density computation",
+     "Subsampling improves accuracy by reducing masking and swamping",
+     "Few hyperparameters: tree count and subsample size",
+     "Works well in moderate dimensions; very high dimensions dilute random splits"
+    ]
+   ],
+   [
+    "h3",
+    "Strengths and limits"
+   ],
+   [
+    "p",
+    "Isolation forest scales to large datasets far better than distance-based methods like the <a href=./local-outlier-factor.html>local outlier factor</a>, because it never computes pairwise distances. Its weaknesses appear with many irrelevant features, where random axis-aligned splits rarely target the informative dimensions, and with anomalies that are only anomalous in feature combinations. It is a strong default for tabular <a href=./anomaly-detection.html>anomaly detection</a>."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ],
+   [
+    "local-outlier-factor",
+    "Local Outlier Factor"
+   ],
+   [
+    "one-class-svm",
+    "One-Class SVM"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-detection",
+  "title": "Anomaly Detection",
+  "cat": "machine-learning",
+  "lede": "Anomaly detection flags rare, unexpected observations, usually with few or no labeled examples of the anomalies.",
+  "body": [
+   [
+    "h2",
+    "Finding the rare and the wrong"
+   ],
+   [
+    "p",
+    "Anomaly detection identifies observations that depart from an expected pattern: fraud, equipment faults, network intrusions, or sensor errors. The defining difficulty is that anomalies are rare and diverse, so there are rarely enough labeled examples to train a standard classifier. Most methods therefore model normal behavior and score how poorly a new point fits it."
+   ],
+   [
+    "h3",
+    "Families of methods"
+   ],
+   [
+    "ul",
+    [
+     "<b>Density and distance</b>: flag points in low-density regions, e.g. <a href=./local-outlier-factor.html>local outlier factor</a> or kNN distance",
+     "<b>Isolation</b>: flag points that are easy to separate, e.g. <a href=./isolation-forest.html>isolation forest</a>",
+     "<b>Boundary</b>: learn a tight region enclosing normal data, e.g. <a href=./one-class-svm.html>one-class SVM</a>",
+     "<b>Reconstruction</b>: train an autoencoder on normal data; large reconstruction error signals an anomaly",
+     "<b>Probabilistic</b>: fit a density (e.g. a <a href=./gaussian-mixture-models.html>Gaussian mixture</a>) and flag low-likelihood points"
+    ]
+   ],
+   [
+    "h3",
+    "Point, contextual, and collective"
+   ],
+   [
+    "p",
+    "Anomalies come in kinds. A <b>point</b> anomaly is a single odd value. A <b>contextual</b> anomaly is normal in general but odd in context, such as high heating use in summer. A <b>collective</b> anomaly is a sequence that is abnormal as a whole though each element looks normal, common in time series and requiring temporal models."
+   ],
+   [
+    "h3",
+    "Evaluation under extreme imbalance"
+   ],
+   [
+    "p",
+    "Because positives are rare, accuracy is meaningless. Precision-recall curves, area under the precision-recall curve, and recall at a fixed alarm budget are the honest measures. A threshold on the anomaly score sets the trade-off between missed anomalies and false alarms, and it should be chosen from the operational cost of each error rather than left at a default."
+   ],
+   [
+    "p",
+    "In production, the normal pattern itself drifts, so detectors need periodic recalibration, linking anomaly detection to <a href=./model-drift-monitoring.html>drift monitoring</a>."
+   ]
+  ],
+  "related": [
+   [
+    "isolation-forest",
+    "Isolation Forest"
+   ],
+   [
+    "local-outlier-factor",
+    "Local Outlier Factor"
+   ],
+   [
+    "one-class-svm",
+    "One-Class SVM"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "local-outlier-factor",
+  "title": "Local Outlier Factor",
+  "cat": "machine-learning",
+  "lede": "The local outlier factor scores anomalies by comparing a point density to the density of its neighbors.",
+  "body": [
+   [
+    "h2",
+    "Anomaly is relative to the neighborhood"
+   ],
+   [
+    "p",
+    "A point is not anomalous in the abstract; it is anomalous relative to its surroundings. The local outlier factor (LOF) captures this by comparing how densely packed a point is with how densely packed its neighbors are. A point sitting in a sparse pocket while its neighbors sit in dense clusters gets a high LOF score even if, globally, the region is not the sparsest."
+   ],
+   [
+    "h3",
+    "Reachability and local density"
+   ],
+   [
+    "p",
+    "LOF first finds each point k nearest neighbors. It defines a reachability distance that smooths out the effect of very close points, then computes a local reachability density as the inverse of the average reachability distance to those neighbors. This density estimate is local, tied only to the immediate neighborhood."
+   ],
+   [
+    "h3",
+    "The LOF score"
+   ],
+   [
+    "p",
+    "The LOF of a point is the average ratio of its neighbors local densities to its own. A value near one means the point is as dense as its neighbors (normal). A value well above one means the point is far less dense than its neighbors expect (an outlier). The single parameter k sets the neighborhood scale and materially affects results."
+   ],
+   [
+    "ul",
+    [
+     "Detects local outliers that global methods miss",
+     "Score near one is normal; larger is more anomalous",
+     "Sensitive to the neighbor count k; try a range",
+     "Costly on large data: needs pairwise or indexed neighbor search"
+    ]
+   ],
+   [
+    "h3",
+    "When to use it"
+   ],
+   [
+    "p",
+    "LOF shines when the data has clusters of differing density, where a single global threshold would either miss local outliers or flood the sparse clusters with false alarms. Its cost is the neighbor computation, which scales poorly without spatial indexing, making the linear-time <a href=./isolation-forest.html>isolation forest</a> preferable on very large datasets. It remains a strong choice for moderate-size <a href=./anomaly-detection.html>anomaly detection</a> with heterogeneous density."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ],
+   [
+    "isolation-forest",
+    "Isolation Forest"
+   ],
+   [
+    "one-class-svm",
+    "One-Class SVM"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "one-class-svm",
+  "title": "One-Class SVM",
+  "cat": "machine-learning",
+  "lede": "A one-class SVM learns a boundary that encloses normal data, treating outside points as anomalies.",
+  "body": [
+   [
+    "h2",
+    "Learning the shape of normal"
+   ],
+   [
+    "p",
+    "A one-class support vector machine learns a decision boundary around the region occupied by normal training data, so that new points falling outside are flagged as anomalies. It is trained on data assumed to be mostly normal, without needing anomaly labels, which suits the label-scarce setting of <a href=./anomaly-detection.html>anomaly detection</a>."
+   ],
+   [
+    "h3",
+    "Two related formulations"
+   ],
+   [
+    "p",
+    "In the Scholkopf formulation, the algorithm finds a hyperplane in a kernel feature space that separates the data from the origin with maximum margin, allowing a controlled fraction of points to fall on the wrong side. In the support-vector-data-description formulation, it instead finds the smallest hypersphere enclosing the data. With the common radial-basis kernel the two are closely related and both trace a nonlinear boundary in the original space."
+   ],
+   [
+    "h3",
+    "The nu parameter"
+   ],
+   [
+    "p",
+    "A parameter nu, between zero and one, upper-bounds the fraction of training points allowed outside the boundary and lower-bounds the fraction of support vectors. It effectively sets the expected anomaly rate and the tightness of the boundary. The kernel bandwidth gamma controls how flexibly the boundary can wrap around the data; too large a gamma overfits and treats normal points as anomalies."
+   ],
+   [
+    "ul",
+    [
+     "No anomaly labels required, only mostly-clean normal data",
+     "nu sets the tolerated outlier fraction",
+     "Kernel choice and bandwidth strongly affect the boundary",
+     "Scales poorly to very large datasets due to kernel computation"
+    ]
+   ],
+   [
+    "h3",
+    "Practical use"
+   ],
+   [
+    "p",
+    "One-class SVMs work well in modest dimensions with a carefully tuned kernel, but they are sensitive to contamination in the training set and to feature scaling, so inputs should be standardized. On large or high-dimensional data, <a href=./isolation-forest.html>isolation forest</a> or autoencoder reconstruction error are usually more practical. The method is best viewed as one tool in a portfolio of detectors compared on precision-recall."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ],
+   [
+    "isolation-forest",
+    "Isolation Forest"
+   ],
+   [
+    "local-outlier-factor",
+    "Local Outlier Factor"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "time-series-forecasting",
+  "title": "Time-Series Forecasting",
+  "cat": "machine-learning",
+  "lede": "Time-series forecasting predicts future values of a temporally ordered signal from its own past and covariates.",
+  "body": [
+   [
+    "h2",
+    "Order matters"
+   ],
+   [
+    "p",
+    "Time-series data is ordered in time, and that order carries information that ordinary regression ignores. Forecasting predicts future values from history, exploiting autocorrelation, trend, and seasonality. The temporal structure also constrains how models must be evaluated: you can never let information from the future leak into training a model meant to predict it."
+   ],
+   [
+    "h3",
+    "Components of a series"
+   ],
+   [
+    "ul",
+    [
+     "<b>Trend</b>: slow long-run drift up or down",
+     "<b>Seasonality</b>: patterns that repeat on a fixed period (daily, weekly, yearly)",
+     "<b>Cycles</b>: longer swings without a fixed period",
+     "<b>Noise</b>: irreducible short-term fluctuation"
+    ]
+   ],
+   [
+    "p",
+    "Classical methods make these explicit. <a href=./seasonal-decomposition.html>Seasonal decomposition</a> splits a series into trend, seasonal, and remainder; <a href=./exponential-smoothing.html>exponential smoothing</a> and <a href=./arima-models.html>ARIMA</a> model them parametrically; <a href=./prophet-style-forecasting.html>additive decomposition models</a> fit them as interpretable curves."
+   ],
+   [
+    "h3",
+    "Evaluation without leakage"
+   ],
+   [
+    "p",
+    "Random train-test splits are invalid because they let the model peek at the future. Instead, use a chronological split or rolling-origin backtesting, where the model is repeatedly trained on data up to a cutoff and tested on the next window. Report horizon-appropriate error: MAE, RMSE, or scale-free measures like MAPE and MASE that let you compare across series of different magnitudes."
+   ],
+   [
+    "h3",
+    "Point forecasts and intervals"
+   ],
+   [
+    "p",
+    "A single number is rarely enough; decisions need uncertainty. Good forecasters output prediction intervals, and those intervals should be calibrated, meaning a stated 90 percent interval actually contains the truth about 90 percent of the time. Deep models (recurrent and transformer sequence models) add capacity for many related series and exogenous inputs, but they must clear the same leakage-free evaluation bar as simple baselines like seasonal-naive, which are surprisingly hard to beat."
+   ]
+  ],
+  "related": [
+   [
+    "arima-models",
+    "ARIMA"
+   ],
+   [
+    "exponential-smoothing",
+    "Exponential Smoothing"
+   ],
+   [
+    "stationarity-and-autocorrelation",
+    "Stationarity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "arima-models",
+  "title": "ARIMA Models",
+  "cat": "machine-learning",
+  "lede": "ARIMA forecasts a series by combining autoregression, differencing for trend, and a moving average of past errors.",
+  "body": [
+   [
+    "h2",
+    "Three letters, three ideas"
+   ],
+   [
+    "p",
+    "ARIMA stands for AutoRegressive Integrated Moving Average, and its three parameters (p, d, q) name three mechanisms. The AR part regresses the value on its own p past values. The I part differences the series d times to remove trend and make it <a href=./stationarity-and-autocorrelation.html>stationary</a>. The MA part regresses on the last q forecast errors, capturing short shocks that persist briefly."
+   ],
+   [
+    "h3",
+    "Reaching stationarity"
+   ],
+   [
+    "p",
+    "ARIMA requires a stationary series, one whose statistical properties do not drift over time. Differencing (subtracting the previous value) removes linear trend; differencing twice handles curvature. Tests such as the augmented Dickey-Fuller test help decide how many differences d are needed. Over-differencing injects spurious structure, so the smallest d that achieves stationarity is preferred."
+   ],
+   [
+    "h3",
+    "Choosing p and q"
+   ],
+   [
+    "p",
+    "The autocorrelation and partial autocorrelation functions guide the choice: a sharp cutoff in the partial autocorrelation suggests the AR order p, while a cutoff in the autocorrelation suggests the MA order q. In practice, candidate models are compared by information criteria such as AIC or BIC, and automated procedures search the (p, d, q) grid to minimize them."
+   ],
+   [
+    "h3",
+    "Seasonality and extensions"
+   ],
+   [
+    "p",
+    "Seasonal ARIMA (SARIMA) adds a second set of terms at the seasonal lag, for example capturing that each December resembles prior Decembers. ARIMAX includes exogenous regressors. These models are transparent and give principled prediction intervals, and a well-fit ARIMA is a strong, interpretable baseline against which more complex forecasters must justify themselves."
+   ],
+   [
+    "ul",
+    [
+     "p, d, q set autoregression, differencing, and error-averaging",
+     "Series must be made stationary before fitting the ARMA part",
+     "Use AIC or BIC and residual checks to select orders",
+     "SARIMA adds seasonal terms; ARIMAX adds external drivers"
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ],
+   [
+    "stationarity-and-autocorrelation",
+    "Stationarity"
+   ],
+   [
+    "exponential-smoothing",
+    "Exponential Smoothing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "exponential-smoothing",
+  "title": "Exponential Smoothing",
+  "cat": "machine-learning",
+  "lede": "Exponential smoothing forecasts by averaging past values with weights that decay geometrically into the past.",
+  "body": [
+   [
+    "h2",
+    "Recent past matters most"
+   ],
+   [
+    "p",
+    "Exponential smoothing forecasts a series as a weighted average of its history where recent observations count more, with weights decaying geometrically. A single parameter alpha, between zero and one, sets how fast old data is forgotten: near one the forecast tracks recent values closely, near zero it responds slowly and stays smooth. The simplest form suits data with no trend or seasonality."
+   ],
+   [
+    "h3",
+    "The Holt-Winters family"
+   ],
+   [
+    "p",
+    "Real series usually have trend and season, so the method is extended. Holt linear smoothing adds a second equation that smooths the trend with its own parameter beta. Holt-Winters adds a third that smooths a seasonal component with parameter gamma, in either an additive form (seasonal swings of constant size) or a multiplicative form (swings that grow with the level)."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Simple exponential smoothing\nlevel = x[0]\nfor t in range(1, len(x)):\n    level = alpha * x[t] + (1 - alpha) * level\nforecast = level  # flat forward projection"
+    ]
+   ],
+   [
+    "h3",
+    "State-space view"
+   ],
+   [
+    "p",
+    "The Holt-Winters methods correspond to a formal class of state-space models known as ETS (Error, Trend, Seasonal). Casting them this way gives maximum-likelihood parameter estimation, automatic model selection among the additive and multiplicative combinations, and principled prediction intervals rather than point forecasts alone."
+   ],
+   [
+    "h3",
+    "Why it endures"
+   ],
+   [
+    "p",
+    "Exponential smoothing is fast, needs little data, and is hard to beat on many short seasonal series. It is closely related to <a href=./arima-models.html>ARIMA</a>: simple exponential smoothing is equivalent to a particular ARIMA model. Alongside the seasonal-naive baseline, ETS is a standard reference that more elaborate forecasters, including neural sequence models, must outperform to earn their added complexity."
+   ]
+  ],
+  "related": [
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ],
+   [
+    "arima-models",
+    "ARIMA"
+   ],
+   [
+    "prophet-style-forecasting",
+    "Additive Forecasting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "prophet-style-forecasting",
+  "title": "Additive Decomposition Forecasting",
+  "cat": "machine-learning",
+  "lede": "Additive forecasters model a series as an interpretable sum of trend, seasonal, and holiday components with uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Forecasting as curve fitting"
+   ],
+   [
+    "p",
+    "A popular family of business forecasters treats prediction as fitting an interpretable additive model: y(t) = trend(t) + seasonality(t) + holidays(t) + noise. Rather than the recursive equations of ARIMA, each component is an explicit function of time, which makes the forecast easy to inspect, explain, and adjust by hand. This design targets analysts who need transparent, robust forecasts without deep time-series expertise."
+   ],
+   [
+    "h3",
+    "The components"
+   ],
+   [
+    "ul",
+    [
+     "<b>Trend</b>: a piecewise-linear or saturating growth curve with automatically placed changepoints where the slope shifts",
+     "<b>Seasonality</b>: periodic patterns represented by Fourier terms, one set per period (weekly, yearly)",
+     "<b>Holidays and events</b>: user-supplied dates that add bumps of learned magnitude",
+     "<b>Uncertainty</b>: intervals from trend-changepoint variability and observation noise"
+    ]
+   ],
+   [
+    "h3",
+    "Why practitioners like it"
+   ],
+   [
+    "p",
+    "The model handles missing data and outliers gracefully, tolerates irregular sampling, and lets a domain expert inject known events such as promotions or closures. Because components are additive and named, a stakeholder can read off how much of a forecast comes from trend versus season versus a holiday, which supports trust and debugging in a way opaque models do not."
+   ],
+   [
+    "h3",
+    "Strengths and cautions"
+   ],
+   [
+    "p",
+    "This approach excels on human-scale business series with strong multi-period seasonality and known events. It is weaker when dynamics are driven by short-term autocorrelation or exogenous feedback, where <a href=./arima-models.html>ARIMA</a> or state-space methods fit better. As always, the model must be validated with rolling-origin backtesting and compared against simple baselines; its interpretability is a feature, not a substitute for honest <a href=./time-series-forecasting.html>evaluation</a>."
+   ],
+   [
+    "p",
+    "Automatic changepoint placement can overreact to noise, so the changepoint flexibility is a key regularization dial."
+   ]
+  ],
+  "related": [
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ],
+   [
+    "exponential-smoothing",
+    "Exponential Smoothing"
+   ],
+   [
+    "arima-models",
+    "ARIMA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stationarity-and-autocorrelation",
+  "title": "Stationarity and Autocorrelation",
+  "cat": "machine-learning",
+  "lede": "Stationarity means a series statistics do not change over time; autocorrelation measures how a series relates to its own lags.",
+  "body": [
+   [
+    "h2",
+    "Why stationarity matters"
+   ],
+   [
+    "p",
+    "A time series is stationary if its statistical properties, mean, variance, and autocorrelation structure, do not change over time. Many classical forecasting methods, including <a href=./arima-models.html>ARIMA</a>, assume stationarity because it lets the same relationships learned from the past apply to the future. Non-stationary series with trends or changing variance violate this and produce misleading fits and spurious correlations."
+   ],
+   [
+    "h3",
+    "Making a series stationary"
+   ],
+   [
+    "ul",
+    [
+     "<b>Differencing</b>: subtract the previous value to remove trend",
+     "<b>Seasonal differencing</b>: subtract the value one season ago",
+     "<b>Log or power transforms</b>: stabilize variance that grows with level",
+     "<b>Detrending</b>: subtract a fitted trend curve"
+    ]
+   ],
+   [
+    "p",
+    "Formal tests help decide. The augmented Dickey-Fuller test has a null hypothesis of non-stationarity (a unit root); rejecting it supports stationarity. The KPSS test frames the null the other way, so the two are often used together for a fuller picture."
+   ],
+   [
+    "h3",
+    "Autocorrelation"
+   ],
+   [
+    "p",
+    "The autocorrelation function (ACF) measures the correlation between the series and itself at each lag; the partial autocorrelation function (PACF) measures that correlation after removing the effect of shorter lags. Together they reveal periodicity, the memory length of the process, and, for ARIMA, plausible AR and MA orders. A slowly decaying ACF signals a trend that needs differencing."
+   ],
+   [
+    "h3",
+    "Reading the plots"
+   ],
+   [
+    "p",
+    "A sharp spike in the ACF at the seasonal lag indicates seasonality; a PACF that cuts off after lag p suggests an AR(p) process, while an ACF that cuts off after lag q suggests MA(q). These diagnostics turn model selection from guesswork into a guided procedure, and they double as residual checks: a well-specified model should leave residuals with no significant autocorrelation."
+   ]
+  ],
+  "related": [
+   [
+    "arima-models",
+    "ARIMA"
+   ],
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ],
+   [
+    "seasonal-decomposition",
+    "Seasonal Decomposition"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "seasonal-decomposition",
+  "title": "Seasonal Decomposition",
+  "cat": "machine-learning",
+  "lede": "Decomposition splits a time series into trend, seasonal, and remainder parts to reveal and model each separately.",
+  "body": [
+   [
+    "h2",
+    "Separating the layers"
+   ],
+   [
+    "p",
+    "Seasonal decomposition breaks a time series into three interpretable pieces: a slow trend, a repeating seasonal pattern, and a remainder of everything left over. Isolating them clarifies what is driving the series, supports cleaner forecasting, and makes anomalies in the remainder easier to spot once the predictable trend and season are removed."
+   ],
+   [
+    "h3",
+    "Additive versus multiplicative"
+   ],
+   [
+    "p",
+    "In an additive decomposition, series = trend + seasonal + remainder, appropriate when seasonal swings stay roughly constant in size. In a multiplicative decomposition, series = trend * seasonal * remainder, appropriate when swings grow proportionally with the level. Taking logs converts a multiplicative structure into an additive one, so a log transform followed by additive decomposition is a common recipe."
+   ],
+   [
+    "h3",
+    "Methods"
+   ],
+   [
+    "ul",
+    [
+     "<b>Classical</b>: moving-average trend, then average the detrended values by season",
+     "<b>STL</b>: Seasonal-Trend decomposition using Loess, a robust local-regression method that allows the seasonal shape to evolve",
+     "<b>X-11 family</b>: refined procedures used in official economic statistics"
+    ]
+   ],
+   [
+    "p",
+    "STL is a frequent default because it tolerates outliers, handles any seasonal period, and lets the seasonal component change gradually over long series, which fixed classical decomposition cannot do."
+   ],
+   [
+    "h3",
+    "Uses beyond visualization"
+   ],
+   [
+    "p",
+    "Decomposition is not only descriptive. Deseasonalizing a series (dividing out or subtracting the seasonal component) can simplify downstream modeling. The remainder is a natural input to <a href=./anomaly-detection.html>anomaly detection</a>, since large residuals mark departures from the expected pattern. And separately forecasting trend and season, then recombining, is itself a workable forecasting strategy that connects to <a href=./prophet-style-forecasting.html>additive forecasting</a> models."
+   ],
+   [
+    "p",
+    "The main caution is that decomposition assumes a stable seasonal period; abrupt regime changes need explicit changepoint handling rather than a single global decomposition."
+   ]
+  ],
+  "related": [
+   [
+    "time-series-forecasting",
+    "Time-Series Forecasting"
+   ],
+   [
+    "stationarity-and-autocorrelation",
+    "Stationarity"
+   ],
+   [
+    "prophet-style-forecasting",
+    "Additive Forecasting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "probability-calibration",
+  "title": "Probability Calibration",
+  "cat": "machine-learning",
+  "lede": "A calibrated model outputs probabilities that match observed frequencies, so a 0.7 prediction is right about 70 percent of the time.",
+  "body": [
+   [
+    "h2",
+    "Confidence you can trust"
+   ],
+   [
+    "p",
+    "A classifier can be accurate yet still report meaningless probabilities. Calibration is the property that predicted probabilities match empirical frequencies: among all cases where the model says 0.7, roughly 70 percent should be positive. Calibration matters whenever a downstream decision uses the probability itself, for thresholding, ranking, cost-sensitive choices, or combining models."
+   ],
+   [
+    "h3",
+    "Measuring calibration"
+   ],
+   [
+    "p",
+    "A <b>reliability diagram</b> bins predictions by confidence and plots the observed frequency in each bin against the mean predicted probability; a perfectly calibrated model lies on the diagonal. The <b>expected calibration error</b> summarizes the average gap across bins. Proper scoring rules like the Brier score and log loss reward both accuracy and calibration together."
+   ],
+   [
+    "h3",
+    "Post-hoc calibration methods"
+   ],
+   [
+    "ul",
+    [
+     "<b>Platt scaling</b>: fit a logistic regression mapping raw scores to probabilities; good for small validation sets",
+     "<b>Isotonic regression</b>: fit a non-decreasing step function; more flexible but needs more data",
+     "<b>Temperature scaling</b>: a single-parameter softmax rescaling for neural nets, described in <a href=./temperature-scaling.html>its own page</a>"
+    ]
+   ],
+   [
+    "p",
+    "Calibration is always fit on a held-out set distinct from training data, otherwise it merely memorizes training scores."
+   ],
+   [
+    "h3",
+    "Which models need it"
+   ],
+   [
+    "p",
+    "Models differ in their tendencies. Modern deep networks are typically overconfident; naive Bayes pushes probabilities toward the extremes; boosted trees are often miscalibrated as well. Well-regularized logistic regression is usually close to calibrated by construction. Calibration does not change the ranking of predictions, so it cannot fix a poor <a href=./model-interpretability.html>classifier</a>, only correct the meaning of its confidence values."
+   ],
+   [
+    "p",
+    "Under <a href=./model-drift-monitoring.html>distribution shift</a>, calibration degrades even if accuracy holds, so it should be monitored, not set once."
+   ]
+  ],
+  "related": [
+   [
+    "temperature-scaling",
+    "Temperature Scaling"
+   ],
+   [
+    "class-imbalance-handling",
+    "Class Imbalance"
+   ],
+   [
+    "model-drift-monitoring",
+    "Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "temperature-scaling",
+  "title": "Temperature Scaling",
+  "cat": "machine-learning",
+  "lede": "Temperature scaling recalibrates a neural network confidence with a single learned parameter, without changing predictions.",
+  "body": [
+   [
+    "h2",
+    "One knob for confidence"
+   ],
+   [
+    "p",
+    "Deep classifiers are usually overconfident: their softmax probabilities are too extreme relative to how often they are correct. Temperature scaling is a minimal fix. It divides the pre-softmax logits by a single positive scalar T before applying the softmax, softening (T greater than one) or sharpening (T less than one) the output distribution."
+   ],
+   [
+    "h3",
+    "Why it preserves accuracy"
+   ],
+   [
+    "p",
+    "Dividing all logits by the same constant does not change which logit is largest, so the predicted class never changes. Temperature scaling therefore adjusts <a href=./probability-calibration.html>calibration</a> without touching accuracy. It has exactly one parameter, which makes it robust and data-efficient compared to multi-parameter alternatives."
+   ],
+   [
+    "h3",
+    "Fitting the temperature"
+   ],
+   [
+    "p",
+    "T is chosen on a held-out validation set by minimizing negative log-likelihood (or equivalently optimizing a calibration objective) with the network frozen. Because there is only one parameter, this is a quick one-dimensional optimization. A learned T greater than one, common for large networks, spreads probability mass away from the top class and pulls confidence back toward reality."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Optimize T on validation logits\nimport torch\nT = torch.ones(1, requires_grad=True)\nopt = torch.optim.LBFGS([T], lr=0.01, max_iter=50)\ndef step():\n    opt.zero_grad()\n    loss = nll(logits / T, labels)\n    loss.backward(); return loss\nopt.step(step)"
+    ]
+   ],
+   [
+    "h3",
+    "Scope and limits"
+   ],
+   [
+    "p",
+    "Temperature scaling assumes the miscalibration is a uniform over-sharpening across classes, which holds well for many image and text classifiers. It cannot fix class-dependent miscalibration, where richer methods like isotonic or vector scaling help. And like all post-hoc calibration, it is fit on in-distribution data, so it can degrade under <a href=./model-drift-monitoring.html>distribution shift</a> and should be revalidated when the input distribution moves."
+   ]
+  ],
+  "related": [
+   [
+    "probability-calibration",
+    "Probability Calibration"
+   ],
+   [
+    "model-drift-monitoring",
+    "Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "class-imbalance-handling",
+  "title": "Handling Class Imbalance",
+  "cat": "machine-learning",
+  "lede": "Class imbalance arises when one class dominates; naive training then ignores the rare class that usually matters most.",
+  "body": [
+   [
+    "h2",
+    "When accuracy lies"
+   ],
+   [
+    "p",
+    "Many important problems, fraud, disease, defects, are rare-event problems where one class vastly outnumbers the other. A model that always predicts the majority class can score 99 percent accuracy while catching zero positives. Handling imbalance means changing the data, the loss, or the evaluation so the rare class is not drowned out."
+   ],
+   [
+    "h3",
+    "Data-level fixes"
+   ],
+   [
+    "ul",
+    [
+     "<b>Oversampling</b>: duplicate or synthesize minority examples, e.g. <a href=./smote-oversampling.html>SMOTE</a>",
+     "<b>Undersampling</b>: drop majority examples, risking loss of information",
+     "<b>Combined</b>: oversample the minority and lightly undersample the majority"
+    ]
+   ],
+   [
+    "h3",
+    "Algorithm-level fixes"
+   ],
+   [
+    "p",
+    "Rather than reshaping the data, the loss can be reweighted so minority errors count more, using class weights inversely proportional to frequency. Cost-sensitive learning generalizes this to an explicit cost matrix. For deep models, focal loss down-weights easy majority examples so training focuses on hard and rare cases. These methods avoid the duplication artifacts of resampling."
+   ],
+   [
+    "h3",
+    "Threshold and evaluation"
+   ],
+   [
+    "p",
+    "A classifier outputs scores; the default 0.5 threshold is rarely optimal under imbalance. The threshold should be tuned on validation data to the operational cost of false positives versus false negatives. Evaluation must abandon accuracy in favor of precision, recall, F1, and especially the area under the precision-recall curve, which focuses on the rare positive class where the ROC curve can look deceptively good."
+   ],
+   [
+    "h3",
+    "A discipline, not a switch"
+   ],
+   [
+    "p",
+    "Resampling must happen inside cross-validation folds, never before splitting, or synthetic points leak between train and test. Often the most honest first step is simply to fix the metric and threshold, then add resampling or reweighting only if the minority recall is still inadequate. Calibration also deserves a check, since resampling distorts the base rate and thus predicted <a href=./probability-calibration.html>probabilities</a>."
+   ]
+  ],
+  "related": [
+   [
+    "smote-oversampling",
+    "SMOTE"
+   ],
+   [
+    "probability-calibration",
+    "Probability Calibration"
+   ],
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "smote-oversampling",
+  "title": "SMOTE and Synthetic Oversampling",
+  "cat": "machine-learning",
+  "lede": "SMOTE balances classes by creating synthetic minority examples along lines between real minority neighbors.",
+  "body": [
+   [
+    "h2",
+    "Beyond copy-paste oversampling"
+   ],
+   [
+    "p",
+    "Naive oversampling duplicates minority examples, which lets a model memorize those exact points and overfit. SMOTE, the Synthetic Minority Over-sampling Technique, instead manufactures new, plausible minority examples. It picks a minority point, finds its k minority nearest neighbors, and creates a synthetic point somewhere on the line segment to a randomly chosen neighbor."
+   ],
+   [
+    "h3",
+    "How a synthetic point is made"
+   ],
+   [
+    "p",
+    "For a minority point x and a chosen neighbor x_nn, the new point is x + lambda (x_nn - x), where lambda is drawn uniformly between zero and one. Because the new point lies inside the convex hull of nearby minority examples, it stays in a region the minority class plausibly occupies, expanding the decision region rather than reinforcing single points."
+   ],
+   [
+    "h3",
+    "Variants"
+   ],
+   [
+    "ul",
+    [
+     "<b>Borderline-SMOTE</b>: synthesize only near the class boundary, where mistakes happen",
+     "<b>ADASYN</b>: generate more synthetic points for minority examples that are harder to learn",
+     "<b>SMOTE-NC</b>: handle mixed numeric and categorical features",
+     "<b>SMOTE + Tomek or ENN</b>: clean overlapping majority points after oversampling"
+    ]
+   ],
+   [
+    "h3",
+    "Cautions"
+   ],
+   [
+    "p",
+    "SMOTE assumes interpolation between neighbors yields valid examples, which breaks down in high dimensions and with categorical or highly nonlinear features, where synthetic points can land in impossible regions. It can also blur the boundary if minority and majority classes overlap, generating misleading positives. Critically, SMOTE must be applied only to the training folds inside cross-validation; synthesizing before the split leaks information and inflates scores."
+   ],
+   [
+    "p",
+    "SMOTE is one lever among several for <a href=./class-imbalance-handling.html>class imbalance</a>; class weighting or focal loss is often simpler and, for extreme rarity, framing the task as <a href=./anomaly-detection.html>anomaly detection</a> can beat resampling entirely."
+   ]
+  ],
+  "related": [
+   [
+    "class-imbalance-handling",
+    "Class Imbalance"
+   ],
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "active-learning",
+  "title": "Active Learning",
+  "cat": "machine-learning",
+  "lede": "Active learning lets a model choose which unlabeled examples to have labeled, spending scarce annotation where it helps most.",
+  "body": [
+   [
+    "h2",
+    "Labels are the bottleneck"
+   ],
+   [
+    "p",
+    "In many settings, unlabeled data is abundant but labeling it is slow and expensive. Active learning turns the model into an active participant: it inspects the pool of unlabeled examples and requests labels for the ones expected to improve it most, aiming to reach a target accuracy with far fewer labels than random sampling would need."
+   ],
+   [
+    "h3",
+    "Query strategies"
+   ],
+   [
+    "ul",
+    [
+     "<b>Uncertainty sampling</b>: request the examples the model is least sure about, by lowest top probability, smallest margin between top two classes, or highest entropy",
+     "<b>Query-by-committee</b>: train several models and request examples they most disagree on",
+     "<b>Expected model change or error reduction</b>: request examples predicted to shift the model or cut future error the most",
+     "<b>Diversity and density</b>: avoid redundant, unrepresentative points by favoring dense, varied regions"
+    ]
+   ],
+   [
+    "h3",
+    "The loop"
+   ],
+   [
+    "p",
+    "Active learning runs in rounds: train on the current labeled set, score the unlabeled pool with the query strategy, send a batch to a human labeler, add the new labels, and repeat. Batch selection needs diversity so the batch does not consist of near-duplicate uncertain points; combining uncertainty with a diversity term addresses this."
+   ],
+   [
+    "h3",
+    "Pitfalls"
+   ],
+   [
+    "p",
+    "Uncertainty sampling can chase outliers and mislabeled points, and it produces a biased, non-i.i.d. labeled set that can distort later evaluation, so a separate randomly labeled test set is essential. Sampling bias can also cause the model to neglect regions it wrongly believes it understands. Despite these cautions, active learning reliably beats random labeling when labels are the binding constraint, and it pairs naturally with the exploration ideas in <a href=./multi-armed-bandits.html>multi-armed bandits</a>."
+   ],
+   [
+    "p",
+    "When a human is fully in the loop, active learning is a form of human-in-the-loop machine learning, prioritizing annotator time as the resource to optimize."
+   ]
+  ],
+  "related": [
+   [
+    "multi-armed-bandits",
+    "Multi-Armed Bandits"
+   ],
+   [
+    "self-supervised-learning",
+    "Self-Supervised Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-armed-bandits",
+  "title": "Multi-Armed Bandits",
+  "cat": "machine-learning",
+  "lede": "Bandit algorithms balance exploring uncertain options against exploiting the best-known one to maximize cumulative reward.",
+  "body": [
+   [
+    "h2",
+    "The explore-exploit dilemma"
+   ],
+   [
+    "p",
+    "A multi-armed bandit is a decision problem where an agent repeatedly chooses among options (arms), each returning a random reward from an unknown distribution, and wants to maximize total reward over time. The tension is fundamental: exploit the arm that looks best so far, or explore others that might be better but are less certain. Pure exploitation can lock onto a suboptimal arm; pure exploration wastes pulls."
+   ],
+   [
+    "h3",
+    "Core algorithms"
+   ],
+   [
+    "ul",
+    [
+     "<b>Epsilon-greedy</b>: pick the best-known arm most of the time, a random arm with probability epsilon",
+     "<b>Upper Confidence Bound</b>: pick the arm with the highest optimistic estimate, mean plus an uncertainty bonus that shrinks with pulls",
+     "<b>Thompson sampling</b>: keep a posterior over each arm reward, sample from each, and play the arm with the highest sample"
+    ]
+   ],
+   [
+    "p",
+    "UCB and Thompson sampling both formalize optimism under uncertainty and enjoy strong regret guarantees, meaning the gap to always playing the best arm grows only logarithmically with time."
+   ],
+   [
+    "h3",
+    "Regret as the yardstick"
+   ],
+   [
+    "p",
+    "Performance is measured by regret: the difference between the reward the best fixed arm would have earned and what the algorithm actually earned. Sublinear regret means the average per-round loss vanishes over time, which is the goal. Regret framing separates good exploration schedules from ones that explore too much or too little."
+   ],
+   [
+    "h3",
+    "Contextual bandits and uses"
+   ],
+   [
+    "p",
+    "Contextual bandits add features describing the situation before each choice, so the best arm depends on context, bridging bandits and supervised learning. This powers news and content recommendation, ad selection, and adaptive experimentation, where classic A/B testing wastes traffic on losing variants. Bandits also inform query selection in <a href=./active-learning.html>active learning</a> and connect to the broader field of reinforcement learning."
+   ]
+  ],
+  "related": [
+   [
+    "active-learning",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "self-supervised-learning",
+  "title": "Self-Supervised Learning",
+  "cat": "machine-learning",
+  "lede": "Self-supervised learning creates its own labels from unlabeled data by hiding part of the input and predicting it.",
+  "body": [
+   [
+    "h2",
+    "Supervision from the data itself"
+   ],
+   [
+    "p",
+    "Self-supervised learning trains models on unlabeled data by inventing a prediction task from the data structure, no human annotation required. The idea is to withhold part of each example and train the model to recover it, forcing it to learn representations that capture how the data is organized. Those representations then transfer to downstream tasks with far fewer labels."
+   ],
+   [
+    "h3",
+    "Pretext tasks"
+   ],
+   [
+    "ul",
+    [
+     "<b>Masked prediction</b>: hide tokens or patches and predict them, the basis of masked language and masked image modeling",
+     "<b>Next-element prediction</b>: predict the next word or frame, the autoregressive objective behind large language models",
+     "<b>Context prediction</b>: predict the relative position of image patches or the ordering of shuffled inputs",
+     "<b>Denoising</b>: corrupt the input and reconstruct the clean version"
+    ]
+   ],
+   [
+    "h3",
+    "Why it works"
+   ],
+   [
+    "p",
+    "To predict a masked word well, a model must learn syntax, semantics, and world knowledge; to fill in a masked image region, it must learn shapes, textures, and object structure. The pretext task is a means, not the end: after pretraining, the model is fine-tuned or probed on the real task, where the learned features provide a strong starting point."
+   ],
+   [
+    "h3",
+    "Impact and relation to contrastive learning"
+   ],
+   [
+    "p",
+    "Self-supervision is the engine behind modern foundation models: pretraining on vast unlabeled corpora, then adapting to specific tasks. It dramatically reduces the labeled data needed downstream. <a href=./contrastive-learning.html>Contrastive learning</a> is a major branch that builds its pretext task from similarity between augmented views rather than reconstruction. Together they made large-scale representation learning practical where labels are scarce."
+   ],
+   [
+    "p",
+    "Evaluation typically uses linear probing (freeze the representation, train a linear classifier) to isolate representation quality from downstream capacity, alongside full fine-tuning."
+   ]
+  ],
+  "related": [
+   [
+    "contrastive-learning",
+    "Contrastive Learning"
+   ],
+   [
+    "metric-learning",
+    "Metric Learning"
+   ],
+   [
+    "active-learning",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "contrastive-learning",
+  "title": "Contrastive Learning",
+  "cat": "machine-learning",
+  "lede": "Contrastive learning trains representations by pulling similar examples together and pushing dissimilar ones apart.",
+  "body": [
+   [
+    "h2",
+    "Learning by comparison"
+   ],
+   [
+    "p",
+    "Contrastive learning shapes an embedding space using only the relation between examples: representations of similar items (positive pairs) are pulled close, and representations of dissimilar items (negatives) are pushed apart. Because the supervision comes from these relations, which can be generated automatically, it is a leading form of <a href=./self-supervised-learning.html>self-supervised learning</a>."
+   ],
+   [
+    "h3",
+    "Building positive pairs"
+   ],
+   [
+    "p",
+    "In the self-supervised image setting, two random augmentations of the same image (crop, color shift, blur) form a positive pair; every other image in the batch is a negative. The model learns representations invariant to those augmentations while remaining distinctive across different images. The choice of augmentations strongly determines what invariances the model acquires."
+   ],
+   [
+    "h3",
+    "The InfoNCE objective"
+   ],
+   [
+    "p",
+    "The dominant loss is InfoNCE: for an anchor, it maximizes the similarity to its positive relative to the similarities to all negatives, formulated as a softmax cross-entropy over similarity scores scaled by a temperature. More and harder negatives generally improve the learned space, which motivated large batches and memory banks of stored embeddings."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# InfoNCE for a batch of L2-normalized embeddings\nlogits = (z @ z.T) / temperature\nlogits.fill_diagonal_(float('-inf'))\nloss = cross_entropy(logits, positive_index)"
+    ]
+   ],
+   [
+    "h3",
+    "Avoiding collapse"
+   ],
+   [
+    "p",
+    "Without negatives, a model can cheat by mapping everything to one point (representation collapse). Negatives prevent this, and non-contrastive methods achieve the same end with stop-gradients, predictor networks, or redundancy-reduction objectives instead. Contrastive pretraining also underlies multimodal models that align images and text in a shared space, and it is closely related to <a href=./metric-learning.html>metric learning</a>, which pursues the same geometric goal with explicit label supervision."
+   ]
+  ],
+  "related": [
+   [
+    "self-supervised-learning",
+    "Self-Supervised Learning"
+   ],
+   [
+    "metric-learning",
+    "Metric Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "metric-learning",
+  "title": "Metric Learning",
+  "cat": "machine-learning",
+  "lede": "Metric learning trains an embedding where distance reflects semantic similarity, enabling retrieval and verification.",
+  "body": [
+   [
+    "h2",
+    "Learning what close means"
+   ],
+   [
+    "p",
+    "Metric learning builds a representation in which the distance between two points reflects how similar they are in a task-relevant sense: same-identity faces are near, different faces are far. Instead of predicting a fixed set of classes, it learns a geometry, which lets the model handle new classes at test time by comparison, essential for face verification, image retrieval, and one-shot recognition."
+   ],
+   [
+    "h3",
+    "Contrastive and triplet losses"
+   ],
+   [
+    "p",
+    "The <b>contrastive loss</b> pulls together pairs labeled similar and pushes apart pairs labeled dissimilar beyond a margin. The <b>triplet loss</b> uses an anchor, a positive (same class), and a negative (different class), and requires the anchor-positive distance to be smaller than the anchor-negative distance by at least a margin. These losses optimize the embedding directly rather than a classification boundary."
+   ],
+   [
+    "h3",
+    "Mining hard examples"
+   ],
+   [
+    "p",
+    "Most randomly chosen triplets are already correct and give no gradient, so training stalls without <b>hard-negative mining</b>: selecting negatives that are close to the anchor and thus violate the margin. Semi-hard mining, choosing negatives farther than the positive but still within the margin, stabilizes training by avoiding the noisiest hardest cases."
+   ],
+   [
+    "ul",
+    [
+     "Enables open-set recognition: classify identities never seen in training",
+     "Powers nearest-neighbor retrieval in the learned space",
+     "Proxy and classification-based losses (e.g. large-margin softmax) often train more stably than triplets",
+     "Embeddings are usually L2-normalized so cosine similarity applies"
+    ]
+   ],
+   [
+    "h3",
+    "Relation to contrastive learning"
+   ],
+   [
+    "p",
+    "Metric learning and <a href=./contrastive-learning.html>contrastive learning</a> share the same geometric objective; the difference is the source of pairs. Metric learning uses ground-truth labels to define similar and dissimilar, while self-supervised contrastive learning constructs pairs from augmentations. In both, the product is a reusable embedding evaluated by retrieval accuracy such as recall at k."
+   ]
+  ],
+  "related": [
+   [
+    "contrastive-learning",
+    "Contrastive Learning"
+   ],
+   [
+    "self-supervised-learning",
+    "Self-Supervised Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-task-learning",
+  "title": "Multi-Task Learning",
+  "cat": "machine-learning",
+  "lede": "Multi-task learning trains one model on several related tasks so shared structure improves all of them.",
+  "body": [
+   [
+    "h2",
+    "Learning many things at once"
+   ],
+   [
+    "p",
+    "Multi-task learning trains a single model to perform several related tasks simultaneously, sharing representations across them. The premise is that related tasks depend on overlapping structure, so learning them together acts as a mutual inductive bias: each task regularizes the others, and features learned for one help another, especially tasks with little data of their own."
+   ],
+   [
+    "h3",
+    "Sharing architectures"
+   ],
+   [
+    "ul",
+    [
+     "<b>Hard parameter sharing</b>: a shared backbone with a small task-specific head per task; strong regularization, low overfitting risk",
+     "<b>Soft parameter sharing</b>: separate models whose parameters are encouraged to stay similar via a penalty",
+     "<b>Mixture-of-experts and gating</b>: shared experts routed per task or per example"
+    ]
+   ],
+   [
+    "h3",
+    "Balancing the losses"
+   ],
+   [
+    "p",
+    "The combined objective is a weighted sum of per-task losses, and the weights matter. Tasks with larger gradients or faster convergence can dominate, starving others. Remedies include uncertainty-based weighting that learns a weight per task, gradient normalization to equalize learning speeds, and methods that resolve conflicting gradients by projecting them apart."
+   ],
+   [
+    "h3",
+    "When it helps and when it hurts"
+   ],
+   [
+    "p",
+    "Multi-task learning helps most when tasks are genuinely related and complementary; it can hurt through <b>negative transfer</b> when tasks conflict, pulling shared parameters in incompatible directions. Diagnosing this requires comparing multi-task performance against strong single-task baselines per task, not just the average. Auxiliary tasks are a common special case: extra objectives added only to improve a primary task, discarded at deployment."
+   ],
+   [
+    "p",
+    "It relates to <a href=./curriculum-learning.html>curriculum learning</a> in ordering what a model learns, and to transfer learning, which shares knowledge sequentially rather than jointly."
+   ]
+  ],
+  "related": [
+   [
+    "curriculum-learning",
+    "Curriculum Learning"
+   ],
+   [
+    "self-supervised-learning",
+    "Self-Supervised Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "curriculum-learning",
+  "title": "Curriculum Learning",
+  "cat": "machine-learning",
+  "lede": "Curriculum learning orders training examples from easy to hard, mirroring how humans learn structured material.",
+  "body": [
+   [
+    "h2",
+    "Order of learning matters"
+   ],
+   [
+    "p",
+    "Curriculum learning presents training examples in a meaningful order, typically easy examples first and hard ones later, rather than the usual random shuffle. The motivation is that a good ordering can guide optimization toward better regions of the loss surface, speed convergence, and improve final performance, much as a syllabus builds difficulty gradually."
+   ],
+   [
+    "h3",
+    "Defining difficulty"
+   ],
+   [
+    "ul",
+    [
+     "<b>Heuristic</b>: sentence length, image clutter, noise level, or human-judged difficulty",
+     "<b>Model-based</b>: the current model loss or confidence on each example",
+     "<b>Self-paced learning</b>: the model itself selects which examples to include as it improves",
+     "<b>Transfer-based</b>: difficulty estimated by a separate teacher model"
+    ]
+   ],
+   [
+    "h3",
+    "Pacing the curriculum"
+   ],
+   [
+    "p",
+    "Beyond ranking examples, a pacing function decides how quickly harder examples enter training. Introduce hard examples too fast and the benefit vanishes; too slow and training wastes time on trivial cases. Common schedules start with the easiest fraction and gradually widen the pool until all data is used, often annealing back to uniform sampling near the end."
+   ],
+   [
+    "h3",
+    "Evidence and caveats"
+   ],
+   [
+    "p",
+    "Curricula help most when the task is hard, the data is noisy, or optimization is unstable; on clean, easy problems a well-tuned shuffle is often just as good, so the benefit is not universal. Anti-curricula (hard first) sometimes win, and hard-example mining, which emphasizes difficult cases, appears to contradict easy-first ordering. These are reconciled by noting that focusing on hard examples helps a competent model, while easy-first helps a model still finding its footing."
+   ],
+   [
+    "p",
+    "Curriculum ideas appear across reinforcement learning, where task difficulty is scheduled, and connect to <a href=./multi-task-learning.html>multi-task learning</a> when tasks are ordered rather than examples."
+   ]
+  ],
+  "related": [
+   [
+    "multi-task-learning",
+    "Multi-Task Learning"
+   ],
+   [
+    "data-augmentation",
+    "Data Augmentation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-interpretability",
+  "title": "Model Interpretability",
+  "cat": "machine-learning",
+  "lede": "Interpretability methods explain why a model made a prediction, supporting trust, debugging, and accountability.",
+  "body": [
+   [
+    "h2",
+    "Opening the box"
+   ],
+   [
+    "p",
+    "As models grow more accurate they often grow more opaque, yet many settings demand explanations: to debug failures, to satisfy regulators, to catch spurious shortcuts, and to earn user trust. Interpretability is the toolkit for answering why a model predicted what it did, at the level of a single prediction (local) or the model as a whole (global)."
+   ],
+   [
+    "h3",
+    "Intrinsic versus post-hoc"
+   ],
+   [
+    "p",
+    "Some models are interpretable by construction: linear models expose coefficients, shallow decision trees expose rules, and generalized additive models show each feature contribution as a curve. When accuracy demands a complex model, post-hoc methods explain it after the fact, treating it as a black box and probing its behavior. There is often, though not always, a tension between raw accuracy and built-in transparency."
+   ],
+   [
+    "h3",
+    "The main post-hoc tools"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./shap-values.html>SHAP</a>: attribute a prediction to features using a game-theoretic fair-share rule",
+     "<a href=./lime-explanations.html>LIME</a>: fit a simple local model around one prediction",
+     "<a href=./saliency-maps.html>Saliency maps</a>: highlight input regions a neural net relies on",
+     "<a href=./permutation-importance.html>Permutation importance</a>: measure global feature importance by shuffling",
+     "<a href=./counterfactual-explanations.html>Counterfactuals</a>: the smallest input change that flips the outcome"
+    ]
+   ],
+   [
+    "h3",
+    "Explanations are not ground truth"
+   ],
+   [
+    "p",
+    "An explanation is a model of a model, and it can be wrong or misleading. Different methods can disagree; some are unstable to small input changes; and a plausible-looking explanation does not prove the model reasons that way. Explanations should be validated (do they predict the effect of interventions?) and used to generate hypotheses to test, not accepted as certified accounts. Interpretability also underpins <a href=./fairness-and-bias.html>fairness</a> auditing, where the question is whether a model relies on protected attributes."
+   ]
+  ],
+  "related": [
+   [
+    "shap-values",
+    "SHAP"
+   ],
+   [
+    "lime-explanations",
+    "LIME"
+   ],
+   [
+    "saliency-maps",
+    "Saliency Maps"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shap-values",
+  "title": "SHAP Values",
+  "cat": "machine-learning",
+  "lede": "SHAP attributes a prediction to its features using Shapley values, a fair-division rule from cooperative game theory.",
+  "body": [
+   [
+    "h2",
+    "Fair credit for a prediction"
+   ],
+   [
+    "p",
+    "SHAP (SHapley Additive exPlanations) explains a single prediction by assigning each feature a contribution that sums, with a baseline, to the model output. It borrows the Shapley value from cooperative game theory, which distributes a team payoff among players by their fair marginal contributions, treating features as players and the prediction as the payoff."
+   ],
+   [
+    "h3",
+    "The Shapley computation"
+   ],
+   [
+    "p",
+    "A feature Shapley value is its average marginal contribution across all possible orderings in which features are added to the model. Averaging over orderings is what makes the attribution fair and uniquely satisfies desirable axioms. Exact computation is exponential in the number of features, so SHAP relies on efficient approximations."
+   ],
+   [
+    "h3",
+    "Practical estimators"
+   ],
+   [
+    "ul",
+    [
+     "<b>KernelSHAP</b>: a model-agnostic weighted linear regression over feature subsets",
+     "<b>TreeSHAP</b>: an exact polynomial-time algorithm for tree ensembles",
+     "<b>DeepSHAP and GradientSHAP</b>: approximations tailored to neural networks"
+    ]
+   ],
+   [
+    "h3",
+    "Guarantees and cautions"
+   ],
+   [
+    "p",
+    "SHAP uniquely satisfies local accuracy (contributions sum to the output), missingness, and consistency (if a feature matters more in a new model, its attribution does not decrease). Aggregating absolute SHAP values across a dataset yields a principled global importance ranking, and dependence plots reveal feature effects and interactions."
+   ],
+   [
+    "p",
+    "The main caution is correlated features: SHAP must assume how absent features are distributed, and different background choices (marginal versus conditional) give different, sometimes counterintuitive, attributions. Attributions describe the model behavior, not causation in the world, so a large SHAP value does not license a causal claim. SHAP is the most widely used member of the <a href=./model-interpretability.html>interpretability</a> toolkit, complementing the local <a href=./lime-explanations.html>LIME</a> approach."
+   ]
+  ],
+  "related": [
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "lime-explanations",
+    "LIME"
+   ],
+   [
+    "permutation-importance",
+    "Permutation Importance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "lime-explanations",
+  "title": "LIME Explanations",
+  "cat": "machine-learning",
+  "lede": "LIME explains one prediction by fitting a simple, interpretable model to the black box behavior nearby.",
+  "body": [
+   [
+    "h2",
+    "Local, model-agnostic explanation"
+   ],
+   [
+    "p",
+    "LIME, Local Interpretable Model-agnostic Explanations, explains an individual prediction by approximating the complex model with a simple one, but only in the small region around that input. The key insight is that even a wildly nonlinear model looks roughly linear in a tight neighborhood, so a sparse linear model fit there can reveal which features drove this particular decision."
+   ],
+   [
+    "h3",
+    "How LIME builds an explanation"
+   ],
+   [
+    "p",
+    "Around the instance of interest, LIME generates many perturbed samples, gets the black box prediction for each, and weights them by proximity to the original instance. It then fits an interpretable surrogate, usually a sparse linear model, to those weighted predictions. The surrogate coefficients are the explanation: how much each feature pushed the prediction up or down locally."
+   ],
+   [
+    "ul",
+    [
+     "Model-agnostic: needs only the ability to query predictions",
+     "Works across data types with tailored perturbations: super-pixels for images, word removal for text, feature sampling for tabular",
+     "Produces short, human-readable explanations via sparsity"
+    ]
+   ],
+   [
+    "h3",
+    "The role of perturbation"
+   ],
+   [
+    "p",
+    "LIME depends heavily on how it perturbs inputs and how it defines the neighborhood width (the kernel). These choices are somewhat arbitrary and strongly affect the result, so two runs, or two kernel widths, can give different explanations. This instability is LIME best-known weakness."
+   ],
+   [
+    "h3",
+    "LIME versus SHAP"
+   ],
+   [
+    "p",
+    "<a href=./shap-values.html>SHAP</a> can be viewed as a principled special case that fixes the weighting and objective to satisfy fairness axioms, which makes it more consistent but often slower. LIME is faster and more flexible but lacks those guarantees and can be gamed. Both are local, post-hoc tools within <a href=./model-interpretability.html>interpretability</a>, and both explain the model, not the underlying causal reality."
+   ]
+  ],
+  "related": [
+   [
+    "shap-values",
+    "SHAP"
+   ],
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "counterfactual-explanations",
+    "Counterfactuals"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "saliency-maps",
+  "title": "Saliency Maps",
+  "cat": "machine-learning",
+  "lede": "Saliency maps highlight which parts of an input a neural network relied on, usually via gradients of the output.",
+  "body": [
+   [
+    "h2",
+    "Where the network looked"
+   ],
+   [
+    "p",
+    "Saliency maps visualize which input regions most influenced a neural network prediction, producing a heatmap over an image or a highlight over text. They are the dominant local-explanation tool for deep vision models, answering not why in words but where: which pixels, if changed, would most change the output."
+   ],
+   [
+    "h3",
+    "Gradient-based methods"
+   ],
+   [
+    "p",
+    "The simplest saliency is the gradient of the predicted class score with respect to the input pixels: large-magnitude gradients mark influential pixels. Raw gradients are noisy, so refinements followed. <b>Integrated Gradients</b> accumulates gradients along a path from a baseline to the input, satisfying useful attribution axioms. <b>SmoothGrad</b> averages gradients over noisy copies to reduce visual noise. <b>Grad-CAM</b> uses gradients flowing into the last convolutional layer to produce a coarse but class-discriminative map."
+   ],
+   [
+    "ul",
+    [
+     "Vanilla gradient: fast but noisy",
+     "Integrated Gradients: axiomatic, needs a baseline choice",
+     "Grad-CAM: class-specific, localized to convolutional features",
+     "Occlusion: slide a mask and watch the score drop, model-agnostic but slow"
+    ]
+   ],
+   [
+    "h3",
+    "Reading them critically"
+   ],
+   [
+    "p",
+    "Saliency maps are seductive but must be treated skeptically. Sanity checks have shown some popular methods produce similar-looking maps even when model weights are randomized, meaning they can reflect edges in the image rather than the model reasoning. A convincing heatmap is not proof the model relies on that region for the right reason."
+   ],
+   [
+    "h3",
+    "Proper use"
+   ],
+   [
+    "p",
+    "Saliency is best for generating hypotheses (is the model keying on the object or the background?) that are then tested by intervention, for example editing or occluding the highlighted region and confirming the prediction changes. Used this way it is a valuable debugging tool within <a href=./model-interpretability.html>interpretability</a>, catching shortcut learning and dataset artifacts, and it complements attribution methods like <a href=./shap-values.html>SHAP</a>."
+   ]
+  ],
+  "related": [
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "shap-values",
+    "SHAP"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "permutation-importance",
+  "title": "Permutation Importance",
+  "cat": "machine-learning",
+  "lede": "Permutation importance ranks features by how much a model performance drops when a feature values are shuffled.",
+  "body": [
+   [
+    "h2",
+    "Break a feature, watch the score"
+   ],
+   [
+    "p",
+    "Permutation importance is a simple, model-agnostic way to measure how much a model relies on each feature. Take a trained model, randomly shuffle one feature values across the dataset (breaking its link to the target while preserving its distribution), and measure how much the performance metric degrades. A large drop means the feature was important; no drop means the model did not use it."
+   ],
+   [
+    "h3",
+    "The procedure"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "baseline = score(model, X, y)\nfor j in features:\n    Xp = X.copy()\n    Xp[:, j] = shuffle(Xp[:, j])\n    importance[j] = baseline - score(model, Xp, y)\n# average over several shuffles for stability"
+    ]
+   ],
+   [
+    "h3",
+    "Advantages"
+   ],
+   [
+    "ul",
+    [
+     "Model-agnostic: works on any fitted predictor",
+     "Measured on held-out data, so it reflects generalization, not fit",
+     "Uses the real metric you care about (accuracy, AUC, RMSE)",
+     "No retraining required, unlike drop-column importance"
+    ]
+   ],
+   [
+    "h3",
+    "The correlation pitfall"
+   ],
+   [
+    "p",
+    "Permutation importance is unreliable when features are correlated. Shuffling one of two correlated features may barely hurt performance because the model recovers the signal from its partner, making both look unimportant even though the information matters. It can also evaluate the model on unrealistic feature combinations produced by shuffling, distorting the estimate. Grouped permutation, shuffling correlated features together, mitigates this."
+   ],
+   [
+    "h3",
+    "Interpretation"
+   ],
+   [
+    "p",
+    "Permutation importance is a <b>global</b> measure of a feature contribution to this model performance; it is not a causal statement about the world and it depends on the dataset used. It complements local methods like <a href=./shap-values.html>SHAP</a>, whose absolute values also aggregate to a global ranking, and it is a standard entry point in the <a href=./model-interpretability.html>interpretability</a> workflow because it is cheap and metric-honest."
+   ]
+  ],
+  "related": [
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "shap-values",
+    "SHAP"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "counterfactual-explanations",
+  "title": "Counterfactual Explanations",
+  "cat": "machine-learning",
+  "lede": "A counterfactual explanation states the smallest change to an input that would flip the model decision.",
+  "body": [
+   [
+    "h2",
+    "What would have to change"
+   ],
+   [
+    "p",
+    "A counterfactual explanation answers a practical, human question: what is the smallest change to this input that would produce a different outcome? For a rejected loan application, it might be that raising income by a modest amount would flip the decision. Rather than assigning credit to features, counterfactuals give actionable recourse, telling a person what to do differently."
+   ],
+   [
+    "h3",
+    "The optimization"
+   ],
+   [
+    "p",
+    "Finding a counterfactual is an optimization: search for an input x-prime close to the original x that the model classifies as the desired class. The objective trades off two goals, x-prime must achieve the target prediction, and it must stay close to x under a distance that reflects plausibility and effort. Constraints keep changes realistic, holding immutable features fixed and respecting valid ranges."
+   ],
+   [
+    "ul",
+    [
+     "<b>Proximity</b>: change as little as possible",
+     "<b>Actionability</b>: only alter features a person can actually change",
+     "<b>Plausibility</b>: stay on the data manifold, not in impossible regions",
+     "<b>Sparsity</b>: change few features so the advice is simple",
+     "<b>Diversity</b>: offer several distinct routes to the goal"
+    ]
+   ],
+   [
+    "h3",
+    "Strengths"
+   ],
+   [
+    "p",
+    "Counterfactuals are intuitive and require no access to model internals, only the ability to query it. They align well with fairness and recourse concerns and with regulations that require meaningful explanation of automated decisions, because they translate directly into steps a person can take. They also expose model weaknesses when the required change is trivial or nonsensical."
+   ],
+   [
+    "h3",
+    "Cautions"
+   ],
+   [
+    "p",
+    "A counterfactual describes the model decision boundary, not necessarily a real causal path; acting on a spurious feature may satisfy the model without changing the true outcome. Multiple valid counterfactuals can exist, and offering an unstable or unrealistic one is worse than none. Counterfactuals sit alongside <a href=./shap-values.html>SHAP</a> and <a href=./lime-explanations.html>LIME</a> in the <a href=./model-interpretability.html>interpretability</a> toolkit, emphasizing recourse over attribution."
+   ]
+  ],
+  "related": [
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "lime-explanations",
+    "LIME"
+   ],
+   [
+    "fairness-and-bias",
+    "Fairness and Bias"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fairness-and-bias",
+  "title": "Fairness and Bias in Machine Learning",
+  "cat": "machine-learning",
+  "lede": "Fairness in ML studies how models can encode or amplify social bias, and the trade-offs among competing fairness definitions.",
+  "body": [
+   [
+    "h2",
+    "Where bias comes from"
+   ],
+   [
+    "p",
+    "Machine learning models learn from historical data, and that data reflects the world as it was, including its inequities. A model trained to reproduce past decisions can encode and even amplify discrimination against groups defined by protected attributes such as race, sex, or age. Bias enters through skewed sampling, biased labels, proxy features that stand in for protected attributes, and feedback loops where model decisions shape future data."
+   ],
+   [
+    "h3",
+    "Competing definitions of fairness"
+   ],
+   [
+    "ul",
+    [
+     "<b>Demographic parity</b>: positive prediction rates are equal across groups",
+     "<b>Equal opportunity</b>: true-positive rates are equal across groups",
+     "<b>Equalized odds</b>: both true-positive and false-positive rates are equal",
+     "<b>Calibration within groups</b>: predicted probabilities mean the same thing in each group",
+     "<b>Individual fairness</b>: similar individuals receive similar predictions"
+    ]
+   ],
+   [
+    "h3",
+    "Impossibility results"
+   ],
+   [
+    "p",
+    "These definitions often cannot be satisfied at once. A well-known result shows that when base rates differ across groups, a model generally cannot be both calibrated and equalized in error rates. Fairness is therefore not a single switch but a value-laden choice among trade-offs that depends on context and on who bears the cost of each error, a decision for stakeholders, not the algorithm alone."
+   ],
+   [
+    "h3",
+    "Mitigation across the pipeline"
+   ],
+   [
+    "p",
+    "Interventions apply at three stages: <b>pre-processing</b> reweights or transforms the data to reduce bias; <b>in-processing</b> adds fairness constraints or penalties to the training objective; <b>post-processing</b> adjusts thresholds per group after training. Each has trade-offs with accuracy and legality. Auditing relies on <a href=./model-interpretability.html>interpretability</a> and disaggregated evaluation, reporting metrics per group rather than only in aggregate, so harms to small groups are not hidden by good averages."
+   ],
+   [
+    "p",
+    "Fairness work is inseparable from documentation and governance, tying it to model cards and the monitoring practices of <a href=./mlops.html>MLOps</a>."
+   ]
+  ],
+  "related": [
+   [
+    "model-interpretability",
+    "Model Interpretability"
+   ],
+   [
+    "counterfactual-explanations",
+    "Counterfactuals"
+   ],
+   [
+    "mlops",
+    "MLOps"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "automl",
+  "title": "Automated Machine Learning",
+  "cat": "machine-learning",
+  "lede": "AutoML automates the pipeline of feature processing, model selection, and tuning to build models with less manual effort.",
+  "body": [
+   [
+    "h2",
+    "Automating the pipeline"
+   ],
+   [
+    "p",
+    "Building a good model involves many choices: how to clean and encode features, which algorithm to use, and how to set its <a href=./hyperparameter-optimization.html>hyperparameters</a>. Automated machine learning (AutoML) systems search over these choices automatically, aiming to produce a strong model with minimal human tuning and to make modeling accessible beyond specialists."
+   ],
+   [
+    "h3",
+    "What AutoML searches over"
+   ],
+   [
+    "ul",
+    [
+     "<b>Data preparation</b>: imputation, encoding, scaling, feature selection",
+     "<b>Model selection</b>: choosing among algorithm families",
+     "<b>Hyperparameter optimization</b>: tuning each candidate",
+     "<b>Pipeline construction</b>: composing preprocessing and models into a full pipeline",
+     "<b>Ensembling</b>: combining several strong pipelines"
+    ]
+   ],
+   [
+    "h3",
+    "Search strategies"
+   ],
+   [
+    "p",
+    "Approaches range from exhaustive search over a fixed pipeline space, to <a href=./bayesian-optimization.html>Bayesian optimization</a> over combined pipeline and hyperparameter choices, to evolutionary search that mutates and recombines pipelines, to meta-learning that warm-starts from what worked on similar past datasets. Many systems finish by building an ensemble of the best pipelines found, which usually beats any single one."
+   ],
+   [
+    "h3",
+    "Benefits and limits"
+   ],
+   [
+    "p",
+    "AutoML reliably matches or beats a competent practitioner on well-defined tabular problems and frees experts from repetitive tuning. But it does not automate the hard parts: framing the problem, sourcing and validating data, guarding against leakage, choosing an honest evaluation, and judging fairness and deployment fit. It can also overfit the validation signal if the search is long and the validation set small, so a truly held-out test set remains essential."
+   ],
+   [
+    "p",
+    "For neural networks specifically, the architecture itself becomes a search target, the subject of <a href=./neural-architecture-search.html>neural architecture search</a>."
+   ]
+  ],
+  "related": [
+   [
+    "hyperparameter-optimization",
+    "Hyperparameter Optimization"
+   ],
+   [
+    "neural-architecture-search",
+    "Neural Architecture Search"
+   ],
+   [
+    "bayesian-optimization",
+    "Bayesian Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neural-architecture-search",
+  "title": "Neural Architecture Search",
+  "cat": "machine-learning",
+  "lede": "Neural architecture search automates designing network structures, searching over layers and connections for the best design.",
+  "body": [
+   [
+    "h2",
+    "Designing networks by search"
+   ],
+   [
+    "p",
+    "Neural architecture search (NAS) automates the design of neural network structures, the choice of layers, operations, and how they connect, that is otherwise handcrafted by experts. It is the network-design branch of <a href=./automl.html>AutoML</a>, treating architecture as something to optimize rather than to invent by intuition and trial."
+   ],
+   [
+    "h3",
+    "Three ingredients"
+   ],
+   [
+    "ul",
+    [
+     "<b>Search space</b>: the set of allowable architectures, often built from repeatable cells to keep the space manageable",
+     "<b>Search strategy</b>: how candidates are proposed, by reinforcement learning, evolution, or gradient-based relaxation",
+     "<b>Performance estimation</b>: how each candidate is scored without training it fully to convergence"
+    ]
+   ],
+   [
+    "h3",
+    "Making it affordable"
+   ],
+   [
+    "p",
+    "Early NAS trained thousands of architectures from scratch, an enormous computational expense. Efficient methods slashed this cost. <b>Weight sharing</b> trains one over-parameterized supernet whose sub-networks share weights, so candidates are evaluated by inheriting weights rather than retraining. <b>Differentiable NAS</b> relaxes the discrete choice of operation into a continuous mixture, letting gradient descent optimize architecture and weights together, then discretizing the result."
+   ],
+   [
+    "h3",
+    "Realistic objectives and cautions"
+   ],
+   [
+    "p",
+    "Practical NAS optimizes more than accuracy: latency, memory, and energy enter the objective so the result fits its deployment target, a hardware-aware search. Cautions abound: results can be sensitive to the search space (a good space does much of the work), reproducibility has been a concern, and strong random or hand-designed baselines sometimes rival elaborate searches. Weight-sharing estimates can also rank architectures inaccurately, so top candidates are usually retrained fully before selection."
+   ],
+   [
+    "p",
+    "NAS shares its optimization machinery with <a href=./hyperparameter-optimization.html>hyperparameter optimization</a> and <a href=./bayesian-optimization.html>Bayesian optimization</a>."
+   ]
+  ],
+  "related": [
+   [
+    "automl",
+    "AutoML"
+   ],
+   [
+    "hyperparameter-optimization",
+    "Hyperparameter Optimization"
+   ],
+   [
+    "bayesian-optimization",
+    "Bayesian Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hyperparameter-optimization",
+  "title": "Hyperparameter Optimization",
+  "cat": "machine-learning",
+  "lede": "Hyperparameter optimization searches for the training settings, learning rate, depth, regularization, that yield the best model.",
+  "body": [
+   [
+    "h2",
+    "Settings you choose, not learn"
+   ],
+   [
+    "p",
+    "Hyperparameters are configuration values fixed before training, learning rate, tree depth, regularization strength, number of layers, that the learning algorithm does not adjust on its own. They strongly determine final performance, and finding good values is an optimization problem in its own right, layered on top of model training."
+   ],
+   [
+    "h3",
+    "Basic search methods"
+   ],
+   [
+    "ul",
+    [
+     "<b>Grid search</b>: try every combination on a predefined grid; simple but scales exponentially with the number of hyperparameters",
+     "<b>Random search</b>: sample combinations at random; often better than grid search because only a few hyperparameters usually matter, and random sampling covers those dimensions more finely",
+     "<b>Manual search</b>: expert-guided, effective but not reproducible or scalable"
+    ]
+   ],
+   [
+    "h3",
+    "Smarter search"
+   ],
+   [
+    "p",
+    " <a href=./bayesian-optimization.html>Bayesian optimization</a> builds a probabilistic model of performance versus hyperparameters and proposes the next trial where improvement is most likely, spending evaluations wisely. <b>Hyperband</b> and successive halving allocate a small budget to many configurations, then progressively concentrate resources on the promising ones, exploiting the fact that bad configurations reveal themselves early. Population-based training evolves a population of models and their hyperparameters jointly during a single run."
+   ],
+   [
+    "h3",
+    "Doing it honestly"
+   ],
+   [
+    "p",
+    "Hyperparameter search must be validated correctly. Tuning on the test set leaks information and inflates results, so a separate validation set or nested cross-validation is required: an inner loop selects hyperparameters and an outer loop estimates generalization. Because search itself can overfit the validation set, especially with many trials, the final chosen configuration must be judged on data untouched during the search. Log every trial for reproducibility, a core concern of <a href=./mlops.html>MLOps</a>."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-optimization",
+    "Bayesian Optimization"
+   ],
+   [
+    "automl",
+    "AutoML"
+   ],
+   [
+    "neural-architecture-search",
+    "Neural Architecture Search"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bayesian-optimization",
+  "title": "Bayesian Optimization",
+  "cat": "machine-learning",
+  "lede": "Bayesian optimization efficiently optimizes expensive black-box functions by modeling them and choosing where to sample next.",
+  "body": [
+   [
+    "h2",
+    "Optimizing what is costly to evaluate"
+   ],
+   [
+    "p",
+    "Bayesian optimization tackles problems where each function evaluation is expensive, training a model, running a simulation, conducting an experiment, so you can afford only a limited number. It replaces blind or exhaustive search with a strategy that reasons about where a good value is most likely, making each evaluation count."
+   ],
+   [
+    "h3",
+    "Surrogate and acquisition"
+   ],
+   [
+    "p",
+    "The method keeps a <b>surrogate model</b>, typically a Gaussian process, that predicts the objective everywhere along with its uncertainty. An <b>acquisition function</b> then turns that prediction into a decision about where to sample next, balancing exploitation (sample where the surrogate predicts good values) against exploration (sample where uncertainty is high). Common acquisitions are Expected Improvement, Upper Confidence Bound, and Probability of Improvement."
+   ],
+   [
+    "h3",
+    "The loop"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "for t in range(budget):\n    surrogate.fit(X_tried, y_tried)\n    x_next = argmax(acquisition(surrogate))\n    y_next = expensive_objective(x_next)\n    X_tried.append(x_next); y_tried.append(y_next)"
+    ]
+   ],
+   [
+    "h3",
+    "Strengths and limits"
+   ],
+   [
+    "p",
+    "Bayesian optimization is highly sample-efficient, often finding strong settings in far fewer trials than random search, and it naturally reports uncertainty. Its main limits are dimensionality (Gaussian processes struggle much beyond a few dozen parameters, though tree-based and neural surrogates extend the range), and cost per proposal, since fitting the surrogate and maximizing the acquisition themselves take time. Parallel and batch variants propose several points at once to use many workers."
+   ],
+   [
+    "p",
+    "It is the engine behind much of <a href=./hyperparameter-optimization.html>hyperparameter optimization</a> and <a href=./automl.html>AutoML</a>, and it applies broadly to experimental design and simulation-based engineering where each trial is genuinely expensive."
+   ]
+  ],
+  "related": [
+   [
+    "hyperparameter-optimization",
+    "Hyperparameter Optimization"
+   ],
+   [
+    "automl",
+    "AutoML"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-augmentation",
+  "title": "Data Augmentation",
+  "cat": "machine-learning",
+  "lede": "Data augmentation expands a training set by applying label-preserving transformations, improving generalization and robustness.",
+  "body": [
+   [
+    "h2",
+    "More data from the data you have"
+   ],
+   [
+    "p",
+    "Data augmentation creates additional training examples by transforming existing ones in ways that change the input but preserve its label. Rotating an image of a cat still shows a cat. By exposing the model to these variations, augmentation acts as a regularizer, teaching invariances, reducing overfitting, and improving robustness, all without collecting new labeled data."
+   ],
+   [
+    "h3",
+    "Domain-specific transformations"
+   ],
+   [
+    "ul",
+    [
+     "<b>Images</b>: flips, crops, rotations, color jitter, cutout, and mixing methods like Mixup and CutMix",
+     "<b>Text</b>: synonym replacement, back-translation, random insertion or deletion of words",
+     "<b>Audio</b>: time stretching, pitch shifting, adding noise, masking spectrogram regions",
+     "<b>Tabular</b>: noise injection and synthetic sampling such as <a href=./smote-oversampling.html>SMOTE</a> for minority classes"
+    ]
+   ],
+   [
+    "h3",
+    "Choosing valid transformations"
+   ],
+   [
+    "p",
+    "The essential constraint is that transformations must preserve the label and stay realistic. Flipping a photo horizontally is fine for object recognition but wrong for reading digits, where a flipped 3 is not a 3. Augmentation encodes prior knowledge about which variations should not change the answer, so the right set is domain-specific and must be chosen with care."
+   ],
+   [
+    "h3",
+    "Learned and automated augmentation"
+   ],
+   [
+    "p",
+    "Rather than hand-picking policies, methods like AutoAugment and RandAugment search for effective augmentation strategies automatically, and test-time augmentation averages predictions over several transformed copies of an input to improve accuracy. Augmentation is also central to <a href=./contrastive-learning.html>contrastive self-supervised learning</a>, where two augmented views of the same example form a positive pair. Used well, augmentation is one of the highest-leverage, lowest-cost ways to improve a model."
+   ]
+  ],
+  "related": [
+   [
+    "contrastive-learning",
+    "Contrastive Learning"
+   ],
+   [
+    "smote-oversampling",
+    "SMOTE"
+   ],
+   [
+    "curriculum-learning",
+    "Curriculum Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-drift-monitoring",
+  "title": "Model Drift and Monitoring",
+  "cat": "machine-learning",
+  "lede": "Deployed models degrade as the world changes; monitoring detects data and concept drift so models can be retrained in time.",
+  "body": [
+   [
+    "h2",
+    "Models decay after deployment"
+   ],
+   [
+    "p",
+    "A model is trained on a snapshot of the world, but the world keeps moving. Over time the live data drifts away from the training distribution and accuracy silently erodes. Monitoring is the practice of watching a deployed model and its inputs to catch this decay before it causes harm, and it is a defining responsibility of <a href=./mlops.html>MLOps</a>."
+   ],
+   [
+    "h3",
+    "Kinds of drift"
+   ],
+   [
+    "ul",
+    [
+     "<b>Data drift (covariate shift)</b>: the input distribution changes while the input-output relationship holds",
+     "<b>Concept drift</b>: the relationship between inputs and target changes, so past patterns no longer apply",
+     "<b>Label shift</b>: the class base rates change",
+     "<b>Upstream data issues</b>: schema changes, broken pipelines, or new missing values that masquerade as drift"
+    ]
+   ],
+   [
+    "h3",
+    "Detecting drift"
+   ],
+   [
+    "p",
+    "Ground-truth labels often arrive late or never, so monitoring leans on proxies. Input drift is measured by comparing feature distributions against a training reference using tests like the Kolmogorov-Smirnov test, population stability index, or divergence measures. Prediction drift watches the distribution of model outputs. When labels do arrive, performance metrics are tracked directly, and confidence or <a href=./probability-calibration.html>calibration</a> degradation is an early warning."
+   ],
+   [
+    "h3",
+    "Responding"
+   ],
+   [
+    "p",
+    "Detection is only useful with a response plan: alerting on threshold breaches, triggering retraining on fresh data, rolling back to a prior model, or falling back to a safe default. Retraining cadence can be scheduled or drift-triggered. Because retraining introduces its own risk, changes are validated and often rolled out gradually with shadow deployments or canaries, closing the loop from monitoring back to training in a maintained ML system."
+   ],
+   [
+    "p",
+    "Drift monitoring also intersects with <a href=./anomaly-detection.html>anomaly detection</a>, which flags individual abnormal inputs rather than distributional shifts."
+   ]
+  ],
+  "related": [
+   [
+    "mlops",
+    "MLOps"
+   ],
+   [
+    "anomaly-detection",
+    "Anomaly Detection"
+   ],
+   [
+    "probability-calibration",
+    "Probability Calibration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mlops",
+  "title": "MLOps",
+  "cat": "machine-learning",
+  "lede": "MLOps applies engineering discipline to the full machine-learning lifecycle: data, training, deployment, monitoring, and iteration.",
+  "body": [
+   [
+    "h2",
+    "Engineering the ML lifecycle"
+   ],
+   [
+    "p",
+    "MLOps is the set of practices for reliably building, deploying, and maintaining machine-learning systems in production. It extends DevOps to the particular challenges of ML, where the behavior of a system depends not only on code but also on data and trained model artifacts, all of which change over time and all of which must be versioned, tested, and reproduced."
+   ],
+   [
+    "h3",
+    "What makes ML systems hard"
+   ],
+   [
+    "p",
+    "A trained model is a function of code, data, and hyperparameters, so reproducing a result requires versioning all three, not just the source. Models silently degrade as data drifts; training and serving can diverge subtly; and the same feature computed differently in the two settings causes train-serve skew. These failure modes are invisible to ordinary software tests and demand ML-specific tooling."
+   ],
+   [
+    "h3",
+    "Core practices"
+   ],
+   [
+    "ul",
+    [
+     "<b>Versioning</b>: track data, features, code, and model artifacts together",
+     "<b>Pipelines</b>: automate data validation, training, and evaluation reproducibly",
+     "<b>CI/CD for models</b>: test and deploy models with the same rigor as code",
+     "<b>Feature stores</b>: compute features once and serve them consistently to training and inference",
+     "<b>Monitoring</b>: watch performance and <a href=./model-drift-monitoring.html>drift</a> after deployment",
+     "<b>Governance</b>: document models with model cards and track lineage for audit"
+    ]
+   ],
+   [
+    "h3",
+    "Deployment and iteration"
+   ],
+   [
+    "p",
+    "Models are rolled out carefully: shadow mode runs a new model alongside the old without acting on it, canary releases expose it to a small slice of traffic, and A/B tests compare versions on live outcomes. Because ML systems learn from data they help generate, feedback loops must be watched. Maturity ranges from manual, notebook-driven workflows to fully automated pipelines that retrain and redeploy on triggers, with humans reviewing the results."
+   ],
+   [
+    "p",
+    "MLOps ties together the concerns of <a href=./hyperparameter-optimization.html>reproducible experimentation</a>, <a href=./fairness-and-bias.html>fairness auditing</a>, and continuous monitoring into a maintainable practice."
+   ]
+  ],
+  "related": [
+   [
+    "model-drift-monitoring",
+    "Drift Monitoring"
+   ],
+   [
+    "fairness-and-bias",
+    "Fairness and Bias"
+   ],
+   [
+    "federated-learning",
+    "Federated Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "federated-learning",
+  "title": "Federated Learning",
+  "cat": "machine-learning",
+  "lede": "Federated learning trains a shared model across many devices or sites without moving their raw data to a central server.",
+  "body": [
+   [
+    "h2",
+    "Bring the model to the data"
+   ],
+   [
+    "p",
+    "Federated learning trains a model across many decentralized data holders, phones, hospitals, banks, without collecting their raw data in one place. Instead of moving data to the model, it moves the model to the data: each participant trains locally on its own data, and only model updates, not the data, are shared and combined. This addresses privacy, regulatory, and bandwidth constraints that forbid centralizing sensitive data."
+   ],
+   [
+    "h3",
+    "Federated averaging"
+   ],
+   [
+    "p",
+    "The standard algorithm, FederatedAveraging, runs in rounds. A central server sends the current global model to a subset of clients; each client trains for a few local steps on its own data; the server collects the resulting model updates and averages them, weighted by each client data volume, to form the next global model. Communicating only periodic updates, rather than every gradient, keeps bandwidth manageable."
+   ],
+   [
+    "h3",
+    "Central challenges"
+   ],
+   [
+    "ul",
+    [
+     "<b>Non-IID data</b>: each client data is unrepresentative of the whole, which slows and destabilizes convergence",
+     "<b>Systems heterogeneity</b>: clients differ in speed, connectivity, and availability, and many drop out",
+     "<b>Communication cost</b>: updates are compressed and sent infrequently",
+     "<b>Privacy of updates</b>: raw updates can leak information about the underlying data"
+    ]
+   ],
+   [
+    "h3",
+    "Privacy and security layers"
+   ],
+   [
+    "p",
+    "Keeping data local is necessary but not sufficient, since model updates can be reverse-engineered. Federated learning is therefore combined with <b>secure aggregation</b>, which lets the server compute the sum of updates without seeing any individual one, and with <b>differential privacy</b>, which adds calibrated noise to bound what any update reveals. It must also defend against poisoning, where malicious clients submit corrupt updates. Federated learning is an active component of privacy-preserving <a href=./mlops.html>MLOps</a> in regulated settings."
+   ],
+   [
+    "p",
+    "Cross-device federation spans millions of intermittent phones; cross-silo federation coordinates a handful of reliable institutions, each with its own trade-offs."
+   ]
+  ],
+  "related": [
+   [
+    "mlops",
+    "MLOps"
+   ],
+   [
+    "knowledge-distillation",
+    "Knowledge Distillation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "knowledge-distillation",
+  "title": "Knowledge Distillation",
+  "cat": "machine-learning",
+  "lede": "Distillation trains a small student model to mimic a large teacher, transferring its behavior into a cheaper package.",
+  "body": [
+   [
+    "h2",
+    "Compressing behavior, not just weights"
+   ],
+   [
+    "p",
+    "Knowledge distillation trains a compact student model to reproduce the behavior of a larger, more accurate teacher model. Rather than compressing the teacher weights directly, it transfers what the teacher has learned by training the student on the teacher outputs, so the student can match much of the teacher accuracy at a fraction of its size and cost."
+   ],
+   [
+    "h3",
+    "Soft targets carry more information"
+   ],
+   [
+    "p",
+    "The key insight is that the teacher full probability distribution, its soft targets, contains richer information than a hard label. When a teacher assigns 0.7 to one class and 0.2 to a similar one, it reveals learned relationships between classes, its dark knowledge. The student trains to match these softened probabilities, produced by dividing the teacher logits by a temperature before the softmax to expose the smaller probabilities."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Distillation loss combines soft and hard targets\nsoft = kl_div(log_softmax(student/T), softmax(teacher/T)) * T*T\nhard = cross_entropy(student, labels)\nloss = alpha * soft + (1 - alpha) * hard"
+    ]
+   ],
+   [
+    "h3",
+    "Variants"
+   ],
+   [
+    "ul",
+    [
+     "<b>Response-based</b>: match the teacher output distribution",
+     "<b>Feature-based</b>: match intermediate representations, not just outputs",
+     "<b>Self-distillation</b>: a model teaches a copy of itself to refine training",
+     "<b>Ensemble distillation</b>: compress many models into one student"
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "Distillation is a primary tool for deploying capable models on constrained hardware, phones, browsers, edge devices, where the teacher would be too slow or large. It complements other compression methods: a distilled student can be further shrunk with <a href=./model-quantization.html>quantization</a> and <a href=./model-pruning.html>pruning</a>. It also transfers robustness and calibration, and it lets a small model benefit from unlabeled data by learning from the teacher predictions on it."
+   ],
+   [
+    "p",
+    "The student rarely fully matches the teacher, so distillation is a deliberate accuracy-for-efficiency trade, tuned to the deployment budget."
+   ]
+  ],
+  "related": [
+   [
+    "model-quantization",
+    "Quantization"
+   ],
+   [
+    "model-pruning",
+    "Pruning"
+   ],
+   [
+    "federated-learning",
+    "Federated Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-quantization",
+  "title": "Model Quantization",
+  "cat": "machine-learning",
+  "lede": "Quantization shrinks and speeds up models by storing and computing weights in low-precision integers instead of floats.",
+  "body": [
+   [
+    "h2",
+    "Fewer bits per number"
+   ],
+   [
+    "p",
+    "Quantization reduces the numerical precision used to represent a model weights and activations, most commonly from 32-bit floating point to 8-bit integers, and sometimes lower. Because memory, bandwidth, and arithmetic all scale with bit width, quantization cuts model size and speeds up inference, often several-fold, with modest accuracy loss, which makes it central to deploying models on phones and edge hardware."
+   ],
+   [
+    "h3",
+    "How values are mapped"
+   ],
+   [
+    "p",
+    "Quantization maps a continuous range of real values onto a small set of discrete levels using a scale and a zero point: an integer q relates to a real value r by r = scale * (q - zero_point). The scale is chosen to cover the observed range of the tensor. Per-channel scales, one per output channel of a layer, preserve more accuracy than a single per-tensor scale because ranges vary across channels."
+   ],
+   [
+    "h3",
+    "Two workflows"
+   ],
+   [
+    "ul",
+    [
+     "<b>Post-training quantization</b>: quantize an already-trained model, optionally using a small calibration set to set ranges; fast and simple",
+     "<b>Quantization-aware training</b>: simulate quantization during training so the model learns weights robust to it; more work but higher accuracy, especially at very low bit widths"
+    ]
+   ],
+   [
+    "h3",
+    "Trade-offs and hardware"
+   ],
+   [
+    "p",
+    "The accuracy cost grows as precision drops; 8-bit integer inference is often nearly lossless, while 4-bit and below usually require quantization-aware training or careful outlier handling. Realized speedups depend on hardware support for low-precision arithmetic, so gains vary by target device. Activations are harder to quantize than weights because their ranges shift with each input. Quantization stacks with <a href=./model-pruning.html>pruning</a> and <a href=./knowledge-distillation.html>distillation</a> to compress models further for deployment."
+   ],
+   [
+    "p",
+    "For very large models, weight-only quantization reduces memory footprint even when activations stay in higher precision, easing the memory bottleneck of loading the model."
+   ]
+  ],
+  "related": [
+   [
+    "model-pruning",
+    "Pruning"
+   ],
+   [
+    "knowledge-distillation",
+    "Knowledge Distillation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-pruning",
+  "title": "Model Pruning",
+  "cat": "machine-learning",
+  "lede": "Pruning removes redundant weights or structures from a trained network to make it smaller and faster.",
+  "body": [
+   [
+    "h2",
+    "Cutting away redundancy"
+   ],
+   [
+    "p",
+    "Neural networks are typically over-parameterized: many weights contribute little to the output. Pruning removes these redundant parameters, or whole structures such as channels and layers, to produce a smaller, faster model. The observation that a large fraction of weights can be deleted with minimal accuracy loss motivates pruning as a core model-compression technique."
+   ],
+   [
+    "h3",
+    "Unstructured versus structured"
+   ],
+   [
+    "p",
+    "<b>Unstructured pruning</b> zeroes out individual weights, usually those with the smallest magnitude, producing a sparse weight matrix. It can remove a large fraction of parameters but needs specialized hardware or libraries to turn sparsity into real speedup. <b>Structured pruning</b> removes entire channels, filters, attention heads, or layers, yielding a genuinely smaller dense model that runs faster on ordinary hardware, at the cost of coarser granularity."
+   ],
+   [
+    "h3",
+    "The prune-and-recover cycle"
+   ],
+   [
+    "p",
+    "Aggressive one-shot pruning hurts accuracy, so pruning is typically iterative: prune a portion, fine-tune to recover accuracy, and repeat, gradually reaching high sparsity. Magnitude is the most common importance criterion, but methods also use gradient or sensitivity information to decide what to remove."
+   ],
+   [
+    "ul",
+    [
+     "Magnitude pruning: remove the smallest-magnitude weights",
+     "Iterative pruning with fine-tuning preserves accuracy better than one-shot",
+     "Structured pruning gives portable speedups; unstructured gives higher compression"
+    ]
+   ],
+   [
+    "h3",
+    "The lottery ticket hypothesis"
+   ],
+   [
+    "p",
+    "A notable finding, the lottery ticket hypothesis, holds that a dense network contains a small sub-network which, trained from the original initialization, can match the full model accuracy. This suggests the value of a large network lies partly in providing many candidate sub-networks to find. Pruning combines naturally with <a href=./model-quantization.html>quantization</a> and <a href=./knowledge-distillation.html>distillation</a> in a compression pipeline that fits capable models onto constrained devices."
+   ],
+   [
+    "p",
+    "As with all compression, the pruned model must be re-evaluated on held-out data, since sparsity can affect robustness and calibration, not just top-line accuracy."
+   ]
+  ],
+  "related": [
+   [
+    "model-quantization",
+    "Quantization"
+   ],
+   [
+    "knowledge-distillation",
+    "Knowledge Distillation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

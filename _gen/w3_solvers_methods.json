@@ -1,0 +1,990 @@
+[
+{
+"slug":"finite-difference-method",
+"title":"The Finite Difference Method",
+"cat":"solvers-methods",
+"lede":"Finite differences approximate derivatives by ratios of function values on a grid, turning differential equations into algebraic systems.",
+"body":[
+["h2","From derivatives to differences"],
+["p","The finite difference method (FDM) replaces continuous derivatives with linear combinations of nodal values on a structured grid. The classical estimates come from Taylor expansion. The forward difference (f(x+h)-f(x))/h is first-order accurate; the centered difference (f(x+h)-f(x-h))/(2h) is second-order accurate because the leading error terms cancel. The second derivative uses (f(x+h)-2f(x)+f(x-h))/h^2, again second order."],
+["p","Higher-order stencils widen the footprint: a five-point stencil gives fourth-order accuracy for the first and second derivatives. The tradeoff is a larger bandwidth in the resulting matrix and greater sensitivity near boundaries, where one-sided stencils must replace centered ones."],
+["h3","Truncation error and consistency"],
+["p","A scheme is consistent if its truncation error vanishes as the grid spacing h goes to zero. The order of accuracy is the power of h in the leading error term. Consistency alone is not enough for a correct answer: by the Lax equivalence theorem, for a well-posed linear problem a consistent scheme converges if and only if it is stable."],
+["h3","Structured-grid strengths and limits"],
+["p","FDM is simple to implement, cheap per node, and delivers high order on smooth solutions. Its main limitation is geometry: logically rectangular grids struggle with curved or complex boundaries. Body-fitted coordinate transformations and immersed-boundary corrections extend FDM to shaped domains, but at the cost of extra metric terms."],
+["ul",["Forward/backward differences: first-order, one-sided, useful at boundaries","Centered differences: second-order, symmetric, no numerical dissipation","Compact schemes: implicit stencils giving high order on narrow footprints","Ghost cells: fictitious nodes that encode boundary conditions cleanly"]],
+["p","In fusion modeling, finite differences underpin many equilibrium and transport codes on flux-aligned coordinates, where the geometry is smooth enough that high-order stencils are efficient. The method is often the baseline against which finite-volume and finite-element discretizations are compared."]
+],
+"related":[["finite-volume-method","Finite Volume Method"],["finite-element-method","Finite Element Method"],["stability-analysis-von-neumann","Von Neumann Stability Analysis"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"finite-volume-method",
+"title":"The Finite Volume Method",
+"cat":"solvers-methods",
+"lede":"Finite volumes integrate conservation laws over control cells so that fluxes between neighbors cancel exactly, enforcing conservation by construction.",
+"body":[
+["h2","Conservation as the organizing principle"],
+["p","The finite volume method (FVM) starts from the integral form of a conservation law. The domain is partitioned into control volumes, and the equation is integrated over each cell. By the divergence theorem, the volume integral of a flux divergence becomes a surface integral over cell faces. The discrete unknown is the cell average, and the scheme tracks how face fluxes move that average in time."],
+["p","Because a flux leaving one cell across a shared face is exactly the flux entering its neighbor, the total conserved quantity changes only through the domain boundary. This telescoping property makes FVM the natural choice for mass, momentum, and energy transport where discrete conservation is non-negotiable."],
+["h3","Reconstruction and flux evaluation"],
+["p","The core modeling choice is how to compute the face flux from cell averages. A reconstruction step estimates the state at each face from surrounding cell values; a numerical flux function then combines the left and right face states into a single flux. For hyperbolic systems this flux typically comes from an approximate Riemann solver, which respects the direction of wave propagation and introduces controlled upwind dissipation."],
+["h3","Accuracy and geometry"],
+["p","First-order FVM uses piecewise-constant reconstruction and is robust but diffusive. Higher order comes from linear or polynomial reconstruction with slope limiting to suppress spurious oscillations near discontinuities. Unlike finite differences, FVM works naturally on unstructured polygonal and polyhedral meshes, so it handles complex geometry without coordinate transformations."],
+["ul",["Cell-centered vs vertex-centered layouts of the unknowns","Numerical flux functions: upwind, Lax-Friedrichs, Roe, HLL/HLLC","Slope limiters preserving monotonicity at second order","Discrete conservation guaranteed regardless of mesh quality"]],
+["p","FVM dominates computational fluid dynamics and neutral-gas and edge-plasma transport modeling, where conserving particle and energy budgets across long simulations is essential for physical credibility."]
+],
+"related":[["finite-difference-method","Finite Difference Method"],["conservative-schemes","Conservative Schemes"],["riemann-solvers","Riemann Solvers"],["flux-limiters","Flux Limiters"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"finite-element-method",
+"title":"The Finite Element Method",
+"cat":"solvers-methods",
+"lede":"Finite elements represent the solution as a sum of local basis functions and enforce the equation in a weighted-average (weak) sense.",
+"body":[
+["h2","A basis-function view of PDEs"],
+["p","The finite element method (FEM) partitions the domain into elements (triangles, quadrilaterals, tetrahedra, hexahedra) and approximates the solution as a linear combination of basis functions, each supported on a small patch of elements. Instead of enforcing the differential equation pointwise, FEM enforces it in a weak form: multiply by a test function, integrate over the domain, and integrate by parts to move derivatives onto the test function and reduce continuity requirements on the solution."],
+["p","Substituting the basis expansion and choosing test functions from the same space (the Galerkin choice) yields a linear system K u = f, where K is the stiffness matrix assembled element by element. The result is a sparse system whose structure mirrors mesh connectivity."],
+["h3","Why weak forms help"],
+["p","The weak formulation lowers the order of derivatives that must exist, so solutions with kinks or material interfaces are admissible. It also gives clean, natural treatment of Neumann (flux) boundary conditions, which appear as boundary integrals rather than as extra constraints. Dirichlet conditions are imposed on the trial space directly."],
+["h3","Order, elements, and error control"],
+["p","Accuracy is raised by refining the mesh (h-refinement) or increasing polynomial degree (p-refinement); combining both (hp-refinement) can give exponential convergence for smooth solutions. Rigorous a posteriori error estimators drive adaptive refinement toward regions where the error is largest."],
+["ul",["Basis functions: Lagrange (nodal), hierarchical, and spectral variants","Element types spanning simplices and tensor-product shapes","Isoparametric mapping to represent curved boundaries accurately","Mass and stiffness matrices assembled from local element contributions"]],
+["p","FEM is the workhorse for structural mechanics, electromagnetics, and magnetohydrodynamic equilibrium and stability. In fusion device modeling it handles the shaped, curved geometries of vessels, coils, and blankets naturally, and its variational structure supports rigorous error estimates for design-relevant quantities."]
+],
+"related":[["weak-formulation","Weak Formulation"],["galerkin-method","The Galerkin Method"],["discontinuous-galerkin","Discontinuous Galerkin Methods"],["mesh-generation","Mesh Generation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"weak-formulation",
+"title":"Weak Formulation of PDEs",
+"cat":"solvers-methods",
+"lede":"The weak form recasts a differential equation as an integral identity that must hold against all test functions, admitting less regular solutions.",
+"body":[
+["h2","Strong versus weak"],
+["p","A partial differential equation stated pointwise is the strong form; it demands that the solution be differentiable enough for every derivative to exist everywhere. Many physically meaningful solutions do not meet that bar: fields with kinks at material interfaces, or discontinuities across shocks. The weak formulation relaxes the requirement by asking the equation to hold only in an averaged sense."],
+["p","To derive it, multiply the equation by an arbitrary test function v, integrate over the domain, and use integration by parts to shift derivatives from the unknown onto v. This lowers the differentiability the solution must have and moves boundary terms into the formulation explicitly."],
+["h3","Function spaces"],
+["p","The natural setting is a Sobolev space, typically H^1, whose members have square-integrable first derivatives. A weak solution lives in this space and satisfies the integral identity for every admissible test function. The Lax-Milgram theorem gives conditions (boundedness and coercivity of the bilinear form) under which a unique weak solution exists."],
+["h3","Why it matters for discretization"],
+["p","The weak form is the foundation of the finite element and Galerkin methods: restricting the trial and test spaces to finite-dimensional subspaces turns the integral identity into a solvable linear system. Natural boundary conditions (fluxes) appear automatically from the boundary integrals, while essential conditions (prescribed values) are built into the trial space."],
+["ul",["Test functions probe the equation in every admissible direction","Integration by parts reduces required regularity of the solution","Coercivity and continuity ensure well-posedness","Natural boundary conditions emerge without extra equations"]],
+["p","Understanding the weak form clarifies why finite element solutions conserve certain quantities and why their error can be bounded in energy norms tied directly to the physics."]
+],
+"related":[["finite-element-method","Finite Element Method"],["galerkin-method","The Galerkin Method"],["discontinuous-galerkin","Discontinuous Galerkin Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"galerkin-method",
+"title":"The Galerkin Method",
+"cat":"solvers-methods",
+"lede":"Galerkin methods choose test functions from the same space as the trial functions, making the residual orthogonal to that space.",
+"body":[
+["h2","Residual orthogonality"],
+["p","Given a weak formulation, a Galerkin method approximates the solution in a finite-dimensional subspace and requires the residual of the equation to be orthogonal to that same subspace. In other words, the error the discrete solution leaves behind has no component along any basis function used to build it. This single principle generates finite element methods, spectral methods, and spectral element methods depending on the chosen basis."],
+["p","For symmetric, coercive problems the Galerkin choice is optimal: the discrete solution is the best approximation in the energy norm, a statement known as Cea's lemma. This gives Galerkin methods their strong theoretical footing."],
+["h3","Petrov-Galerkin variants"],
+["p","When trial and test spaces differ, the method is Petrov-Galerkin. This flexibility is used to stabilize convection-dominated problems, where a pure Galerkin scheme develops spurious oscillations. Streamline-upwind Petrov-Galerkin (SUPG) adds a mesh-dependent term along streamlines to introduce just enough upwind stabilization while retaining consistency."],
+["h3","Discrete system assembly"],
+["p","Expanding the trial solution in basis functions and testing against each basis function produces a linear or nonlinear algebraic system. The matrix entries are integrals of basis-function products and their derivatives, computed by numerical quadrature element by element. Sparsity follows from the local support of the basis."],
+["ul",["Bubnov-Galerkin: identical trial and test spaces","Petrov-Galerkin: distinct spaces for stabilization","Cea's lemma: best-approximation property for coercive problems","Quadrature accuracy must match basis-function order"]],
+["p","The Galerkin framework unifies a large fraction of modern PDE solvers and connects discretization directly to approximation theory, which is why convergence proofs for these methods are so clean."]
+],
+"related":[["finite-element-method","Finite Element Method"],["weak-formulation","Weak Formulation"],["spectral-methods","Spectral Methods"],["discontinuous-galerkin","Discontinuous Galerkin Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"spectral-methods",
+"title":"Spectral Methods",
+"cat":"solvers-methods",
+"lede":"Spectral methods expand the solution in global smooth basis functions, achieving exponential accuracy for smooth problems.",
+"body":[
+["h2","Global basis, exponential convergence"],
+["p","Spectral methods represent the solution as a sum of globally defined, infinitely smooth basis functions: Fourier modes on periodic domains, Chebyshev or Legendre polynomials on bounded ones. Because each basis function spans the whole domain, information at any point influences the whole expansion. For analytic solutions the approximation error decays faster than any power of the number of modes, a property called spectral or exponential convergence."],
+["p","This is dramatically more efficient than finite differences for smooth problems: doubling the modes can square the accuracy rather than merely halving the error. The price is that the basis assumes smoothness; discontinuities produce Gibbs oscillations that spoil accuracy globally."],
+["h3","Galerkin and tau formulations"],
+["p","A spectral Galerkin method requires the residual to be orthogonal to the basis, leading to relations among the expansion coefficients. For Fourier bases, differentiation becomes multiplication by the wavenumber, so linear constant-coefficient operators are diagonal. Boundary conditions on non-periodic domains are handled by the tau method or by choosing basis combinations that satisfy the conditions individually."],
+["h3","When to use them"],
+["p","Spectral methods excel for homogeneous turbulence, periodic transport problems, and high-accuracy reference solutions. Their global coupling makes them harder to parallelize and less flexible in complex geometry than local methods, which motivates the spectral element hybrid."],
+["ul",["Fourier bases for periodic domains, trivial differentiation","Chebyshev/Legendre bases for bounded domains","Exponential convergence for analytic solutions","Gibbs phenomenon near discontinuities limits use for shocks"]],
+["p","In fusion turbulence studies, spectral and pseudo-spectral discretizations resolve a wide range of scales efficiently, which is why they appear in gyrokinetic and fluid turbulence codes on periodic or flux-tube domains."]
+],
+"related":[["pseudo-spectral-methods","Pseudo-Spectral Methods"],["spectral-element-method","Spectral Element Method"],["gyrokinetic-solvers","Gyrokinetic Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"pseudo-spectral-methods",
+"title":"Pseudo-Spectral Methods",
+"cat":"solvers-methods",
+"lede":"Pseudo-spectral methods compute derivatives in spectral space but evaluate nonlinear products on a physical grid, joined by fast transforms.",
+"body":[
+["h2","Transform between two representations"],
+["p","A pure spectral treatment of a nonlinear term requires convolution sums over modes, which are expensive. The pseudo-spectral approach avoids them by keeping two representations of the field: the spectral coefficients, where derivatives are cheap and exact, and the physical grid values, where pointwise products are cheap. The fast Fourier transform (FFT) moves between them in O(N log N) operations."],
+["p","A typical step transforms fields to physical space, multiplies them pointwise to form the nonlinear term, transforms the product back to spectral space, and there applies derivatives and time advancement. This collocation-based handling of nonlinearity is what distinguishes pseudo-spectral from fully spectral Galerkin methods."],
+["h3","Aliasing and dealiasing"],
+["p","Evaluating a product on a finite grid folds high-wavenumber content back into resolved modes, an error called aliasing. It can drive instabilities in turbulence simulations. The standard cure is the 3/2 rule: pad the transforms to 3/2 the resolution before forming products so the aliased content lands in modes that are then discarded. The 2/3 truncation rule is an equivalent simpler variant."],
+["h3","Strengths and constraints"],
+["p","Pseudo-spectral methods retain near-spectral accuracy while making nonlinear terms affordable, so they are standard for direct numerical simulation of turbulence. They inherit the periodicity and smoothness assumptions of spectral methods and depend on efficient parallel FFTs, whose global communication can dominate at large scale."],
+["ul",["FFT bridges spectral and physical representations","Nonlinear products formed pointwise in physical space","Dealiasing via 3/2 padding or 2/3 truncation","Global FFT communication is the parallel bottleneck"]],
+["p","This method underlies many plasma turbulence codes, where resolving the nonlinear energy cascade accurately across scales is the central numerical challenge."]
+],
+"related":[["spectral-methods","Spectral Methods"],["gyrokinetic-solvers","Gyrokinetic Solvers"],["domain-decomposition","Domain Decomposition"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"spectral-element-method",
+"title":"The Spectral Element Method",
+"cat":"solvers-methods",
+"lede":"Spectral elements combine finite-element geometric flexibility with high-order polynomial accuracy inside each element.",
+"body":[
+["h2","High order meets unstructured meshes"],
+["p","The spectral element method (SEM) partitions the domain into elements like the finite element method, but inside each element it uses high-degree polynomial basis functions placed at carefully chosen nodes, typically Gauss-Lobatto-Legendre points. This delivers spectral-like convergence on smooth solutions while retaining the ability to mesh complex geometry element by element."],
+["p","The Gauss-Lobatto nodes serve double duty: they define the interpolating basis and the quadrature rule. This collocation choice makes the elemental mass matrix diagonal, which greatly simplifies explicit time stepping."],
+["h3","Convergence knobs"],
+["p","SEM offers two convergence paths. Refining the mesh (more, smaller elements) gives algebraic convergence controlled by element size; raising the polynomial degree within elements gives exponential convergence when the solution is smooth. Practitioners tune both, using low order near singularities and high order where the solution is smooth."],
+["h3","Accuracy and dispersion"],
+["p","High-order elements have very low numerical dispersion and dissipation, so waves propagate accurately over long distances and many periods with little phase error. This makes SEM attractive for wave propagation, incompressible flow, and turbulence where preserving spectral content over long integrations matters."],
+["ul",["Gauss-Lobatto-Legendre nodes for basis and quadrature","Diagonal mass matrix eases explicit time integration","Low dispersion error for long-time wave propagation","Continuous (CG) and discontinuous (DG) elemental couplings"]],
+["p","SEM sits between global spectral methods and standard finite elements, capturing much of the accuracy of the former with the geometric flexibility of the latter. It is well suited to fluid and MHD problems in shaped fusion-relevant domains where both accuracy and geometry matter."]
+],
+"related":[["spectral-methods","Spectral Methods"],["finite-element-method","Finite Element Method"],["discontinuous-galerkin","Discontinuous Galerkin Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"discontinuous-galerkin",
+"title":"Discontinuous Galerkin Methods",
+"cat":"solvers-methods",
+"lede":"Discontinuous Galerkin methods use high-order polynomials per element with no continuity across faces, coupling neighbors through numerical fluxes.",
+"body":[
+["h2","Elements that do not share values"],
+["p","Discontinuous Galerkin (DG) methods represent the solution by an independent polynomial inside each element, with no requirement that values match across element boundaries. Neighboring elements communicate only through numerical fluxes evaluated on shared faces, exactly as in finite volume methods. DG thus fuses the high-order accuracy of finite elements with the local conservation and upwinding of finite volumes."],
+["p","Because each element carries its own degrees of freedom, the mass matrix is block-diagonal and trivially invertible, which makes explicit time stepping efficient and the method highly parallel: each element's update depends only on its immediate neighbors."],
+["h3","Numerical fluxes and stability"],
+["p","The choice of numerical flux controls stability and accuracy. Upwind or Riemann-solver-based fluxes add controlled dissipation for hyperbolic problems, while central fluxes conserve energy for wave equations. For nonlinear conservation laws, slope or moment limiters suppress oscillations near discontinuities without destroying high-order accuracy in smooth regions."],
+["h3","Strengths and costs"],
+["p","DG handles complex geometry, supports hp-adaptivity naturally because there is no inter-element continuity to enforce, and captures shocks and steep gradients robustly. Its cost is more degrees of freedom than a continuous method of the same order, since face values are duplicated on both sides."],
+["ul",["Block-diagonal mass matrix for cheap explicit updates","Local conservation through face fluxes","Natural hp-adaptivity without continuity constraints","Limiters preserve high order away from discontinuities"]],
+["p","DG is increasingly used for kinetic and fluid plasma models, where its combination of conservation, high order, and shock robustness suits the steep gradients found in edge and scrape-off-layer transport."]
+],
+"related":[["finite-element-method","Finite Element Method"],["finite-volume-method","Finite Volume Method"],["galerkin-method","The Galerkin Method"],["weno-schemes","WENO Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"particle-in-cell",
+"title":"The Particle-in-Cell Method",
+"cat":"solvers-methods",
+"lede":"Particle-in-cell methods track sample particles moving through continuous fields defined on a grid, coupling kinetic motion to field solves.",
+"body":[
+["h2","Particles and fields together"],
+["p","The particle-in-cell (PIC) method models a plasma as a large collection of computational macro-particles, each representing many physical particles, moving in continuous phase space. Electromagnetic fields live on a fixed grid. The two are coupled in a cycle: deposit particle charge and current to the grid, solve the field equations on the grid, interpolate fields back to particle positions, and advance particle velocities and positions."],
+["p","This hybrid avoids the O(N^2) cost of direct particle-particle forces by mediating all interactions through the grid, while still capturing kinetic effects that fluid models cannot, such as wave-particle resonance and non-Maxwellian distributions."],
+["h3","The four-step cycle"],
+["p","Each timestep performs charge/current deposition (scatter), a field solve (Poisson or Maxwell), field interpolation (gather), and a particle push, usually with the Boris algorithm for the magnetic rotation. The same interpolation weights are used for scatter and gather to avoid a self-force, a subtle but essential consistency condition."],
+["h3","Noise and stability"],
+["p","Because particles sample the distribution statistically, PIC carries discrete-particle noise that scales as one over the square root of particles per cell. The explicit method must resolve the plasma frequency and, for electromagnetic PIC, satisfy a CFL condition on the light-wave speed. Grid spacing must resolve the Debye length or a finite-grid instability heats the plasma."],
+["ul",["Scatter-solve-gather-push cycle per timestep","Boris pusher for stable magnetized particle motion","Statistical noise falls as 1/sqrt(particles per cell)","Debye-length and plasma-frequency resolution constraints"]],
+["p","PIC is central to first-principles kinetic modeling of plasma sources, sheaths, and instabilities relevant to both magnetic-confinement and direct-energy-conversion concepts."]
+],
+"related":[["boris-pusher","The Boris Particle Pusher"],["delta-f-method","The Delta-f Method"],["monte-carlo-transport","Monte Carlo Transport"],["cfl-condition","The CFL Condition"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"boris-pusher",
+"title":"The Boris Particle Pusher",
+"cat":"solvers-methods",
+"lede":"The Boris algorithm advances a charged particle in electromagnetic fields by splitting the motion into a half electric kick, a magnetic rotation, and a second kick.",
+"body":[
+["h2","A stable rotation for magnetized particles"],
+["p","Charged particles in a magnetic field gyrate, and a naive integrator either spirals in or out over many orbits, corrupting long simulations. The Boris method solves this by splitting the Lorentz-force update into three exact substeps within a leapfrog scheme: a half acceleration by the electric field, a pure rotation by the magnetic field, and a second half electric acceleration."],
+["p","The key insight is that the magnetic force does no work and only rotates the velocity. The Boris rotation reproduces this property discretely, so the particle's speed is preserved through the magnetic substep and the gyration radius stays bounded over arbitrarily many orbits."],
+["h3","Why it endures"],
+["p","The Boris pusher is time-reversible and phase-space volume preserving in the magnetic rotation, giving excellent long-term energy behavior without being formally symplectic. It is second-order accurate, requires only one field evaluation per step, and is cheap enough to apply to billions of particles. These properties explain its near-universal use in particle-in-cell codes."],
+["h3","The rotation in practice"],
+["p","The magnetic rotation is implemented with two auxiliary vectors t and s built from the field and timestep. The velocity is first rotated by an intermediate step using t, then reflected using s, reproducing the exact finite-angle rotation without trigonometric functions."],
+["ul",["Leapfrog structure: velocity and position staggered in time","Exact energy conservation through the magnetic substep","No secular drift in gyroradius over many orbits","Trigonometry-free implementation using auxiliary vectors"]],
+["p","Because faithful long-time orbit integration is the foundation of kinetic plasma modeling, the Boris pusher is a standard component wherever magnetized particle motion is simulated for confinement or direct-conversion studies."]
+],
+"related":[["particle-in-cell","The Particle-in-Cell Method"],["leapfrog-integration","Leapfrog Integration"],["symplectic-integrators","Symplectic Integrators"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"delta-f-method",
+"title":"The Delta-f Method",
+"cat":"solvers-methods",
+"lede":"The delta-f method evolves only the perturbation away from a known background distribution, sharply reducing particle noise in kinetic simulations.",
+"body":[
+["h2","Splitting the distribution"],
+["p","Full-f particle methods sample the entire distribution function, so statistical noise contaminates even the large, well-known background. The delta-f method writes the distribution as a known analytic background f0 plus a perturbation delta-f, and lets the computational particles carry only delta-f as a weight. Since delta-f is typically much smaller than f0, the same number of particles yields far less noise in the quantity of interest."],
+["p","Each particle carries a time-evolving weight whose equation of motion follows from the kinetic equation applied to the split. The background is treated analytically, and only its deviation is sampled statistically."],
+["h3","Where it applies"],
+["p","Delta-f is most effective when the perturbation stays small relative to the background, as in linear and weakly nonlinear microturbulence and instability growth. It is the standard approach in many gyrokinetic codes studying transport driven by small-amplitude fluctuations."],
+["h3","Limits and extensions"],
+["p","When the perturbation grows large, or when the background itself must evolve, the noise advantage erodes and particle weights can spread, degrading accuracy. Adaptive and full-f hybrids periodically reset or renormalize the background to keep the split efficient. Careful weight control is needed to avoid a slow growth of sampling error over long runs."],
+["ul",["Distribution split f = f0 + delta-f","Particles carry weights evolving delta-f, not full f","Noise reduced roughly by the ratio delta-f/f0","Weight growth limits validity in strongly nonlinear regimes"]],
+["p","By focusing computational effort on the physically interesting perturbation, the delta-f method makes first-principles turbulence and transport studies tractable at resolutions that full-f sampling could not reach economically."]
+],
+"related":[["particle-in-cell","The Particle-in-Cell Method"],["gyrokinetic-solvers","Gyrokinetic Solvers"],["monte-carlo-transport","Monte Carlo Transport"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"monte-carlo-transport",
+"title":"Monte Carlo Transport",
+"cat":"solvers-methods",
+"lede":"Monte Carlo transport simulates radiation by following random particle histories and averaging their contributions to estimate transport quantities.",
+"body":[
+["h2","Sampling the transport equation"],
+["p","Monte Carlo methods solve the linear Boltzmann transport equation for neutrons, photons, or other particles by simulating individual particle histories. Each particle is born from a source, travels a distance sampled from the exponential attenuation law, undergoes a randomly selected interaction (scatter, absorption, fission), and either continues or terminates. Averaging over many histories gives estimates of fluxes, reaction rates, and energy deposition with quantifiable statistical uncertainty."],
+["p","The method's defining strength is geometric and physical fidelity: it represents continuous energy, complex three-dimensional geometry, and detailed cross-section data without the discretization approximations that mesh-based deterministic methods require."],
+["h3","Estimators and variance"],
+["p","Quantities of interest are computed with estimators such as track-length or collision estimators that tally contributions along particle paths. The statistical error falls only as one over the square root of the number of histories, so halving the error requires quadrupling the work. This slow convergence motivates variance reduction."],
+["h3","Variance reduction"],
+["p","Techniques such as importance sampling, weight windows, splitting and Russian roulette, and next-event estimators steer computational effort toward the regions and events that matter for the answer, improving the figure of merit (inverse of variance times time) by orders of magnitude for deep-penetration or small-detector problems."],
+["ul",["Free-flight distances sampled from exponential attenuation","Track-length and collision estimators for tallies","Error scales as 1/sqrt(number of histories)","Variance reduction: importance sampling, weight windows, splitting"]],
+["p","In fusion neutronics, Monte Carlo transport is the reference tool for computing tritium breeding, neutron and gamma heating, activation, and shielding in complex blanket and vessel geometries, where accurate three-dimensional treatment is essential."]
+],
+"related":[["discrete-ordinates","The Discrete Ordinates Method"],["particle-in-cell","The Particle-in-Cell Method"],["delta-f-method","The Delta-f Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"discrete-ordinates",
+"title":"The Discrete Ordinates Method",
+"cat":"solvers-methods",
+"lede":"Discrete ordinates solve the transport equation by discretizing angle into a fixed set of directions with quadrature weights.",
+"body":[
+["h2","Discretizing the angular variable"],
+["p","The discrete ordinates method, often written S_N, is the deterministic counterpart to Monte Carlo for radiation transport. Where Monte Carlo samples directions randomly, S_N chooses a fixed set of discrete angular directions (ordinates) with associated quadrature weights, and solves the transport equation along each direction. Space is discretized by finite differences, finite volumes, or finite elements, and energy by multigroup cross sections."],
+["p","The result is a deterministic solution over the whole phase space at once, giving flux everywhere rather than statistical estimates at chosen tallies. This is valuable when the flux is needed throughout a domain, such as full-field shielding or activation maps."],
+["h3","Sweeps and iteration"],
+["p","For each direction and energy group, the discretized equations are solved by a transport sweep that marches through the mesh following the flow of particles. Because scattering couples directions and groups, the sweeps are wrapped in source iteration, often accelerated by diffusion synthetic acceleration to speed convergence in optically thick, scattering-dominated regions."],
+["h3","Ray effects and mitigation"],
+["p","The main artifact of S_N is ray effects: because only discrete directions are used, streaming from localized sources can produce unphysical striping in low-scattering regions. Increasing the angular order, using better quadrature sets, or applying first-collision source treatments reduces these effects."],
+["ul",["Angular quadrature sets (level-symmetric, Gauss) define ordinates","Multigroup treatment of energy dependence","Transport sweeps with source iteration and acceleration","Ray effects from finite angular resolution"]],
+["p","Discrete ordinates and Monte Carlo are complementary in neutronics: S_N gives full-field deterministic results efficiently for many geometries, while Monte Carlo handles complex three-dimensional detail exactly. Hybrid schemes use one to accelerate or bias the other."]
+],
+"related":[["monte-carlo-transport","Monte Carlo Transport"],["finite-volume-method","Finite Volume Method"],["multigrid-methods","Multigrid Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"adaptive-mesh-refinement",
+"title":"Adaptive Mesh Refinement",
+"cat":"solvers-methods",
+"lede":"Adaptive mesh refinement concentrates grid resolution where the solution varies rapidly and coarsens it where the solution is smooth.",
+"body":[
+["h2","Resolution where it is needed"],
+["p","Many problems have features (shocks, boundary layers, current sheets, fronts) that occupy a small fraction of the domain but demand fine resolution, while the rest is smooth. A uniform fine grid wastes enormous effort on the smooth regions. Adaptive mesh refinement (AMR) dynamically adds resolution where an error indicator flags rapid variation and removes it where the solution is well resolved, tracking features as they move."],
+["p","AMR can reduce the number of degrees of freedom by orders of magnitude for problems with localized structure, making otherwise intractable resolutions feasible."],
+["h3","Block-structured and tree-based approaches"],
+["p","Two families dominate. Block-structured AMR overlays progressively finer rectangular patches on a coarse base grid, organized in nested levels; it keeps efficient structured-grid kernels but needs careful flux matching at level boundaries. Cell-based or tree-based AMR refines individual cells recursively (quadtrees in 2D, octrees in 3D), giving fine-grained adaptivity at the cost of more complex data structures."],
+["h3","Refinement criteria and conservation"],
+["p","Refinement is driven by error estimators, gradient or curvature indicators, or physics-based tags. At coarse-fine interfaces, fluxes must be corrected so the scheme remains conservative; time-step subcycling advances fine levels with smaller steps to respect stability limits without penalizing the coarse grid."],
+["ul",["Error indicators or gradient sensors flag cells to refine","Block-structured (patches) vs tree-based (cells) organization","Flux correction preserves conservation across levels","Subcycling in time matches step size to local resolution"]],
+["p","AMR is widely used in magnetohydrodynamic and transport simulations where thin, moving structures must be captured accurately without paying for uniform fine resolution across the whole device volume."]
+],
+"related":[["mesh-adaptation-error-estimation","Mesh Adaptation and Error Estimation"],["finite-volume-method","Finite Volume Method"],["conservative-schemes","Conservative Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"multigrid-methods",
+"title":"Multigrid Methods",
+"cat":"solvers-methods",
+"lede":"Multigrid accelerates the solution of large linear systems by removing errors on a hierarchy of coarser grids, achieving near-optimal scaling.",
+"body":[
+["h2","Why one grid is slow"],
+["p","Classical iterative solvers like Jacobi or Gauss-Seidel remove high-frequency (oscillatory) error components quickly but smooth, low-frequency components very slowly. On a fine grid, smooth error takes many iterations to decay, so convergence stalls. Multigrid overcomes this by recognizing that smooth error on a fine grid looks oscillatory on a coarser grid, where a smoother can eliminate it efficiently."],
+["p","By combining smoothing on a hierarchy of grids, multigrid attacks every error frequency on the grid where it is most quickly reduced. For many elliptic problems this yields convergence in a number of iterations independent of problem size, and a total cost proportional to the number of unknowns."],
+["h3","The multigrid cycle"],
+["p","A V-cycle smooths the error on the fine grid, restricts the residual to a coarser grid, solves (recursively) the coarse problem, prolongs the correction back to the fine grid, and smooths again. W-cycles and full multigrid (FMG) visit coarse grids more or start from the coarsest level to build a good initial guess. Restriction and prolongation operators transfer information between levels."],
+["h3","Geometric and algebraic variants"],
+["p","Geometric multigrid builds the grid hierarchy from the mesh geometry and is efficient when a natural coarsening exists. Algebraic multigrid (AMG) constructs the hierarchy from the matrix alone, making it applicable to unstructured problems and complicated operators where geometric coarsening is unclear."],
+["ul",["Smoothers remove high-frequency error on each level","Restriction and prolongation transfer between grids","V-, W-, and full multigrid cycling strategies","Near-optimal O(N) scaling for many elliptic systems"]],
+["p","Multigrid, used directly or as a preconditioner for Krylov solvers, is central to fast elliptic solves such as the field solves in field codes and the pressure or potential equations in fluid and MHD models."]
+],
+"related":[["amg-algebraic-multigrid","Algebraic Multigrid"],["preconditioning","Preconditioning"],["conjugate-gradient","The Conjugate Gradient Method"],["gmres-krylov-solvers","GMRES and Krylov Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"amg-algebraic-multigrid",
+"title":"Algebraic Multigrid",
+"cat":"solvers-methods",
+"lede":"Algebraic multigrid builds a coarse-grid hierarchy from the matrix entries alone, extending multigrid to unstructured and irregular problems.",
+"body":[
+["h2","Multigrid without a mesh"],
+["p","Geometric multigrid needs a sequence of nested grids, which is natural on structured meshes but awkward on unstructured ones. Algebraic multigrid (AMG) removes that requirement: it constructs the coarse levels, the interpolation operators, and the coarse-grid operators using only the entries of the fine-grid matrix. This makes it a near black-box solver for symmetric positive-definite systems arising from many discretizations."],
+["p","AMG infers which unknowns are strongly connected by examining the size of off-diagonal matrix entries relative to the diagonal. Strongly connected unknowns should be represented well on coarser levels, guiding the coarsening."],
+["h3","Setup and solve phases"],
+["p","AMG has a setup phase that analyzes the matrix, selects coarse variables, builds interpolation, and forms coarse operators by the Galerkin triple product; and a solve phase that runs standard multigrid cycles using these operators. Setup cost is nontrivial and is amortized when the same matrix is solved for many right-hand sides."],
+["h3","Variants and robustness"],
+["p","Classical Ruge-Stueben AMG selects coarse points from the fine grid; smoothed-aggregation AMG groups unknowns into aggregates and smooths the resulting basis. Both perform well on scalar elliptic problems; systems of PDEs and strongly anisotropic or convective operators require specialized strengthening to remain robust."],
+["ul",["Coarsening driven by matrix strength of connection","Galerkin triple product forms coarse operators","Ruge-Stueben (points) vs smoothed aggregation (aggregates)","Setup cost amortized over repeated solves"]],
+["p","AMG is a common preconditioner for the large sparse systems that appear in implicit fusion transport and MHD solvers on complex unstructured meshes, where a geometric hierarchy is not readily available."]
+],
+"related":[["multigrid-methods","Multigrid Methods"],["preconditioning","Preconditioning"],["sparse-linear-solvers","Sparse Linear Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"domain-decomposition",
+"title":"Domain Decomposition",
+"cat":"solvers-methods",
+"lede":"Domain decomposition splits a problem across subdomains that are solved semi-independently and coupled at their interfaces, enabling parallel solution.",
+"body":[
+["h2","Divide, solve, reconcile"],
+["p","Domain decomposition methods partition the computational domain into subdomains, solve smaller problems on each, and reconcile the solutions across shared interfaces. The approach serves two purposes at once: it distributes work across processors for parallel computing, and it provides a mathematical framework for preconditioning large systems by combining local solves."],
+["p","The central challenge is the coupling: neighboring subdomains must agree on the solution and its fluxes at their boundaries. How that agreement is enforced distinguishes the method families."],
+["h3","Overlapping and non-overlapping"],
+["p","Overlapping Schwarz methods let subdomains share a strip of cells; each subdomain solves using the latest neighbor values as boundary data, iterating until the overlaps agree. Non-overlapping methods (substructuring, FETI, balancing) partition cleanly and solve for interface unknowns via a reduced Schur-complement system, then recover the interiors."],
+["h3","Scalability and coarse spaces"],
+["p","One-level methods degrade as the number of subdomains grows, because information travels only between neighbors each iteration. A coarse-space correction, solving a small global problem, restores scalability by propagating information across the whole domain in one step, analogous to the coarse grid in multigrid."],
+["ul",["Overlapping Schwarz vs non-overlapping substructuring","Interface conditions couple neighboring subdomains","Schur-complement systems for interface unknowns","Coarse spaces provide global coupling and scalability"]],
+["p","Domain decomposition is the standard route to parallelizing implicit fusion simulations across many processors, and doubles as an effective preconditioner for the resulting large distributed linear systems."]
+],
+"related":[["multigrid-methods","Multigrid Methods"],["preconditioning","Preconditioning"],["parallel-in-time","Parallel-in-Time Integration"],["sparse-linear-solvers","Sparse Linear Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"explicit-time-integration",
+"title":"Explicit Time Integration",
+"cat":"solvers-methods",
+"lede":"Explicit methods compute the next state directly from known current values, cheaply per step but limited by a stability time-step bound.",
+"body":[
+["h2","Marching forward directly"],
+["p","An explicit time integrator computes the solution at the next time level using only quantities already known at the current (and earlier) levels. Forward Euler, u_{n+1} = u_n + dt f(u_n), is the simplest example; explicit Runge-Kutta methods build higher accuracy from several such evaluations. Each step is cheap because no system of equations must be solved: the update is an explicit formula."],
+["p","This simplicity and low per-step cost make explicit methods the default for wave-dominated and hyperbolic problems, and for large kinetic simulations where an implicit solve would be prohibitive."],
+["h3","The stability constraint"],
+["p","The price is a stability limit on the time step. For explicit schemes the step size is bounded by the fastest process in the system: the Courant-Friedrichs-Lewy (CFL) condition ties dt to the grid spacing divided by the fastest wave or particle speed. Diffusive terms impose an even tighter dt proportional to the square of the grid spacing. Exceed the bound and the solution blows up."],
+["h3","When explicit wins"],
+["p","Explicit methods are ideal when the time scales of interest are comparable to the stability limit anyway, so no accuracy is wasted. They parallelize trivially because each update is local. When the physics contains much faster, uninteresting time scales (stiffness), the stability limit forces tiny steps and implicit or semi-implicit methods become preferable."],
+["ul",["Next state computed by direct formula, no linear solve","CFL bound: dt limited by fastest wave or particle speed","Diffusion imposes dt proportional to grid spacing squared","Excellent parallel scaling from purely local updates"]],
+["p","The choice between explicit and implicit integration is one of the most consequential in a simulation, balancing per-step cost against the number of steps stability allows."]
+],
+"related":[["implicit-time-integration","Implicit Time Integration"],["cfl-condition","The CFL Condition"],["runge-kutta-methods","Runge-Kutta Methods"],["imex-schemes","IMEX Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"implicit-time-integration",
+"title":"Implicit Time Integration",
+"cat":"solvers-methods",
+"lede":"Implicit methods define the next state through an equation that includes future values, allowing large stable steps at the cost of a solve each step.",
+"body":[
+["h2","Solving for the future state"],
+["p","An implicit time integrator writes the update in terms of quantities at the new time level, so the unknown appears on both sides. Backward Euler, u_{n+1} = u_n + dt f(u_{n+1}), is the prototype. Because f is evaluated at the unknown state, each step requires solving an algebraic system, linear if f is linear and nonlinear otherwise, typically with Newton-Krylov iteration."],
+["p","The reward for this extra work is stability. Many implicit methods are unconditionally stable for diffusive and stiff problems, meaning the time step is limited by accuracy requirements rather than by a stability bound. This lets a simulation take steps far larger than an explicit method could survive."],
+["h3","Stiffness and A-stability"],
+["p","Stiff systems contain very fast decaying modes alongside the slow dynamics of interest. Explicit methods must resolve the fast modes for stability even when they are physically irrelevant, forcing tiny steps. A-stable and L-stable implicit methods damp those fast modes at any step size, so the step can be chosen to resolve only the slow physics."],
+["h3","Cost per step"],
+["p","The linear or nonlinear solve dominates implicit cost. Efficiency depends heavily on good preconditioning and on matrix-free Jacobian-free techniques that avoid forming and storing the full Jacobian. When steps are large enough, the reduced number of steps outweighs the higher per-step cost."],
+["ul",["Update depends on unknown future state, requiring a solve","Unconditional stability for stiff and diffusive problems","Time step limited by accuracy, not stability","Preconditioning is decisive for solver efficiency"]],
+["p","Implicit and semi-implicit integration is essential for transport and extended-MHD simulations that must step over fast waves to follow slow evolution on device-relevant time scales."]
+],
+"related":[["explicit-time-integration","Explicit Time Integration"],["backward-euler","Backward Euler and BDF Methods"],["crank-nicolson","The Crank-Nicolson Method"],["newton-krylov","Newton-Krylov Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"imex-schemes",
+"title":"IMEX Schemes",
+"cat":"solvers-methods",
+"lede":"Implicit-explicit schemes treat stiff terms implicitly and non-stiff terms explicitly, combining stability with low cost per step.",
+"body":[
+["h2","Splitting by stiffness"],
+["p","Many equations contain both a stiff part (fast diffusion, stiff reactions, fast waves) and a non-stiff part (advection, mild source terms). Treating everything implicitly is stable but expensive because even the easy terms enter the nonlinear solve; treating everything explicitly forces tiny steps because of the stiff part. Implicit-explicit (IMEX) schemes split the difference: advance the stiff terms implicitly for stability and the non-stiff terms explicitly for cheapness."],
+["p","The result is a step whose stability is set by the non-stiff terms alone, while the stiff terms are handled without the crippling explicit time-step limit, and without the cost of implicitly solving the whole right-hand side."],
+["h3","Construction"],
+["p","IMEX methods pair an implicit scheme (often a diagonally implicit Runge-Kutta or a backward differentiation formula) for the stiff operator with a matched explicit scheme for the non-stiff operator, sharing stage times so the combination retains a stated order of accuracy. Additive Runge-Kutta families are designed specifically for this pairing."],
+["h3","Design considerations"],
+["p","The split must be chosen so the implicit part captures all genuinely stiff dynamics; misclassifying a stiff term as explicit reintroduces a severe step limit. The implicit solve should involve a linear or easily preconditioned operator, which is why diffusion (a linear elliptic operator) is a favorite candidate for implicit treatment."],
+["ul",["Stiff terms implicit, non-stiff terms explicit","Time step set by the non-stiff dynamics","Additive Runge-Kutta and BDF-based pairings","Split must capture all stiffness on the implicit side"]],
+["p","IMEX integration is common in reacting-flow, edge-plasma, and MHD models where stiff diffusion or fast parallel dynamics coexist with slower advective transport."]
+],
+"related":[["implicit-time-integration","Implicit Time Integration"],["explicit-time-integration","Explicit Time Integration"],["operator-splitting","Operator Splitting"],["runge-kutta-methods","Runge-Kutta Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"runge-kutta-methods",
+"title":"Runge-Kutta Methods",
+"cat":"solvers-methods",
+"lede":"Runge-Kutta methods build high-order time integration from several intermediate evaluations of the right-hand side within a single step.",
+"body":[
+["h2","Multiple stages, one step"],
+["p","Runge-Kutta (RK) methods advance an ordinary differential equation over one time step by sampling the right-hand side at several intermediate stages and combining them with carefully chosen weights. The classical fourth-order method (RK4) uses four evaluations and cancels error terms up to fourth order in the step size, giving high accuracy from a self-contained single step that needs no history."],
+["p","This one-step nature makes RK methods easy to start, easy to change step size, and well suited to adaptive control, in contrast to multistep methods that depend on several previous values."],
+["h3","Butcher tableaux and order"],
+["p","An RK method is specified compactly by a Butcher tableau of stage coefficients and weights. Explicit RK methods have a strictly lower-triangular coefficient matrix so each stage depends only on earlier ones; diagonally implicit (DIRK) and fully implicit RK methods include the current stage, requiring solves but gaining stability for stiff problems."],
+["h3","Embedded pairs and stability"],
+["p","Embedded RK methods compute two solutions of different orders from the same stages; their difference estimates the local error and drives adaptive step-size control. For hyperbolic conservation laws, strong-stability-preserving (SSP) RK methods keep the nonlinear stability properties of the underlying spatial scheme, preventing spurious oscillations."],
+["ul",["Butcher tableau encodes stages, weights, and nodes","Explicit RK for non-stiff, implicit/DIRK for stiff problems","Embedded pairs give cheap local error estimates","SSP variants preserve nonlinear stability for shocks"]],
+["p","Runge-Kutta integrators are ubiquitous across fusion codes, from orbit following and turbulence to MHD, chosen in explicit, implicit, or SSP form to match the stiffness and stability demands of the problem."]
+],
+"related":[["explicit-time-integration","Explicit Time Integration"],["implicit-time-integration","Implicit Time Integration"],["imex-schemes","IMEX Schemes"],["total-variation-diminishing","Total Variation Diminishing Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"crank-nicolson",
+"title":"The Crank-Nicolson Method",
+"cat":"solvers-methods",
+"lede":"Crank-Nicolson averages explicit and implicit evaluations to reach second-order accuracy in time with unconditional linear stability.",
+"body":[
+["h2","The trapezoidal rule in time"],
+["p","The Crank-Nicolson method integrates a time-dependent PDE by averaging the right-hand side at the current and next time levels: u_{n+1} = u_n + (dt/2)[f(u_n) + f(u_{n+1})]. It is the trapezoidal rule applied in time and, for the heat equation and similar diffusion problems, combines two attractive properties: second-order accuracy in the time step and unconditional stability for linear problems."],
+["p","Because it involves f at the new level, Crank-Nicolson is implicit and requires a linear (or nonlinear) solve each step, but the payoff is that the step size is set by accuracy rather than by a stability limit."],
+["h3","A-stable but not L-stable"],
+["p","Crank-Nicolson is A-stable: no linear mode grows for any step size. It is not L-stable, however, so very fast decaying modes are damped only weakly and can produce slowly decaying oscillations when the initial data or forcing is not smooth. When such oscillations are troublesome, a few backward-Euler steps at the start (Rannacher smoothing) or a shift toward a more strongly damping scheme restores clean behavior."],
+["h3","Use and variants"],
+["p","The method is a standard choice for parabolic problems needing better accuracy than backward Euler without the step limit of explicit schemes. The theta-method generalizes it: theta = 0 gives forward Euler, theta = 1 backward Euler, and theta = 1/2 Crank-Nicolson, letting a single parameter trade accuracy for damping."],
+["ul",["Average of current and next right-hand sides (trapezoidal)","Second-order accurate and A-stable for linear problems","Not L-stable: weak damping of the fastest modes","Theta-method generalization spans Euler to Crank-Nicolson"]],
+["p","Crank-Nicolson and its theta-method relatives appear throughout diffusion-dominated transport modeling where second-order temporal accuracy without a restrictive step limit is desired."]
+],
+"related":[["implicit-time-integration","Implicit Time Integration"],["backward-euler","Backward Euler and BDF Methods"],["stability-analysis-von-neumann","Von Neumann Stability Analysis"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"backward-euler",
+"title":"Backward Euler and BDF Methods",
+"cat":"solvers-methods",
+"lede":"Backward differentiation formulas are stiffly stable implicit multistep integrators built for problems with fast, uninteresting decay modes.",
+"body":[
+["h2","Strong damping for stiff systems"],
+["p","Backward Euler is the simplest implicit method: u_{n+1} = u_n + dt f(u_{n+1}). It is only first-order accurate but is both A-stable and L-stable, meaning it damps arbitrarily fast decaying modes strongly. That heavy damping is exactly what stiff problems need, since it lets the step size follow the slow physics without the fast modes destabilizing or polluting the solution."],
+["p","Backward differentiation formulas (BDF) extend this idea to higher order by fitting a polynomial through several past solution values and requiring its derivative at the new point to match f(u_{n+1}). BDF2 through BDF5 raise accuracy while retaining strong stability for stiff systems."],
+["h3","Stability and order limits"],
+["p","BDF methods are stiffly stable up to order 6; beyond that they lose stability (a consequence of the second Dahlquist barrier), so practical codes use orders one through five. Higher-order BDF methods have a shrinking region of stability, so variable-order implementations lower the order automatically when stability demands it."],
+["h3","Variable step and order"],
+["p","Production stiff solvers implement BDF with adaptive step size and order selection, estimating local error at each step and adjusting both to hold accuracy at minimum cost. Each step still requires a nonlinear solve, typically Newton-based, so a good preconditioner and Jacobian strategy are essential."],
+["ul",["Backward Euler: first-order, A- and L-stable","BDF fits past states to reach higher order","Stiffly stable only up to order six","Variable step and order in production stiff solvers"]],
+["p","BDF integrators are the backbone of stiff time-dependent transport and reaction-network solvers, where fast equilibration must be stepped over to reach the slow evolution of interest."]
+],
+"related":[["implicit-time-integration","Implicit Time Integration"],["crank-nicolson","The Crank-Nicolson Method"],["newton-krylov","Newton-Krylov Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"operator-splitting",
+"title":"Operator Splitting",
+"cat":"solvers-methods",
+"lede":"Operator splitting advances a multi-physics problem by solving its constituent operators in sequence, each with a method suited to it.",
+"body":[
+["h2","Divide the physics, not the domain"],
+["p","When an evolution equation combines several physical processes, such as advection, diffusion, and reaction, operator splitting advances each process in turn over a time step rather than solving them all together. Each sub-operator can then use the integrator best matched to it: an explicit upwind scheme for advection, an implicit solve for stiff diffusion, a specialized ODE solver for reactions."],
+["p","This modularity is the method's main appeal: complex coupled systems become sequences of well-understood, independently optimized sub-solves, and existing single-physics solvers can be reused."],
+["h3","Lie and Strang splitting"],
+["p","The simplest scheme, Lie (or Godunov) splitting, applies the operators sequentially and is first-order accurate in time; the splitting error comes from the fact that the operators do not commute. Strang splitting recovers second order by using a symmetric sequence: half a step of the first operator, a full step of the second, then another half step of the first."],
+["h3","Splitting error and pitfalls"],
+["p","The order reduction from splitting is real and can matter near boundaries or steady states, where the split solution may not satisfy the coupled balance the full system would. Careful choice of ordering, symmetric composition, and consistent boundary treatment across sub-steps limit these errors. For stiff coupled terms, splitting can introduce spurious transients that require attention."],
+["ul",["Each sub-operator solved with its best-suited method","Lie splitting first order; Strang splitting second order","Splitting error from non-commuting operators","Boundary and steady-state consistency need care"]],
+["p","Operator splitting is pervasive in multi-physics fusion modeling, letting transport, atomic-physics, and field-evolution modules be developed and validated separately, then composed into a coupled simulation."]
+],
+"related":[["imex-schemes","IMEX Schemes"],["implicit-time-integration","Implicit Time Integration"],["method-of-lines","The Method of Lines"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"method-of-lines",
+"title":"The Method of Lines",
+"cat":"solvers-methods",
+"lede":"The method of lines discretizes space first, converting a PDE into a large system of ODEs to be integrated in time by any suitable solver.",
+"body":[
+["h2","Separating space and time"],
+["p","The method of lines (MOL) is a strategy for solving time-dependent PDEs by handling the spatial and temporal discretizations separately. First, discretize all spatial derivatives (by finite differences, finite volumes, finite elements, or spectral methods), leaving time continuous. This turns the PDE into a large coupled system of ordinary differential equations, one per spatial degree of freedom, each describing how a nodal value evolves in time."],
+["p","Then any ODE integrator, explicit or implicit, adaptive or fixed-step, can advance the semi-discrete system. This separation lets developers mix and match well-tested spatial and temporal building blocks and reuse mature ODE-solver software."],
+["h3","The semi-discrete system"],
+["p","After spatial discretization the system takes the form du/dt = F(u, t), where u collects all nodal unknowns and F encodes the discretized spatial operator plus sources and boundary conditions. The eigenvalues of the Jacobian of F determine stiffness and thus which time integrator is appropriate: widely spread eigenvalues signal stiffness and favor implicit methods."],
+["h3","Advantages and caveats"],
+["p","MOL cleanly decouples the two error sources and lets each be controlled independently. Its main caveat is that not every PDE is well served by a strict split; hyperbolic problems in particular may need the space and time discretizations designed together (as in Lax-Wendroff or discontinuous Galerkin with SSP time stepping) to preserve stability and avoid oscillations."],
+["ul",["Discretize space first, keep time continuous","Yields a large coupled ODE system du/dt = F(u)","Any ODE integrator can then be applied","Jacobian eigenvalue spread reveals stiffness"]],
+["p","MOL is the conceptual backbone of most time-dependent transport and MHD codes, making it easy to swap spatial schemes and time integrators as accuracy and stability demands change."]
+],
+"related":[["explicit-time-integration","Explicit Time Integration"],["implicit-time-integration","Implicit Time Integration"],["runge-kutta-methods","Runge-Kutta Methods"],["operator-splitting","Operator Splitting"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"flux-limiters",
+"title":"Flux Limiters",
+"cat":"solvers-methods",
+"lede":"Flux limiters blend high- and low-order schemes locally to keep sharp gradients monotone without spurious oscillations.",
+"body":[
+["h2","The accuracy-versus-oscillation dilemma"],
+["p","High-order schemes for advection are accurate on smooth solutions but produce overshoots and undershoots near steep gradients or discontinuities, the numerical analog of ringing. Low-order upwind schemes are oscillation-free but smear sharp features with excessive numerical diffusion. Flux limiters resolve this dilemma by switching adaptively: high order where the solution is smooth, low order where it is steep."],
+["p","The switch is driven by a smoothness measure, usually the ratio r of consecutive solution gradients. A limiter function phi(r) multiplies the anti-diffusive part of the flux, turning it off (phi = 0) at extrema and on (approaching high order) in smooth regions."],
+["h3","The TVD constraint"],
+["p","Limiter functions are designed to keep the scheme total variation diminishing (TVD), which guarantees no new maxima or minima are created. Sweby's diagram defines the admissible region in the (r, phi) plane that a second-order TVD limiter must occupy. Common choices, minmod (most diffusive), van Leer, MC, and superbee (least diffusive, sharpest), trade smearing against steepness within this region."],
+["h3","Practical behavior"],
+["p","Minmod is safe but blunt; superbee keeps discontinuities crisp but can artificially steepen smooth gradients into false fronts. Van Leer and MC are popular compromises. The choice is problem dependent and affects how faithfully steep transport fronts are represented."],
+["ul",["Gradient ratio r measures local smoothness","Limiter phi(r) blends high- and low-order flux","Sweby region defines admissible second-order TVD limiters","Minmod (diffusive) to superbee (compressive) spectrum"]],
+["p","Flux limiters are standard in finite-volume transport and MHD codes wherever sharp fronts, such as edge-plasma gradients, must be advected without spurious oscillations corrupting the solution."]
+],
+"related":[["total-variation-diminishing","Total Variation Diminishing Schemes"],["finite-volume-method","Finite Volume Method"],["shock-capturing","Shock Capturing"],["weno-schemes","WENO Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"total-variation-diminishing",
+"title":"Total Variation Diminishing Schemes",
+"cat":"solvers-methods",
+"lede":"TVD schemes guarantee that the total variation of the solution does not increase, preventing the growth of spurious oscillations.",
+"body":[
+["h2","A monotonicity guarantee"],
+["p","The total variation of a discrete solution is the sum of the absolute differences between neighboring values, a measure of how much the solution wiggles. A total variation diminishing (TVD) scheme is one for which this quantity never increases from one time step to the next. Since physical solutions of scalar conservation laws do not grow their total variation, a TVD scheme cannot manufacture new oscillations, overshoots, or undershoots."],
+["p","This property is central to robust shock and front capturing: it rules out the ringing that plagues naive high-order schemes near discontinuities, while still permitting sharp resolution of those discontinuities."],
+["h3","Godunov's order barrier"],
+["p","Godunov's theorem states that any linear monotone scheme can be at most first-order accurate. TVD schemes escape this barrier by being nonlinear even when applied to linear equations: the flux limiter makes the coefficients depend on the solution itself. This nonlinearity is what allows second-order accuracy in smooth regions together with monotone behavior at discontinuities."],
+["h3","Construction and reach"],
+["p","Second-order TVD schemes are built by adding a limited anti-diffusive flux to a first-order upwind base, with the limiter constrained to Sweby's admissible region. The framework is rigorous for one-dimensional scalar problems; for systems and multiple dimensions TVD is applied component- or direction-wise and holds approximately rather than exactly, but still delivers robust, essentially non-oscillatory results."],
+["ul",["Total variation never increases in time","Prevents spurious new extrema near discontinuities","Godunov barrier requires nonlinearity for high order","Extended dimensionally and to systems in practice"]],
+["p","TVD schemes and their WENO successors are the standard for capturing sharp gradients in fusion fluid and MHD simulations without corrupting the surrounding solution."]
+],
+"related":[["flux-limiters","Flux Limiters"],["shock-capturing","Shock Capturing"],["weno-schemes","WENO Schemes"],["conservative-schemes","Conservative Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"weno-schemes",
+"title":"WENO Schemes",
+"cat":"solvers-methods",
+"lede":"Weighted essentially non-oscillatory schemes achieve high order on smooth data while avoiding oscillations near discontinuities by adaptively weighting candidate stencils.",
+"body":[
+["h2","Choosing stencils by smoothness"],
+["p","Weighted essentially non-oscillatory (WENO) schemes reconstruct high-order interface values for finite-volume and finite-difference conservation laws by combining several candidate stencils. Each candidate spans a different set of cells; a smoothness indicator measures how oscillatory the solution is on each. The scheme then weights the candidates so that stencils crossing a discontinuity receive near-zero weight, while in smooth regions the weights combine to reach the highest possible order."],
+["p","This adaptive weighting is the refinement over the earlier ENO idea, which simply picked the single smoothest stencil. WENO uses all of them convexly, gaining accuracy and smoothness of the weighting response."],
+["h3","Order and smoothness indicators"],
+["p","A fifth-order WENO scheme, common in practice, combines three third-order stencils. The smoothness indicators are sums of squared, scaled derivatives over each stencil; large values (steep or oscillatory data) drive that stencil's weight toward zero. In smooth regions the nonlinear weights approach fixed optimal weights that recover the full high order."],
+["h3","Strengths and costs"],
+["p","WENO captures shocks and steep gradients crisply without limiters, resolves smooth structures with high order, and handles complex wave interactions robustly. It is more expensive per point than a limited second-order scheme because of the multiple reconstructions and nonlinear weights, and its accuracy can degrade at critical points unless a mapped or improved weighting variant is used."],
+["ul",["Multiple candidate stencils combined by nonlinear weights","Smoothness indicators suppress stencils near discontinuities","Fifth-order from three third-order stencils is standard","No explicit limiter needed for essentially non-oscillatory results"]],
+["p","WENO reconstructions are widely used in high-fidelity compressible flow and MHD simulations where both sharp shocks and delicate smooth turbulence must be represented accurately at once."]
+],
+"related":[["total-variation-diminishing","Total Variation Diminishing Schemes"],["flux-limiters","Flux Limiters"],["shock-capturing","Shock Capturing"],["riemann-solvers","Riemann Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"shock-capturing",
+"title":"Shock Capturing",
+"cat":"solvers-methods",
+"lede":"Shock-capturing schemes compute discontinuous solutions of conservation laws automatically, without tracking discontinuity locations explicitly.",
+"body":[
+["h2","Letting the scheme find the shock"],
+["p","Nonlinear hyperbolic conservation laws, such as those of compressible flow and MHD, develop discontinuities (shocks and contact surfaces) even from smooth initial data. Shock-capturing methods handle these without any explicit knowledge of where the discontinuities are: the discontinuity emerges naturally as a steep numerical transition spread over a few cells, and its speed and jump are correct provided the scheme is conservative."],
+["p","This contrasts with shock-tracking (front-tracking) methods, which represent discontinuities as explicit moving interfaces. Capturing is far more robust for complex flows with many interacting or newly forming shocks, at the cost of a few cells of smearing at each front."],
+["h3","Why conservation is essential"],
+["p","The Rankine-Hugoniot conditions relate the jump across a shock to its speed. A discrete scheme reproduces the correct shock speed only if it is written in conservative (flux-difference) form; the Lax-Wendroff theorem guarantees that a convergent conservative scheme converges to a genuine weak solution with correct jumps. Non-conservative schemes can converge to wrong shock speeds, a serious and hard-to-detect error."],
+["h3","Controlling oscillations and entropy"],
+["p","High-order schemes need oscillation control near shocks, supplied by flux limiters, TVD constraints, WENO weighting, or artificial viscosity. An additional entropy condition selects the physically admissible weak solution among mathematically valid ones, preventing unphysical expansion shocks; entropy-fix and entropy-stable schemes enforce it."],
+["ul",["Discontinuities emerge as steep numerical transitions","Conservative form required for correct shock speeds","Oscillation control via limiters, TVD, WENO, or viscosity","Entropy condition selects the physical weak solution"]],
+["p","Shock-capturing techniques are essential in fusion-relevant MHD and compressible modeling, where fast magnetosonic shocks and steep fronts arise and must propagate at the correct speeds."]
+],
+"related":[["conservative-schemes","Conservative Schemes"],["riemann-solvers","Riemann Solvers"],["weno-schemes","WENO Schemes"],["godunov-method","The Godunov Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"conservative-schemes",
+"title":"Conservative Schemes",
+"cat":"solvers-methods",
+"lede":"Conservative schemes are written as differences of numerical fluxes so that conserved quantities change only through domain boundaries.",
+"body":[
+["h2","Flux-difference form"],
+["p","A numerical scheme for a conservation law is conservative if the update to each cell is expressed as the difference of numerical fluxes at its faces: the change in a cell equals flux in minus flux out. When a shared face uses the same numerical flux for both adjacent cells, the flux leaving one cell exactly enters its neighbor. Summing over all cells, the interior contributions telescope and cancel, so the total conserved quantity changes only through fluxes at the domain boundary."],
+["p","This discrete conservation mirrors the physical conservation law exactly, independent of grid resolution or solution smoothness, which is why it is a foundational requirement for transport and fluid solvers."],
+["h3","Why it matters for shocks"],
+["p","Beyond bookkeeping, conservation determines correctness at discontinuities. The Lax-Wendroff theorem states that if a consistent conservative scheme converges, its limit is a weak solution of the conservation law with the right jump conditions and shock speeds. Non-conservative discretizations can appear reasonable yet converge to solutions with shocks moving at the wrong speed, an error that mesh refinement does not cure."],
+["h3","Building conservative schemes"],
+["p","Finite volume methods are conservative by construction because they discretize the integral form directly. Finite difference schemes can be made conservative by writing them in flux-difference form. Care is needed at mesh interfaces, coarse-fine boundaries in AMR, and coordinate singularities, where matching fluxes preserves the telescoping cancellation."],
+["ul",["Update = flux in minus flux out for each cell","Shared face flux guarantees telescoping cancellation","Lax-Wendroff: convergence yields correct weak solutions","Flux matching required at mesh and refinement interfaces"]],
+["p","Conservation is non-negotiable for credible long-time transport in fusion neutronics, edge-plasma, and MHD modeling, where drift in a conserved budget signals a numerical rather than a physical effect."]
+],
+"related":[["finite-volume-method","Finite Volume Method"],["shock-capturing","Shock Capturing"],["godunov-method","The Godunov Method"],["adaptive-mesh-refinement","Adaptive Mesh Refinement"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"godunov-method",
+"title":"The Godunov Method",
+"cat":"solvers-methods",
+"lede":"Godunov's method advances conservation laws by solving a Riemann problem at each cell interface to compute upwind-consistent fluxes.",
+"body":[
+["h2","Riemann problems at every interface"],
+["p","Godunov's method treats the solution as piecewise constant across cells and recognizes that each cell interface poses a Riemann problem: two constant states separated by a discontinuity. Solving that local Riemann problem gives the exact wave structure at the interface, from which the numerical flux is computed. This builds the correct upwind direction and wave speeds into the scheme automatically, without ad hoc dissipation."],
+["p","The genius of the approach is that the physics of wave propagation, encoded in the Riemann solution, determines the numerical flux. It is inherently conservative and captures shocks at the right speeds."],
+["h3","First order and its extensions"],
+["p","The original Godunov scheme uses piecewise-constant data and is first-order accurate, robust but diffusive. Higher-order Godunov-type methods (MUSCL, PPM) replace the constant states with limited linear or parabolic reconstructions, so the Riemann problems are posed between more accurate interface states. Slope limiting keeps these reconstructions monotone near discontinuities."],
+["h3","Exact versus approximate solvers"],
+["p","Solving the exact Riemann problem can be expensive, especially for systems like MHD with many wave families. In practice approximate Riemann solvers (Roe, HLL, HLLC, HLLD for MHD) provide the interface flux at a fraction of the cost while retaining the essential upwind character. The choice trades accuracy and robustness against computational effort."],
+["ul",["Piecewise-constant states pose a Riemann problem per interface","Wave structure sets the upwind numerical flux","MUSCL and PPM raise the order via limited reconstruction","Approximate Riemann solvers replace exact solves for efficiency"]],
+["p","Godunov-type finite-volume schemes are the standard for compressible and magnetohydrodynamic simulation in fusion research, valued for capturing fast shocks and complex wave interactions conservatively and robustly."]
+],
+"related":[["riemann-solvers","Riemann Solvers"],["finite-volume-method","Finite Volume Method"],["conservative-schemes","Conservative Schemes"],["shock-capturing","Shock Capturing"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"riemann-solvers",
+"title":"Riemann Solvers",
+"cat":"solvers-methods",
+"lede":"Riemann solvers compute the flux between two states across a discontinuity by resolving the resulting wave structure, exactly or approximately.",
+"body":[
+["h2","The building block of upwind schemes"],
+["p","A Riemann problem is a conservation law with initial data consisting of two constant states meeting at a single discontinuity. Its solution is a self-similar fan of waves: shocks, rarefactions, and contact discontinuities moving at characteristic speeds. Riemann solvers compute this wave structure, or enough of it to evaluate the flux at the interface, which is the core operation of every Godunov-type finite-volume scheme."],
+["p","By resolving which waves travel in which direction, the Riemann solver supplies exactly the upwind information needed for a stable, conservative flux, encoding the physics of the equations into the numerics."],
+["h3","Exact and approximate families"],
+["p","The exact solver iterates for the intermediate pressure and velocity in the star region; it is accurate but costly and specific to the equation set. Approximate solvers trade some accuracy for speed and generality. The Roe solver linearizes the flux using a specially averaged Jacobian; HLL assumes a two-wave structure with estimated fastest speeds; HLLC restores the contact wave; HLLD adds the rotational and slow waves needed for MHD."],
+["h3","Robustness and fixes"],
+["p","Approximate solvers can fail in edge cases: the Roe solver may admit unphysical expansion shocks without an entropy fix, and low-density or strong-rarefaction states can produce negative pressures. Positivity-preserving variants and entropy fixes guard against these failures, which is why robust solvers like HLLC and HLL are popular defaults despite slightly more diffusion."],
+["ul",["Riemann solution is a self-similar fan of waves","Roe: linearized flux via a special average Jacobian","HLL/HLLC/HLLD: wave-speed-estimate solvers of rising fidelity","Entropy fixes and positivity preservation for robustness"]],
+["p","In MHD simulation the HLLD solver, which resolves the full seven-wave structure, is a common choice for accurately capturing the fast, slow, and rotational discontinuities relevant to magnetized plasma dynamics."]
+],
+"related":[["godunov-method","The Godunov Method"],["finite-volume-method","Finite Volume Method"],["shock-capturing","Shock Capturing"],["conservative-schemes","Conservative Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cfl-condition",
+"title":"The CFL Condition",
+"cat":"solvers-methods",
+"lede":"The Courant-Friedrichs-Lewy condition bounds the explicit time step by requiring the numerical domain of dependence to contain the physical one.",
+"body":[
+["h2","Information cannot outrun the grid"],
+["p","The Courant-Friedrichs-Lewy (CFL) condition is a necessary stability requirement for explicit schemes on hyperbolic problems. It states that in one time step, a physical signal must not travel farther than the numerical stencil can reach. If the true wave crosses more than one cell per step while the scheme only samples neighboring cells, the scheme lacks the information to represent the physics and becomes unstable."],
+["p","Quantitatively, the Courant number C = a*dt/dx, where a is the wave speed, dx the cell size, and dt the step, must not exceed a scheme-dependent limit, often one for simple explicit upwind schemes."],
+["h3","Domains of dependence"],
+["p","The condition is stated precisely in terms of domains of dependence. The physical domain of dependence of a point is the set of earlier data that can influence it; the numerical domain of dependence is the set of grid values the scheme actually uses. Stability requires the numerical domain to contain the physical one, so that the scheme has access to all data the true solution depends on."],
+["h3","Consequences and multi-scale problems"],
+["p","The CFL bound couples time and space resolution: refining the grid forces proportionally smaller time steps. For systems with widely varying wave speeds, the fastest wave dictates the step for the whole domain, which can make explicit integration inefficient when the fast wave is physically unimportant. This is a primary motivation for implicit and IMEX methods, which relax or remove the constraint for the stiff waves."],
+["ul",["Courant number C = a*dt/dx must stay below a scheme limit","Numerical domain of dependence must contain the physical one","Grid refinement forces proportional time-step reduction","Fastest wave sets the step, motivating implicit methods"]],
+["p","Every explicit fusion simulation manages its time step against the CFL limit, whether set by Alfven and magnetosonic waves in MHD or by particle and light speeds in kinetic models."]
+],
+"related":[["explicit-time-integration","Explicit Time Integration"],["stability-analysis-von-neumann","Von Neumann Stability Analysis"],["implicit-time-integration","Implicit Time Integration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"stability-analysis-von-neumann",
+"title":"Von Neumann Stability Analysis",
+"cat":"solvers-methods",
+"lede":"Von Neumann analysis tests a scheme's stability by tracking how individual Fourier modes are amplified over a time step.",
+"body":[
+["h2","Fourier modes as probes"],
+["p","Von Neumann stability analysis determines whether a linear finite-difference scheme keeps errors bounded. It decomposes the numerical error into Fourier modes and asks how each mode's amplitude changes over one time step. Substituting a single mode of the form exp(i k x) into the scheme yields an amplification factor g(k): the ratio of the mode's amplitude after a step to its amplitude before."],
+["p","The scheme is stable if the magnitude of g(k) does not exceed one for every wavenumber k the grid can represent (allowing a small growth proportional to the step for problems with genuine growth). Any mode with |g| greater than one grows without bound and destroys the solution."],
+["h3","What it reveals"],
+["p","The analysis directly produces stability limits. For the explicit heat equation it yields the condition that the diffusion number be at most one half, forcing dt to scale with dx squared. For advection it recovers the CFL bound. It also reveals numerical dispersion and dissipation: the phase and magnitude of g(k) show how different wavelengths propagate and decay compared with the true solution."],
+["h3","Scope and limitations"],
+["p","Von Neumann analysis assumes a linear, constant-coefficient problem on a periodic or infinite domain, so it strictly applies to that idealization. Boundaries, variable coefficients, and nonlinearity can change stability, but the analysis remains the essential first test and a reliable guide for the interior scheme. It also connects to the Lax equivalence theorem: consistency plus stability implies convergence."],
+["ul",["Amplification factor g(k) tracks per-mode growth","Stability requires |g(k)| <= 1 for all resolved wavenumbers","Recovers CFL and diffusion-number step limits","Assumes linear, constant-coefficient, periodic problems"]],
+["p","This analysis is the standard tool for setting time-step limits and diagnosing dispersion and dissipation errors when designing discretizations for transport and MHD codes."]
+],
+"related":[["cfl-condition","The CFL Condition"],["finite-difference-method","The Finite Difference Method"],["explicit-time-integration","Explicit Time Integration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"newton-krylov",
+"title":"Newton-Krylov Methods",
+"cat":"solvers-methods",
+"lede":"Newton-Krylov methods solve large nonlinear systems by combining Newton linearization with Krylov iterative solution of each linear step.",
+"body":[
+["h2","Nesting two iterations"],
+["p","Implicit time integration and steady-state solves require solving large nonlinear algebraic systems F(u) = 0. Newton's method linearizes: given a current guess, it solves the Jacobian system J*delta = -F for a correction and updates the guess, repeating until the residual is small. Each Newton step demands the solution of a large sparse linear system. Newton-Krylov methods use a Krylov iterative solver (typically GMRES) for that inner solve, giving a nested outer-Newton, inner-Krylov structure."],
+["p","This pairing is powerful because Krylov solvers scale well to very large sparse systems and, crucially, need only the action of the Jacobian on vectors, not the full matrix, which opens the door to matrix-free implementation."],
+["h3","Inexact Newton"],
+["p","Solving each Krylov system to full precision is wasteful when the Newton iterate is still far from the solution. Inexact Newton methods solve the linear system only approximately, tightening the tolerance as the outer iteration converges. Well-chosen forcing terms preserve fast (superlinear or quadratic) Newton convergence while minimizing inner iterations, a major efficiency gain."],
+["h3","Globalization and preconditioning"],
+["p","Pure Newton converges quadratically only near the solution; far away it can diverge. Line searches and trust-region strategies globalize the method, guaranteeing progress from poor initial guesses. Because Krylov convergence depends on the Jacobian's spectrum, a good preconditioner is essential and often the dominant factor in overall performance."],
+["ul",["Outer Newton linearization, inner Krylov linear solve","Krylov solvers need only Jacobian-vector products","Inexact Newton adapts inner tolerance to outer progress","Line search or trust region for robust global convergence"]],
+["p","Newton-Krylov solvers, especially in Jacobian-free form, are the standard engine for implicit transport, extended-MHD, and coupled multi-physics fusion simulations."]
+],
+"related":[["jacobian-free-newton-krylov","Jacobian-Free Newton-Krylov"],["gmres-krylov-solvers","GMRES and Krylov Solvers"],["preconditioning","Preconditioning"],["implicit-time-integration","Implicit Time Integration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"jacobian-free-newton-krylov",
+"title":"Jacobian-Free Newton-Krylov",
+"cat":"solvers-methods",
+"lede":"JFNK approximates Jacobian-vector products by finite differences of residuals, solving large nonlinear systems without ever forming the Jacobian.",
+"body":[
+["h2","Never building the matrix"],
+["p","Jacobian-free Newton-Krylov (JFNK) is a matrix-free realization of the Newton-Krylov method. Krylov solvers like GMRES need only the product of the Jacobian with a vector, never the matrix itself. JFNK exploits this by approximating the Jacobian-vector product with a finite difference of the nonlinear residual: J*v is estimated as [F(u + eps*v) - F(u)] / eps for a small perturbation eps. Each Krylov iteration then costs one extra residual evaluation."],
+["p","This eliminates the need to derive, form, or store the Jacobian, which for complex multi-physics systems can be prohibitively difficult and memory-intensive. The method sees the nonlinear operator only through function evaluations."],
+["h3","Choosing the perturbation"],
+["p","The finite-difference parameter eps must balance two errors: too large and the linear approximation is poor; too small and floating-point cancellation corrupts the difference. Standard formulas scale eps with the norms of u and v and the square root of machine precision, giving a robust default that adapts to the problem's magnitudes."],
+["h3","Preconditioning is still required"],
+["p","Being matrix-free does not remove the need for preconditioning; a poorly conditioned system still makes GMRES stall. JFNK preconditioners are often built from an approximate, cheaply formed Jacobian or from physics-based operator splittings, applied on the left or right of the matrix-free product. This blend of matrix-free accuracy and approximate-matrix preconditioning is the practical heart of the method."],
+["ul",["Jacobian-vector product from a residual finite difference","No Jacobian assembly or storage required","Perturbation size balances truncation and round-off error","Approximate or physics-based preconditioners remain essential"]],
+["p","JFNK is favored for tightly coupled fusion multi-physics, where writing an exact Jacobian across transport, fields, and atomic physics would be impractical but residual evaluations are readily available."]
+],
+"related":[["newton-krylov","Newton-Krylov Methods"],["matrix-free-methods","Matrix-Free Methods"],["gmres-krylov-solvers","GMRES and Krylov Solvers"],["preconditioning","Preconditioning"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"matrix-free-methods",
+"title":"Matrix-Free Methods",
+"cat":"solvers-methods",
+"lede":"Matrix-free methods provide the action of an operator on a vector without assembling or storing the operator as an explicit matrix.",
+"body":[
+["h2","Operators as functions, not arrays"],
+["p","Many iterative algorithms (Krylov solvers, power iteration, some eigensolvers) require only the result of applying an operator to a vector, never the operator's individual entries. Matrix-free methods take advantage of this by implementing the operator as a routine that computes A*v directly, from the underlying physics or discretization, rather than building the matrix A and multiplying. The matrix is never stored."],
+["p","The motivation is memory and, often, speed. High-order discretizations in three dimensions produce matrices whose storage and bandwidth swamp modern hardware. Recomputing the action on the fly can be faster than fetching a huge sparse matrix from memory, because current processors are limited more by memory bandwidth than by arithmetic."],
+["h3","Where the action comes from"],
+["p","In JFNK the action is a finite difference of the nonlinear residual. In high-order finite element and spectral element methods, the action is computed by sum-factorization, evaluating element integrals through tensor-product operations that scale far better than a dense elemental matrix. In stencil-based finite difference and volume codes, the action is simply the stencil applied to the vector."],
+["h3","Tradeoffs and preconditioning"],
+["p","Matrix-free operators save memory and can improve arithmetic intensity, but they preclude preconditioners that inspect matrix entries directly, such as incomplete factorizations. Practical matrix-free codes therefore rely on operator-based preconditioners: multigrid, domain decomposition, or approximate matrices assembled at low order specifically for preconditioning."],
+["ul",["Only the operator action A*v is provided, not entries","Cuts memory and can raise arithmetic intensity","Sum-factorization makes high-order elements efficient","Requires operator-based (not entry-based) preconditioners"]],
+["p","Matrix-free techniques are increasingly central to scalable high-order fusion simulation, where storing full system matrices at the required resolution would be infeasible."]
+],
+"related":[["jacobian-free-newton-krylov","Jacobian-Free Newton-Krylov"],["gmres-krylov-solvers","GMRES and Krylov Solvers"],["preconditioning","Preconditioning"],["spectral-element-method","The Spectral Element Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gmres-krylov-solvers",
+"title":"GMRES and Krylov Solvers",
+"cat":"solvers-methods",
+"lede":"Krylov subspace methods solve large sparse linear systems by building an optimal solution from repeated matrix-vector products.",
+"body":[
+["h2","Solutions from a growing subspace"],
+["p","Krylov subspace methods solve A*x = b using only matrix-vector products with A. Starting from the residual, they build the Krylov subspace spanned by b, A*b, A^2*b, and so on, and seek the best approximate solution within it. Each iteration expands the subspace by one matrix-vector product and improves the approximation, so the methods are matrix-free-friendly and scale to enormous sparse systems."],
+["p","Different Krylov methods differ in what optimality they enforce and what matrix properties they require. This choice determines convergence behavior, memory use, and cost per iteration."],
+["h3","GMRES and its cousins"],
+["p","The generalized minimal residual method (GMRES) minimizes the residual norm over the Krylov subspace and works for general nonsymmetric matrices. Its drawback is growing memory and cost per iteration, since it must store the whole subspace; restarted GMRES(m) caps this by discarding history every m steps, trading guaranteed convergence for bounded cost. For symmetric systems, MINRES and the conjugate gradient method are cheaper because short recurrences avoid storing the full basis. BiCGStab offers a short-recurrence option for nonsymmetric problems."],
+["h3","Convergence and preconditioning"],
+["p","Krylov convergence depends on the distribution of the matrix's eigenvalues (or singular values): clustered spectra converge fast, spread-out or ill-conditioned spectra converge slowly. Preconditioning transforms the system to cluster the spectrum and is almost always necessary for practical performance; the preconditioner often matters more than the Krylov method chosen."],
+["ul",["Solution built from repeated matrix-vector products","GMRES minimizes residual for nonsymmetric matrices","Restarting bounds GMRES memory at a convergence cost","Preconditioning to cluster the spectrum is decisive"]],
+["p","GMRES with a strong preconditioner is the standard inner solver in implicit and Newton-Krylov fusion codes, handling the large nonsymmetric systems that arise from coupled transport and field equations."]
+],
+"related":[["conjugate-gradient","The Conjugate Gradient Method"],["preconditioning","Preconditioning"],["newton-krylov","Newton-Krylov Methods"],["sparse-linear-solvers","Sparse Linear Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"conjugate-gradient",
+"title":"The Conjugate Gradient Method",
+"cat":"solvers-methods",
+"lede":"The conjugate gradient method solves symmetric positive-definite systems efficiently using short recurrences and conjugate search directions.",
+"body":[
+["h2","Minimizing along conjugate directions"],
+["p","The conjugate gradient (CG) method solves A*x = b when A is symmetric positive-definite by reformulating it as the minimization of a quadratic energy. Rather than descending along the steepest gradient, which zigzags inefficiently, CG chooses search directions that are conjugate (A-orthogonal) to all previous ones. This guarantees that progress made in earlier directions is never undone, and in exact arithmetic the method reaches the exact solution in at most n steps for an n-dimensional system."],
+["p","In practice, CG is used as an iterative method that reaches an accurate solution in far fewer than n steps, its convergence governed by the matrix's condition number."],
+["h3","The short recurrence advantage"],
+["p","CG's defining efficiency is that it maintains conjugacy using only a three-term recurrence: each step needs only the current residual, the previous search direction, and one matrix-vector product. Unlike GMRES it does not store the whole subspace, so its memory and per-iteration cost are fixed and small. This economy is possible precisely because the matrix is symmetric."],
+["h3","Convergence and preconditioning"],
+["p","The number of iterations scales roughly with the square root of the condition number, so ill-conditioned systems converge slowly. Preconditioned conjugate gradient (PCG) applies a symmetric positive-definite preconditioner (Jacobi, incomplete Cholesky, multigrid) to reduce the effective condition number, often turning an intractable problem into a rapidly converging one. PCG with a multigrid preconditioner is a common near-optimal solver for elliptic problems."],
+["ul",["Requires a symmetric positive-definite matrix","Conjugate search directions avoid redundant progress","Short three-term recurrence: low fixed memory","Convergence scales with sqrt of the condition number"]],
+["p","CG and PCG are standard for the symmetric positive-definite systems that arise from elliptic operators, such as potential and pressure solves, in fusion field and fluid codes."]
+],
+"related":[["gmres-krylov-solvers","GMRES and Krylov Solvers"],["preconditioning","Preconditioning"],["multigrid-methods","Multigrid Methods"],["sparse-linear-solvers","Sparse Linear Solvers"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"preconditioning",
+"title":"Preconditioning",
+"cat":"solvers-methods",
+"lede":"Preconditioning transforms a linear system into an equivalent one with a friendlier spectrum so that iterative solvers converge far faster.",
+"body":[
+["h2","Reshaping the problem for the solver"],
+["p","The convergence of Krylov iterative solvers depends on the eigenvalue distribution of the system matrix: tightly clustered eigenvalues converge quickly, while ill-conditioned or spread-out spectra converge slowly or stall. Preconditioning applies an approximate inverse M of the matrix A so that the solver works with M*A (or A*M), whose spectrum is much better clustered. The solution is unchanged; only the iteration path improves."],
+["p","In practice the preconditioner is the single most important choice for iterative-solver performance, often mattering more than the Krylov method itself. A good preconditioner can reduce iteration counts by orders of magnitude."],
+["h3","The central tradeoff"],
+["p","A preconditioner must approximate the inverse of A well enough to cluster the spectrum, yet be cheap to apply since it acts every iteration. The perfect preconditioner is the exact inverse, giving convergence in one step but costing as much as a direct solve. The art is choosing an M that captures the dominant behavior of A cheaply."],
+["h3","Common families"],
+["p","Jacobi and block-Jacobi use the diagonal or diagonal blocks and are trivially parallel but weak. Incomplete LU and Cholesky factorizations drop small fill-in for a sparse approximate factorization. Multigrid and algebraic multigrid are near-optimal for elliptic operators. Domain-decomposition and physics-based preconditioners exploit problem structure, splitting coupled multi-physics systems into more tractable blocks."],
+["ul",["Cluster the spectrum to speed Krylov convergence","Trade approximation quality against per-application cost","ILU/IC, Jacobi, multigrid, and domain-decomposition families","Physics-based preconditioners exploit operator structure"]],
+["p","In fusion simulation, physics-based and multigrid preconditioners are essential for making implicit extended-MHD and transport solves converge at practical iteration counts."]
+],
+"related":[["gmres-krylov-solvers","GMRES and Krylov Solvers"],["conjugate-gradient","The Conjugate Gradient Method"],["multigrid-methods","Multigrid Methods"],["newton-krylov","Newton-Krylov Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"sparse-linear-solvers",
+"title":"Sparse Linear Solvers",
+"cat":"solvers-methods",
+"lede":"Sparse solvers exploit the many zeros in discretization matrices to solve large linear systems in time and memory far below dense methods.",
+"body":[
+["h2","Exploiting the zeros"],
+["p","Discretizing a PDE produces a matrix that is sparse: each unknown couples only to a few neighbors, so the vast majority of entries are zero. A dense solver would waste enormous time and memory on those zeros. Sparse linear solvers store and operate on only the nonzero entries, reducing both memory and arithmetic from cubic to a small multiple of the number of unknowns for favorable problems."],
+["p","Sparse solvers fall into two broad families, direct and iterative, each with distinct strengths, and the right choice depends on the matrix structure, size, and how many right-hand sides must be solved."],
+["h3","Direct methods"],
+["p","Sparse direct solvers compute an LU or Cholesky factorization while trying to preserve sparsity. The obstacle is fill-in: factorization introduces new nonzeros where the original had zeros. Fill-reducing orderings (nested dissection, minimum degree) reorder the unknowns to keep fill low. Direct methods are robust, insensitive to conditioning, and efficient when the same matrix is reused for many right-hand sides, but their memory grows quickly for three-dimensional problems."],
+["h3","Iterative methods"],
+["p","Iterative solvers (Krylov methods with preconditioning) use only matrix-vector products and keep memory proportional to the number of unknowns, scaling to very large three-dimensional systems where direct methods run out of memory. Their convergence depends on conditioning, so they rely on effective preconditioners. Hybrid approaches use a sparse direct solve on subdomains within an iterative or domain-decomposition framework."],
+["ul",["Store and compute only on nonzero entries","Direct: robust, reusable, but fill-in limits 3D scale","Iterative: memory-lean and scalable, needs preconditioning","Fill-reducing orderings control direct-solver cost"]],
+["p","Large fusion simulations mix both: sparse direct solvers on subproblems and preconditioned Krylov methods for the global implicit systems that arise in transport and MHD modeling."]
+],
+"related":[["gmres-krylov-solvers","GMRES and Krylov Solvers"],["conjugate-gradient","The Conjugate Gradient Method"],["preconditioning","Preconditioning"],["amg-algebraic-multigrid","Algebraic Multigrid"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"parallel-in-time",
+"title":"Parallel-in-Time Integration",
+"cat":"solvers-methods",
+"lede":"Parallel-in-time methods extract concurrency from the time direction, iterating across the whole time interval rather than marching strictly sequentially.",
+"body":[
+["h2","Breaking the sequential barrier"],
+["p","Time integration is naturally sequential: the state at one step depends on the previous one, so time marching cannot be parallelized directly. As spatial parallelism saturates on very large machines, this sequential time dimension becomes a bottleneck for long simulations. Parallel-in-time (PinT) methods add a new axis of concurrency by solving over the entire time interval iteratively, letting many processors work on different time slices at once."],
+["p","The methods do not remove the sequential dependence entirely; instead they replace it with an iteration that converges to the sequential solution while exposing parallelism at each iterate."],
+["h3","The Parareal method"],
+["p","Parareal, the best-known PinT scheme, splits the time interval into slices and uses two propagators: a cheap, coarse integrator run sequentially to give a rough prediction across all slices, and an expensive, fine integrator run in parallel on each slice starting from the coarse prediction. A correction sweep updates the slice endpoints, and the process iterates. Speedup arises because the costly fine solves run concurrently while only the cheap coarse solve is sequential."],
+["h3","Limits and other schemes"],
+["p","Speedup is bounded by the ratio of coarse to fine cost and by the number of iterations to converge, which grows for advection-dominated and highly oscillatory problems where PinT struggles. Multigrid-in-time methods such as MGRIT generalize the idea to a full time-multigrid hierarchy, improving robustness. PinT is most effective for diffusive and parabolic problems."],
+["ul",["Adds concurrency along the time axis","Parareal: coarse sequential predictor, fine parallel corrector","Speedup limited by coarse/fine cost ratio and iteration count","Effective for diffusive problems, harder for advection"]],
+["p","As fusion simulations push toward long integrations on large machines, parallel-in-time methods offer a route to further scaling once spatial parallelism is exhausted."]
+],
+"related":[["domain-decomposition","Domain Decomposition"],["multigrid-methods","Multigrid Methods"],["implicit-time-integration","Implicit Time Integration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"mesh-generation",
+"title":"Mesh Generation",
+"cat":"solvers-methods",
+"lede":"Mesh generation partitions a geometry into elements or cells on which a discretization is built, balancing fidelity, quality, and count.",
+"body":[
+["h2","Turning geometry into a grid"],
+["p","Before any finite element, volume, or difference method can run, the physical domain must be divided into a mesh of cells or elements that fill it without gaps or overlaps. Mesh generation is the process of creating this partition from a geometric description of the domain, and it strongly influences the accuracy, stability, and cost of the subsequent simulation. A poor mesh can corrupt an otherwise excellent solver."],
+["p","Meshes are broadly structured or unstructured. Structured meshes have a regular connectivity (each interior node has the same number of neighbors), which yields efficient, cache-friendly solvers but limits geometric flexibility. Unstructured meshes allow arbitrary connectivity, fitting complex shapes at the cost of storing explicit connectivity."],
+["h3","Element types and methods"],
+["p","Common elements are triangles and quadrilaterals in two dimensions, tetrahedra and hexahedra in three. Delaunay triangulation and advancing-front methods generate unstructured simplex meshes; block-structured and multiblock techniques stitch structured patches across complex domains; hexahedral meshing is prized for accuracy but hard to automate for intricate geometry."],
+["h3","Boundary layers and adaptivity"],
+["p","Regions with steep gradients, such as boundary layers and material interfaces, need anisotropic elements stretched along the feature and refined across it. Mesh generation must also represent curved boundaries faithfully, using higher-order (curved) elements where linear facets would introduce geometric error. Adaptive generation refines the mesh where solution error demands it."],
+["ul",["Structured meshes: regular, efficient, geometrically limited","Unstructured meshes: flexible, explicit connectivity","Delaunay, advancing-front, and multiblock techniques","Anisotropic elements for boundary layers and interfaces"]],
+["p","In fusion device modeling, meshes must resolve shaped plasma boundaries, thin blanket and wall layers, and coil geometry, often using flux-aligned or field-aligned meshes so that the grid follows the anisotropy of magnetized transport."]
+],
+"related":[["mesh-quality-metrics","Mesh Quality Metrics"],["mesh-adaptation-error-estimation","Mesh Adaptation and Error Estimation"],["finite-element-method","The Finite Element Method"],["flux-surface-coordinates","Flux-Surface Coordinates"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"mesh-quality-metrics",
+"title":"Mesh Quality Metrics",
+"cat":"solvers-methods",
+"lede":"Mesh quality metrics quantify how well-shaped and well-sized elements are, since distorted cells degrade accuracy and solver conditioning.",
+"body":[
+["h2","Why element shape matters"],
+["p","Not all meshes that fill a domain are equally good. Badly shaped elements, thin slivers, highly skewed cells, sharp angles, degrade the accuracy of the discretization and inflate the condition number of the resulting linear system, slowing or destabilizing solvers. Mesh quality metrics are scalar measures that flag such problem elements so a mesh can be assessed and improved before it is used."],
+["p","Quality is not one number but several, each sensitive to a different kind of distortion. A mesh may score well on size uniformity yet contain a few catastrophically skewed cells that dominate the error."],
+["h3","Common metrics"],
+["p","Aspect ratio measures elongation, the ratio of longest to shortest dimension; large values indicate stretched cells that hurt isotropic problems. Skewness measures deviation from an ideal equilateral or right-angled shape. The scaled Jacobian detects folded or inverted elements: a non-positive value means the element is tangled and the mapping is invalid. Orthogonality measures how perpendicular faces are to the lines connecting cell centers, which matters for finite-volume gradient accuracy."],
+["h3","Consequences and remedies"],
+["p","Skewed and high-aspect-ratio cells raise truncation error and can violate the conditions under which a scheme is stable or a matrix is well conditioned. Smoothing (relocating nodes, as in Laplacian or optimization-based smoothing), topological cleanup (edge and face swaps), and local remeshing repair poor regions. Anisotropic elements are acceptable, even desirable, when aligned with an anisotropic solution feature, so quality must be judged against the physics."],
+["ul",["Aspect ratio flags elongated, stretched elements","Skewness measures departure from ideal shape","Scaled Jacobian detects inverted or tangled cells","Smoothing and swapping repair low-quality regions"]],
+["p","Mesh quality checks are a routine part of setting up fusion simulations, where the combination of shaped boundaries and thin layers makes it easy to produce distorted cells that must be caught and repaired."]
+],
+"related":[["mesh-generation","Mesh Generation"],["mesh-adaptation-error-estimation","Mesh Adaptation and Error Estimation"],["finite-volume-method","The Finite Volume Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"mesh-adaptation-error-estimation",
+"title":"Mesh Adaptation and Error Estimation",
+"cat":"solvers-methods",
+"lede":"Error estimators measure where a discrete solution is least accurate, driving adaptation that puts resolution where it reduces error most.",
+"body":[
+["h2","Letting the error guide the mesh"],
+["p","A uniform mesh spends effort evenly, but discretization error is almost never uniform: it concentrates where the solution varies rapidly or is singular. Mesh adaptation reallocates resolution toward those regions, guided by an error estimator that assigns each element an indicator of its contribution to the total error. Refining high-error elements and coarsening low-error ones drives the mesh toward an efficient distribution for a target accuracy."],
+["p","Adaptation may change element size (h-adaptivity), polynomial degree (p-adaptivity), or element shape and orientation (r- and anisotropic adaptivity), or combine them."],
+["h3","A posteriori error estimators"],
+["p","A posteriori estimators compute error indicators from the numerical solution itself. Residual-based estimators measure how badly the discrete solution fails to satisfy the equation locally, including jumps in fluxes across element faces. Recovery-based estimators (such as Zienkiewicz-Zhu) compare the raw gradient with a smoothed, recovered gradient; their difference estimates the error. Goal-oriented (dual-weighted-residual) estimators target the error in a specific output quantity, weighting local residuals by the sensitivity of that output."],
+["h3","The adaptive loop"],
+["p","Adaptation runs as a loop: solve, estimate error, mark elements exceeding a threshold, refine or coarsen, and solve again. The loop continues until the estimated error falls below tolerance. Goal-oriented adaptation is especially valuable when a single engineering quantity, rather than the whole field, must be computed accurately and efficiently."],
+["ul",["Error indicators rank elements by their error contribution","Residual, recovery, and goal-oriented estimators","h-, p-, r-, and anisotropic adaptation strategies","Solve-estimate-mark-refine loop to a tolerance"]],
+["p","Error-driven adaptation lets fusion simulations resolve thin, moving features, such as steep edge gradients or current layers, accurately while keeping the overall element count and cost in check."]
+],
+"related":[["adaptive-mesh-refinement","Adaptive Mesh Refinement"],["mesh-generation","Mesh Generation"],["mesh-quality-metrics","Mesh Quality Metrics"],["finite-element-method","The Finite Element Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"leapfrog-integration",
+"title":"Leapfrog Integration",
+"cat":"solvers-methods",
+"lede":"Leapfrog integration staggers positions and velocities in time, giving a cheap, time-reversible, second-order scheme with excellent long-term behavior.",
+"body":[
+["h2","Staggering position and velocity"],
+["p","The leapfrog method integrates second-order dynamics, such as Newton's equations of motion, by evaluating positions and velocities at interleaved (staggered) time levels. Positions are known at whole steps and velocities at half steps, so each quantity is updated using the other evaluated half a step away, and they leap over one another in time. The scheme uses one force evaluation per step and is second-order accurate despite its simplicity."],
+["p","This staggering is not a mere bookkeeping trick: it is what gives leapfrog its favorable structural properties, distinguishing it from a naive forward-Euler treatment of the same equations."],
+["h3","Time reversibility and energy behavior"],
+["p","Leapfrog is time-reversible: running it backward from the final state recovers the initial state (in exact arithmetic). It is also symplectic for Hamiltonian systems, meaning it preserves phase-space volume. As a consequence, the energy error does not drift over time but oscillates around the true value with bounded amplitude, even over millions of steps. This makes leapfrog ideal for long-time dynamical simulations where energy conservation matters."],
+["h3","Variants and use"],
+["p","The velocity-Verlet form is algebraically equivalent to leapfrog but keeps positions and velocities at the same time level, which is convenient when both are needed simultaneously. The Boris particle pusher is a leapfrog scheme specialized for the magnetic Lorentz force. The main caveat is that the staggered start requires a careful half-step initialization, and variable time steps break the reversibility that gives the method its edge."],
+["ul",["Positions and velocities staggered by half a step","One force evaluation per step, second-order accurate","Time-reversible and symplectic: bounded energy error","Velocity-Verlet is the co-located equivalent form"]],
+["p","Leapfrog and velocity-Verlet underpin molecular dynamics and particle-orbit integration, and their symplectic character is why particle-in-cell plasma simulations trust them for long-time kinetic evolution."]
+],
+"related":[["boris-pusher","The Boris Particle Pusher"],["symplectic-integrators","Symplectic Integrators"],["particle-in-cell","The Particle-in-Cell Method"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"symplectic-integrators",
+"title":"Symplectic Integrators",
+"cat":"solvers-methods",
+"lede":"Symplectic integrators preserve the geometric phase-space structure of Hamiltonian systems, keeping energy error bounded over long integrations.",
+"body":[
+["h2","Preserving structure, not just accuracy"],
+["p","Hamiltonian systems, from planetary orbits to charged-particle motion, have a geometric structure: their flow preserves phase-space volume and a symplectic two-form. Ordinary integrators chosen only for accuracy ignore this structure and let energy drift systematically over long runs, so a planet spirals into or out of its orbit numerically. Symplectic integrators are designed to preserve the symplectic structure exactly, at the discrete level."],
+["p","The payoff is qualitative fidelity over very long times. A symplectic method does not conserve energy exactly, but the energy error stays bounded and oscillatory rather than growing, because the method exactly conserves a modified (shadow) Hamiltonian that stays close to the true one."],
+["h3","Backward error analysis"],
+["p","The reason symplectic methods behave so well is explained by backward error analysis: the numerical trajectory is the near-exact trajectory of a slightly perturbed Hamiltonian system. Because that perturbed system is still Hamiltonian, it has its own conserved energy, which the numerics track faithfully, so no secular energy drift appears."],
+["h3","Examples and constraints"],
+["p","The leapfrog and velocity-Verlet schemes are the simplest symplectic integrators; higher-order versions come from symmetric compositions and splitting of the Hamiltonian into kinetic and potential parts. A key constraint is that symplecticity relies on a fixed time step; adaptive step-size control generally breaks it, so specialized techniques are needed to combine adaptivity with structure preservation."],
+["ul",["Preserve the symplectic phase-space structure exactly","Bounded, non-drifting energy error over long times","Conserve a modified Hamiltonian near the true one","Fixed time step usually required to retain symplecticity"]],
+["p","Symplectic integration is the standard for long-time orbit following of charged particles in magnetic fields, where accurate confinement statistics depend on avoiding artificial energy drift."]
+],
+"related":[["leapfrog-integration","Leapfrog Integration"],["boris-pusher","The Boris Particle Pusher"],["runge-kutta-methods","Runge-Kutta Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"semi-lagrangian-methods",
+"title":"Semi-Lagrangian Methods",
+"cat":"solvers-methods",
+"lede":"Semi-Lagrangian methods advect quantities by tracing characteristics backward from fixed grid points, avoiding the explicit CFL time-step limit.",
+"body":[
+["h2","Following characteristics without moving the grid"],
+["p","Advection can be viewed two ways: Eulerian, watching fluid pass fixed grid points, or Lagrangian, following moving parcels. Purely Lagrangian methods keep the physics simple but tangle their grids over time. Semi-Lagrangian methods take the best of both: they keep a fixed Eulerian grid but, each step, trace the characteristic backward from each grid point to find where the arriving parcel came from, then interpolate the old-time solution there to set the new value."],
+["p","Because the method follows the physical flow of information rather than differencing across it, it is not bound by the CFL condition and can take time steps larger than the flow crosses a cell, a decisive advantage for advection-dominated problems."],
+["h3","The backward-trajectory step"],
+["p","Each step solves an ordinary differential equation for the characteristic backward over one time step from every grid point (the departure point), then interpolates the previous solution at that departure point. The interpolation order controls accuracy and dissipation: linear interpolation is diffusive, while cubic or higher (or shape-preserving) interpolation retains sharp structures at added cost."],
+["h3","Conservation and use"],
+["p","Basic semi-Lagrangian advection is not automatically conservative, since interpolation does not enforce a discrete balance; conservative semi-Lagrangian variants remap fluxes or cell integrals to restore conservation where it is required. The method is prized in atmospheric modeling and in Vlasov solvers for kinetic plasmas, where phase-space advection dominates and large steps are valuable."],
+["ul",["Backward characteristic tracing from fixed grid points","No CFL step limit for the advective part","Interpolation order sets accuracy and dissipation","Conservative variants needed when balance must be exact"]],
+["p","Semi-Lagrangian schemes are widely used in grid-based Vlasov and gyrokinetic solvers, where advection in high-dimensional phase space would make explicit CFL-limited stepping prohibitively expensive."]
+],
+"related":[["cfl-condition","The CFL Condition"],["gyrokinetic-solvers","Gyrokinetic Solvers"],["method-of-lines","The Method of Lines"],["conservative-schemes","Conservative Schemes"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gyrokinetic-solvers",
+"title":"Gyrokinetic Solvers",
+"cat":"solvers-methods",
+"lede":"Gyrokinetic solvers evolve a reduced kinetic equation that averages over fast gyration, cutting phase-space dimension while retaining turbulence physics.",
+"body":[
+["h2","Averaging away the gyration"],
+["p","A magnetized plasma particle spirals rapidly around field lines while drifting slowly across them. Following the full gyration in a six-dimensional kinetic simulation is prohibitively expensive for the slow turbulent transport of interest. Gyrokinetic theory averages over the fast gyromotion analytically, reducing the problem to a five-dimensional distribution function on guiding centers with the magnetic moment as a conserved parameter. Gyrokinetic solvers discretize and evolve this reduced equation."],
+["p","The reduction removes the fastest time scale (the gyrofrequency) and one velocity dimension, making first-principles turbulence simulation of realistic devices feasible while keeping the kinetic effects, wave-particle resonance and finite-Larmor-radius physics, that fluid models miss."],
+["h3","Numerical approaches"],
+["p","Two broad strategies exist. Particle-in-cell gyrokinetics samples the distribution with marker particles, usually in delta-f form to cut noise, coupled to a field solve for the gyro-averaged potential. Continuum (Eulerian) gyrokinetics discretizes the distribution on a fixed phase-space grid using finite-volume, finite-difference, spectral, or semi-Lagrangian methods. Both must handle the gyro-averaging operator and the field equation that closes the system."],
+["h3","Coordinates and challenges"],
+["p","Solvers typically use field-aligned coordinates so the grid follows the strong anisotropy of turbulence, which varies slowly along field lines and rapidly across them; this alignment saves enormous resolution. Challenges include the gyro-averaging (a Bessel-function operator), maintaining conservation of energy and particles, and controlling numerical noise or dissipation over long turbulent runs."],
+["ul",["Fast gyration averaged out, phase space cut to five dimensions","Particle (delta-f) versus continuum discretizations","Field-aligned coordinates exploit turbulence anisotropy","Gyro-averaging and conservation are key numerical hurdles"]],
+["p","Gyrokinetic simulation is the primary first-principles tool for predicting turbulent transport in magnetic-confinement devices, informing how heat and particles leak across confining fields."]
+],
+"related":[["particle-in-cell","The Particle-in-Cell Method"],["delta-f-method","The Delta-f Method"],["flux-surface-coordinates","Flux-Surface Coordinates"],["semi-lagrangian-methods","Semi-Lagrangian Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"flux-surface-coordinates",
+"title":"Flux-Surface Coordinates",
+"cat":"solvers-methods",
+"lede":"Flux-surface and field-aligned coordinates align the computational grid with magnetic surfaces, matching the strong anisotropy of magnetized transport.",
+"body":[
+["h2","Grids that follow the field"],
+["p","In a magnetically confined plasma, transport is enormously anisotropic: parallel to the magnetic field it is fast and along smooth field lines, while across the field it is slow and structured on nested magnetic surfaces. A grid aligned with Cartesian axes would need extreme resolution to capture both. Flux-surface coordinates instead use the magnetic geometry itself: one coordinate labels nested flux surfaces (a radial-like variable), and angle-like coordinates run poloidally and toroidally around them."],
+["p","Because the field lines lie within flux surfaces, aligning the grid with those surfaces means the numerically demanding parallel dynamics vary slowly along a grid direction, so far fewer points are needed than an unaligned grid would require."],
+["h3","Coordinate constructions"],
+["p","Straight-field-line coordinates choose the angular variables so that field lines appear as straight lines in the coordinate plane, simplifying the parallel derivative. Ballooning and flux-tube coordinates follow a single field line or bundle over many transits, ideal for local turbulence studies. The Clebsch (field-aligned) representation writes the field in terms of coordinate gradients so that the parallel derivative involves only one coordinate."],
+["h3","Complications"],
+["p","Flux coordinates become singular or ill-defined where the geometry breaks down: at the magnetic axis, at the separatrix and X-point of a diverted plasma, and in stochastic field regions. Handling the edge and scrape-off layer, where surfaces are open, requires specialized meshes that transition from flux-aligned in the core to field-aligned or unstructured near material surfaces."],
+["ul",["Radial coordinate labels nested flux surfaces","Angular coordinates run poloidally and toroidally","Straight-field-line and flux-tube constructions","Singularities at axis, separatrix, and X-point need care"]],
+["p","Flux-surface and field-aligned coordinates are the natural setting for equilibrium, stability, and turbulence codes, letting them resolve anisotropic magnetized transport at a fraction of the cost of an unaligned grid."]
+],
+"related":[["gyrokinetic-solvers","Gyrokinetic Solvers"],["mesh-generation","Mesh Generation"],["spectral-methods","Spectral Methods"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"spectral-deferred-correction",
+"title":"Spectral Deferred Correction",
+"cat":"solvers-methods",
+"lede":"Spectral deferred correction builds high-order time integrators by iteratively correcting a low-order solution against a spectral quadrature of the error.",
+"body":[
+["h2","Iterating toward high order"],
+["p","Spectral deferred correction (SDC) is a systematic way to construct arbitrarily high-order time integrators from simple low-order ones. Within each time step it places several intermediate substep nodes, usually Gauss or Radau points, and first computes a provisional solution with a cheap low-order method such as backward or forward Euler. It then repeatedly solves a correction equation for the error, using a high-order spectral quadrature to integrate the residual accurately. Each correction sweep raises the order of accuracy by (roughly) one, up to the accuracy the node set can support."],
+["p","This turns a well-understood first-order building block into a high-order method without deriving complicated multi-stage coefficients, and it does so with a uniform, extensible structure."],
+["h3","Why the quadrature matters"],
+["p","The correction is driven by the integral of the residual over the step. Evaluating that integral on high-order spectral quadrature nodes is what gives the method its accuracy; a low-order quadrature would cap the achievable order. The iteration converges to the collocation solution defined by the node set, which is a high-order implicit Runge-Kutta method."],
+["h3","Variants and appeal"],
+["p","SDC extends naturally to stiff problems (using implicit sweeps), to IMEX splittings for mixed stiff and non-stiff terms, and to parallel-in-time integration through the PFASST algorithm, which couples SDC sweeps across time slices with a multigrid hierarchy. Its flexibility, easy adjustment of order, and clean handling of stiffness and splitting make it attractive for multi-physics time stepping."],
+["ul",["Low-order predictor corrected by spectral-quadrature sweeps","Each sweep raises the order by about one","Converges to a high-order collocation (implicit RK) method","Extends to stiff, IMEX, and parallel-in-time settings"]],
+["p","SDC and its parallel variants offer a route to high-order, stable time integration for stiff multi-physics fusion models where deriving bespoke high-order schemes would be cumbersome."]
+],
+"related":[["runge-kutta-methods","Runge-Kutta Methods"],["imex-schemes","IMEX Schemes"],["parallel-in-time","Parallel-in-Time Integration"],["implicit-time-integration","Implicit Time Integration"]],
+"seo_type":"TechArticle"
+}
+]

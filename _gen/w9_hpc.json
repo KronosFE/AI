@@ -1,0 +1,3604 @@
+[
+ {
+  "slug": "hpc-what-is-high-performance-computing",
+  "title": "What Is High-Performance Computing",
+  "cat": "hpc-compute",
+  "lede": "High-performance computing aggregates many processors, memory, and fast networks to solve problems too large or too slow for a single machine.",
+  "body": [
+   [
+    "h2",
+    "The idea"
+   ],
+   [
+    "p",
+    "High-performance computing (HPC) is the practice of pooling large numbers of compute elements so they work on one problem together. A modern HPC system is a <b>cluster</b>: many compute nodes, each with multi-core CPUs and often GPUs, joined by a high-speed network and a shared parallel file system. The aim is to deliver results in hours that a workstation would take months to produce, or to solve problems whose memory footprint exceeds any single machine."
+   ],
+   [
+    "h2",
+    "Why one processor is not enough"
+   ],
+   [
+    "p",
+    "Single-core clock speeds stopped rising sharply in the mid-2000s because power dissipation grows steeply with frequency. Since then, performance has come from <b>parallelism</b>: more cores, wider vector units, and specialized accelerators. Extracting speed now means dividing work across many execution units and keeping them all busy."
+   ],
+   [
+    "h2",
+    "What a workload needs"
+   ],
+   [
+    "ul",
+    [
+     "Compute throughput, measured in floating-point operations per second (FLOP/s)",
+     "Memory bandwidth to feed the arithmetic units",
+     "Low-latency, high-bandwidth interconnect between nodes",
+     "Parallel storage that many processes can read and write at once"
+    ]
+   ],
+   [
+    "h2",
+    "Typical uses"
+   ],
+   [
+    "p",
+    "HPC underpins weather and climate modeling, computational chemistry, structural mechanics, genomics, and large-scale machine-learning training. In fusion research it drives plasma turbulence codes, magnetohydrodynamic stability studies, and neutron-transport calculations. Kronos uses simulation and HPC to design its machines: the <a href=./hpc-fusion-simulation-compute.html>Hyperion breeder and the burner generators</a> are studied in software; no hardware net-gain claim is made before first-of-a-kind operation."
+   ],
+   [
+    "h2",
+    "How performance is judged"
+   ],
+   [
+    "p",
+    "Systems are ranked by benchmarks such as LINPACK, but the metric that matters is <b>time to solution</b> on the actual workload. A machine fast on dense linear algebra may stall on a memory-bound or communication-bound code, which is why scaling behavior and profiling matter more than peak numbers."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-parallelism-overview",
+    "Parallelism Overview"
+   ],
+   [
+    "hpc-flops-and-benchmarks",
+    "FLOP/s and Benchmarks"
+   ],
+   [
+    "hpc-exascale",
+    "Exascale Computing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-parallelism-overview",
+  "title": "Parallelism: An Overview",
+  "cat": "hpc-compute",
+  "lede": "Parallelism runs many operations at once; the three broad forms are data, task, and pipeline parallelism, each suited to different workloads.",
+  "body": [
+   [
+    "h2",
+    "Concurrency versus parallelism"
+   ],
+   [
+    "p",
+    "<b>Concurrency</b> is structuring a program as independent activities that may make progress in overlapping time windows. <b>Parallelism</b> is actually executing multiple activities simultaneously on separate hardware. A program can be concurrent without being parallel (time-sliced on one core) and parallel without much explicit concurrency (a vectorized loop)."
+   ],
+   [
+    "h2",
+    "Three broad patterns"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./hpc-data-parallelism.html>Data parallelism</a>: apply the same operation to many data elements at once",
+     "<a href=./hpc-task-parallelism.html>Task parallelism</a>: run different operations on different processors",
+     "<a href=./hpc-pipeline-parallelism.html>Pipeline parallelism</a>: stream data through a chain of stages, each running concurrently"
+    ]
+   ],
+   [
+    "h2",
+    "Levels of parallelism"
+   ],
+   [
+    "p",
+    "Parallelism exists at several granularities. At the finest, <b>instruction-level parallelism</b> lets a CPU issue several instructions per cycle. Above that, <b>SIMD</b> vector units apply one instruction to many data lanes. <b>Thread-level parallelism</b> uses multiple cores in shared memory, and <b>process-level parallelism</b> spans nodes with message passing. Large applications combine all of these."
+   ],
+   [
+    "h2",
+    "Where speedup comes from and where it stops"
+   ],
+   [
+    "p",
+    "The maximum speedup is bounded by the fraction of work that must run serially, formalized by <a href=./hpc-amdahls-law.html>Amdahl's law</a>. When problem size grows with processor count, the more optimistic <a href=./hpc-gustafsons-law.html>Gustafson's law</a> applies. Communication, synchronization, and load imbalance all erode ideal speedup."
+   ],
+   [
+    "h2",
+    "Choosing a pattern"
+   ],
+   [
+    "p",
+    "The right pattern follows the structure of the problem. Grid-based physics maps naturally to data parallelism with <a href=./hpc-domain-decomposition.html>domain decomposition</a>; independent parameter scans map to task parallelism; and staged workflows such as read-transform-write map to pipelines. Real codes mix patterns and hierarchies to match the machine."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-data-parallelism",
+    "Data Parallelism"
+   ],
+   [
+    "hpc-task-parallelism",
+    "Task Parallelism"
+   ],
+   [
+    "hpc-amdahls-law",
+    "Amdahl's Law"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-data-parallelism",
+  "title": "Data Parallelism",
+  "cat": "hpc-compute",
+  "lede": "Data parallelism applies the same operation to many data elements simultaneously, the dominant pattern in scientific computing and deep learning.",
+  "body": [
+   [
+    "h2",
+    "Same operation, many elements"
+   ],
+   [
+    "p",
+    "In data parallelism the program performs one operation across a large collection of data at the same time. Adding two vectors of a million elements is embarrassingly data-parallel: every element pair is independent, so the work can be split across cores, vector lanes, or GPU threads with no coordination beyond the split itself."
+   ],
+   [
+    "h2",
+    "Hardware that exploits it"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./hpc-simd-vectorization.html>SIMD</a> units apply one instruction to a vector of operands",
+     "GPUs run thousands of lightweight threads over array elements",
+     "Distributed clusters partition arrays across nodes and operate on local pieces"
+    ]
+   ],
+   [
+    "h2",
+    "A concrete example"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\n# One expression, applied to every element in parallel\n# under the hood (SIMD / multithreaded BLAS):\na = np.random.rand(1_000_000)\nb = np.random.rand(1_000_000)\nc = a * b + 3.0   # elementwise, data-parallel"
+    ]
+   ],
+   [
+    "h2",
+    "In machine learning"
+   ],
+   [
+    "p",
+    "Deep-learning training is often data-parallel across the batch: each device holds a full copy of the model and processes a different slice of the mini-batch, then gradients are averaged with an all-reduce. This scales well until the gradient-synchronization communication starts to dominate, at which point practitioners turn to model or pipeline parallelism as well."
+   ],
+   [
+    "h2",
+    "Limits"
+   ],
+   [
+    "p",
+    "Pure data parallelism assumes elements are independent. When elements interact, as in a stencil update that reads neighbors, boundaries must be exchanged between the pieces held by different processors. This <b>halo exchange</b> is the communication cost that separates a toy vector-add from a real physics solver, and managing it well is central to scalable simulation."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-simd-vectorization",
+    "SIMD and Vectorization"
+   ],
+   [
+    "hpc-domain-decomposition",
+    "Domain Decomposition"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-task-parallelism",
+  "title": "Task Parallelism",
+  "cat": "hpc-compute",
+  "lede": "Task parallelism runs different operations on different processors, coordinating them through dependencies rather than a single shared loop.",
+  "body": [
+   [
+    "h2",
+    "Different work in parallel"
+   ],
+   [
+    "p",
+    "Where data parallelism repeats one operation over many elements, task parallelism executes <b>distinct</b> operations concurrently. A weather model might advance dynamics on one set of cores while a chemistry module runs on another; a build system compiles independent source files at once. The tasks may consume and produce different data."
+   ],
+   [
+    "h2",
+    "Dependencies and the task graph"
+   ],
+   [
+    "p",
+    "Tasks rarely run in complete isolation. Their relationships form a directed acyclic graph (DAG): an edge from task A to task B means B cannot start until A finishes. A scheduler walks this graph, launching any task whose inputs are ready. The <b>critical path</b>, the longest dependency chain, bounds the best possible completion time no matter how many processors exist."
+   ],
+   [
+    "h2",
+    "Runtimes that support it"
+   ],
+   [
+    "ul",
+    [
+     "OpenMP tasks with <code>depend</code> clauses express fine-grained DAGs",
+     "Thread pools and futures in general-purpose languages",
+     "Workflow engines that schedule coarse tasks across a cluster"
+    ]
+   ],
+   [
+    "h2",
+    "Load balance is the challenge"
+   ],
+   [
+    "p",
+    "Tasks vary in size, so a static assignment can leave some processors idle while others are overloaded. Dynamic scheduling and <a href=./hpc-load-balancing.html>work stealing</a> keep processors busy by handing idle workers tasks from a shared queue. The trade-off is scheduling overhead against balance."
+   ],
+   [
+    "h2",
+    "When to use it"
+   ],
+   [
+    "p",
+    "Task parallelism suits irregular or heterogeneous workloads: adaptive mesh refinement, tree traversals, and multi-physics couplings where different physical models advance different parts of a simulation. In practice it is layered with data parallelism, so each task itself runs across many lanes or cores."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-pipeline-parallelism",
+    "Pipeline Parallelism"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ],
+   [
+    "hpc-data-parallelism",
+    "Data Parallelism"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-pipeline-parallelism",
+  "title": "Pipeline Parallelism",
+  "cat": "hpc-compute",
+  "lede": "Pipeline parallelism streams data through a chain of stages, each running on its own processor, so all stages work concurrently on different items.",
+  "body": [
+   [
+    "h2",
+    "An assembly line for computation"
+   ],
+   [
+    "p",
+    "In a pipeline, a computation is split into ordered <b>stages</b>. Item one enters stage one; when it moves to stage two, item two enters stage one, and so on. Once the pipeline is full, every stage is busy on a different item at the same time. Throughput rises to roughly one completed item per stage time, even though each individual item still traverses the whole pipeline."
+   ],
+   [
+    "h2",
+    "Fill, drain, and throughput"
+   ],
+   [
+    "p",
+    "A pipeline with k stages needs k-1 steps to fill before all stages are active, and k-1 steps to drain at the end. For a long stream this overhead is negligible; for a short one it dominates. Sustained throughput is set by the <b>slowest stage</b>, so balancing stage durations matters as much as adding stages."
+   ],
+   [
+    "h2",
+    "Examples"
+   ],
+   [
+    "ul",
+    [
+     "CPU instruction pipelines: fetch, decode, execute, memory, write-back",
+     "Data ingestion: read, decode, transform, write",
+     "Deep-learning pipeline parallelism: successive layers placed on successive devices"
+    ]
+   ],
+   [
+    "h2",
+    "Pipeline parallelism in model training"
+   ],
+   [
+    "p",
+    "When a neural network is too large for one accelerator, its layers are partitioned across devices. A micro-batch flows forward through the devices, then gradients flow back. Naively this leaves devices idle (the pipeline bubble); schemes that interleave many micro-batches shrink the bubble and raise utilization."
+   ],
+   [
+    "h2",
+    "Costs"
+   ],
+   [
+    "p",
+    "Pipelines introduce buffering between stages and are sensitive to imbalance and stalls. If one stage occasionally blocks, the whole line backs up. Good designs keep stage times uniform, buffer generously, and overlap the pipeline with other forms of parallelism."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-instruction-pipeline",
+    "Instruction Pipelining"
+   ],
+   [
+    "hpc-task-parallelism",
+    "Task Parallelism"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-shared-memory",
+  "title": "Shared-Memory Parallelism",
+  "cat": "hpc-compute",
+  "lede": "In shared-memory systems many cores read and write one common address space, communicating implicitly through memory rather than explicit messages.",
+  "body": [
+   [
+    "h2",
+    "One address space, many cores"
+   ],
+   [
+    "p",
+    "A shared-memory machine gives every processor access to a single memory address space. Threads communicate simply by reading and writing shared variables; there is no explicit send or receive. This model is natural to program and underlies multi-core CPUs and the threads within a single compute node."
+   ],
+   [
+    "h2",
+    "Threads and their pitfalls"
+   ],
+   [
+    "p",
+    "Because threads share data, two threads updating the same location without coordination create a <a href=./hpc-race-conditions.html>race condition</a>: the result depends on timing and is not reproducible. Correct shared-memory code protects shared state with <a href=./hpc-synchronization.html>locks, atomics, or barriers</a>, and minimizes the amount of shared mutable state."
+   ],
+   [
+    "h2",
+    "Programming models"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./hpc-openmp.html>OpenMP</a>: compiler-directive parallel loops and tasks",
+     "POSIX threads (pthreads): explicit low-level threading",
+     "Threading building blocks and parallel standard-library algorithms"
+    ]
+   ],
+   [
+    "h2",
+    "The scaling wall: memory bandwidth"
+   ],
+   [
+    "p",
+    "Adding cores helps only while memory can feed them. Many cores share the same memory controllers and last-level cache, so a bandwidth-bound kernel stops speeding up well before all cores are used. On larger nodes, memory is <a href=./hpc-numa.html>non-uniform (NUMA)</a>: a core's local memory is faster than a remote socket's, and ignoring this costs performance."
+   ],
+   [
+    "h2",
+    "Where it fits"
+   ],
+   [
+    "p",
+    "Shared memory is the model within a node. To span many nodes, it is combined with <a href=./hpc-distributed-memory.html>distributed memory</a> and message passing, giving the common hybrid: MPI between nodes, OpenMP or threads inside each node. This hybrid matches the hardware directly, since a node genuinely shares memory while separate nodes do not, and it keeps the number of communicating processes manageable at very large scale."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-distributed-memory",
+    "Distributed Memory"
+   ],
+   [
+    "hpc-openmp",
+    "OpenMP"
+   ],
+   [
+    "hpc-numa",
+    "NUMA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-distributed-memory",
+  "title": "Distributed-Memory Parallelism",
+  "cat": "hpc-compute",
+  "lede": "In distributed-memory systems each process owns private memory, and processes cooperate by exchanging explicit messages over a network.",
+  "body": [
+   [
+    "h2",
+    "Private memory, explicit messages"
+   ],
+   [
+    "p",
+    "A distributed-memory program runs as many processes, each with its own private address space. No process can read another's memory directly; to share data they send <b>messages</b>. This model matches cluster hardware, where nodes are connected by a network rather than a shared memory bus, and it scales to the largest machines."
+   ],
+   [
+    "h2",
+    "The dominant standard"
+   ],
+   [
+    "p",
+    "<a href=./hpc-mpi.html>MPI</a>, the Message Passing Interface, is the near-universal library for distributed-memory programming. It provides point-to-point sends and receives plus <a href=./hpc-mpi-collectives.html>collective operations</a> such as broadcast and all-reduce that involve many processes at once."
+   ],
+   [
+    "h2",
+    "Cost model"
+   ],
+   [
+    "p",
+    "A message's time is roughly <b>latency plus size divided by bandwidth</b>. Latency is the fixed startup cost per message; bandwidth caps the transfer rate for large messages. Because latency dominates small transfers, efficient codes send fewer, larger messages and overlap communication with computation."
+   ],
+   [
+    "h2",
+    "Decomposing the problem"
+   ],
+   [
+    "ul",
+    [
+     "Partition the data across processes with <a href=./hpc-domain-decomposition.html>domain decomposition</a>",
+     "Exchange only boundary (halo) data between neighbors",
+     "Keep the partition balanced so no process lags"
+    ]
+   ],
+   [
+    "h2",
+    "Strengths and demands"
+   ],
+   [
+    "p",
+    "Distributed memory scales to millions of cores because there is no shared resource to contend for. The price is programmer effort: data placement, communication, and consistency are all explicit. Most large simulations, including plasma and neutron-transport codes used in fusion design, are built this way, usually as a hybrid with shared-memory threading inside each node. Because nothing is shared implicitly, distributed-memory bugs tend to be communication mistakes, a mismatched send and receive or a forgotten boundary exchange, rather than the timing races that plague shared memory."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-mpi",
+    "MPI"
+   ],
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-interconnects",
+    "Interconnects"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-mpi",
+  "title": "MPI: The Message Passing Interface",
+  "cat": "hpc-compute",
+  "lede": "MPI is the standard library for distributed-memory parallel programming, defining how processes exchange data through messages and collectives.",
+  "body": [
+   [
+    "h2",
+    "What MPI is"
+   ],
+   [
+    "p",
+    "MPI is a specification, implemented by libraries such as Open MPI and MPICH, for writing programs that run as many cooperating processes. Each process has a unique <b>rank</b> within a <b>communicator</b> (a group of processes), and knows the group's size. Ranks decide which part of the work they own and communicate by calling MPI functions. The same executable runs on every rank, and code branches on the rank number to divide the work, a style known as single-program, multiple-data."
+   ],
+   [
+    "h2",
+    "The core operations"
+   ],
+   [
+    "ul",
+    [
+     "<code>MPI_Send</code> / <code>MPI_Recv</code>: point-to-point transfer between two ranks",
+     "<code>MPI_Bcast</code>, <code>MPI_Scatter</code>, <code>MPI_Gather</code>: one-to-many and many-to-one",
+     "<code>MPI_Reduce</code> / <code>MPI_Allreduce</code>: combine values (sum, max) across ranks"
+    ]
+   ],
+   [
+    "h2",
+    "A minimal program"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "from mpi4py import MPI\ncomm = MPI.COMM_WORLD\nrank = comm.Get_rank()\nsize = comm.Get_size()\n# each rank contributes its rank number; all get the sum\ntotal = comm.allreduce(rank, op=MPI.SUM)\nif rank == 0:\n    print('sum of ranks =', total)  # 0+1+...+(size-1)"
+    ]
+   ],
+   [
+    "h2",
+    "Blocking versus non-blocking"
+   ],
+   [
+    "p",
+    "Blocking calls return only when it is safe to reuse the buffer. Non-blocking calls (<code>MPI_Isend</code>, <code>MPI_Irecv</code>) return immediately and are completed later with <code>MPI_Wait</code>, letting a program <a href=./hpc-communication-computation-overlap.html>overlap communication with computation</a>. This overlap is often the difference between a code that scales and one that stalls."
+   ],
+   [
+    "h2",
+    "Why it endures"
+   ],
+   [
+    "p",
+    "MPI is portable across nearly every HPC system and maps cleanly onto fast interconnects. It is verbose and low-level, but it gives explicit control over data movement, which is what large-scale performance demands. Most production simulation codes, in fusion and elsewhere, are built on MPI, frequently combined with OpenMP or GPU code inside each rank."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-mpi-collectives",
+    "MPI Collectives"
+   ],
+   [
+    "hpc-distributed-memory",
+    "Distributed Memory"
+   ],
+   [
+    "hpc-communication-computation-overlap",
+    "Overlapping Communication"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-mpi-collectives",
+  "title": "MPI Collective Operations",
+  "cat": "hpc-compute",
+  "lede": "Collectives are group communications, such as broadcast, reduce, and all-to-all, that libraries implement with efficient algorithms across all ranks.",
+  "body": [
+   [
+    "h2",
+    "Communication that involves everyone"
+   ],
+   [
+    "p",
+    "A collective operation involves every rank in a communicator, not just a pair. Rather than hand-coding many point-to-point messages, a program calls one collective and the MPI library chooses an efficient algorithm. This is both simpler and faster, because the library exploits the network topology."
+   ],
+   [
+    "h2",
+    "The common collectives"
+   ],
+   [
+    "ul",
+    [
+     "<b>Broadcast</b>: one rank sends the same data to all",
+     "<b>Scatter / Gather</b>: distribute pieces to ranks / collect pieces back",
+     "<b>Reduce / Allreduce</b>: combine values with an operator; Allreduce leaves the result on every rank",
+     "<b>All-to-all</b>: every rank sends distinct data to every other rank",
+     "<b>Barrier</b>: all ranks wait until each has arrived"
+    ]
+   ],
+   [
+    "h2",
+    "Why they scale"
+   ],
+   [
+    "p",
+    "A naive broadcast from one rank to N others costs N sequential messages, order N time. A tree-based broadcast halves the remaining recipients each step, costing order log N. Reductions use the same tree idea. All-reduce, central to gradient averaging in distributed training, is often done as a reduce-scatter followed by an all-gather, the <b>ring all-reduce</b>, which is bandwidth-optimal."
+   ],
+   [
+    "h2",
+    "The synchronization cost"
+   ],
+   [
+    "p",
+    "Most collectives are implicit synchronization points: a slow or imbalanced rank delays everyone. This makes collectives a frequent scaling bottleneck and a reason to keep work balanced. Non-blocking collectives allow the group operation to proceed while other work continues."
+   ],
+   [
+    "h2",
+    "Where they matter"
+   ],
+   [
+    "p",
+    "All-reduce dominates the communication in data-parallel machine learning. Reductions appear in every dot product, norm, and convergence check in iterative solvers. Understanding collective cost is essential to predicting how a distributed code will scale."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-mpi",
+    "MPI"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ],
+   [
+    "hpc-interconnects",
+    "Interconnects"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-openmp",
+  "title": "OpenMP: Shared-Memory Directives",
+  "cat": "hpc-compute",
+  "lede": "OpenMP adds parallelism to C, C++, and Fortran through compiler directives, letting a single program use all cores of a node with little rewriting.",
+  "body": [
+   [
+    "h2",
+    "Parallelism by annotation"
+   ],
+   [
+    "p",
+    "OpenMP is a directive-based model for <a href=./hpc-shared-memory.html>shared-memory</a> parallelism. The programmer marks regions and loops with <code>#pragma omp</code> directives; the compiler and runtime create and manage a team of threads. Because the directives are ignored by a non-OpenMP compiler, the same source can build serial or parallel."
+   ],
+   [
+    "h2",
+    "The workhorse: parallel for"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# C-style pseudocode\n# pragma omp parallel for reduction(+:sum)\n# for (i = 0; i < n; i++)\n#     sum += a[i] * b[i];\n# The loop iterations are split across threads;\n# the reduction clause safely combines partial sums."
+    ]
+   ],
+   [
+    "h2",
+    "Key concepts"
+   ],
+   [
+    "ul",
+    [
+     "<b>Work sharing</b>: split loop iterations across a thread team",
+     "<b>Reduction</b>: combine per-thread partial results without a race",
+     "<b>Scheduling</b>: static, dynamic, or guided assignment of iterations",
+     "<b>Tasks</b>: express irregular, dependency-driven parallelism"
+    ]
+   ],
+   [
+    "h2",
+    "Correctness concerns"
+   ],
+   [
+    "p",
+    "Shared variables must be classified as shared or private, and updates to shared state protected. Forgetting a reduction or a <code>private</code> clause causes a <a href=./hpc-race-conditions.html>race condition</a>. False sharing, where threads update different variables that land on the same cache line, silently degrades performance without being a correctness bug."
+   ],
+   [
+    "h2",
+    "OpenMP and the wider stack"
+   ],
+   [
+    "p",
+    "OpenMP handles parallelism within a node; across nodes it is paired with <a href=./hpc-mpi.html>MPI</a> in the common MPI+OpenMP hybrid. Recent OpenMP versions also target GPUs through <code>target</code> offload directives, giving one directive-based model for both CPU threads and accelerators. Its incremental nature is a practical strength: a serial code can be parallelized one loop at a time, checking correctness at each step, rather than being rewritten all at once."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-race-conditions",
+    "Race Conditions"
+   ],
+   [
+    "hpc-mpi",
+    "MPI"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-gpu-computing",
+  "title": "GPU Computing",
+  "cat": "hpc-compute",
+  "lede": "Graphics processors provide thousands of simple cores optimized for throughput, making them the workhorse of modern simulation and machine learning.",
+  "body": [
+   [
+    "h2",
+    "Throughput over latency"
+   ],
+   [
+    "p",
+    "A CPU devotes transistors to making a few threads fast: deep caches, branch prediction, out-of-order execution. A GPU takes the opposite bet, packing thousands of simple arithmetic units to run many threads at once. It hides memory latency not with large caches but by switching among a huge pool of ready threads. For data-parallel work, this yields far higher throughput per watt and per unit area."
+   ],
+   [
+    "h2",
+    "The execution model"
+   ],
+   [
+    "p",
+    "GPU work is expressed as a <b>kernel</b> launched over a grid of threads. Threads are grouped into blocks that share fast on-chip memory; blocks are scheduled onto streaming multiprocessors. Within a block, threads execute in <a href=./hpc-gpu-warps-occupancy.html>warps</a> of 32 that run in lockstep, so branch divergence within a warp costs performance."
+   ],
+   [
+    "h2",
+    "Memory is the constraint"
+   ],
+   [
+    "ul",
+    [
+     "High-bandwidth device memory feeds the arithmetic units",
+     "On-chip shared memory and registers are fast but small",
+     "Data must be moved between host (CPU) and device (GPU) memory, a frequent bottleneck"
+    ]
+   ],
+   [
+    "h2",
+    "What runs well"
+   ],
+   [
+    "p",
+    "GPUs excel at dense linear algebra, stencil updates, particle methods, and neural-network math, all of which are <a href=./hpc-data-parallelism.html>data-parallel</a> and arithmetic-heavy. They struggle with heavily branching, pointer-chasing, or latency-bound code."
+   ],
+   [
+    "h2",
+    "In fusion and ML"
+   ],
+   [
+    "p",
+    "GPU clusters run the largest turbulence and particle-in-cell simulations and essentially all large-scale model training. Kronos studies its <a href=./hpc-fusion-simulation-compute.html>machine designs</a> on such hardware in simulation. Getting good performance means keeping data resident on the device, maximizing arithmetic per byte moved, and avoiding warp divergence."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-cuda",
+    "CUDA"
+   ],
+   [
+    "hpc-gpu-warps-occupancy",
+    "Warps and Occupancy"
+   ],
+   [
+    "hpc-gpu-memory",
+    "GPU Memory"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-cuda",
+  "title": "CUDA and GPU Programming",
+  "cat": "hpc-compute",
+  "lede": "CUDA is the programming model for NVIDIA GPUs; it exposes threads, blocks, and a memory hierarchy that the programmer maps their computation onto.",
+  "body": [
+   [
+    "h2",
+    "A model for many threads"
+   ],
+   [
+    "p",
+    "CUDA lets a programmer write a <b>kernel</b>, a function that runs on the GPU, and launch it across a grid of thread blocks. Each thread computes its global index from its block and thread coordinates and typically handles one data element. The runtime maps blocks onto the GPU's streaming multiprocessors."
+   ],
+   [
+    "h2",
+    "Kernel shape"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# CUDA C pseudocode for c = a + b\n# __global__ void add(float* a, float* b, float* c, int n){\n#   int i = blockIdx.x * blockDim.x + threadIdx.x;\n#   if (i < n) c[i] = a[i] + b[i];\n# }\n# launch: add<<<(n+255)/256, 256>>>(a, b, c, n);"
+    ]
+   ],
+   [
+    "h2",
+    "The memory hierarchy"
+   ],
+   [
+    "ul",
+    [
+     "<b>Registers</b>: per-thread, fastest, scarce",
+     "<b>Shared memory</b>: per-block, on-chip, for cooperation and reuse",
+     "<b>Global memory</b>: large, high-bandwidth, high-latency device DRAM",
+     "<b>Host memory</b>: reached only over the PCIe or NVLink bus"
+    ]
+   ],
+   [
+    "h2",
+    "Performance rules of thumb"
+   ],
+   [
+    "p",
+    "Coalesce global-memory accesses so a warp reads contiguous addresses in one transaction. Reuse data through shared memory to cut trips to global memory. Keep enough warps resident to hide latency (<a href=./hpc-gpu-warps-occupancy.html>occupancy</a>), and avoid divergent branches within a warp. Minimize host-device transfers, which are slow relative to on-device bandwidth."
+   ],
+   [
+    "h2",
+    "The wider ecosystem"
+   ],
+   [
+    "p",
+    "Beyond hand-written kernels, libraries such as cuBLAS and cuFFT, and portable models like OpenMP offload, SYCL, and HIP, target GPUs. Deep-learning frameworks generate CUDA under the hood. The same principles, maximize arithmetic per byte moved and keep the device busy, apply regardless of the layer used."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gpu-computing",
+    "GPU Computing"
+   ],
+   [
+    "hpc-gpu-memory",
+    "GPU Memory"
+   ],
+   [
+    "hpc-accelerators",
+    "Accelerators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-accelerators",
+  "title": "Accelerators: GPUs, TPUs, and FPGAs",
+  "cat": "hpc-compute",
+  "lede": "Accelerators are specialized processors that outperform general CPUs on specific workloads by trading flexibility for raw throughput or efficiency.",
+  "body": [
+   [
+    "h2",
+    "Why specialize"
+   ],
+   [
+    "p",
+    "A general-purpose CPU spends much of its silicon on flexibility: control logic, caches, and speculation. An accelerator strips that away and dedicates hardware to a narrower class of work, gaining throughput and energy efficiency. The trade is programmability and generality for speed on the target workload."
+   ],
+   [
+    "h2",
+    "The main families"
+   ],
+   [
+    "ul",
+    [
+     "<b>GPUs</b>: thousands of cores for data-parallel floating-point work; the general-purpose accelerator",
+     "<b>Tensor / matrix engines</b>: hardware for dense matrix multiply-accumulate, the core of deep learning",
+     "<b>FPGAs</b>: reconfigurable logic wired to match a specific dataflow; strong for streaming and low latency",
+     "<b>ASICs</b>: fixed-function chips (such as ML inference accelerators) that give the best efficiency for one task"
+    ]
+   ],
+   [
+    "h2",
+    "Tensor and matrix units"
+   ],
+   [
+    "p",
+    "Modern accelerators include dedicated units that multiply small matrices in one operation, often at reduced precision. Because neural-network training and inference are dominated by matrix multiplication, these units deliver most of the peak throughput on such workloads. They are effective only when the computation is cast as dense matrix math."
+   ],
+   [
+    "h2",
+    "The programmability spectrum"
+   ],
+   [
+    "p",
+    "GPUs are the most programmable accelerators and dominate general HPC. FPGAs demand hardware-description or high-level-synthesis tooling and long build times, but excel where a fixed pipeline and predictable latency matter. ASICs are least flexible and most efficient, justified only at large deployment scale."
+   ],
+   [
+    "h2",
+    "Heterogeneous reality"
+   ],
+   [
+    "p",
+    "No single device wins everywhere, so systems are <a href=./hpc-heterogeneous-computing.html>heterogeneous</a>: CPUs orchestrate and run irregular code, accelerators do the arithmetic-heavy inner loops. The engineering challenge is partitioning work and managing data movement across memory spaces so the accelerators stay fed."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gpu-computing",
+    "GPU Computing"
+   ],
+   [
+    "hpc-tensor-cores",
+    "Tensor Cores"
+   ],
+   [
+    "hpc-heterogeneous-computing",
+    "Heterogeneous Computing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-simd-vectorization",
+  "title": "SIMD and Vectorization",
+  "cat": "hpc-compute",
+  "lede": "SIMD applies one instruction to several data elements at once; vectorization is the art of shaping code so the compiler or CPU can use it.",
+  "body": [
+   [
+    "h2",
+    "One instruction, many lanes"
+   ],
+   [
+    "p",
+    "SIMD stands for Single Instruction, Multiple Data. A vector register holds several values (for example, eight single-precision floats), and one vector instruction operates on all of them together. This multiplies arithmetic throughput without adding cores, and it is the finest-grained form of <a href=./hpc-data-parallelism.html>data parallelism</a>."
+   ],
+   [
+    "h2",
+    "Vector instruction sets"
+   ],
+   [
+    "ul",
+    [
+     "x86 SSE, AVX, AVX-512 with 128- to 512-bit registers",
+     "Arm NEON and the scalable SVE",
+     "Each doubling of width doubles the elements processed per instruction"
+    ]
+   ],
+   [
+    "h2",
+    "Getting code to vectorize"
+   ],
+   [
+    "p",
+    "Compilers auto-vectorize loops when they can prove it is safe. This requires loops with no data dependence between iterations, unit-stride (contiguous) memory access, no aliasing between pointers, and a known trip count. Restructuring data from arrays-of-structs to structs-of-arrays often enables vectorization by making access contiguous."
+   ],
+   [
+    "h2",
+    "Obstacles"
+   ],
+   [
+    "ul",
+    [
+     "Loop-carried dependencies that force sequential order",
+     "Conditional branches inside the loop body",
+     "Non-contiguous or gather/scatter memory patterns",
+     "Function calls the compiler cannot inline"
+    ]
+   ],
+   [
+    "h2",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "A CPU core's peak floating-point rate assumes full vector width. Scalar code that ignores SIMD may reach only a fraction, sometimes an eighth or a sixteenth, of peak. Because vectorized kernels are also more <a href=./hpc-cache.html>cache</a>- and bandwidth-friendly, vectorization is one of the highest-leverage single-core optimizations, and a prerequisite before scaling out across cores and nodes. Compilers report which loops vectorized and why others did not, so inspecting those reports is often the fastest route to finding and removing the obstacle."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-data-parallelism",
+    "Data Parallelism"
+   ],
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ],
+   [
+    "hpc-cache",
+    "Caches"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-strong-scaling",
+  "title": "Strong Scaling",
+  "cat": "hpc-compute",
+  "lede": "Strong scaling fixes the problem size and adds processors, measuring how much faster a fixed workload runs as parallelism grows.",
+  "body": [
+   [
+    "h2",
+    "Fixed work, more workers"
+   ],
+   [
+    "p",
+    "Strong scaling asks: for a problem of fixed total size, how does run time fall as processor count rises? Ideal strong scaling is <b>linear speedup</b>, doubling the processors halves the time. Speedup is defined as the one-processor time divided by the N-processor time; parallel efficiency is that speedup divided by N."
+   ],
+   [
+    "h2",
+    "Why it saturates"
+   ],
+   [
+    "p",
+    "Strong scaling is bounded by <a href=./hpc-amdahls-law.html>Amdahl's law</a>. Any serial fraction of the code becomes an ever-larger share of the shrinking run time. Meanwhile the work per processor drops, so fixed per-step costs, communication latency, synchronization, and startup, come to dominate. Beyond some point, adding processors barely helps or even hurts."
+   ],
+   [
+    "h2",
+    "A worked feel"
+   ],
+   [
+    "p",
+    "If 95% of a code is parallel and 5% is serial, the best possible strong-scaling speedup is 20x, no matter how many processors are added. At 64 processors the actual speedup is already far below 64. This is why reducing the serial fraction matters more than adding hardware."
+   ],
+   [
+    "h2",
+    "Communication-to-computation ratio"
+   ],
+   [
+    "ul",
+    [
+     "More processors means smaller local subdomains",
+     "Surface-to-volume ratio rises, so communication grows relative to compute",
+     "At fine granularity, latency-bound halo exchanges dominate"
+    ]
+   ],
+   [
+    "h2",
+    "Reading a strong-scaling plot"
+   ],
+   [
+    "p",
+    "Plot speedup against processor count. The curve follows the ideal line at first, then bends away as overheads bite. The knee marks the practical limit for that problem size. To keep scaling past it, one usually grows the problem too, which is measured by <a href=./hpc-weak-scaling.html>weak scaling</a> instead."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-weak-scaling",
+    "Weak Scaling"
+   ],
+   [
+    "hpc-amdahls-law",
+    "Amdahl's Law"
+   ],
+   [
+    "hpc-scalability-metrics",
+    "Scalability Metrics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-weak-scaling",
+  "title": "Weak Scaling",
+  "cat": "hpc-compute",
+  "lede": "Weak scaling grows the problem size in proportion to the processor count, testing whether a code can tackle larger problems in constant time.",
+  "body": [
+   [
+    "h2",
+    "Work grows with the machine"
+   ],
+   [
+    "p",
+    "Weak scaling keeps the work <b>per processor</b> fixed and increases the total problem size as processors are added. The question is whether run time stays roughly constant. Ideal weak scaling means solving a problem twice as large on twice the processors in the same wall-clock time. This is the relevant test when the goal is higher resolution or larger domains, not just faster answers to a fixed problem."
+   ],
+   [
+    "h2",
+    "The governing law"
+   ],
+   [
+    "p",
+    "Weak scaling is described by <a href=./hpc-gustafsons-law.html>Gustafson's law</a>, which is more optimistic than Amdahl's because the parallel part of the work grows while the serial part stays fixed. As the problem grows, the serial fraction shrinks relatively, so large machines can be used efficiently even when strong scaling would have saturated."
+   ],
+   [
+    "h2",
+    "What still limits it"
+   ],
+   [
+    "ul",
+    [
+     "Communication that grows faster than local work (for example global reductions)",
+     "Load imbalance that worsens at scale",
+     "Memory and I/O capacity that must grow with the problem"
+    ]
+   ],
+   [
+    "h2",
+    "Weak-scaling efficiency"
+   ],
+   [
+    "p",
+    "Efficiency is the single-processor time for the base problem divided by the N-processor time for the N-times-larger problem. Perfect efficiency is a flat line at 1.0. A gently rising run-time curve is normal and acceptable; a steep rise signals communication or imbalance costs that will cap usable scale."
+   ],
+   [
+    "h2",
+    "When each matters"
+   ],
+   [
+    "p",
+    "Strong scaling matters when a fixed problem must finish sooner. Weak scaling matters when the science needs finer grids or bigger models, as in high-resolution plasma turbulence or large neural networks. Most real campaigns care about both and report each separately."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ],
+   [
+    "hpc-gustafsons-law",
+    "Gustafson's Law"
+   ],
+   [
+    "hpc-scalability-metrics",
+    "Scalability Metrics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-amdahls-law",
+  "title": "Amdahl's Law",
+  "cat": "hpc-compute",
+  "lede": "Amdahl's law bounds the speedup of a fixed problem by its serial fraction, showing why a small non-parallel part caps overall gain.",
+  "body": [
+   [
+    "h2",
+    "The statement"
+   ],
+   [
+    "p",
+    "Let a program spend a fraction p of its time in perfectly parallelizable work and (1 minus p) in strictly serial work. On N processors the speedup is bounded by S(N) = 1 / ((1 minus p) + p/N). As N grows without limit, the p/N term vanishes and speedup approaches 1/(1 minus p), a hard ceiling set entirely by the serial fraction."
+   ],
+   [
+    "h2",
+    "The uncomfortable numbers"
+   ],
+   [
+    "ul",
+    [
+     "p = 0.90: maximum speedup is 10x, however many processors",
+     "p = 0.95: maximum speedup is 20x",
+     "p = 0.99: maximum speedup is 100x"
+    ]
+   ],
+   [
+    "h2",
+    "Worked example"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def amdahl(p, n):\n    return 1.0 / ((1.0 - p) + p / n)\n\nfor n in (2, 8, 64, 1024):\n    print(n, round(amdahl(0.95, n), 2))\n# 2 -> 1.9, 8 -> 6.1, 64 -> 15.4, 1024 -> 19.7\n# converging on the 20x ceiling"
+    ]
+   ],
+   [
+    "h2",
+    "What it teaches"
+   ],
+   [
+    "p",
+    "Amdahl's law governs <a href=./hpc-strong-scaling.html>strong scaling</a>: for a fixed problem, the serial fraction dominates at high processor counts. It directs optimization effort toward eliminating or parallelizing serial sections, since past a point buying more processors yields nothing. Serial bottlenecks hide in I/O, initialization, and global synchronization."
+   ],
+   [
+    "h2",
+    "The counterpoint"
+   ],
+   [
+    "p",
+    "Amdahl assumes a fixed problem size. In practice, users often grow the problem as machines grow, which changes the picture entirely; that regime is described by <a href=./hpc-gustafsons-law.html>Gustafson's law</a>. The two laws are not contradictory, they answer different questions about scaling."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gustafsons-law",
+    "Gustafson's Law"
+   ],
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ],
+   [
+    "hpc-scalability-metrics",
+    "Scalability Metrics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-gustafsons-law",
+  "title": "Gustafson's Law",
+  "cat": "hpc-compute",
+  "lede": "Gustafson's law reframes scaling for growing problems, showing that large machines stay useful when the workload scales with processor count.",
+  "body": [
+   [
+    "h2",
+    "A different question"
+   ],
+   [
+    "p",
+    "Amdahl's law fixes the problem and asks how much faster it runs. Gustafson's law fixes the run time and asks how much larger a problem can be solved. This matches how scientists actually use big machines: they raise resolution or model size until the run fills the available time."
+   ],
+   [
+    "h2",
+    "The statement"
+   ],
+   [
+    "p",
+    "If a workload on N processors spends a serial fraction s and a parallel fraction (1 minus s) of its time, the scaled speedup is S(N) = s + N(1 minus s) = N minus s(N minus 1). Speedup grows almost linearly with N because the parallel work expands with the machine while the serial part stays fixed."
+   ],
+   [
+    "h2",
+    "Reconciling with Amdahl"
+   ],
+   [
+    "p",
+    "The two laws are consistent; they measure different things. Amdahl assumes constant work (<a href=./hpc-strong-scaling.html>strong scaling</a>); Gustafson assumes work grows with processors (<a href=./hpc-weak-scaling.html>weak scaling</a>). A code that scales poorly under Amdahl can still be run efficiently on a huge machine if the problem is scaled up accordingly."
+   ],
+   [
+    "h2",
+    "Worked example"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def gustafson(s, n):\n    return s + n * (1.0 - s)\n\nfor n in (8, 64, 1024):\n    print(n, round(gustafson(0.05, n), 1))\n# 8 -> 7.7, 64 -> 61.0, 1024 -> 972.9\n# near-linear scaled speedup"
+    ]
+   ],
+   [
+    "h2",
+    "The practical lesson"
+   ],
+   [
+    "p",
+    "Exascale machines are justified largely by Gustafson's reasoning: they enable finer meshes, longer time integrations, and larger models rather than merely faster fixed runs. In fusion simulation this means higher-resolution turbulence and fuller device models, which is where added compute is spent."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-amdahls-law",
+    "Amdahl's Law"
+   ],
+   [
+    "hpc-weak-scaling",
+    "Weak Scaling"
+   ],
+   [
+    "hpc-exascale",
+    "Exascale Computing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-memory-hierarchy",
+  "title": "The Memory Hierarchy",
+  "cat": "hpc-compute",
+  "lede": "Memory is organized as a hierarchy from fast, small registers to slow, large storage, and performance depends on keeping data close to the processor.",
+  "body": [
+   [
+    "h2",
+    "Fast is small, big is slow"
+   ],
+   [
+    "p",
+    "No memory technology is simultaneously fast, large, and affordable, so computers layer several. Each level up the hierarchy is faster and smaller; each level down is larger and slower. The processor reads from the fastest level that holds the data, falling back to slower levels on a miss."
+   ],
+   [
+    "h2",
+    "The levels"
+   ],
+   [
+    "ul",
+    [
+     "<b>Registers</b>: a few hundred bytes, sub-nanosecond access",
+     "<b>L1 / L2 / L3 caches</b>: kilobytes to tens of megabytes, single-digit to tens of nanoseconds",
+     "<b>Main memory (DRAM)</b>: gigabytes to terabytes, around a hundred nanoseconds",
+     "<b>Storage (SSD, disk)</b>: terabytes and up, microseconds to milliseconds"
+    ]
+   ],
+   [
+    "h2",
+    "Latency in perspective"
+   ],
+   [
+    "p",
+    "If a register access were one second, an L1 hit would be a few seconds, a main-memory access a couple of minutes, and a disk read many days. These ratios explain why data placement, not raw arithmetic rate, so often decides real performance."
+   ],
+   [
+    "h2",
+    "Locality is the lever"
+   ],
+   [
+    "p",
+    "The hierarchy pays off because programs exhibit <b>locality</b>. Temporal locality: recently used data is likely used again. Spatial locality: data near recently used data is likely used soon. Algorithms that reuse data while it sits in <a href=./hpc-cache.html>cache</a>, and stream memory contiguously, run far faster than those that jump around."
+   ],
+   [
+    "h2",
+    "The bandwidth wall"
+   ],
+   [
+    "p",
+    "Arithmetic throughput has grown faster than memory bandwidth for decades, so many codes are <a href=./hpc-roofline-model.html>memory-bound</a>: limited by how fast data arrives, not how fast it can be computed on. Blocking (tiling) loops to fit working sets in cache is the standard remedy."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-cache",
+    "Caches"
+   ],
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ],
+   [
+    "hpc-numa",
+    "NUMA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-cache",
+  "title": "Caches and Cache Behavior",
+  "cat": "hpc-compute",
+  "lede": "Caches hold recently and nearby-used data close to the processor; understanding lines, misses, and locality is central to fast code.",
+  "body": [
+   [
+    "h2",
+    "What a cache does"
+   ],
+   [
+    "p",
+    "A cache is a small, fast memory that keeps copies of data the processor is likely to reuse, sparing it slow trips to main memory. Data moves in fixed-size <b>cache lines</b> (commonly 64 bytes), so accessing one byte pulls in its neighbors. A request found in cache is a <b>hit</b>; one that is not is a <b>miss</b> and stalls the processor while the line is fetched."
+   ],
+   [
+    "h2",
+    "The three kinds of miss"
+   ],
+   [
+    "ul",
+    [
+     "<b>Compulsory</b>: the first-ever access to a line",
+     "<b>Capacity</b>: the working set is larger than the cache",
+     "<b>Conflict</b>: too many active lines map to the same set"
+    ]
+   ],
+   [
+    "h2",
+    "Locality, revisited"
+   ],
+   [
+    "p",
+    "Because whole lines are loaded, contiguous (unit-stride) access uses every byte fetched, while large-stride or random access wastes most of each line. Reusing data soon after loading it keeps it resident. Writing algorithms with strong temporal and spatial <a href=./hpc-memory-hierarchy.html>locality</a> is the single most reliable way to speed up memory-bound code."
+   ],
+   [
+    "h2",
+    "Cache blocking"
+   ],
+   [
+    "p",
+    "A canonical technique is <b>tiling</b>: restructure loops so the working set of each tile fits in cache, maximizing reuse before data is evicted. Matrix multiply is the textbook case, where blocking turns a bandwidth-bound loop into a compute-bound one that approaches peak."
+   ],
+   [
+    "h2",
+    "Pitfalls in parallel code"
+   ],
+   [
+    "p",
+    "<b>False sharing</b> occurs when threads modify different variables that share a cache line; the line ping-pongs between cores, destroying performance even though the data is logically independent. Padding shared structures to line boundaries avoids it. <a href=./hpc-cache-coherence.html>Cache coherence</a> keeps multiple cores' views consistent, at a communication cost."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-memory-hierarchy",
+    "Memory Hierarchy"
+   ],
+   [
+    "hpc-cache-coherence",
+    "Cache Coherence"
+   ],
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-cache-coherence",
+  "title": "Cache Coherence",
+  "cat": "hpc-compute",
+  "lede": "Cache coherence keeps every core's cached copy of shared data consistent, an invisible service with real performance consequences.",
+  "body": [
+   [
+    "h2",
+    "The problem"
+   ],
+   [
+    "p",
+    "In a multi-core processor each core has private caches. If two cores cache the same memory location and one writes to it, the other's copy becomes stale. <b>Cache coherence</b> is the hardware protocol that ensures all cores observe a single, consistent value, so shared-memory programming behaves as expected."
+   ],
+   [
+    "h2",
+    "How it works"
+   ],
+   [
+    "p",
+    "Most systems use a snooping or directory-based protocol, commonly of the MESI family, which tracks each line's state as Modified, Exclusive, Shared, or Invalid. When a core writes a line, other copies are invalidated; when a core reads a line another has modified, the current value is supplied and states are updated. The programmer never issues these operations, but they generate coherence traffic on the interconnect."
+   ],
+   [
+    "h2",
+    "MESI states"
+   ],
+   [
+    "ul",
+    [
+     "<b>Modified</b>: this cache has the only, dirty copy",
+     "<b>Exclusive</b>: this cache has the only, clean copy",
+     "<b>Shared</b>: multiple caches hold clean copies",
+     "<b>Invalid</b>: the copy is stale and must be refetched"
+    ]
+   ],
+   [
+    "h2",
+    "Performance cost"
+   ],
+   [
+    "p",
+    "Coherence is not free. A line repeatedly written by different cores bounces between them, each transfer a coherence miss. <a href=./hpc-cache.html>False sharing</a>, distinct variables on one line, triggers this even when there is no true data dependence. Highly contended shared counters and locks are common victims; per-thread accumulation combined at the end avoids the traffic."
+   ],
+   [
+    "h2",
+    "Scaling limits"
+   ],
+   [
+    "p",
+    "Snooping traffic grows with core count, which is why very large shared-memory domains are hard to build. Beyond a node, systems abandon hardware coherence and use explicit message passing with <a href=./hpc-mpi.html>MPI</a>, trading programming convenience for scalability."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-cache",
+    "Caches"
+   ],
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-synchronization",
+    "Synchronization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-interconnects",
+  "title": "Interconnects",
+  "cat": "hpc-compute",
+  "lede": "The interconnect is the network binding compute nodes; its latency and bandwidth often decide whether a large simulation scales.",
+  "body": [
+   [
+    "h2",
+    "The network is a first-class component"
+   ],
+   [
+    "p",
+    "In a cluster, nodes communicate over a dedicated high-speed network. For communication-heavy codes the interconnect matters as much as the processors, because time lost moving data cannot be recovered by faster arithmetic. HPC interconnects are engineered for low <b>latency</b> and high <b>bandwidth</b> well beyond commodity Ethernet."
+   ],
+   [
+    "h2",
+    "Latency and bandwidth"
+   ],
+   [
+    "p",
+    "A message's time is approximately latency plus (message size / bandwidth). Latency, the fixed per-message startup, dominates small transfers; bandwidth caps large ones. Modern HPC fabrics reach sub-microsecond latencies and hundreds of gigabits per second per link. Codes are tuned to send fewer, larger messages to amortize latency."
+   ],
+   [
+    "h2",
+    "Common fabrics"
+   ],
+   [
+    "ul",
+    [
+     "InfiniBand: the traditional low-latency HPC fabric",
+     "High-performance Ethernet with RDMA (RoCE)",
+     "Vendor fabrics such as Slingshot and proprietary tori"
+    ]
+   ],
+   [
+    "h2",
+    "RDMA and offload"
+   ],
+   [
+    "p",
+    "Remote Direct Memory Access lets one node read or write another's memory without involving the remote CPU, cutting latency and freeing processors. Combined with hardware collective offload, RDMA is what allows <a href=./hpc-mpi-collectives.html>collectives</a> to scale across tens of thousands of nodes."
+   ],
+   [
+    "h2",
+    "Topology matters"
+   ],
+   [
+    "p",
+    "How links are arranged, the <a href=./hpc-network-topologies.html>topology</a>, sets how many hops messages take and how bandwidth is shared under load. Fat-trees, dragonflies, and tori trade cost against bisection bandwidth. Placement of a job's ranks onto physically nearby nodes reduces contention and improves scaling. Because the interconnect is shared among all running jobs, one communication-heavy job can slow others, which is why facilities monitor fabric utilization and schedulers try to allocate compact, well-shaped node sets."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-network-topologies",
+    "Network Topologies"
+   ],
+   [
+    "hpc-distributed-memory",
+    "Distributed Memory"
+   ],
+   [
+    "hpc-mpi-collectives",
+    "MPI Collectives"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-network-topologies",
+  "title": "Network Topologies",
+  "cat": "hpc-compute",
+  "lede": "Topology is the arrangement of links between nodes; it determines message hop counts, bisection bandwidth, and how a cluster scales.",
+  "body": [
+   [
+    "h2",
+    "Why arrangement matters"
+   ],
+   [
+    "p",
+    "Given many nodes and a budget of links and switches, the topology decides how far apart nodes are and how much bandwidth is available when many pairs communicate at once. Two figures of merit dominate: the <b>diameter</b> (worst-case hop count between nodes) and the <b>bisection bandwidth</b> (aggregate bandwidth across a cut that splits the machine in half)."
+   ],
+   [
+    "h2",
+    "Common designs"
+   ],
+   [
+    "ul",
+    [
+     "<b>Fat-tree</b>: a layered tree with more bandwidth toward the root; near full bisection bandwidth",
+     "<b>Torus</b> (2D/3D): nodes in a mesh with wrap-around links; short diameter for neighbor communication",
+     "<b>Dragonfly</b>: groups of densely connected nodes with sparse global links; low diameter at large scale"
+    ]
+   ],
+   [
+    "h2",
+    "The trade-off"
+   ],
+   [
+    "p",
+    "Full bandwidth between every pair (a non-blocking fat-tree) is expensive, and cost grows faster than node count. Torus and dragonfly designs accept lower worst-case bandwidth for far fewer cables, betting that most communication is either local (neighbor exchanges) or tolerant of some contention."
+   ],
+   [
+    "h2",
+    "Matching code to topology"
+   ],
+   [
+    "p",
+    "A stencil code that only exchanges with neighbors thrives on a torus, since its communication is inherently local. A code with heavy all-to-all or global collectives stresses bisection bandwidth and prefers a fat-tree. Rank placement, mapping MPI ranks onto physically close nodes, can improve either case."
+   ],
+   [
+    "h2",
+    "Contention and routing"
+   ],
+   [
+    "p",
+    "Even a good topology suffers if many messages route through the same links, causing contention. Adaptive routing spreads traffic across alternative paths, and job schedulers try to allocate contiguous, well-shaped node sets so that a job's <a href=./hpc-interconnects.html>interconnect</a> traffic stays local and predictable."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-interconnects",
+    "Interconnects"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ],
+   [
+    "hpc-job-scheduling",
+    "Job Scheduling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-load-balancing",
+  "title": "Load Balancing",
+  "cat": "hpc-compute",
+  "lede": "Load balancing distributes work evenly across processors so none sits idle waiting for an overloaded peer; imbalance caps scaling.",
+  "body": [
+   [
+    "h2",
+    "The idle-processor problem"
+   ],
+   [
+    "p",
+    "A parallel computation finishes only when its slowest processor finishes. If work is unevenly distributed, lightly loaded processors sit idle at synchronization points while heavily loaded ones grind on. This <b>load imbalance</b> is one of the most common reasons real codes fall short of ideal scaling."
+   ],
+   [
+    "h2",
+    "Static balancing"
+   ],
+   [
+    "p",
+    "When the cost of each work unit is known and stable, work can be partitioned once, up front. Grid-based simulations split the domain into equal-cost pieces; graph partitioners minimize the boundary (communication) while equalizing the interior (computation). Static balancing has no runtime overhead but fails when costs are unpredictable."
+   ],
+   [
+    "h2",
+    "Dynamic balancing"
+   ],
+   [
+    "ul",
+    [
+     "<b>Work queues</b>: idle workers pull the next task from a shared pool",
+     "<b>Work stealing</b>: idle workers take tasks from busy workers' queues",
+     "<b>Repartitioning</b>: periodically redistribute the domain as costs shift"
+    ]
+   ],
+   [
+    "h2",
+    "Sources of imbalance"
+   ],
+   [
+    "p",
+    "Costs drift for many reasons: adaptive mesh refinement concentrates cells where physics is active; particle methods pile particles into some cells; convergence differs across subdomains; and hardware itself varies. In plasma simulation, turbulence and steep gradients make some regions far costlier than others, so periodic rebalancing is routine."
+   ],
+   [
+    "h2",
+    "The cost of balancing"
+   ],
+   [
+    "p",
+    "Rebalancing moves data and consumes time, so it is worthwhile only when the imbalance it removes exceeds its own cost. Good frameworks measure imbalance and trigger repartitioning adaptively, seeking the point where processors stay busy without excessive shuffling."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-domain-decomposition",
+    "Domain Decomposition"
+   ],
+   [
+    "hpc-task-parallelism",
+    "Task Parallelism"
+   ],
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-checkpointing",
+  "title": "Checkpointing and Restart",
+  "cat": "hpc-compute",
+  "lede": "Checkpointing periodically saves a computation's state so a long run can resume after a failure instead of starting over.",
+  "body": [
+   [
+    "h2",
+    "Why long runs need it"
+   ],
+   [
+    "p",
+    "A simulation may run for days across thousands of components. The more components and the longer the run, the higher the chance that something fails before completion. <b>Checkpointing</b> writes the full application state to storage at intervals; if a failure occurs, the job restarts from the last checkpoint rather than from the beginning."
+   ],
+   [
+    "h2",
+    "The core trade-off"
+   ],
+   [
+    "p",
+    "Checkpointing costs time and storage bandwidth, but reduces the work lost to a failure. Checkpoint too often and I/O overhead dominates; too rarely and a failure wastes hours of compute. The optimal interval balances checkpoint cost against expected failure rate, captured by Young's and Daly's formulas, which set the interval near the square root of twice the checkpoint time times the mean time between failures."
+   ],
+   [
+    "h2",
+    "Techniques"
+   ],
+   [
+    "ul",
+    [
+     "<b>Coordinated</b>: all processes pause and save a globally consistent state",
+     "<b>Multilevel</b>: fast local (node memory or SSD) checkpoints backed by slower reliable storage",
+     "<b>Incremental</b>: save only what changed since the last checkpoint",
+     "<b>Asynchronous</b>: overlap writing the checkpoint with continued computation"
+    ]
+   ],
+   [
+    "h2",
+    "The I/O bottleneck"
+   ],
+   [
+    "p",
+    "A full checkpoint of a large simulation can be enormous, and writing it stresses the <a href=./hpc-parallel-io.html>parallel file system</a>. This is why multilevel schemes stage checkpoints to fast node-local storage first and flush to reliable storage in the background, and why compression and selective state-saving matter."
+   ],
+   [
+    "h2",
+    "Beyond failure recovery"
+   ],
+   [
+    "p",
+    "Checkpoints double as scientific output and as a way to split a campaign across scheduler time limits: a job that exceeds its allotted window can stop at a checkpoint and resume in a later allocation, a routine pattern in shared HPC facilities."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-fault-tolerance",
+    "Fault Tolerance"
+   ],
+   [
+    "hpc-parallel-io",
+    "Parallel I/O"
+   ],
+   [
+    "hpc-job-scheduling",
+    "Job Scheduling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-exascale",
+  "title": "Exascale Computing",
+  "cat": "hpc-compute",
+  "lede": "Exascale systems perform on the order of a billion billion operations per second, a milestone that reshaped how large simulations are written.",
+  "body": [
+   [
+    "h2",
+    "What exascale means"
+   ],
+   [
+    "p",
+    "An exaFLOP is 10^18 floating-point operations per second, a quintillion. An exascale computer sustains roughly that rate on demanding benchmarks. Reaching it required assembling millions of cores, mostly on GPUs, with commensurate memory, network, and storage, and holding total power to a feasible level."
+   ],
+   [
+    "h2",
+    "The hard constraints"
+   ],
+   [
+    "ul",
+    [
+     "<b>Power</b>: efficiency, measured in operations per watt, is the binding limit, met largely by accelerators",
+     "<b>Parallelism</b>: exploiting millions of threads demands parallelism at every level",
+     "<b>Resilience</b>: with so many parts, failures are routine, so <a href=./hpc-checkpointing.html>checkpointing</a> and <a href=./hpc-fault-tolerance.html>fault tolerance</a> are essential",
+     "<b>Data movement</b>: moving bytes costs more energy than computing on them, so codes minimize communication"
+    ]
+   ],
+   [
+    "h2",
+    "Why it is not just bigger"
+   ],
+   [
+    "p",
+    "Codes written for petascale often do not simply scale up. The serial and communication fractions that were tolerable become dominant (<a href=./hpc-amdahls-law.html>Amdahl's law</a>), and reliance on CPU-only execution wastes most of the machine. Reaching exascale performance typically meant restructuring around GPUs, reducing global synchronization, and overlapping communication with computation."
+   ],
+   [
+    "h2",
+    "Energy per operation"
+   ],
+   [
+    "p",
+    "Because moving data dominates energy use, exascale design favors keeping data local, reusing it in <a href=./hpc-cache.html>fast memory</a>, and using <a href=./hpc-mixed-precision.html>lower precision</a> where accuracy permits. Algorithmic changes that cut communication can matter more than hardware."
+   ],
+   [
+    "h2",
+    "What it enables"
+   ],
+   [
+    "p",
+    "Exascale supports higher-fidelity science: finer meshes, longer integrations, and coupled multiphysics. For fusion, that means fuller-device turbulence and transport studies. Kronos develops its <a href=./hpc-fusion-simulation-compute.html>machine designs</a> in simulation on such large systems; the machines themselves are not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gustafsons-law",
+    "Gustafson's Law"
+   ],
+   [
+    "hpc-heterogeneous-computing",
+    "Heterogeneous Computing"
+   ],
+   [
+    "hpc-fault-tolerance",
+    "Fault Tolerance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-heterogeneous-computing",
+  "title": "Heterogeneous Computing",
+  "cat": "hpc-compute",
+  "lede": "Heterogeneous systems combine CPUs with accelerators, assigning each part of a workload to the processor that runs it best.",
+  "body": [
+   [
+    "h2",
+    "Different engines for different work"
+   ],
+   [
+    "p",
+    "A heterogeneous node pairs general-purpose CPUs with accelerators, usually GPUs. The CPU handles control flow, irregular code, and orchestration; the accelerator handles the arithmetic-heavy, data-parallel inner loops. Nearly all leading HPC systems are heterogeneous because no single processor is best at everything."
+   ],
+   [
+    "h2",
+    "The programmer's burden"
+   ],
+   [
+    "p",
+    "Heterogeneity complicates software. The two processor types have separate memory spaces (or a shared space with non-uniform performance), so data must be placed and moved deliberately. Work must be partitioned to keep both busy, and the fast accelerator must not stall waiting on the slower CPU or on data transfers."
+   ],
+   [
+    "h2",
+    "Managing data movement"
+   ],
+   [
+    "ul",
+    [
+     "Keep data resident on the accelerator across many kernels",
+     "Overlap host-device transfers with computation",
+     "Use unified or managed memory carefully; convenience can hide costly migrations"
+    ]
+   ],
+   [
+    "h2",
+    "Portability approaches"
+   ],
+   [
+    "p",
+    "Writing separate code per device is unsustainable, so portable models have emerged: OpenMP target offload, SYCL, Kokkos, RAJA, and HIP let one source target multiple vendors' accelerators. They trade some peak performance for the ability to run across machines, an increasingly important consideration as accelerator vendors diversify."
+   ],
+   [
+    "h2",
+    "Why it dominates"
+   ],
+   [
+    "p",
+    "Accelerators deliver far more arithmetic per watt, and <a href=./hpc-exascale.html>power</a> is the binding constraint at large scale. So heterogeneity is not a stylistic choice but a consequence of energy limits. The design lesson is consistent: expose massive data parallelism, minimize data movement, and keep the accelerators fed."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-accelerators",
+    "Accelerators"
+   ],
+   [
+    "hpc-gpu-computing",
+    "GPU Computing"
+   ],
+   [
+    "hpc-exascale",
+    "Exascale Computing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-cloud-vs-onprem",
+  "title": "Cloud and On-Premises HPC",
+  "cat": "hpc-compute",
+  "lede": "HPC runs both on dedicated on-premises clusters and in the cloud; each fits different needs for scale, latency, cost predictability, and control.",
+  "body": [
+   [
+    "h2",
+    "Two deployment models"
+   ],
+   [
+    "p",
+    "Traditional HPC runs on <b>on-premises</b> clusters: dedicated hardware in an institution's data center, shared through a <a href=./hpc-job-scheduling.html>batch scheduler</a>. <b>Cloud</b> HPC rents compute on demand from a provider, spinning resources up and down as needed. Many organizations now blend the two."
+   ],
+   [
+    "h2",
+    "Where on-prem wins"
+   ],
+   [
+    "ul",
+    [
+     "Sustained, high-utilization workloads run continuously",
+     "Tightly coupled codes needing the lowest-latency <a href=./hpc-interconnects.html>interconnect</a>",
+     "Full control over hardware, data locality, and security"
+    ]
+   ],
+   [
+    "h2",
+    "Where cloud wins"
+   ],
+   [
+    "ul",
+    [
+     "Bursty or occasional demand, with no idle hardware to maintain",
+     "Rapid access to the newest accelerators without procurement",
+     "Elastic scaling for parameter sweeps and independent jobs"
+    ]
+   ],
+   [
+    "h2",
+    "The coupling question"
+   ],
+   [
+    "p",
+    "The technical dividing line is how tightly a workload is coupled. <a href=./hpc-task-parallelism.html>Embarrassingly parallel</a> jobs, independent simulations or inference requests, run well anywhere. Tightly coupled jobs with frequent collectives are sensitive to interconnect quality; cloud providers now offer HPC-grade fabrics, narrowing but not erasing the gap with purpose-built machines."
+   ],
+   [
+    "h2",
+    "Operational differences"
+   ],
+   [
+    "p",
+    "On-prem shifts effort to procurement, facilities, power, and system administration, and its cost is largely fixed once the machine is built. Cloud shifts effort to orchestration, data transfer, and managing usage, and its resources appear and vanish on demand. Data gravity matters: moving large datasets in and out of the cloud is slow, so workloads often live where the data already is. Hybrid setups keep steady, well-characterized work on-prem and burst occasional peaks to the cloud, seeking the strengths of both."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-job-scheduling",
+    "Job Scheduling"
+   ],
+   [
+    "hpc-interconnects",
+    "Interconnects"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-job-scheduling",
+  "title": "Job Scheduling and Batch Systems",
+  "cat": "hpc-compute",
+  "lede": "Batch schedulers allocate a shared cluster's nodes among many users' jobs, balancing throughput, fairness, and utilization.",
+  "body": [
+   [
+    "h2",
+    "Sharing a scarce machine"
+   ],
+   [
+    "p",
+    "An HPC cluster serves many users at once, so access is mediated by a <b>batch scheduler</b> such as Slurm, PBS, or LSF. A user submits a job script that requests resources, node count, cores, GPUs, memory, and a time limit, and the scheduler decides when and where it runs. Jobs wait in a queue rather than running interactively."
+   ],
+   [
+    "h2",
+    "What the scheduler optimizes"
+   ],
+   [
+    "p",
+    "The scheduler juggles competing goals: high <b>utilization</b> (keep nodes busy), <b>fairness</b> (no user monopolizes the machine), and reasonable <b>turnaround</b> (jobs do not wait forever). These goals conflict, so scheduling policy is a tuned compromise expressed through priorities and fair-share accounting."
+   ],
+   [
+    "h2",
+    "Key mechanisms"
+   ],
+   [
+    "ul",
+    [
+     "<b>Priority queues</b>: jobs ordered by fair-share, size, and wait time",
+     "<b>Backfill</b>: run small jobs in gaps without delaying large queued jobs",
+     "<b>Reservations</b>: set aside nodes for specific jobs or maintenance",
+     "<b>Partitions / queues</b>: separate pools for debug, standard, and large jobs"
+    ]
+   ],
+   [
+    "h2",
+    "Backfill and the time limit"
+   ],
+   [
+    "p",
+    "Backfill relies on accurate time-limit requests: it can slot a short job into a gap only if it trusts the job to finish in time. Users who overstate limits get slower turnaround; those who understate risk being killed. This is one reason <a href=./hpc-checkpointing.html>checkpointing</a> matters, a job can resume across allocations."
+   ],
+   [
+    "h2",
+    "A typical submission"
+   ],
+   [
+    "p",
+    "A job script names the resources and the program to run, then the scheduler places it when resources free up and the priority is right. Good citizenship, right-sizing requests and packing work efficiently, improves both personal turnaround and overall machine throughput."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-checkpointing",
+    "Checkpointing"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ],
+   [
+    "hpc-cloud-vs-onprem",
+    "Cloud vs On-Prem"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-profiling",
+  "title": "Profiling and Performance Analysis",
+  "cat": "hpc-compute",
+  "lede": "Profiling measures where a program spends time and resources so optimization targets the true bottleneck instead of a guess.",
+  "body": [
+   [
+    "h2",
+    "Measure, do not guess"
+   ],
+   [
+    "p",
+    "Performance intuition is unreliable; programs routinely spend most of their time somewhere other than where the author expects. <b>Profiling</b> instruments a run to record where time, memory traffic, and communication actually go, so effort is spent on the parts that matter. Optimizing an unmeasured code is guesswork."
+   ],
+   [
+    "h2",
+    "Kinds of profiling"
+   ],
+   [
+    "ul",
+    [
+     "<b>Sampling</b>: periodically record the call stack; low overhead, statistical",
+     "<b>Instrumentation</b>: insert timers around regions; precise but intrusive",
+     "<b>Hardware counters</b>: read CPU/GPU events (cache misses, FLOPs, stalls)",
+     "<b>Trace analysis</b>: timeline of communication and synchronization across ranks"
+    ]
+   ],
+   [
+    "h2",
+    "What to look for"
+   ],
+   [
+    "p",
+    "A profile reveals hot functions, but the deeper questions are why they are slow. Is a kernel <a href=./hpc-roofline-model.html>compute-bound or memory-bound</a>? Are cores stalled on cache misses? Is one MPI rank waiting on a slow neighbor (<a href=./hpc-load-balancing.html>load imbalance</a>)? Are collectives dominating? Each answer points to a different fix."
+   ],
+   [
+    "h2",
+    "Tools"
+   ],
+   [
+    "p",
+    "General profilers (perf, gprof, VTune), MPI trace tools (Score-P, TAU, Vampir), and vendor GPU profilers (Nsight, rocprof) cover the layers. Roofline analysis tools place a kernel against the hardware's arithmetic and bandwidth ceilings, showing how much headroom remains and whether the limit is compute or memory."
+   ],
+   [
+    "h2",
+    "The optimization loop"
+   ],
+   [
+    "p",
+    "Effective tuning is iterative: profile to find the bottleneck, apply the targeted change, re-profile to confirm it helped and to expose the next limit. Because fixing one bottleneck reveals another, a single measurement is never enough. Stop when further effort no longer moves time to solution meaningfully."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-performance-tuning",
+    "Performance Tuning"
+   ],
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-performance-tuning",
+  "title": "Performance Tuning",
+  "cat": "hpc-compute",
+  "lede": "Performance tuning applies targeted changes, guided by measurement, to move a code closer to the hardware's limits without changing its results.",
+  "body": [
+   [
+    "h2",
+    "Tuning is measurement-driven"
+   ],
+   [
+    "p",
+    "Tuning begins where <a href=./hpc-profiling.html>profiling</a> ends: with a known bottleneck. The goal is to reduce time to solution while preserving correctness. Because the limiting resource, arithmetic, memory bandwidth, communication, or synchronization, differs by kernel, there is no universal recipe, only a toolbox matched to the diagnosis."
+   ],
+   [
+    "h2",
+    "Single-core techniques"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./hpc-simd-vectorization.html>Vectorization</a>: restructure loops so SIMD units engage",
+     "<a href=./hpc-cache.html>Cache blocking</a>: tile loops so working sets fit in cache",
+     "Improve data layout (struct-of-arrays) for contiguous access",
+     "Reduce redundant work and strength-reduce expensive operations"
+    ]
+   ],
+   [
+    "h2",
+    "Parallel techniques"
+   ],
+   [
+    "ul",
+    [
+     "Fix <a href=./hpc-load-balancing.html>load imbalance</a> so no rank lags",
+     "Aggregate small messages and <a href=./hpc-communication-computation-overlap.html>overlap communication</a>",
+     "Reduce global synchronization and collectives",
+     "Improve rank placement to keep traffic local"
+    ]
+   ],
+   [
+    "h2",
+    "Know the ceiling"
+   ],
+   [
+    "p",
+    "The <a href=./hpc-roofline-model.html>roofline model</a> tells whether a kernel is compute- or memory-bound and how far it sits from the achievable peak. A memory-bound kernel will not benefit from faster arithmetic; a compute-bound one will not benefit from more bandwidth. Tuning toward the wrong ceiling wastes effort."
+   ],
+   [
+    "h2",
+    "Diminishing returns"
+   ],
+   [
+    "p",
+    "Each optimization exposes the next limit, and gains shrink as the code approaches the roofline. Disciplined tuning tracks time to solution, keeps changes verifiable against a reference result, and stops when further work no longer pays. Over-tuning can also hurt portability, so balance speed on one machine against maintainability across many. A change that wins on one processor generation can lose on the next, so the most durable optimizations are algorithmic, cutting the work or the data moved rather than exploiting a specific chip."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-profiling",
+    "Profiling"
+   ],
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ],
+   [
+    "hpc-simd-vectorization",
+    "SIMD and Vectorization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-roofline-model",
+  "title": "The Roofline Model",
+  "cat": "hpc-compute",
+  "lede": "The roofline model plots achievable performance against arithmetic intensity, showing whether a kernel is limited by compute or by memory bandwidth.",
+  "body": [
+   [
+    "h2",
+    "One picture of the limit"
+   ],
+   [
+    "p",
+    "The roofline model captures a machine's two fundamental ceilings on a single plot: peak arithmetic rate (FLOP/s) and peak memory bandwidth (bytes/s). The horizontal axis is <b>arithmetic intensity</b>, the number of floating-point operations performed per byte of data moved from memory. The vertical axis is achievable performance."
+   ],
+   [
+    "h2",
+    "Reading the roof"
+   ],
+   [
+    "p",
+    "The performance ceiling is the minimum of two lines: a flat compute roof (peak FLOP/s) and a sloped memory roof (bandwidth times intensity). Low-intensity kernels fall under the sloped roof, they are <b>memory-bound</b>. High-intensity kernels fall under the flat roof, they are <b>compute-bound</b>. The crossover intensity, peak FLOP/s divided by bandwidth, marks the machine balance point."
+   ],
+   [
+    "h2",
+    "Arithmetic intensity examples"
+   ],
+   [
+    "ul",
+    [
+     "Vector add (a[i]+b[i]): about 1 FLOP per 12 bytes, deeply memory-bound",
+     "Stencil updates: modest intensity, usually memory-bound",
+     "Dense matrix multiply: intensity grows with tile size, can become compute-bound"
+    ]
+   ],
+   [
+    "h2",
+    "How to use it"
+   ],
+   [
+    "p",
+    "Measure a kernel's intensity and performance and plot the point. Its vertical distance to the roof shows the headroom; its position relative to the crossover shows which resource limits it. A memory-bound kernel improves by raising intensity, through <a href=./hpc-cache.html>cache blocking</a> or better data reuse, not by adding FLOPs."
+   ],
+   [
+    "h2",
+    "Why it guides tuning"
+   ],
+   [
+    "p",
+    "The model prevents wasted effort. Speeding up arithmetic in a memory-bound kernel, or adding bandwidth to a compute-bound one, yields nothing. Roofline analysis turns <a href=./hpc-performance-tuning.html>tuning</a> from guesswork into a directed search toward the relevant ceiling."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-performance-tuning",
+    "Performance Tuning"
+   ],
+   [
+    "hpc-memory-hierarchy",
+    "Memory Hierarchy"
+   ],
+   [
+    "hpc-profiling",
+    "Profiling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-numerical-precision",
+  "title": "Numerical Precision on Hardware",
+  "cat": "hpc-compute",
+  "lede": "Floating-point formats trade range, accuracy, speed, and memory; choosing the right precision is central to fast and correct computation.",
+  "body": [
+   [
+    "h2",
+    "Representing real numbers"
+   ],
+   [
+    "p",
+    "Hardware stores real numbers in floating-point formats: a sign, an exponent for range, and a mantissa for precision. The IEEE 754 standard defines the common formats. Because the mantissa has finite width, most real numbers are stored approximately, and every operation can introduce a small rounding error."
+   ],
+   [
+    "h2",
+    "The standard formats"
+   ],
+   [
+    "ul",
+    [
+     "<b>FP64 (double)</b>: about 15-16 decimal digits; the default for scientific accuracy",
+     "<b>FP32 (single)</b>: about 7 digits; half the memory and often higher throughput",
+     "<b>FP16 / BF16 (half)</b>: about 3-4 digits; fast on accelerators, used in ML",
+     "<b>FP8 and integer formats</b>: minimal precision for inference and specialized kernels"
+    ]
+   ],
+   [
+    "h2",
+    "Accuracy versus speed"
+   ],
+   [
+    "p",
+    "Lower precision uses less memory and less bandwidth and runs faster on tensor units, but carries larger rounding error and narrower range. FP16 in particular overflows and underflows easily; BF16 keeps FP32's exponent range at the cost of mantissa bits, which is why it is favored for training. The choice is a deliberate accuracy-versus-throughput trade."
+   ],
+   [
+    "h2",
+    "Error accumulation"
+   ],
+   [
+    "p",
+    "Rounding errors can accumulate over long computations. Summing many numbers loses accuracy when magnitudes differ widely; compensated summation (Kahan) recovers much of it. Subtracting nearly equal numbers causes <b>catastrophic cancellation</b>, magnifying relative error. Numerically stable algorithms are designed to limit such effects."
+   ],
+   [
+    "h2",
+    "Precision in practice"
+   ],
+   [
+    "p",
+    "Scientific solvers often need FP64 for stability, while <a href=./hpc-mixed-precision.html>mixed-precision</a> methods do bulk work in lower precision and correct in higher. Machine learning tolerates low precision because training is inherently noisy. Matching precision to the numerical requirements of each phase is a core performance decision."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-mixed-precision",
+    "Mixed Precision"
+   ],
+   [
+    "hpc-floating-point-hardware",
+    "Floating-Point Hardware"
+   ],
+   [
+    "hpc-tensor-cores",
+    "Tensor Cores"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-mixed-precision",
+  "title": "Mixed-Precision Computing",
+  "cat": "hpc-compute",
+  "lede": "Mixed precision does most work in fast low precision and selectively refines in higher precision, capturing speed without sacrificing accuracy.",
+  "body": [
+   [
+    "h2",
+    "Best of both"
+   ],
+   [
+    "p",
+    "Mixed-precision computing combines formats within one algorithm: the bulk of the arithmetic runs in a fast, low-precision format while critical accumulations or corrections use higher precision. The aim is the throughput and reduced memory traffic of low precision with accuracy close to a full high-precision computation."
+   ],
+   [
+    "h2",
+    "Iterative refinement"
+   ],
+   [
+    "p",
+    "A classic technique solves a linear system in low precision, computes the residual in high precision, and iterates a small correction. The expensive factorization runs fast in low precision; the residual, done in high precision, restores accuracy. Only a few refinement steps recover a full-precision answer for many well-conditioned problems."
+   ],
+   [
+    "h2",
+    "In machine learning"
+   ],
+   [
+    "p",
+    "Deep-learning training routinely stores weights and does matrix multiplies in FP16 or BF16 on <a href=./hpc-tensor-cores.html>tensor units</a>, while keeping a high-precision master copy of the weights and accumulating in FP32. Loss scaling prevents small gradients from underflowing in FP16. This gives large speedups with negligible effect on final model quality."
+   ],
+   [
+    "h2",
+    "Where it pays"
+   ],
+   [
+    "ul",
+    [
+     "Memory-bound kernels: halving bytes moved roughly doubles effective bandwidth",
+     "Tensor-unit workloads: low-precision matrix multiply is far faster",
+     "Large models: smaller weights fit more in limited accelerator memory"
+    ]
+   ],
+   [
+    "h2",
+    "When to be careful"
+   ],
+   [
+    "p",
+    "Mixed precision is not free correctness. Ill-conditioned problems, wide dynamic ranges, and long serial dependency chains can amplify low-precision error beyond what refinement recovers. The discipline is to keep the numerically sensitive operations in high precision and verify results against a full-precision reference before trusting the speedup."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-numerical-precision",
+    "Numerical Precision"
+   ],
+   [
+    "hpc-tensor-cores",
+    "Tensor Cores"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-floating-point-hardware",
+  "title": "Floating-Point Hardware",
+  "cat": "hpc-compute",
+  "lede": "Floating-point units execute real-number arithmetic; understanding fused operations, throughput, and special values explains real numerical behavior.",
+  "body": [
+   [
+    "h2",
+    "The arithmetic engine"
+   ],
+   [
+    "p",
+    "A floating-point unit (FPU) performs add, multiply, and related operations on IEEE 754 values. Modern cores contain several FPUs and wide <a href=./hpc-simd-vectorization.html>vector units</a>, so peak floating-point rate equals cores times vector width times operations per cycle times clock. Reaching that peak requires code that keeps the units continuously fed."
+   ],
+   [
+    "h2",
+    "Fused multiply-add"
+   ],
+   [
+    "p",
+    "The <b>fused multiply-add</b> (FMA) computes a*b + c as one instruction with a single rounding step, instead of two. This doubles the arithmetic per instruction for the common multiply-accumulate pattern and is slightly more accurate because it rounds once. Dense linear algebra and convolution are built on FMA throughput."
+   ],
+   [
+    "h2",
+    "Special values"
+   ],
+   [
+    "ul",
+    [
+     "<b>Infinity</b>: results of overflow or division by zero",
+     "<b>NaN</b> (not a number): from invalid operations like 0/0; propagates through arithmetic",
+     "<b>Denormals</b>: very small numbers near zero, sometimes handled slowly in hardware",
+     "<b>Signed zero</b>: distinguishes limits approached from above or below"
+    ]
+   ],
+   [
+    "h2",
+    "Non-associativity"
+   ],
+   [
+    "p",
+    "Floating-point addition is not associative: (a+b)+c may differ from a+(b+c) because of rounding. This means parallel reductions, which sum in a different order than a serial loop, can give slightly different results. It is not a bug; it is a property of finite precision that reproducibility efforts must account for."
+   ],
+   [
+    "h2",
+    "Practical consequences"
+   ],
+   [
+    "p",
+    "Understanding FPU behavior explains why <a href=./hpc-mixed-precision.html>precision choices</a> affect both speed and accuracy, why denormals can cause mysterious slowdowns, and why a parallel result may not match a serial one bit for bit. Numerically robust HPC code is written with these realities in mind."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-numerical-precision",
+    "Numerical Precision"
+   ],
+   [
+    "hpc-simd-vectorization",
+    "SIMD and Vectorization"
+   ],
+   [
+    "hpc-mixed-precision",
+    "Mixed Precision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-tensor-cores",
+  "title": "Tensor and Matrix Cores",
+  "cat": "hpc-compute",
+  "lede": "Tensor cores are hardware units that multiply small matrices in one operation, delivering most of an accelerator's throughput on deep learning.",
+  "body": [
+   [
+    "h2",
+    "Hardware for matrix multiply"
+   ],
+   [
+    "p",
+    "A tensor core (or matrix engine) performs a small dense matrix multiply-accumulate, for example a 4x4 by 4x4 product added to an accumulator, as a single hardware operation. Because deep-learning training and inference are dominated by matrix multiplication, dedicating silicon to this one pattern yields far higher throughput than general vector units."
+   ],
+   [
+    "h2",
+    "How they are used"
+   ],
+   [
+    "p",
+    "Large matrix multiplications are tiled so each tile maps onto a tensor-core operation. Inputs are typically low precision (<a href=./hpc-numerical-precision.html>FP16, BF16, or FP8</a>) while the accumulation is kept in higher precision (FP32) to control error. Libraries and frameworks emit tensor-core instructions automatically for supported operations."
+   ],
+   [
+    "h2",
+    "Why they are so fast"
+   ],
+   [
+    "ul",
+    [
+     "Many multiply-accumulates per instruction, amortizing control overhead",
+     "Low-precision inputs move fewer bytes and pack more into registers",
+     "High-precision accumulation preserves usable accuracy"
+    ]
+   ],
+   [
+    "h2",
+    "The catch: only for the right shape"
+   ],
+   [
+    "p",
+    "Tensor cores accelerate only work cast as dense matrix multiply of suitable size and precision. Elementwise operations, reductions, and irregular kernels see no benefit and run on ordinary units. This shapes model design: architectures that express computation as large dense matrix multiplies extract the most from the hardware."
+   ],
+   [
+    "h2",
+    "Beyond machine learning"
+   ],
+   [
+    "p",
+    "Because so much scientific computing reduces to dense linear algebra, tensor cores are increasingly exploited outside ML, through <a href=./hpc-mixed-precision.html>mixed-precision</a> solvers that do bulk factorization in low precision on tensor units and refine in high precision. This lets traditional simulation borrow throughput built for deep learning."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-accelerators",
+    "Accelerators"
+   ],
+   [
+    "hpc-mixed-precision",
+    "Mixed Precision"
+   ],
+   [
+    "hpc-ml-training-compute",
+    "Compute for ML Training"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-fusion-simulation-compute",
+  "title": "Compute Needs of Fusion Simulation",
+  "cat": "hpc-compute",
+  "lede": "Fusion research leans on HPC to model plasma turbulence, stability, and neutron transport across scales no single method or machine spans alone.",
+  "body": [
+   [
+    "h2",
+    "Why fusion is compute-hungry"
+   ],
+   [
+    "p",
+    "A magnetically confined plasma couples electromagnetic fields, charged-particle motion, turbulence, and heat and particle transport across a vast range of length and time scales. No single simulation resolves all of them, so researchers run a suite of specialized codes, many of which are among the most demanding scientific workloads."
+   ],
+   [
+    "h2",
+    "The main simulation classes"
+   ],
+   [
+    "ul",
+    [
+     "<b>Gyrokinetic turbulence</b>: 5D distribution functions on fine grids; extreme memory and compute",
+     "<b>Magnetohydrodynamics (MHD)</b>: macroscopic stability of the plasma equilibrium",
+     "<b><a href=./hpc-particle-in-cell.html>Particle-in-cell</a></b>: kinetic particle dynamics coupled to fields",
+     "<b>Neutron transport</b>: <a href=./hpc-monte-carlo-parallel.html>Monte Carlo</a> tracking of fusion neutrons through materials"
+    ]
+   ],
+   [
+    "h2",
+    "How the compute maps to hardware"
+   ],
+   [
+    "p",
+    "Grid-based codes use <a href=./hpc-domain-decomposition.html>domain decomposition</a> with <a href=./hpc-mpi.html>MPI</a> across nodes and <a href=./hpc-gpu-computing.html>GPU</a> kernels within them. Particle and Monte Carlo methods are highly data-parallel but stress load balance and memory. Neutron transport, which informs the breeding-blanket design behind figures like the tritium breeding ratio, is a classic Monte Carlo workload."
+   ],
+   [
+    "h2",
+    "Kronos in simulation"
+   ],
+   [
+    "p",
+    "Kronos studies its machines computationally. The Hyperion breeder is a D-T spherical tokamak explored in simulation with parameters such as Q 3.424 and 88.7 MW of fusion power; the burner is a D-3He tandem-mirror generator. These are design and simulation targets, and no hardware net-gain claim is made before first-of-a-kind operation."
+   ],
+   [
+    "h2",
+    "Verification and validation"
+   ],
+   [
+    "p",
+    "Simulation results are trusted only after verification (solving the equations correctly) and validation (the equations matching experiment where data exists). Because full-device experiments are limited, HPC lets designers explore regimes ahead of hardware, with honest accounting of where models are extrapolating."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-particle-in-cell",
+    "Particle-in-Cell"
+   ],
+   [
+    "hpc-monte-carlo-parallel",
+    "Parallel Monte Carlo"
+   ],
+   [
+    "hpc-domain-decomposition",
+    "Domain Decomposition"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-ml-training-compute",
+  "title": "Compute Needs of ML Training",
+  "cat": "hpc-compute",
+  "lede": "Training large models is an HPC problem: it demands data, model, and pipeline parallelism, fast collectives, and careful precision and memory management.",
+  "body": [
+   [
+    "h2",
+    "Training as an HPC workload"
+   ],
+   [
+    "p",
+    "Training a large neural network is dominated by dense matrix multiplication repeated over billions of examples. This makes it a data-parallel, accelerator-bound workload with the same concerns as scientific HPC: parallel decomposition, communication cost, memory limits, and numerical precision."
+   ],
+   [
+    "h2",
+    "Three axes of parallelism"
+   ],
+   [
+    "ul",
+    [
+     "<a href=./hpc-data-parallelism.html>Data parallel</a>: replicate the model, split the batch, average gradients with all-reduce",
+     "<b>Tensor (model) parallel</b>: split individual layers across devices",
+     "<a href=./hpc-pipeline-parallelism.html>Pipeline parallel</a>: place successive layers on successive devices"
+    ]
+   ],
+   [
+    "h2",
+    "Communication is the bottleneck"
+   ],
+   [
+    "p",
+    "Data-parallel training synchronizes gradients every step with an <a href=./hpc-mpi-collectives.html>all-reduce</a>, whose cost grows with model size and device count. The <a href=./hpc-interconnects.html>interconnect</a> often limits scaling, which is why large training clusters use high-bandwidth fabrics and overlap gradient communication with backpropagation."
+   ],
+   [
+    "h2",
+    "Memory and precision"
+   ],
+   [
+    "p",
+    "Model weights, activations, gradients, and optimizer states must fit in accelerator memory, which is the binding constraint for the largest models. <a href=./hpc-mixed-precision.html>Mixed precision</a> on <a href=./hpc-tensor-cores.html>tensor cores</a>, activation checkpointing (recompute instead of store), and sharding optimizer state across devices are the standard techniques for fitting and speeding up training."
+   ],
+   [
+    "h2",
+    "The same lessons"
+   ],
+   [
+    "p",
+    "Large-scale training rediscovered the lessons of scientific HPC: expose massive parallelism, minimize and overlap communication, respect the memory hierarchy, and choose precision deliberately. The two fields now share hardware, tools, and techniques, and increasingly the same machines. Frameworks hide much of this behind high-level interfaces, but understanding what happens underneath is what separates training that scales from training that stalls."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-data-parallelism",
+    "Data Parallelism"
+   ],
+   [
+    "hpc-mixed-precision",
+    "Mixed Precision"
+   ],
+   [
+    "hpc-mpi-collectives",
+    "MPI Collectives"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-gpu-memory",
+  "title": "GPU Memory and Data Movement",
+  "cat": "hpc-compute",
+  "lede": "A GPU's performance is usually set by its memory system, so managing device memory and host-device transfers is the key to speed.",
+  "body": [
+   [
+    "h2",
+    "The memory-bound reality"
+   ],
+   [
+    "p",
+    "Most GPU kernels are limited not by arithmetic but by how fast data reaches the arithmetic units. A GPU has enormous compute throughput, so unless a kernel reuses data heavily, it runs at the pace of memory. Understanding the GPU memory hierarchy is therefore the first step in getting performance."
+   ],
+   [
+    "h2",
+    "The hierarchy on a GPU"
+   ],
+   [
+    "ul",
+    [
+     "<b>Registers</b>: per-thread, fastest, limited; over-use spills to slow memory",
+     "<b>Shared memory / L1</b>: per-block, on-chip, for cooperation and data reuse",
+     "<b>L2 cache</b>: shared across the device",
+     "<b>Global memory (HBM)</b>: large and high-bandwidth but high-latency",
+     "<b>Host memory</b>: reached only across the PCIe or NVLink bus"
+    ]
+   ],
+   [
+    "h2",
+    "Coalescing"
+   ],
+   [
+    "p",
+    "When the threads of a <a href=./hpc-gpu-warps-occupancy.html>warp</a> access consecutive global-memory addresses, the hardware combines them into a few wide transactions, <b>coalesced</b> access. Strided or scattered access breaks this into many small transactions, wasting bandwidth. Data layout that makes warp accesses contiguous is one of the most important GPU optimizations."
+   ],
+   [
+    "h2",
+    "Host-device transfers"
+   ],
+   [
+    "p",
+    "Moving data between CPU and GPU memory is slow relative to on-device bandwidth, and a naive code that shuttles data back and forth every kernel spends most of its time waiting. The remedy is to keep data resident on the device across many kernels and to overlap unavoidable transfers with computation using asynchronous copies and streams."
+   ],
+   [
+    "h2",
+    "Reuse through shared memory"
+   ],
+   [
+    "p",
+    "Shared memory lets a block stage a tile of data on-chip and reuse it across many threads, cutting global-memory traffic. This is the GPU analogue of <a href=./hpc-cache.html>cache blocking</a>, and it is what turns a memory-bound kernel such as matrix multiply into a compute-bound one that approaches peak."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gpu-computing",
+    "GPU Computing"
+   ],
+   [
+    "hpc-gpu-warps-occupancy",
+    "Warps and Occupancy"
+   ],
+   [
+    "hpc-cache",
+    "Caches"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-gpu-warps-occupancy",
+  "title": "Warps, Occupancy, and Divergence",
+  "cat": "hpc-compute",
+  "lede": "GPUs execute threads in lockstep groups called warps; keeping enough warps resident and avoiding divergence within them drives performance.",
+  "body": [
+   [
+    "h2",
+    "The warp"
+   ],
+   [
+    "p",
+    "A GPU executes threads in fixed-size groups, a <b>warp</b> of 32 threads (or a wavefront on some hardware), which run in lockstep: all threads in a warp execute the same instruction at the same time on their own data. This is how a GPU achieves its throughput, but it also creates two performance considerations, occupancy and divergence."
+   ],
+   [
+    "h2",
+    "Occupancy"
+   ],
+   [
+    "p",
+    "<b>Occupancy</b> is the ratio of active warps to the maximum a streaming multiprocessor can hold. A GPU hides memory latency by switching among ready warps, so higher occupancy means more warps available to cover stalls. Occupancy is limited by resource use per thread: registers and shared memory. Using too many registers per thread reduces the warps that fit."
+   ],
+   [
+    "h2",
+    "Branch divergence"
+   ],
+   [
+    "p",
+    "Because a warp shares one instruction stream, an if-else where some threads take one branch and others take the other forces the warp to execute <b>both</b> paths serially, masking off the inactive threads in each. This <b>divergence</b> can halve or worse the throughput of that region. Structuring code so warps take uniform branches avoids the penalty."
+   ],
+   [
+    "h2",
+    "Practical guidance"
+   ],
+   [
+    "ul",
+    [
+     "Keep enough warps resident to hide <a href=./hpc-gpu-memory.html>memory latency</a>",
+     "Limit per-thread register and shared-memory use to raise occupancy",
+     "Avoid data-dependent branches that split a warp",
+     "Coalesce memory access so a warp's loads combine into few transactions"
+    ]
+   ],
+   [
+    "h2",
+    "The balance"
+   ],
+   [
+    "p",
+    "Maximum occupancy is not always optimal; a kernel using more registers per thread may run faster despite lower occupancy if it hides latency another way. As always, <a href=./hpc-profiling.html>profiling</a> the actual kernel, not chasing a single metric, decides what to tune."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-gpu-computing",
+    "GPU Computing"
+   ],
+   [
+    "hpc-gpu-memory",
+    "GPU Memory"
+   ],
+   [
+    "hpc-cuda",
+    "CUDA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-thread-vs-process",
+  "title": "Threads versus Processes",
+  "cat": "hpc-compute",
+  "lede": "Threads share one address space within a process; processes have separate memory. The distinction shapes communication, isolation, and cost.",
+  "body": [
+   [
+    "h2",
+    "Two units of execution"
+   ],
+   [
+    "p",
+    "A <b>process</b> is an independent program instance with its own private memory and resources. A <b>thread</b> is an execution stream inside a process; all threads of a process share its address space. This single difference, shared versus private memory, drives everything else about how they communicate and scale."
+   ],
+   [
+    "h2",
+    "Communication"
+   ],
+   [
+    "p",
+    "Threads communicate implicitly by reading and writing shared variables, which is fast but requires <a href=./hpc-synchronization.html>synchronization</a> to avoid <a href=./hpc-race-conditions.html>races</a>. Processes have no shared memory by default, so they communicate through explicit mechanisms: pipes, shared-memory segments, or, across nodes, <a href=./hpc-mpi.html>message passing</a>."
+   ],
+   [
+    "h2",
+    "Cost and isolation"
+   ],
+   [
+    "ul",
+    [
+     "Threads are cheap to create and switch; processes are heavier",
+     "Threads share resources; a crash or corruption in one can affect all",
+     "Processes are isolated; a fault in one does not corrupt another's memory"
+    ]
+   ],
+   [
+    "h2",
+    "The HPC mapping"
+   ],
+   [
+    "p",
+    "On a cluster the two combine. Across nodes, which have no shared memory, work is split into processes coordinated by MPI. Within a node, each process spawns threads (via <a href=./hpc-openmp.html>OpenMP</a>) to use all cores of the shared memory. This <b>MPI+X</b> hybrid matches the hardware: message passing between nodes, threading inside them."
+   ],
+   [
+    "h2",
+    "A Note on Runtimes"
+   ],
+   [
+    "p",
+    "Some language runtimes complicate the picture. Python's global interpreter lock, for example, prevents pure-Python threads from running CPU-bound work in parallel, so Python HPC leans on processes (via mpi4py) or on releasing the lock inside native libraries. Knowing the runtime's threading model is essential before choosing an approach."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-synchronization",
+    "Synchronization"
+   ],
+   [
+    "hpc-race-conditions",
+    "Race Conditions"
+   ],
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-race-conditions",
+  "title": "Race Conditions",
+  "cat": "hpc-compute",
+  "lede": "A race condition arises when the result of concurrent operations depends on their timing, producing intermittent, hard-to-reproduce bugs.",
+  "body": [
+   [
+    "h2",
+    "When timing decides the answer"
+   ],
+   [
+    "p",
+    "A <b>race condition</b> occurs when two or more threads access shared data concurrently, at least one writes, and the outcome depends on the order in which their operations happen to interleave. Because that order varies from run to run, the bug appears intermittently and often vanishes under a debugger, making races among the hardest defects to find."
+   ],
+   [
+    "h2",
+    "The classic example"
+   ],
+   [
+    "p",
+    "Consider two threads each doing counter = counter + 1. This is really three steps: read counter, add one, write it back. If both read the same value before either writes, one increment is lost. The final count is nondeterministic, sometimes correct, sometimes short, depending purely on timing."
+   ],
+   [
+    "h2",
+    "Preventing races"
+   ],
+   [
+    "ul",
+    [
+     "<b>Mutual exclusion</b>: a lock ensures only one thread enters a critical section",
+     "<b>Atomic operations</b>: hardware-guaranteed indivisible read-modify-write",
+     "<b>Reductions</b>: each thread accumulates privately, results combined safely at the end",
+     "<b>Immutability</b>: data that is never written cannot race"
+    ]
+   ],
+   [
+    "h2",
+    "The cost of protection"
+   ],
+   [
+    "p",
+    "Synchronization prevents races but serializes access, so heavily contended locks become bottlenecks. The best defense is design: minimize shared mutable state, give each thread its own working data, and combine results only at coordination points. This avoids both the bug and the contention it invites."
+   ],
+   [
+    "h2",
+    "Detection"
+   ],
+   [
+    "p",
+    "Dynamic race detectors (such as ThreadSanitizer) instrument a program to flag conflicting unsynchronized accesses, and are far more reliable than testing alone, since a race may not manifest in most runs. In distributed code the analogue is a message-ordering bug; disciplined use of <a href=./hpc-synchronization.html>synchronization</a> and clear ownership of data prevents both."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-synchronization",
+    "Synchronization"
+   ],
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-thread-vs-process",
+    "Threads vs Processes"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-synchronization",
+  "title": "Synchronization Primitives",
+  "cat": "hpc-compute",
+  "lede": "Synchronization coordinates concurrent execution through locks, atomics, and barriers, trading some serialization for correctness.",
+  "body": [
+   [
+    "h2",
+    "Coordinating concurrency"
+   ],
+   [
+    "p",
+    "When threads or processes share state or must proceed in a certain order, they need <b>synchronization</b>: mechanisms that constrain the otherwise free interleaving of concurrent execution. Synchronization prevents <a href=./hpc-race-conditions.html>races</a> and enforces ordering, at the cost of some serialization and overhead."
+   ],
+   [
+    "h2",
+    "The primitives"
+   ],
+   [
+    "ul",
+    [
+     "<b>Mutex (lock)</b>: only one thread holds it at a time; guards a critical section",
+     "<b>Atomic operation</b>: an indivisible read-modify-write, no lock needed",
+     "<b>Barrier</b>: all participants wait until every one has arrived, then proceed",
+     "<b>Condition variable</b>: a thread sleeps until another signals a condition",
+     "<b>Semaphore</b>: permits up to a fixed number of concurrent holders"
+    ]
+   ],
+   [
+    "h2",
+    "Locks and their hazards"
+   ],
+   [
+    "p",
+    "Locks are simple but dangerous. Holding a lock too long serializes the program and throttles scaling. Acquiring multiple locks in inconsistent orders causes <b>deadlock</b>, where each thread waits forever for a lock another holds. Consistent lock ordering, minimal critical sections, and fine-grained locking mitigate these hazards."
+   ],
+   [
+    "h2",
+    "Barriers in HPC"
+   ],
+   [
+    "p",
+    "Barriers are ubiquitous in bulk-synchronous parallel codes: compute a step, synchronize, exchange data, repeat. A barrier is only as fast as the slowest participant, so it is where <a href=./hpc-load-balancing.html>load imbalance</a> shows up as wasted time. Reducing the frequency and cost of global synchronization is a recurring scaling optimization."
+   ],
+   [
+    "h2",
+    "Lock-free alternatives"
+   ],
+   [
+    "p",
+    "Atomics enable <b>lock-free</b> structures that avoid the blocking and deadlock risk of locks, though they are subtle to implement correctly. For many HPC patterns the cleanest approach is to avoid shared mutable state entirely, using per-thread data and combining results with reductions, sidestepping most synchronization."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-race-conditions",
+    "Race Conditions"
+   ],
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-domain-decomposition",
+  "title": "Domain Decomposition",
+  "cat": "hpc-compute",
+  "lede": "Domain decomposition partitions a simulation's spatial grid across processors, the foundational strategy for parallel physics codes.",
+  "body": [
+   [
+    "h2",
+    "Divide the space"
+   ],
+   [
+    "p",
+    "Most physics simulations discretize a spatial domain into a grid or mesh. <b>Domain decomposition</b> splits that domain into subdomains, one per process, so each process updates only its own region. It is the dominant parallelization strategy for grid-based codes because it maps the problem's natural structure onto distributed memory."
+   ],
+   [
+    "h2",
+    "Halo exchange"
+   ],
+   [
+    "p",
+    "Updating a cell usually requires the values of neighboring cells. At a subdomain boundary, some neighbors live on another process. Each process therefore keeps a border of <b>ghost (halo)</b> cells holding copies of the neighbors' edge data, refreshed each step by exchanging boundary values with adjacent processes. This neighbor communication is the core cost of the method."
+   ],
+   [
+    "h2",
+    "Surface-to-volume"
+   ],
+   [
+    "p",
+    "Computation scales with a subdomain's volume; communication scales with its surface. As processors increase and subdomains shrink, the surface-to-volume ratio rises, so communication grows relative to computation. This is precisely why <a href=./hpc-strong-scaling.html>strong scaling</a> eventually saturates, and why keeping subdomains reasonably large matters."
+   ],
+   [
+    "h2",
+    "Partitioning quality"
+   ],
+   [
+    "ul",
+    [
+     "Balance work: equal computational cost per subdomain",
+     "Minimize surface: reduce boundary data to exchange",
+     "Preserve locality: keep neighboring subdomains on nearby nodes"
+    ]
+   ],
+   [
+    "h2",
+    "Irregular meshes"
+   ],
+   [
+    "p",
+    "Structured grids partition into simple blocks. Unstructured meshes need graph partitioners (such as ParMETIS) that cut the mesh to balance elements while minimizing the edge cut. When the workload shifts, as with adaptive refinement or moving plasma features, the partition is periodically recomputed to restore <a href=./hpc-load-balancing.html>balance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-data-parallelism",
+    "Data Parallelism"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ],
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-flops-and-benchmarks",
+  "title": "FLOP/s and Benchmarks",
+  "cat": "hpc-compute",
+  "lede": "Floating-point rate is the headline metric of HPC, but benchmarks measure different things, and peak numbers rarely match real applications.",
+  "body": [
+   [
+    "h2",
+    "The unit of speed"
+   ],
+   [
+    "p",
+    "HPC performance is quoted in <b>FLOP/s</b>, floating-point operations per second, scaled by prefixes: giga (10^9), tera, peta, and exa (10^18). <b>Peak</b> FLOP/s is the theoretical maximum from the hardware specification. <b>Sustained</b> FLOP/s is what a real code achieves, usually a fraction of peak because of memory, communication, and imbalance limits."
+   ],
+   [
+    "h2",
+    "LINPACK and the Top500"
+   ],
+   [
+    "p",
+    "The Top500 list ranks the world's fastest systems by the High Performance LINPACK benchmark, which solves a large dense linear system. LINPACK has very high <a href=./hpc-roofline-model.html>arithmetic intensity</a>, so it stresses arithmetic units and reaches a large fraction of peak, which makes it a good compute stress test but a poor predictor of memory- or communication-bound applications."
+   ],
+   [
+    "h2",
+    "More representative benchmarks"
+   ],
+   [
+    "ul",
+    [
+     "<b>HPCG</b>: a sparse conjugate-gradient solver; memory- and communication-bound, closer to real codes",
+     "<b>STREAM</b>: measures sustainable memory bandwidth, not FLOP/s",
+     "<b>Application benchmarks</b>: real codes on real inputs, the truest measure"
+    ]
+   ],
+   [
+    "h2",
+    "Why peak deceives"
+   ],
+   [
+    "p",
+    "Real applications routinely sustain only a few percent to a few tens of percent of peak FLOP/s, because most are limited by memory bandwidth or communication rather than arithmetic. Comparing systems on peak FLOP/s alone is misleading; what matters is time to solution on the workload of interest."
+   ],
+   [
+    "h2",
+    "Reading a benchmark honestly"
+   ],
+   [
+    "p",
+    "A credible performance claim states the benchmark, the problem size, the precision used, and the fraction of peak achieved. High-intensity benchmarks flatter compute-heavy machines; bandwidth and communication benchmarks reveal the limits that most simulations actually hit."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-roofline-model",
+    "Roofline Model"
+   ],
+   [
+    "hpc-exascale",
+    "Exascale Computing"
+   ],
+   [
+    "hpc-scalability-metrics",
+    "Scalability Metrics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-parallel-io",
+  "title": "Parallel I/O and File Systems",
+  "cat": "hpc-compute",
+  "lede": "Parallel file systems let thousands of processes read and write shared data at once; I/O is a frequent and overlooked scaling bottleneck.",
+  "body": [
+   [
+    "h2",
+    "When storage becomes the limit"
+   ],
+   [
+    "p",
+    "Large simulations read big inputs and write big outputs, checkpoints, snapshots, and results. If every process writes its own files or funnels data through one rank, storage becomes a bottleneck that no amount of compute can fix. <b>Parallel I/O</b> lets many processes read and write cooperatively at high aggregate rates."
+   ],
+   [
+    "h2",
+    "Parallel file systems"
+   ],
+   [
+    "p",
+    "HPC systems use parallel file systems such as Lustre and GPFS that <b>stripe</b> a file across many storage servers, so a large read or write is served by many disks in parallel. Aggregate bandwidth scales with the number of storage targets, but only if the application issues large, aligned, coordinated accesses that spread across them."
+   ],
+   [
+    "h2",
+    "I/O strategies"
+   ],
+   [
+    "ul",
+    [
+     "<b>File per process</b>: simple but creates a metadata storm at large scale",
+     "<b>Single shared file</b>: many processes write one file via MPI-IO",
+     "<b>Collective I/O</b>: processes coordinate to issue large, aligned transfers"
+    ]
+   ],
+   [
+    "h2",
+    "High-level libraries"
+   ],
+   [
+    "p",
+    "Libraries such as HDF5 and parallel NetCDF sit atop MPI-IO and provide portable, self-describing formats with parallel access. They handle striping, alignment, and metadata, sparing applications the low-level details while achieving good bandwidth. They also make output readable across tools and machines."
+   ],
+   [
+    "h2",
+    "The metadata trap"
+   ],
+   [
+    "p",
+    "Bandwidth is not the only concern. Creating, opening, and stat-ing huge numbers of files overwhelms the file system's metadata service, a common failure mode of the file-per-process pattern at scale. Writing fewer, larger files and using collective I/O avoids it. Because <a href=./hpc-checkpointing.html>checkpointing</a> is I/O-heavy, its performance depends directly on getting parallel I/O right."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-checkpointing",
+    "Checkpointing"
+   ],
+   [
+    "hpc-interconnects",
+    "Interconnects"
+   ],
+   [
+    "hpc-fault-tolerance",
+    "Fault Tolerance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-fault-tolerance",
+  "title": "Fault Tolerance at Scale",
+  "cat": "hpc-compute",
+  "lede": "With millions of components, failures are routine; fault tolerance keeps long computations progressing despite hardware and software faults.",
+  "body": [
+   [
+    "h2",
+    "Failure is the normal case"
+   ],
+   [
+    "p",
+    "A large HPC system has millions of components: processors, memory modules, network links, disks. Even with highly reliable parts, the sheer count means the mean time between failures of the whole system can be hours, not years. At scale, a long run will almost certainly encounter a failure, so codes must expect and survive them."
+   ],
+   [
+    "h2",
+    "Kinds of failure"
+   ],
+   [
+    "ul",
+    [
+     "<b>Fail-stop</b>: a node crashes and stops responding",
+     "<b>Silent data corruption</b>: a bit flips and computation continues with a wrong value",
+     "<b>Transient</b>: a temporary fault that clears on retry",
+     "<b>Network</b>: a link or switch fails, partitioning communication"
+    ]
+   ],
+   [
+    "h2",
+    "The main defense: checkpoint and restart"
+   ],
+   [
+    "p",
+    "The workhorse of fault tolerance is <a href=./hpc-checkpointing.html>checkpointing</a>: save state periodically, and after a failure restart from the last good checkpoint. Multilevel checkpointing stages saves to fast local storage and slower reliable storage, balancing checkpoint cost against the work at risk. The optimal interval scales with the square root of the checkpoint cost times the mean time between failures."
+   ],
+   [
+    "h2",
+    "Detecting silent corruption"
+   ],
+   [
+    "p",
+    "Fail-stop faults are obvious; silent data corruption is insidious because the run continues with a wrong answer. Hardware ECC catches many memory bit flips; algorithm-based fault tolerance adds checksums to linear-algebra operations that detect and sometimes correct errors; and redundant computation can catch the rest, at a cost."
+   ],
+   [
+    "h2",
+    "Beyond checkpointing"
+   ],
+   [
+    "p",
+    "Some frameworks support fault-tolerant MPI that lets a job continue after losing ranks, and task-based runtimes can re-execute failed tasks. But for most production science, disciplined checkpointing plus hardware ECC remains the practical foundation of resilience, which is why exascale planning treated fault tolerance as a first-order design constraint."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-checkpointing",
+    "Checkpointing"
+   ],
+   [
+    "hpc-exascale",
+    "Exascale Computing"
+   ],
+   [
+    "hpc-parallel-io",
+    "Parallel I/O"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-numa",
+  "title": "NUMA: Non-Uniform Memory Access",
+  "cat": "hpc-compute",
+  "lede": "On multi-socket nodes, memory local to a core is faster than remote memory; ignoring this non-uniformity silently halves performance.",
+  "body": [
+   [
+    "h2",
+    "Memory is not equidistant"
+   ],
+   [
+    "p",
+    "A modern compute node often has several processor sockets, each with its own attached memory. A core can access any memory in the node's shared address space, but its <b>local</b> memory (attached to its own socket) is faster and higher-bandwidth than <b>remote</b> memory across the socket interconnect. This is Non-Uniform Memory Access, NUMA."
+   ],
+   [
+    "h2",
+    "First-touch placement"
+   ],
+   [
+    "p",
+    "On common operating systems, a memory page is physically placed near the core that <b>first writes</b> to it, not the core that allocates it. This <b>first-touch</b> policy means the initialization pattern determines data placement. Initializing an array with one thread, then processing it with many, leaves most data remote to most threads, a frequent, invisible performance loss."
+   ],
+   [
+    "h2",
+    "Getting it right"
+   ],
+   [
+    "ul",
+    [
+     "Initialize data with the same thread layout that will process it",
+     "Pin threads to cores so they do not migrate away from their data",
+     "Keep each thread working mostly on its local memory"
+    ]
+   ],
+   [
+    "h2",
+    "Thread affinity"
+   ],
+   [
+    "p",
+    "Operating systems may move threads between cores, which can strand a thread far from its data and disrupt cache reuse. <b>Affinity</b> settings (through OpenMP's <code>OMP_PROC_BIND</code> and <code>OMP_PLACES</code>, or numactl) pin threads to specific cores or sockets, preserving locality. Correct affinity is often worth a substantial speedup on multi-socket nodes."
+   ],
+   [
+    "h2",
+    "The bigger picture"
+   ],
+   [
+    "p",
+    "NUMA is the within-node echo of the same principle that governs whole clusters: data movement is expensive, and locality is the lever. Treating a node's memory as uniformly fast is a common mistake; respecting its structure is part of writing scalable <a href=./hpc-shared-memory.html>shared-memory</a> code."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-shared-memory",
+    "Shared Memory"
+   ],
+   [
+    "hpc-memory-hierarchy",
+    "Memory Hierarchy"
+   ],
+   [
+    "hpc-openmp",
+    "OpenMP"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-instruction-pipeline",
+  "title": "Instruction Pipelining",
+  "cat": "hpc-compute",
+  "lede": "CPUs overlap the stages of successive instructions in a pipeline, raising throughput; hazards and mispredicted branches stall it.",
+  "body": [
+   [
+    "h2",
+    "Overlapping instruction stages"
+   ],
+   [
+    "p",
+    "Executing an instruction involves several steps, fetch, decode, execute, access memory, write back. Rather than finishing one instruction before starting the next, a pipelined CPU overlaps them like an assembly line: while one instruction executes, the next decodes and a third is fetched. Ideally the CPU completes one instruction per cycle even though each takes several cycles end to end."
+   ],
+   [
+    "h2",
+    "Throughput, not latency"
+   ],
+   [
+    "p",
+    "Pipelining does not make a single instruction finish faster; it raises <b>throughput</b>, the rate of completed instructions. This mirrors <a href=./hpc-pipeline-parallelism.html>pipeline parallelism</a> at the software level. Deeper pipelines allow higher clock speeds but pay more when the pipeline must be flushed."
+   ],
+   [
+    "h2",
+    "Hazards"
+   ],
+   [
+    "ul",
+    [
+     "<b>Data hazards</b>: an instruction needs a result not yet produced",
+     "<b>Control hazards</b>: a branch makes the next instruction uncertain",
+     "<b>Structural hazards</b>: two instructions need the same hardware unit"
+    ]
+   ],
+   [
+    "h2",
+    "Branch prediction and speculation"
+   ],
+   [
+    "p",
+    "A branch stalls the pipeline because the CPU does not yet know which instruction follows. <b>Branch predictors</b> guess the outcome and the CPU speculatively executes down the predicted path. A correct prediction costs nothing; a misprediction flushes the speculative work and restarts, costing many cycles. Predictable branches are therefore much cheaper than random ones."
+   ],
+   [
+    "h2",
+    "Superscalar and out-of-order"
+   ],
+   [
+    "p",
+    "Modern cores go further: <b>superscalar</b> execution issues several instructions per cycle across multiple pipelines, and <b>out-of-order</b> execution runs independent instructions while a stalled one waits. Together with pipelining these extract <b>instruction-level parallelism</b>, the foundation on which vector, thread, and process parallelism are layered."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-pipeline-parallelism",
+    "Pipeline Parallelism"
+   ],
+   [
+    "hpc-simd-vectorization",
+    "SIMD and Vectorization"
+   ],
+   [
+    "hpc-parallelism-overview",
+    "Parallelism Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-communication-computation-overlap",
+  "title": "Overlapping Communication and Computation",
+  "cat": "hpc-compute",
+  "lede": "Hiding communication behind useful work is a core scaling technique: start a transfer, compute on independent data, then finish the transfer.",
+  "body": [
+   [
+    "h2",
+    "The idle-while-waiting problem"
+   ],
+   [
+    "p",
+    "In a distributed code, a process often needs data from a neighbor before it can proceed. If it simply waits for the message, the processor sits idle during the transfer, wasting time that grows with processor count. <b>Overlapping</b> communication with computation hides that latency by doing useful work while the data is in flight."
+   ],
+   [
+    "h2",
+    "The pattern"
+   ],
+   [
+    "p",
+    "The technique splits work into parts that need remote data and parts that do not. A process starts a non-blocking transfer, then computes on the interior region that depends only on local data, and only when that is done waits for the boundary data to arrive to finish the dependent region. If the interior work takes at least as long as the transfer, the communication is effectively free."
+   ],
+   [
+    "h2",
+    "In MPI"
+   ],
+   [
+    "ul",
+    [
+     "Post <a href=./hpc-mpi.html>non-blocking</a> <code>MPI_Isend</code> and <code>MPI_Irecv</code> for halo exchange",
+     "Compute the interior cells that need no remote data",
+     "Call <code>MPI_Wait</code>, then update the boundary cells"
+    ]
+   ],
+   [
+    "h2",
+    "On GPUs"
+   ],
+   [
+    "p",
+    "The same idea applies to <a href=./hpc-gpu-memory.html>host-device transfers</a>. Using asynchronous copies and streams, a GPU can compute one kernel while copying data for the next, keeping the arithmetic units busy instead of stalling on the slow PCIe or NVLink bus. This is essential for GPU codes that must move data each step."
+   ],
+   [
+    "h2",
+    "Why it matters at scale"
+   ],
+   [
+    "p",
+    "As machines grow, communication becomes a larger share of run time (<a href=./hpc-strong-scaling.html>strong scaling</a>). Overlap does not reduce the communication, but it removes its cost from the critical path. It is one of the highest-value techniques for making a code scale to large node counts, and a common target of <a href=./hpc-performance-tuning.html>tuning</a>."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-mpi",
+    "MPI"
+   ],
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ],
+   [
+    "hpc-gpu-memory",
+    "GPU Memory"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-scalability-metrics",
+  "title": "Scalability Metrics",
+  "cat": "hpc-compute",
+  "lede": "Speedup, efficiency, and scalability quantify how well a parallel program uses added processors, making performance claims comparable and honest.",
+  "body": [
+   [
+    "h2",
+    "Defining the terms"
+   ],
+   [
+    "p",
+    "<b>Speedup</b> S(N) is the serial run time divided by the parallel run time on N processors; ideal speedup is N. <b>Parallel efficiency</b> is S(N) divided by N, expressed as a fraction or percent; ideal is 1.0. Efficiency below one measures the overhead, communication, synchronization, imbalance, that keeps a code from perfect scaling."
+   ],
+   [
+    "h2",
+    "Strong and weak"
+   ],
+   [
+    "p",
+    "These metrics apply differently to the two scaling regimes. <a href=./hpc-strong-scaling.html>Strong-scaling</a> efficiency uses a fixed problem and falls as overheads grow relative to shrinking work. <a href=./hpc-weak-scaling.html>Weak-scaling</a> efficiency grows the problem with the machine and stays high if communication does not outpace computation. A complete report states which was measured."
+   ],
+   [
+    "h2",
+    "What good numbers look like"
+   ],
+   [
+    "ul",
+    [
+     "Near-linear speedup up to a knee, then a plateau (strong scaling)",
+     "Flat or gently rising run time as size and processors grow together (weak scaling)",
+     "Efficiency reported honestly, including where it degrades"
+    ]
+   ],
+   [
+    "h2",
+    "Common ways numbers mislead"
+   ],
+   [
+    "p",
+    "Speedup measured against a slow, unoptimized serial baseline inflates the result; a fair baseline is the best serial code. Reporting only the favorable regime, or only small processor counts, hides where scaling breaks. <b>Superlinear</b> speedup sometimes appears when the problem, split up, suddenly fits in <a href=./hpc-cache.html>cache</a>, a real effect but one to explain rather than tout."
+   ],
+   [
+    "h2",
+    "Why honesty matters"
+   ],
+   [
+    "p",
+    "Scalability numbers guide where to run and how much hardware to request. Overstated scaling wastes allocations and effort. Credible reporting names the baseline, the problem size, the precision, and the processor range, and shows the curve, including its limits, not just its best point."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-strong-scaling",
+    "Strong Scaling"
+   ],
+   [
+    "hpc-weak-scaling",
+    "Weak Scaling"
+   ],
+   [
+    "hpc-amdahls-law",
+    "Amdahl's Law"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-particle-in-cell",
+  "title": "Particle-in-Cell Methods",
+  "cat": "hpc-compute",
+  "lede": "Particle-in-cell couples moving particles to a grid-based field, a workhorse of plasma simulation with distinctive parallel-computing demands.",
+  "body": [
+   [
+    "h2",
+    "Particles and a grid together"
+   ],
+   [
+    "p",
+    "The particle-in-cell (PIC) method models a plasma as many charged macro-particles moving through space, coupled to electromagnetic fields represented on a grid. Each step: deposit particle charge and current onto the grid, solve the field equations on the grid, interpolate the fields back to particle positions, and push the particles forward. It captures kinetic effects that fluid models miss."
+   ],
+   [
+    "h2",
+    "The compute profile"
+   ],
+   [
+    "ul",
+    [
+     "Particle push: highly <a href=./hpc-data-parallelism.html>data-parallel</a>, arithmetic-heavy",
+     "Charge deposition (scatter): particles write to grid cells, causing memory contention",
+     "Field solve: a grid-based, often communication-bound step"
+    ]
+   ],
+   [
+    "h2",
+    "Parallelization"
+   ],
+   [
+    "p",
+    "PIC codes combine <a href=./hpc-domain-decomposition.html>domain decomposition</a> of the grid with distribution of particles. The challenge is that particles move between subdomains as the simulation evolves, so they must be migrated between processes and the workload drifts, demanding periodic <a href=./hpc-load-balancing.html>load balancing</a>. Deposition, where many particles update shared cells, needs care to avoid races on both CPU and GPU."
+   ],
+   [
+    "h2",
+    "On GPUs"
+   ],
+   [
+    "p",
+    "PIC maps well to <a href=./hpc-gpu-computing.html>GPUs</a> because the particle push is massively parallel, but the scatter step suffers from atomic-update contention and irregular memory access. Sorting particles by cell improves locality and coalescing, and is a standard optimization that turns a memory-bound deposition into a far faster one."
+   ],
+   [
+    "h2",
+    "Role in fusion design"
+   ],
+   [
+    "p",
+    "PIC and related kinetic methods simulate plasma behavior that informs magnetic-confinement design. Kronos studies its machines, the Hyperion breeder and the burner generators, in simulation using such tools; these remain design and simulation efforts, with no hardware net-gain claim before first-of-a-kind operation."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-fusion-simulation-compute",
+    "Fusion Simulation Compute"
+   ],
+   [
+    "hpc-monte-carlo-parallel",
+    "Parallel Monte Carlo"
+   ],
+   [
+    "hpc-load-balancing",
+    "Load Balancing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hpc-monte-carlo-parallel",
+  "title": "Parallel Monte Carlo",
+  "cat": "hpc-compute",
+  "lede": "Monte Carlo methods estimate answers by random sampling; their independence makes them scale almost perfectly, with a catch in random numbers.",
+  "body": [
+   [
+    "h2",
+    "Answers from random sampling"
+   ],
+   [
+    "p",
+    "Monte Carlo methods solve problems by drawing many random samples and averaging. To estimate an integral, sample points and average the integrand; to model neutron transport, trace many random particle histories and tally outcomes. The error falls as one over the square root of the number of samples, so high accuracy needs enormous sample counts, which is why Monte Carlo is a natural HPC workload."
+   ],
+   [
+    "h2",
+    "Embarrassingly parallel"
+   ],
+   [
+    "p",
+    "Because samples are independent, Monte Carlo is close to ideally parallel: give each processor a share of the samples, run them with no communication, and combine the tallies at the end with a single reduction. This scales to huge processor counts with almost perfect efficiency, the archetype of an <a href=./hpc-task-parallelism.html>embarrassingly parallel</a> workload."
+   ],
+   [
+    "h2",
+    "The random-number catch"
+   ],
+   [
+    "p",
+    "Independence assumes each processor's random numbers are statistically independent of every other's. A naive approach, seeding each stream from the clock, risks overlapping or correlated sequences that silently bias the result. Parallel Monte Carlo uses counter-based generators or well-separated substreams to guarantee independent, reproducible streams across processors."
+   ],
+   [
+    "h2",
+    "Variance reduction"
+   ],
+   [
+    "ul",
+    [
+     "Importance sampling: draw more samples where they matter most",
+     "Stratification: divide the domain and sample each region",
+     "These cut the samples needed for a target accuracy"
+    ]
+   ],
+   [
+    "h2",
+    "In fusion"
+   ],
+   [
+    "p",
+    "Monte Carlo neutron transport is central to fusion engineering: tracking fusion neutrons through the breeding blanket and structure yields quantities such as the tritium breeding ratio and shielding requirements. These calculations run on large HPC systems and feed the design studies behind Kronos machines, which remain simulation-based ahead of hardware."
+   ]
+  ],
+  "related": [
+   [
+    "hpc-fusion-simulation-compute",
+    "Fusion Simulation Compute"
+   ],
+   [
+    "hpc-particle-in-cell",
+    "Particle-in-Cell"
+   ],
+   [
+    "hpc-task-parallelism",
+    "Task Parallelism"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

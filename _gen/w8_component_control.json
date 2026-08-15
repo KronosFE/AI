@@ -1,0 +1,943 @@
+[
+{
+"slug":"cc-magnet-current-ramp",
+"title":"Superconducting Magnet Current Ramps",
+"cat":"component-control",
+"lede":"Bringing a superconducting coil to field means ramping current slowly enough that induced losses and stresses stay within safe limits.",
+"body":[
+["h2","Why ramps are slow"],
+["p","A superconducting magnet stores energy in its magnetic field, E = (1/2) L I squared, where L is inductance and I is coil current. Changing current at rate dI/dt induces a voltage V = L dI/dt across the winding and drives eddy and hysteresis losses in the conductor and structure. Because the coil sits near its critical temperature, any excess heat can drive a normal zone, so ramps are deliberately gradual."],
+["h3","Rate limits"],
+["p","The controller enforces a maximum dI/dt set by three constraints: the terminal voltage the power supply and insulation can tolerate, the AC loss the cryoplant can remove, and the Lorentz stress the structure can carry as field rises. In large tokamak-class coils, ramp times to full field are minutes to tens of minutes, not seconds."],
+["h3","Control structure"],
+["p","Ramp control is usually feedforward: the desired current profile I(t) is a smooth trapezoid or S-curve with bounded first and second derivatives, and a fast inner loop regulates the power-supply output to track it. A measured current signal (DC current transducer) closes the loop, while a separate quench-detection channel watches for resistive voltage that a healthy ramp would not produce."],
+["h3","Kronos context"],
+["p","The Hyperion breeder is a spherical tokamak with a 16.84 T peak field on the toroidal-field structure and roughly 8 T on axis. Its coil set is a design and simulation target, not built hardware; ramp schedules in the model stage field before plasma initiation so equilibrium and vertical-control coils have headroom when the plasma forms."],
+["ul",["Ramp I(t) with bounded dI/dt and d2I/dt2","Regulate supply voltage to track the reference","Hold quench detection armed throughout","Coordinate multiple coils so net force stays bounded"]],
+["p","A clean ramp ends in a steady flat-top current held by the supply, or in persistent mode where a superconducting switch closes the circuit and the leads carry little current."]
+],
+"related":[["cc-quench-detection","Quench detection"],["cc-persistent-current-mode","Persistent current mode"],["cc-power-supply-control","Coil power-supply control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-quench-detection",
+"title":"Quench Detection",
+"cat":"component-control",
+"lede":"A quench is the loss of superconductivity in part of a coil; detecting the resistive voltage it produces fast enough is the core protection problem.",
+"body":[
+["h2","What a quench is"],
+["p","A superconductor carries current with no resistance below its critical surface in temperature, field, and current density. If a spot warms past its current-sharing temperature, it becomes resistive, dissipates power I squared R, heats its neighbours, and the normal zone spreads. Left alone, the coil's stored magnetic energy deposits into a small volume and can melt conductor or crack insulation."],
+["h3","The detection signal"],
+["p","The unambiguous signature is a resistive voltage that grows where a healthy coil would show only inductive voltage. The classic method measures the voltage across a coil section and subtracts the inductive part L dI/dt, often by comparing two nominally identical halves in a bridge so the large inductive term cancels and only the resistive imbalance remains."],
+["h3","Thresholds and validation"],
+["p","A detector declares a quench when the compensated voltage exceeds a threshold for longer than a validation time, typically a few hundred milliseconds to a second. The threshold and time are a trade: too sensitive and ramp transients or noise trigger false dumps; too slow and the hot spot overheats. Multiple redundant channels vote so a single sensor fault does not spuriously fire or mask a real event."],
+["ul",["Voltage-imbalance bridges cancel inductive signal","Co-wound voltage taps sense local normal zones","Redundant channels vote to reject noise","Validation timer rejects brief transients"]],
+["h3","Beyond voltage"],
+["p","Because voltage detection can be blinded by noise near power supplies, systems add complementary methods: quench antennas sensing the changing flux of a moving normal zone, fibre-optic and co-wound sensors, and acoustic emission. In high-temperature superconductors the normal zone spreads slowly, making early detection harder and raising the value of these secondary channels."],
+["p","Detection is only half the job; once a quench is confirmed the protection system must remove the stored energy safely, described in the companion protection page."]
+],
+"related":[["cc-quench-protection","Quench protection"],["cc-superconductor-current-sharing","Current-sharing temperature"],["cc-magnet-protection-interlocks","Magnet interlocks"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-quench-protection",
+"title":"Quench Protection and Energy Dump",
+"cat":"component-control",
+"lede":"Once a quench is confirmed the magnet's stored energy must leave the coil fast enough to keep the hot spot below damaging temperature.",
+"body":[
+["h2","The hot-spot problem"],
+["p","When a normal zone forms, the local temperature rise depends on how much current keeps flowing through it and for how long. The integral of current density squared over time, often written as the MIITs (mega-amp-squared-seconds), maps to peak conductor temperature. Protection succeeds if it drives current down before that integral exceeds the design limit, commonly a few hundred kelvin peak."],
+["h3","External dump"],
+["p","The most common scheme opens a switch to insert a dump resistor in series with the coil. Stored energy then discharges into the resistor with time constant tau = L/R. A larger resistor empties the coil faster but raises the terminal voltage V = I R that the insulation must withstand, so the resistor is sized to balance dump speed against voltage limits."],
+["h3","Internal methods"],
+["p","For very large coils, external dump alone cannot protect the winding fast enough, so quench heaters or coupling-loss induced quench (CLIQ) deliberately drive the whole coil normal. Spreading the normal zone shares the dissipated energy across the full winding volume instead of one hot spot, lowering peak temperature at the price of intentionally warming the magnet."],
+["ul",["Confirm quench, then trip the breaker","Insert dump resistor, discharge with tau = L/R","Optionally fire heaters to spread the normal zone","Log MIITs to verify the coil stayed within limits"]],
+["h3","System coordination"],
+["p","A magnet dump is disruptive: the plasma loses its confining field, so quench protection is wired into the plant interlock chain to command a safe plasma termination in parallel. Cryogenic control must absorb the boil-off, and diagnostics record the event for post-mortem. In the Hyperion design the toroidal-field structure carries the largest stored energy, so its dump path receives the most protection margin. All values here are design targets for a machine that is simulated, not built."],
+["p","After a dump the coil is recooled and requalified before the next ramp; a protection event is never treated as routine."]
+],
+"related":[["cc-quench-detection","Quench detection"],["cc-magnet-current-ramp","Magnet current ramps"],["cc-cryogenic-control","Cryogenic control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-cryogenic-control",
+"title":"Cryogenic System Control",
+"cat":"component-control",
+"lede":"Superconducting magnets run near a few kelvin, so a helium refrigeration plant must hold temperature and flow steady against a swinging heat load.",
+"body":[
+["h2","The cold budget"],
+["p","Every watt deposited into the cold mass must be removed by the cryoplant, which pays a large room-temperature power penalty per cold watt because of Carnot limits. Heat arrives from conduction down current leads, radiation through the cryostat, AC losses during current ramps, and nuclear heating from neutrons in a running fusion device. Control keeps the coil's temperature margin positive despite all of these."],
+["h3","What is regulated"],
+["p","The plant regulates supply temperature, mass flow of helium through the coil cooling channels, and pressure in the cryogenic loop. In forced-flow cable-in-conduit conductors, a cold circulator or the pressure difference drives supercritical helium through the conduit; the controller trims flow and the heat-exchanger duty to hold the outlet temperature below the current-sharing limit."],
+["h3","Handling transients"],
+["p","Pulsed operation makes the heat load swing: a current ramp or a plasma pulse dumps a burst of AC and nuclear heating that the steady refrigerator cannot instantly match. Designs buffer this with thermal mass, saturated-bath volumes, or a control loop that anticipates the pulse schedule and pre-cools before the load arrives, a feedforward strategy."],
+["ul",["Hold coil temperature below current-sharing limit","Regulate helium flow, pressure, and supply temperature","Buffer pulsed heat loads with thermal mass or pre-cooling","Manage boil-off during a magnet dump"]],
+["h3","Faults and safety"],
+["p","A quench boils helium rapidly, so the cryogenic system includes cold relief valves and a recovery volume sized for the worst-case dump; over-pressure protection is a safety function, not a convenience. Loss of flow or refrigeration is an interlock condition that inhibits further current ramps. For the Kronos breeder and burner, cryogenic control is modeled around the high peak fields of their coils; the plants described are design cases, not operating hardware."],
+["p","Good cryogenic control is invisible when it works: the magnets simply stay cold and their temperature margin never runs out."]
+],
+"related":[["cc-cryoplant-helium-refrigeration","Helium refrigeration cycle"],["cc-superconductor-current-sharing","Current-sharing temperature"],["cc-quench-protection","Quench protection"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-cryoplant-helium-refrigeration",
+"title":"Helium Refrigeration Cycle Control",
+"cat":"component-control",
+"lede":"A large helium refrigerator uses staged compression, heat exchange, and turbine expansion to reach a few kelvin, and each stage is actively controlled.",
+"body":[
+["h2","The cycle"],
+["p","Most large plants use a Claude-type cycle: helium is compressed at room temperature, pre-cooled in counterflow heat exchangers, and cooled further by expansion turbines that extract work. A final Joule-Thomson expansion or a cold circulator delivers liquid or supercritical helium to the load. Reaching below about 4.2 K for higher-field magnets adds cold compressors that pump on the helium bath to lower its saturation temperature."],
+["h3","Controlled variables"],
+["p","The control system regulates compressor discharge pressure, turbine speed and inlet conditions, heat-exchanger approach temperatures, and the liquid level or supercritical state at the load. These interact strongly: changing turbine flow shifts the temperature profile of every downstream exchanger, so the plant is a coupled multivariable system usually run with a supervisory controller over local loops."],
+["h3","Turndown and load following"],
+["p","Fusion heat loads pulse, so the refrigerator must follow a swinging demand without tripping. Operators buffer with a liquid-helium dewar and control turndown by adjusting compressor throughput and bypassing flow. Rapid load steps are smoothed by a control heater that presents a constant load to the cold box while the real load varies, trading a small energy penalty for stability."],
+["ul",["Compress, pre-cool, expand through turbines","Cold compressors reach sub-4 K for high-field coils","Buffer pulsed loads with a dewar and control heater","Supervisory control coordinates coupled stages"]],
+["h3","Protection"],
+["p","Warm-up of any stage, loss of compressor oil pressure, or contamination freezing in the cold box are interlock conditions. Purifiers remove air and moisture that would plug the coldest passages. A quench event dumps a large gas surge into the recovery system, so the refrigerator's warm end and storage must absorb it without over-pressure."],
+["p","This plant is the utility that makes superconducting fusion magnets possible; in the Kronos designs it is sized for the high peak fields of the modeled coils and is a design case rather than installed equipment."]
+],
+"related":[["cc-cryogenic-control","Cryogenic system control"],["cc-quench-protection","Quench protection"],["cc-balance-of-plant-control","Balance of plant"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-superconductor-current-sharing",
+"title":"Current-Sharing Temperature Monitoring",
+"cat":"component-control",
+"lede":"The current-sharing temperature marks where a superconductor starts to share current with its copper matrix, and temperature margin to it is the key health metric.",
+"body":[
+["h2","Definition"],
+["p","At fixed field and current, a superconductor stays fully superconducting up to a temperature called T_cs, the current-sharing temperature. Above T_cs the superconductor cannot carry the full current alone, so current begins flowing in the copper stabilizer, which is resistive and generates heat. The gap between the operating temperature and T_cs is the temperature margin, the buffer against a quench."],
+["h3","What sets the margin"],
+["p","T_cs depends on the local magnetic field and the current the strand carries: higher field and higher current lower it. Because field varies across a coil, the point of minimum margin is usually the high-field region of the winding. Designers place the operating point so that even the worst location keeps roughly one to two kelvin of margin under nominal load."],
+["h3","Monitoring in operation"],
+["p","Direct temperature sensors on the cold mass, inlet and outlet thermometry on cooling channels, and the compensated resistive voltage of quench detection together indicate whether margin is being consumed. A slow rise in outlet temperature or a creeping resistive voltage warns that nuclear heating, AC loss, or a flow restriction is eating the margin before a quench actually starts."],
+["ul",["Margin = T_cs minus operating temperature","Minimum margin sits at the peak-field region","Monitor inlet/outlet temperatures and resistive voltage","Falling margin is an early warning, not yet a quench"]],
+["h3","High-temperature superconductors"],
+["p","REBCO tapes, used in high-field designs, have much larger temperature margins than low-temperature conductors but a very slow normal-zone propagation velocity. Large margin makes them robust to small disturbances, yet slow propagation means a normal zone stays local and hard to detect, so monitoring shifts toward distributed fibre-optic and local voltage sensing. The Kronos high-field coils are modeled with such conductors; the machines remain design and simulation cases."],
+["p","Keeping margin positive everywhere, always, is the quiet goal behind cryogenic and current-ramp control alike."]
+],
+"related":[["cc-cryogenic-control","Cryogenic control"],["cc-quench-detection","Quench detection"],["cc-magnet-current-ramp","Magnet current ramps"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-persistent-current-mode",
+"title":"Persistent Current Mode",
+"cat":"component-control",
+"lede":"A superconducting coil can hold current in a closed loop with no supply connected, using a superconducting switch, which stabilizes the field.",
+"body":[
+["h2","The idea"],
+["p","Because a superconducting circuit has no resistance, a current set up in a closed loop persists on its own. A persistent-current switch is a short length of superconductor across the coil terminals with a small heater. Open the switch by heating it normal, drive current in from the supply, then cool the switch back superconducting to close the loop and disconnect the supply."],
+["h3","Why use it"],
+["p","With the supply removed, the field is extremely stable because there is no supply ripple or lead heat, and the current leads can be retracted or run at low current, cutting the largest conduction heat load into the cold mass. Persistent mode is standard in steady-field magnets such as MRI systems and is attractive wherever a constant field is needed for long periods."],
+["h3","Control sequence"],
+["p","The controller heats the switch, ramps supply current until the coil current matches, holds while the switch is confirmed normal, then removes heater power and waits for the switch to recover superconductivity before ramping the supply down. Mismatch between supply and coil current at switch closure causes a current redistribution that must be kept small to avoid a disturbance."],
+["ul",["Heat switch normal to open the loop","Ramp coil current from the supply","Cool switch superconducting to close the loop","Ramp supply down; current persists in the coil"]],
+["h3","Limits for fusion"],
+["p","Persistent mode suits coils that hold a fixed field, such as toroidal-field or plug magnets. It does not suit coils whose current must change during a pulse, like equilibrium, shaping, or vertical-stability coils, which stay supply-driven. In the Hyperion breeder the toroidal-field system holds a steady field and is the natural candidate for a persistent or near-persistent scheme in the design model, while the poloidal coils remain actively driven."],
+["p","A small residual current decay from joint resistance is monitored, but in a well-made circuit it is negligible over an operating campaign."]
+],
+"related":[["cc-magnet-current-ramp","Magnet current ramps"],["cc-power-supply-control","Coil power-supply control"],["cc-plug-magnet-control-burner","Burner plug magnets"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-magnet-protection-interlocks",
+"title":"Magnet Protection Interlocks",
+"cat":"component-control",
+"lede":"A hard-wired interlock chain guards the coils, tripping the supply and firing the dump whenever any monitored condition leaves its safe window.",
+"body":[
+["h2","Why a separate chain"],
+["p","Magnet protection is a safety function, so it does not rely on the ordinary control computer. A dedicated, often hard-wired or dedicated-logic interlock chain watches the conditions that could destroy a coil and acts within milliseconds, independent of software that might be busy or faulted. Its default state is safe: loss of power or signal trips protection rather than defeating it."],
+["h3","Monitored conditions"],
+["p","The chain aggregates quench-detection trips, cryogenic faults such as loss of flow or low helium level, over-current and over-voltage from the power supply, over-temperature of leads and joints, and cryostat vacuum loss. Any one condition outside its window opens the breaker and, where appropriate, commands the energy dump."],
+["h3","Coordinated response"],
+["p","A magnet trip is never isolated. Because the plasma depends on the field, the interlock simultaneously commands a controlled plasma termination, informs cryogenic control to expect boil-off, and inhibits heating and fueling. This coordination prevents a magnet fault from cascading into damage elsewhere, for example a plasma disruption onto plasma-facing components."],
+["ul",["Independent, fail-safe interlock logic","Aggregates quench, cryo, supply, and vacuum faults","Trips breaker and fires dump within milliseconds","Commands plasma termination and inhibits actuators"]],
+["h3","Testing and integrity"],
+["p","Because the chain must work the one time it is needed, its channels are tested on a schedule, wired for continuous self-monitoring, and built with redundancy so a single component failure neither defeats protection nor causes a spurious trip. Trip logs feed post-event analysis. In the Kronos designs the interlock architecture is specified around the high stored energy of the breeder and burner coils and is part of the simulation and design basis rather than operating equipment."],
+["p","The interlock is judged not by how often it fires but by never failing to fire when it must."]
+],
+"related":[["cc-quench-protection","Quench protection"],["cc-fault-ride-through","Fault ride-through"],["cc-state-machine-plant-control","Plant state machines"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-neutral-beam-control",
+"title":"Neutral Beam Injection Control",
+"cat":"component-control",
+"lede":"Neutral beams heat and drive current in the plasma by shooting energetic neutral atoms through the confining field, and their power is finely controlled.",
+"body":[
+["h2","How a beam works"],
+["p","A neutral beam injector ionizes a gas, accelerates the ions across a high-voltage gap, then neutralizes them in a gas cell so the resulting fast neutral atoms cross the magnetic field unaffected. Inside the plasma they ionize and deposit their energy through collisions, heating ions and, if aimed tangentially, driving toroidal current."],
+["h3","What is controlled"],
+["p","Beam power is the product of accelerated current and voltage, so control regulates the extraction and acceleration supplies. The controller sets a power request, modulates it during the pulse to follow a heating schedule, and can notch the beam on and off for diagnostics. Aiming, gas flow to the source, and the neutralizer pressure are held at calibrated set points."],
+["h3","Protection and interlocks"],
+["p","High voltage plus intense beams make protection critical. Grid arcs must be sensed and the voltage crowbarred within microseconds to prevent damage. Beam dumps and calorimeters absorb un-neutralized ions and mis-aimed power, and their temperatures are watched. Loss of plasma or of vacuum inhibits injection so a beam never fires into an unready target."],
+["ul",["Regulate extraction current and acceleration voltage","Modulate power to follow the heating schedule","Crowbar voltage on grid arcs within microseconds","Interlock on beam-dump temperature and target readiness"]],
+["h3","Role in Kronos"],
+["p","The Hyperion breeder is a D-T spherical tokamak whose modeled scenario reaches a fusion gain Q of 3.424 at about 88.7 MW of fusion power with 9.86 MA of plasma current; auxiliary heating and current drive, including beams in the design study, sustain the plasma current and temperature. These are simulation results for a machine that is not built, and beam control here is described as a general subsystem behaviour."],
+["p","Beam control shares actuator arbitration with other heating systems so total injected power stays within plasma and hardware limits."]
+],
+"related":[["cc-heating-power-modulation","Heating power modulation"],["cc-nbi-beam-alignment","Beam alignment and interlocks"],["cc-actuator-sharing-arbitration","Actuator arbitration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-nbi-beam-alignment",
+"title":"Neutral Beam Alignment and Interlocks",
+"cat":"component-control",
+"lede":"A neutral beam carries megawatts in a narrow line; misalignment can strike a wall, so aiming and geometric interlocks are safety-critical.",
+"body":[
+["h2","The aiming problem"],
+["p","A beam is aimed to deposit power in a chosen plasma region and to hit its dedicated beam dump when no plasma is present. Small angular errors translate, over the injector's long throw, into large position errors at the vessel, so alignment is set mechanically during commissioning and verified before each campaign."],
+["h3","Geometric interlocks"],
+["p","Interlocks confirm that the beam path is clear before injection: fast shutters or the calorimeter are in the correct position, the drift-duct apertures are aligned, and the intended dump is in place. If the plasma is absent or too small to absorb the beam, injection is inhibited so full power lands on the dump rather than a wall tile."],
+["h3","Thermal monitoring"],
+["p","Beam-facing components, the neutralizer, residual-ion dump, calorimeter, and scraper apertures, are actively cooled and instrumented. Thermocouples and, where possible, infrared views flag any surface taking more heat than its design load, which signals a steering error or a shift in the plasma's absorption. A temperature excursion trips the beam."],
+["ul",["Fixed mechanical aim, verified per campaign","Confirm clear path and correct dump before firing","Inhibit injection without an adequate plasma target","Trip on beam-facing-component over-temperature"]],
+["h3","Reionization and stray power"],
+["p","Neutrals can be re-ionized by background gas before reaching the plasma and then bent by the field onto unintended surfaces, so background pressure in the drift duct is monitored and pumped hard. Stray-field and duct thermal sensors catch this stray power. Alignment control thus links to vacuum control and plasma-facing-component monitoring."],
+["p","In the Kronos design study these behaviours are modeled as generic injector safeguards; the machines themselves are simulated, not operating."]
+],
+"related":[["cc-neutral-beam-control","Neutral beam control"],["cc-pfc-thermal-monitoring","PFC thermal monitoring"],["cc-vacuum-system-control","Vacuum control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-rf-heating-control",
+"title":"Radio-Frequency Heating Control",
+"cat":"component-control",
+"lede":"Radio-frequency systems heat plasma by launching electromagnetic waves tuned to particle resonances, and each system regulates power, frequency, and coupling.",
+"body":[
+["h2","Wave heating families"],
+["p","Radio-frequency heating covers several bands named for the resonance they exploit: ion cyclotron (tens of megahertz), lower hybrid (around a gigahertz), and electron cyclotron (tens to over a hundred gigahertz). Each launches a wave from an antenna or launcher, the wave propagates into the plasma, and it deposits energy where the local field and density bring it into resonance."],
+["h3","Common control tasks"],
+["p","Every radio-frequency system regulates the generator output power, protects the source and transmission line against reflected power, and manages coupling of the wave into the plasma. Because the plasma edge changes during a pulse, the coupling changes too, and the controller must keep power flowing forward without over-stressing the source with reflections."],
+["h3","Deposition steering"],
+["p","A strength of radio-frequency heating is localized, steerable deposition. Electron cyclotron beams can be aimed by movable mirrors to hit a chosen flux surface, useful for suppressing instabilities. Control couples the launcher aiming to real-time plasma measurements so power lands where it is wanted, for example on a magnetic island to stabilize it."],
+["ul",["Regulate generator forward power","Protect against reflected power from changing coupling","Steer deposition to a target plasma location","Modulate power for heating, current drive, or stabilization"]],
+["h3","In Kronos designs"],
+["p","Auxiliary heating and current-drive systems, including radio-frequency schemes, appear in the Hyperion breeder scenario that reaches a modeled Q of 3.424. The specific mix is a design choice within a simulation; no net-gain hardware claim is made before the first-of-a-kind machine produces first tritium, targeted around 2030 in the program plan. The control descriptions here are general engineering behaviour."],
+["p","The dedicated pages on electron and ion cyclotron control cover the band-specific hardware and interlocks."]
+],
+"related":[["cc-ecrh-control","Electron cyclotron control"],["cc-icrh-control","Ion cyclotron control"],["cc-antenna-matching-control","Antenna matching"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-ecrh-control",
+"title":"Electron Cyclotron Heating Control",
+"cat":"component-control",
+"lede":"Electron cyclotron systems deposit power at the electron gyro-frequency using high-power millimeter-wave beams from gyrotrons, aimed by steerable mirrors.",
+"body":[
+["h2","The resonance"],
+["p","Electrons orbit magnetic field lines at the cyclotron frequency, which is proportional to the local field. A wave at that frequency, or a harmonic of it, is absorbed strongly by the electrons. Because field varies across the device, the resonance sits at a well-defined location, giving electron cyclotron heating its hallmark localized deposition."],
+["h3","Source and transmission"],
+["p","Power comes from gyrotrons, vacuum tubes that produce tens of megahertz-wide beams at tens to over a hundred gigahertz. The millimeter-wave beam travels through evacuated corrugated waveguide or mirror lines to a launcher whose steerable mirror sets the injection angle. Control regulates the gyrotron output and commands the mirror to place the deposition."],
+["h3","Real-time control uses"],
+["p","Because deposition is narrow and steerable, electron cyclotron heating is the tool of choice for suppressing neoclassical tearing modes: a real-time detector locates a magnetic island and the controller aims a beam to drive current inside it and shrink it. The same system provides central heating, edge control, and assisted plasma start-up."],
+["ul",["Deposition set by local field, so it is localized","Gyrotron output power is the primary controlled variable","Steerable mirror aims the beam in real time","Used to stabilize tearing modes and to heat the core"]],
+["h3","Protection"],
+["p","Gyrotrons need precise high-voltage and magnetic-field conditions and are protected against arcing and body-current excursions. Transmission mirrors and the launcher are cooled and monitored; excessive stray or reflected millimeter-wave power trips the tube. Loss of the target plasma inhibits injection. In the Kronos breeder design study, steerable electron cyclotron control is one of the modeled tools for stability, applied to a simulated spherical tokamak rather than built hardware."],
+["p","Its speed and precision make electron cyclotron control a workhorse for both heating and active mode stabilization."]
+],
+"related":[["cc-gyrotron-control","Gyrotron control"],["cc-rf-heating-control","RF heating overview"],["cc-shape-position-control","Shape and position control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-gyrotron-control",
+"title":"Gyrotron Control",
+"cat":"component-control",
+"lede":"A gyrotron is the high-power millimeter-wave source for electron cyclotron heating, and its operation depends on tight control of voltage, current, and field.",
+"body":[
+["h2","How it makes power"],
+["p","A gyrotron accelerates an electron beam into a strong magnetic field where the electrons gyrate. In a resonant cavity their gyration couples energy into an electromagnetic mode at the cyclotron frequency, producing a coherent millimeter-wave output that is coupled out through a window. Efficiency depends on the beam energy, the field, and the cavity geometry all matching the intended mode."],
+["h3","Controlled parameters"],
+["p","The main knobs are the cathode and body high voltages, which set beam energy, the beam current, and the superconducting-magnet field that fixes the operating mode. Output power is trimmed mainly through the beam voltage and current. A depressed collector recovers energy from the spent beam, and its voltage is regulated to keep efficiency high and heat load manageable."],
+["h3","Protection interlocks"],
+["p","Gyrotrons are fragile at full power. Arc detectors watch the window and cavity and crowbar the voltage in microseconds on any arc. Body current, collector temperature, cooling-water flow, and the output window temperature are all interlocked; the window in particular can fracture if it overheats, so its cooling is a protected function."],
+["ul",["Beam voltage and current set output power","Superconducting magnet fixes the operating mode","Arc detection crowbars voltage in microseconds","Window and collector cooling are interlocked"]],
+["h3","Modulation"],
+["p","For real-time plasma control the output must be switched or modulated quickly. Fast on-off is done through the beam voltage or a control electrode, letting the system pulse power onto a rotating magnetic island in phase with its rotation. This demands a source that can start and stop cleanly without damaging transients. In the Kronos electron-cyclotron design model, such modulation supports island stabilization on the simulated breeder plasma."],
+["p","A gyrotron is a precision instrument; its control system exists as much to keep it alive as to shape its output."]
+],
+"related":[["cc-ecrh-control","Electron cyclotron control"],["cc-antenna-matching-control","Antenna matching"],["cc-rf-heating-control","RF heating overview"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-icrh-control",
+"title":"Ion Cyclotron Heating Control",
+"cat":"component-control",
+"lede":"Ion cyclotron systems heat plasma ions with tens-of-megahertz waves launched from in-vessel antennas, where coupling and matching dominate control.",
+"body":[
+["h2","The resonance"],
+["p","Ions gyrate around field lines at their cyclotron frequency, much lower than electrons because of their larger mass. A wave in the tens-of-megahertz band, launched from an antenna at the plasma edge, propagates inward and is absorbed at the ion-cyclotron resonance or a harmonic. Minority-species schemes deposit into a small ion population that then shares energy with the bulk."],
+["h3","Coupling and matching"],
+["p","Unlike a steerable millimeter beam, an ion-cyclotron antenna sits close to the plasma and couples through the edge, so its loading resistance changes as the edge density and distance change. The generator sees this as a varying impedance; a matching network of tunable capacitors or stubs keeps the source loaded correctly so power flows forward instead of reflecting."],
+["h3","Real-time challenges"],
+["p","Edge instabilities can suddenly change the antenna loading during a pulse, spiking reflected power. Fast matching, ferrite tuners, or multi-element decoupling arrays respond within milliseconds to protect the source. The controller balances delivered power against the reflection limit, sometimes trimming power momentarily to ride through a loading transient rather than tripping."],
+["ul",["Tens-of-megahertz waves from an edge antenna","Loading varies with edge density and antenna gap","Matching network keeps forward power flowing","Fast tuners ride through edge-instability transients"]],
+["h3","Edge interactions"],
+["p","Because the antenna is close to the wall, ion-cyclotron power can drive edge currents and enhance impurity release if coupling is poor. Control therefore coordinates with fueling and edge conditions to keep coupling good. In the Kronos breeder design study, ion heating contributes to reaching the modeled operating point of a D-T spherical tokamak; the specific antenna set is part of the simulation, not installed hardware, and no net-gain hardware claim precedes first tritium."],
+["p","Ion cyclotron control is as much about protecting the source from a moving load as about delivering heat."]
+],
+"related":[["cc-antenna-matching-control","Antenna matching"],["cc-rf-heating-control","RF heating overview"],["cc-impurity-seeding-control","Impurity seeding"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-antenna-matching-control",
+"title":"RF Antenna Impedance Matching",
+"cat":"component-control",
+"lede":"An RF source delivers full power only into a matched load, so a tuning network continuously matches the antenna's changing plasma coupling to the generator.",
+"body":[
+["h2","Why matching matters"],
+["p","Power transfers cleanly from a source to a load only when their impedances match. A mismatch reflects part of the wave back toward the generator, wasting power, stressing components, and raising voltages on the transmission line. Since a plasma antenna's impedance changes as the plasma edge moves, a fixed match cannot hold, and active matching is required."],
+["h3","How it works"],
+["p","A matching network uses adjustable reactive elements, vacuum capacitors, stub tuners, or ferrite tuners, to transform the antenna impedance to the line's characteristic value. The controller measures forward and reflected power, computes the mismatch (reflection coefficient or standing-wave ratio), and moves the tuners to null the reflection. Mechanical tuners are slow; ferrite and solid-state tuners are fast enough for transient loads."],
+["h3","Control loop"],
+["p","The loop is typically a gradient search or model-based controller that adjusts tuner positions to minimize reflected power. Near a match the response is smooth, but large edge events can throw the system far from match quickly, so a fast protection layer trims or trips source power if reflection exceeds a hard limit before the tuners catch up."],
+["ul",["Match transforms antenna impedance to line impedance","Measure forward and reflected power to find mismatch","Tuners move to minimize reflection","Fast trip protects the source on large transients"]],
+["h3","Trade-offs"],
+["p","Fast matching costs complexity and, for ferrite tuners, some loss; slow matching is simpler but cannot follow rapid edge changes. Systems often combine a slow coarse tuner for the operating point with a fast fine tuner for transients. This applies to ion-cyclotron and lower-hybrid launchers alike; electron-cyclotron beams, launched through free space, avoid the problem. In the Kronos design study these are general behaviours of the modeled radio-frequency subsystems."],
+["p","Good matching is what turns a rated generator into delivered plasma heating."]
+],
+"related":[["cc-icrh-control","Ion cyclotron control"],["cc-rf-heating-control","RF heating overview"],["cc-heating-power-modulation","Power modulation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-heating-power-modulation",
+"title":"Heating Power Modulation",
+"cat":"component-control",
+"lede":"The total auxiliary heating power is the main lever on plasma temperature and stored energy, and it is modulated in real time to hit control targets.",
+"body":[
+["h2","Power as a control input"],
+["p","Auxiliary heating, from beams and radio-frequency systems, sets how much energy is added to the plasma per second. Because plasma stored energy responds to the balance of input power against losses, modulating heating power is the primary way to control temperature, stored energy, and the fusion reaction rate, which itself depends steeply on temperature."],
+["h3","Feedback on stored energy"],
+["p","A common loop measures plasma stored energy or a proxy such as the diamagnetic signal and adjusts heating power to hold a target. The controller must respect the plasma's energy confinement time, the natural timescale over which stored energy responds, so it does not chase noise. Feedforward from the planned scenario is added to the feedback trim for a faster, calmer response."],
+["h3","Constraints and sharing"],
+["p","Total power is bounded by hardware ratings and by plasma limits: too much power can push toward pressure-driven instabilities or excessive divertor heat flux. When several heating systems share the job, an arbitration layer allocates the requested power across sources, respecting each source's rating and preferred deposition, and honoring reserved allocations for stabilization tasks."],
+["ul",["Heating power sets temperature and reaction rate","Feedback holds stored energy near a target","Respect confinement time to avoid chasing noise","Arbitrate power across sources within limits"]],
+["h3","Modulation for diagnostics"],
+["p","Deliberately modulating power, then watching how the plasma responds, is also a measurement technique: the phase and amplitude of the temperature response reveal transport properties. Control systems support clean square-wave or sinusoidal modulation for this purpose without disturbing the main scenario. In the Kronos breeder model, heating modulation sustains the operating point that yields a simulated Q of 3.424; the machine is a design and simulation case."],
+["p","Power modulation ties the heating subsystems into the overall plasma control problem."]
+],
+"related":[["cc-neutral-beam-control","Neutral beam control"],["cc-rf-heating-control","RF heating overview"],["cc-actuator-sharing-arbitration","Actuator arbitration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-gas-puff-control",
+"title":"Gas Puffing Control",
+"cat":"component-control",
+"lede":"Gas puffing feeds fuel to the plasma edge through fast valves, giving quick but shallow density control that anchors the fueling system.",
+"body":[
+["h2","How it works"],
+["p","A piezoelectric or solenoid valve releases a controlled burst of fuel gas near the plasma edge. The gas ionizes and adds particles, mostly to the outer plasma. Because the response is fast, of order milliseconds, gas puffing is the quickest fueling actuator, but the fuel it adds reaches only the edge, so it raises core density indirectly and slowly."],
+["h3","Control loop"],
+["p","A density controller compares a measured line-averaged density from an interferometer against a target and commands valve opening to close the gap. The valve's flow is roughly proportional to its drive within a calibrated range. Because edge fueling and core density are linked by transport, the loop is tuned to avoid overshoot when the added particles work their way inward."],
+["h3","Edge and divertor roles"],
+["p","Gas puffing does more than set density. Puffing near the divertor raises neutral pressure there and helps drive detachment, cushioning the target heat flux. Puffing can also modulate edge conditions that influence instabilities. These uses make the gas system a shared actuator between density control and divertor control, requiring coordination."],
+["ul",["Fast valves add fuel at the edge in milliseconds","Density feedback sets valve opening from interferometry","Edge fueling reaches the core only slowly","Also used to drive divertor detachment"]],
+["h3","Limits"],
+["p","Because the fuel is deposited at the edge, heavy gas puffing to raise core density can cool the edge and degrade confinement before the core responds, so deep fueling is left to pellets. The two methods are combined: pellets for core inventory, gas for fast trim and edge conditioning. In the Kronos breeder design model, fueling control balances gas and pellets to hold the D-T density of the simulated plasma; the machine is not built."],
+["p","Gas puffing is the responsive, shallow half of a two-actuator fueling strategy."]
+],
+"related":[["cc-pellet-injection-control","Pellet injection"],["cc-density-feedback-control","Density feedback"],["cc-divertor-detachment-control","Detachment control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-pellet-injection-control",
+"title":"Pellet Injection Fueling Control",
+"cat":"component-control",
+"lede":"Frozen fuel pellets fired deep into the plasma deliver particles to the core where gas puffing cannot reach, giving efficient core fueling.",
+"body":[
+["h2","Why pellets"],
+["p","A pellet of frozen hydrogen isotopes is accelerated to high speed and injected into the plasma, where it ablates as it flies inward, depositing fuel well past the edge. This reaches the core directly, unlike gas puffing whose fuel must diffuse inward. Deep deposition makes pellets the efficient way to build and hold core density."],
+["h3","Formation and firing"],
+["p","A pellet injector freezes fuel gas into a solid, cuts or extrudes pellets, and accelerates them with a gas gun or centrifuge. Control sets pellet size, speed, and firing rate. Faster and larger pellets penetrate deeper; the injection rate sets the average fueling. The controller schedules pellets to hold a density target while respecting the injector's mechanical limits."],
+["h3","Deposition physics and launch side"],
+["p","Where a pellet's fuel ends up depends on ablation and a drift of the ablated material. Injecting from the high-field side of a tokamak favours inward transport of the deposited fuel, improving core fueling efficiency over low-field-side launch. Control accounts for this by choosing the launch geometry and pellet parameters for the desired deposition profile."],
+["ul",["Frozen pellets ablate deep in the plasma","Set size, speed, and rate to control fueling","High-field-side launch improves core deposition","Combined with gas puffing for full-range control"]],
+["h3","Interactions"],
+["p","A pellet is a sudden local perturbation: it can trigger edge instabilities or, used deliberately, pace them to keep them small. Pellet timing therefore couples to edge and divertor control. In the Hyperion breeder design study, pellet fueling sustains the D-T core density needed for the modeled 88.7 MW fusion power and Q of 3.424; these are simulation results for a machine slated to begin construction in 2027 and reach first tritium around 2030, not present hardware."],
+["p","Pellets and gas together span fast edge trim to deep core supply."]
+],
+"related":[["cc-gas-puff-control","Gas puffing"],["cc-density-feedback-control","Density feedback"],["cc-tritium-fuel-cycle-control","Fuel-cycle control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-density-feedback-control",
+"title":"Plasma Density Feedback Control",
+"cat":"component-control",
+"lede":"Density control holds the plasma's particle content at a target by commanding gas and pellet fueling against real-time interferometer measurements.",
+"body":[
+["h2","Measuring density"],
+["p","The controlled quantity is usually the line-averaged electron density along a chord, measured by interferometry: a probing beam's phase shift is proportional to the integrated density it passes through. Multiple chords give a profile. This measurement is fast and reliable, making density one of the better-controlled plasma quantities."],
+["h3","Actuators"],
+["p","Fueling actuators are gas valves for fast, shallow response and pellets for deep, efficient core fueling. Pumping and wall retention remove or store particles on slower timescales. The controller blends these: gas for quick trims around the target and pellets for the bulk core inventory, respecting each actuator's speed and depth of deposition."],
+["h3","Control design"],
+["p","A density loop must handle a plasma that both fuels and empties itself: recycling from the wall returns particles, and the wall can absorb or release fuel depending on its condition. Because these effects vary, the loop often combines feedforward from the planned scenario with feedback trim, and it is tuned to avoid oscillation when edge-deposited fuel slowly reaches the core."],
+["ul",["Line-averaged density measured by interferometry","Gas for fast trim, pellets for deep fueling","Wall recycling adds a variable particle source","Feedforward plus feedback for a stable target"]],
+["h3","Why it matters"],
+["p","Fusion power scales roughly with the square of density at fixed temperature, so density directly sets the reaction rate, while too high a density approaches a disruptive limit and can cool the plasma. Density control therefore lives between two edges. In the Kronos breeder design model, holding the D-T density at its set point is part of sustaining the simulated operating point; the machine is a design and simulation case, and no net-gain hardware claim precedes first tritium."],
+["p","Density control is where fueling hardware meets the plasma physics of the reaction rate."]
+],
+"related":[["cc-gas-puff-control","Gas puffing"],["cc-pellet-injection-control","Pellet injection"],["cc-tritium-fuel-cycle-control","Fuel-cycle control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-divertor-detachment-control",
+"title":"Divertor Detachment Control",
+"cat":"component-control",
+"lede":"Detachment cools and dilutes the plasma before it reaches the divertor target, spreading heat over gas and radiation instead of concentrating it on a surface.",
+"body":[
+["h2","The heat-exhaust problem"],
+["p","The scrape-off layer channels exhaust power along field lines onto narrow divertor targets, where the unmitigated heat flux can exceed what any material tolerates. Detachment is the operating regime where the plasma pressure and heat flux drop sharply before the target because energy is radiated away and momentum is lost to neutral gas, cushioning the surface."],
+["h3","How it is driven"],
+["p","Detachment is promoted by raising neutral density near the target through fueling, and by seeding an impurity that radiates strongly. As the divertor cools, the ionization front moves off the target. Push too far and the front detaches all the way up toward the core, degrading confinement, so control aims for stable partial detachment rather than the extreme."],
+["h3","Sensing and feedback"],
+["p","Because the detachment front can move suddenly, control needs a fast indicator of its position: target current or Langmuir-probe signals, divertor spectroscopy, thermocouple or infrared temperature of the target, or a measure of the radiated fraction. The controller adjusts impurity seeding and gas puffing to hold the front at a target location, keeping the target protected without over-cooling."],
+["ul",["Detachment spreads exhaust over radiation and gas","Driven by neutral density and impurity seeding","Sensed by target current, spectroscopy, and IR","Control holds the front stably, avoiding over-cooling"]],
+["h3","Stability of the loop"],
+["p","The detachment front's response can be nonlinear and hysteretic, so the loop is designed with care to avoid oscillation between attached and detached states. Feedforward from the planned scenario plus feedback trim on the seeding rate is a common structure. In the Kronos breeder design study, exhaust handling is part of the engineering basis for a high-power spherical tokamak; the machine is simulated, and detachment control is described here as a general subsystem behaviour."],
+["p","Detachment control is where fueling, impurity seeding, and thermal monitoring converge to protect the divertor."]
+],
+"related":[["cc-divertor-heat-flux-control","Divertor heat flux"],["cc-impurity-seeding-control","Impurity seeding"],["cc-pfc-thermal-monitoring","PFC thermal monitoring"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-divertor-heat-flux-control",
+"title":"Divertor Heat Flux Control",
+"cat":"component-control",
+"lede":"Keeping the power landing on divertor targets within material limits combines strike-point sweeping, flux spreading, and detachment.",
+"body":[
+["h2","Where the power lands"],
+["p","Exhaust power flows along the scrape-off layer to strike lines on the divertor. The peak heat flux there depends on the total exhaust power, how narrowly it is channeled, and the angle of field-line incidence. The control goal is to keep the peak below the target material's steady-state limit while carrying the required power."],
+["h3","Spreading the load"],
+["p","Several levers spread the heat. Shallow field-line incidence spreads power over more surface. Sweeping the strike point back and forth over the target with the shaping coils averages the load over a wider band. A radiative mantle or detachment removes power before it reaches the surface. Advanced divertor geometries lengthen the flux path to radiate more of the power."],
+["h3","Real-time control"],
+["p","Strike-point position is set by the equilibrium coils, so heat-flux control couples to plasma shape control: the same coils that set the boundary also place and sweep the strike points. Infrared cameras and embedded thermocouples measure the target temperature distribution in real time, and the controller adjusts sweeping and seeding to keep hot spots within limits."],
+["ul",["Peak flux set by power, channel width, and angle","Sweep strike points to average the load","Shallow incidence and long legs spread heat","IR and thermocouples close the loop on target temperature"]],
+["h3","Interlocks"],
+["p","If the target exceeds a temperature limit despite mitigation, an interlock reduces heating power or terminates the pulse to prevent surface damage. This makes divertor thermal monitoring a protection function, not only a control input. In the Kronos breeder design study, divertor loading is a central engineering constraint for a high-power spherical tokamak; the machine is a simulation and design case, and these behaviours are described generically."],
+["p","Heat-flux control is the practical limit that heating, fueling, and shaping all have to respect."]
+],
+"related":[["cc-divertor-detachment-control","Detachment control"],["cc-pfc-thermal-monitoring","PFC thermal monitoring"],["cc-shape-position-control","Shape and position control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-impurity-seeding-control",
+"title":"Impurity Seeding Control",
+"cat":"component-control",
+"lede":"Injecting a small amount of a radiating impurity spreads exhaust power over the plasma volume and edge, protecting the divertor and first wall.",
+"body":[
+["h2","Radiative cooling"],
+["p","A controlled trace of an impurity such as nitrogen, neon, or argon radiates energy across the plasma edge and divertor. This radiation carries power away over a large surface rather than letting it concentrate on the divertor target. Seeding is a primary tool for keeping heat flux within material limits, working alongside detachment."],
+["h3","Choosing the species"],
+["p","Light impurities like nitrogen radiate mainly at the cool edge and divertor; heavier ones like argon radiate deeper and can build a core radiative mantle. The choice trades exhaust relief against the risk of core dilution and radiation, which lowers fusion power. Control selects the species and rate to relieve the divertor without cooling the reacting core."],
+["h3","Feedback"],
+["p","A seeding controller measures a radiation signal, such as the total radiated power fraction or divertor-specific radiation, plus target temperature, and adjusts the seeding-gas valve to hold the target. Because impurities accumulate and are pumped out on their own timescales, the loop accounts for this lag and avoids over-seeding, which can trigger a radiative collapse."],
+["ul",["Trace impurity radiates exhaust power away","Light species cool the edge, heavy species radiate deeper","Feedback on radiated power and target temperature","Avoid over-seeding that dilutes or collapses the core"]],
+["h3","Coupling to other systems"],
+["p","Seeding, gas puffing, and detachment control all act on the divertor and share the same sensors, so they are coordinated as one exhaust-control problem. Vacuum pumping removes the injected impurities, linking seeding to particle balance. In the Kronos breeder design study, radiative exhaust management is part of protecting plasma-facing components in a high-power spherical tokamak; the machine is simulated, and control here is described in general terms."],
+["p","A little of the right impurity, precisely controlled, is what lets the divertor survive full power."]
+],
+"related":[["cc-divertor-detachment-control","Detachment control"],["cc-divertor-heat-flux-control","Divertor heat flux"],["cc-vacuum-pumping-control","Vacuum pumping"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-power-supply-control",
+"title":"Coil Power-Supply Control",
+"cat":"component-control",
+"lede":"Power supplies convert grid power into the precisely regulated currents the magnet coils need, and their fast inner loops underpin all magnetic control.",
+"body":[
+["h2","What the supplies do"],
+["p","Each controllable coil is driven by a power supply, usually a thyristor or transistor converter, that turns AC grid power into a regulated DC current. The supply is the actuator through which every magnetic-control command reaches the plasma: shape, position, and stability loops all ultimately ask a supply to change a coil current."],
+["h3","Current regulation"],
+["p","The innermost loop regulates coil current to a reference by controlling the converter output voltage, because coil current responds to applied voltage through the coil inductance. A measured current from a DC transducer closes the loop. This loop is fast and tight, so the higher-level plasma controllers can treat coil current as a directly commandable quantity."],
+["h3","Voltage headroom and limits"],
+["p","How fast a coil current can change is limited by the supply's available voltage, since dI/dt equals applied voltage divided by inductance. Vertical-stability coils need high-bandwidth supplies with ample voltage; slowly varying coils need less. Supplies enforce current, voltage, and rate limits, and they must handle the reactive power and disturbances that pulsed operation imposes on the grid connection."],
+["ul",["Convert grid AC to regulated coil DC current","Inner current loop tracks the commanded reference","Voltage headroom sets maximum current slew rate","Enforce current, voltage, and rate limits"]],
+["h3","Protection"],
+["p","Supplies protect their coils and themselves against over-current, over-voltage, and short circuits, and they coordinate with quench protection so that a fault trips the breaker and inserts the dump path cleanly. For superconducting coils the supply also manages the current leads' thermal load. In the Kronos designs the coil-supply architecture is specified for the breeder's and burner's high-field coils as part of the simulation and design basis, not as installed equipment."],
+["p","Reliable current regulation is the foundation the whole magnetic-control stack is built on."]
+],
+"related":[["cc-magnet-current-ramp","Magnet current ramps"],["cc-vertical-stability-control","Vertical stability"],["cc-radial-field-control","Equilibrium coils"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-vertical-stability-control",
+"title":"Vertical Stabilization Control",
+"cat":"component-control",
+"lede":"Elongated plasmas are vertically unstable and drift toward the wall unless a fast feedback loop actively holds them centered.",
+"body":[
+["h2","Why it is unstable"],
+["p","Shaping a plasma into a tall, elongated cross-section improves performance but makes it vertically unstable: a small upward or downward displacement produces a force in the same direction, so the plasma runs away toward the wall. The growth is exponential with a time constant set by the surrounding conducting structure, often milliseconds, so it must be actively stabilized."],
+["h3","The feedback loop"],
+["p","A fast controller measures the plasma's vertical position or velocity from magnetic sensors and drives a dedicated stabilization coil to produce a restoring radial field. The loop bandwidth must exceed the instability growth rate with margin. Because the plasma moves quickly, this is typically the fastest magnetic-control loop in the machine and demands a high-voltage, high-bandwidth power supply."],
+["h3","Coupling to shape control"],
+["p","Vertical control cannot be separated cleanly from shape and position control, since the same poloidal coils influence elongation, position, and stability. Controllers handle this by dedicating a fast inner loop to vertical stabilization and layering slower shape and position loops on top, or by treating the coil set as one multivariable system with the vertical mode given priority."],
+["ul",["Elongation causes an exponential vertical instability","Growth time set by nearby conducting structure","Fast loop drives a coil to restore position","Highest-bandwidth magnetic loop in the machine"]],
+["h3","Loss of control"],
+["p","If the stabilization loop saturates or fails, the plasma drifts into the wall as a vertical displacement event, which can impose large forces on the vessel. Interlocks watch the control margin and trigger a controlled termination before the plasma is lost against the wall. In the Kronos breeder, a spherical tokamak with strong shaping and negative triangularity of -0.30, robust vertical control is essential in the design model; the machine is simulated, not built."],
+["p","Vertical stabilization is the loop that never gets to rest while the plasma exists."]
+],
+"related":[["cc-shape-position-control","Shape and position control"],["cc-power-supply-control","Coil power supplies"],["cc-radial-field-control","Equilibrium coils"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-shape-position-control",
+"title":"Plasma Shape and Position Control",
+"cat":"component-control",
+"lede":"Poloidal field coils sculpt the plasma boundary and hold it in place, controlled from a real-time reconstruction of the plasma equilibrium.",
+"body":[
+["h2","What is controlled"],
+["p","The plasma boundary, its major-radius position, elongation, triangularity, and the location where the last closed flux surface meets the divertor, is set by currents in the poloidal field and shaping coils. Shape control regulates these boundary features to a target so the plasma sits correctly relative to the wall, divertor, and heating systems."],
+["h3","Real-time equilibrium"],
+["p","The controller cannot see the boundary directly, so it reconstructs the plasma equilibrium in real time from arrays of magnetic sensors measuring field and flux around the vessel. From this it computes control points, gaps between the plasma and the wall, or shape parameters, and drives the coils to bring them to their targets. The reconstruction must run every control cycle, so it is a fast, simplified solve."],
+["h3","Multivariable coupling"],
+["p","Each coil affects many boundary features at once, so shape control is inherently multivariable. Controllers use a matrix that maps desired boundary changes to coil-current changes, decoupling the responses. The fast vertical-stability loop is embedded within or prioritized above the slower shape loops because losing vertical control loses the plasma."],
+["ul",["Poloidal coils set boundary shape and position","Real-time equilibrium reconstruction from magnetics","Control gaps, elongation, and triangularity to targets","Multivariable coil mix decouples the responses"]],
+["h3","Kronos context"],
+["p","The Hyperion breeder is a spherical tokamak run at a canonical negative triangularity of -0.30, a boundary shape chosen for its favorable edge behaviour; achieving and holding that shape is a shape-control task in the design model. Strike-point placement for divertor heat-flux control is part of the same job. The machine is a design and simulation case, so these are modeled control behaviours, not operating records."],
+["p","Shape control is where the coil set, the magnetics diagnostics, and the plasma geometry all meet."]
+],
+"related":[["cc-vertical-stability-control","Vertical stability"],["cc-radial-field-control","Equilibrium coils"],["cc-divertor-heat-flux-control","Divertor heat flux"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-radial-field-control",
+"title":"Equilibrium and Radial-Field Coil Control",
+"cat":"component-control",
+"lede":"Equilibrium coils supply the vertical field that balances the plasma's outward force and set the plasma current profile through the central solenoid.",
+"body":[
+["h2","Radial force balance"],
+["p","A toroidal plasma carrying current pushes itself outward in major radius, from hoop force and internal pressure. A vertical magnetic field crossed with the plasma current produces an inward force that balances this. Equilibrium coils generate that vertical field, and their current must track the plasma current and pressure to hold the plasma at its target radius."],
+["h3","The central solenoid"],
+["p","In a tokamak the central solenoid acts as the primary of a transformer: ramping its current induces the toroidal plasma current. It also contributes to the poloidal field shaping the plasma. Control schedules the solenoid to induce and sustain plasma current during the pulse, and its available flux swing limits how long a purely inductively driven pulse can run."],
+["h3","Coordinated coil control"],
+["p","Equilibrium, solenoid, and shaping coils are driven together. A position loop uses the equilibrium field to hold major radius, while shape loops trim the boundary. Because the plasma current and pressure evolve during the pulse, the coil currents follow a scenario feedforward with feedback correction, all mediated by the fast power supplies."],
+["ul",["Vertical field balances the plasma's outward force","Central solenoid induces the plasma current","Coil currents track evolving current and pressure","Feedforward scenario plus feedback trim"]],
+["h3","Non-inductive sustainment"],
+["p","Because the solenoid's flux is finite, long or steady pulses need non-inductive current drive from beams and radio-frequency systems to replace the transformer action, and bootstrap current from the plasma's own pressure gradient helps. In the Kronos breeder design study, the modeled 9.86 MA plasma current is sustained by a combination of inductive and auxiliary drive; the machine is a simulation and design case, and the coil control is described generically."],
+["p","Equilibrium control is the steady hand that keeps the plasma where every other system expects it to be."]
+],
+"related":[["cc-shape-position-control","Shape and position control"],["cc-vertical-stability-control","Vertical stability"],["cc-power-supply-control","Coil power supplies"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-error-field-correction",
+"title":"Error Field Correction",
+"cat":"component-control",
+"lede":"Small unavoidable asymmetries in the field can lock plasma modes and trigger disruptions, so correction coils cancel these error fields.",
+"body":[
+["h2","What an error field is"],
+["p","An ideal tokamak field is perfectly axisymmetric, but real coils have small misalignments, joints, and manufacturing tolerances that add tiny non-axisymmetric field components. These error fields are a small fraction of the main field, yet they can resonate with the plasma and cause outsized harm, especially at low density."],
+["h3","Why it matters"],
+["p","An error field can penetrate the plasma and slow the rotation of a magnetic island until the mode locks to the wall. A locked mode grows and often leads to a disruption. Because the threshold error field for locking can be a very small fraction of the toroidal field, even minor asymmetries must be corrected, particularly during the vulnerable start-up phase."],
+["h3","Correction coils"],
+["p","Dedicated correction coils, arranged around the torus to produce controllable non-axisymmetric fields, cancel the intrinsic error field. Control sets their currents to minimize the plasma's response, using either a pre-characterized compensation from earlier operation or real-time feedback on the detected mode. The optimum correction can depend on plasma conditions, so it is adjusted through the pulse."],
+["ul",["Coil imperfections create small non-axisymmetric fields","Error fields can lock modes and cause disruptions","Locking threshold can be a tiny fraction of the field","Correction coils cancel the intrinsic error field"]],
+["h3","Beyond correction"],
+["p","The same correction coils are often used deliberately to apply controlled non-axisymmetric fields for edge-instability control, so the hardware does double duty. Control must separate the intended applied field from the correction of intrinsic errors. In the Kronos breeder design study, field-symmetry control is part of a reliable start-up and steady-operation scenario for the modeled spherical tokamak; the machine is a design and simulation case."],
+["p","Correcting a field a thousand times smaller than the main field is a good example of why fusion control must be precise."]
+],
+"related":[["cc-shape-position-control","Shape and position control"],["cc-vertical-stability-control","Vertical stability"],["cc-ecrh-control","Electron cyclotron control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-pfc-thermal-monitoring",
+"title":"Plasma-Facing-Component Thermal Monitoring",
+"cat":"component-control",
+"lede":"The wall and divertor tiles take intense heat while the plasma runs, so their temperatures are watched continuously to catch overloads before damage.",
+"body":[
+["h2","What is watched"],
+["p","Plasma-facing components, first-wall panels, limiters, and divertor targets, absorb radiated and conducted power from the plasma. Their surface and structure temperatures must stay below limits set by melting, sublimation, thermal stress, and coolant conditions. Monitoring these temperatures in real time is both a control input and a protection function."],
+["h3","Sensors"],
+["p","Infrared cameras image the surface temperature across wide areas and reveal hot spots and their movement. Embedded thermocouples give slower but robust local readings and coolant inlet-outlet temperatures give the integrated heat load. Together they cover fast surface transients and steady bulk heating. Calibrating infrared readings requires knowing the surface emissivity, which changes as the surface erodes and deposits."],
+["h3","Real-time protection"],
+["p","A monitoring system flags any component exceeding its temperature limit and, on a hard threshold, commands mitigation: reduce heating power, increase impurity seeding to spread the load, or terminate the pulse. Because a hot spot can grow quickly, the fast infrared channels feed a protection layer with a short reaction time, independent of slower analysis."],
+["ul",["Surface and structure temperatures must stay in limits","IR cameras catch fast hot spots; thermocouples give bulk load","Emissivity drift complicates IR calibration","Over-temperature triggers mitigation or termination"]],
+["h3","Kronos context"],
+["p","In the Hyperion breeder design study, plasma-facing components must handle the exhaust of a high-power spherical tokamak, and their thermal margins constrain heating and divertor control. In the burner, D-3He operation gives a lower neutron fraction, about 5.44 percent, which changes the wall loading balance toward charged-particle and radiation heat. Both machines are simulation and design cases; the monitoring here is described as a general subsystem behaviour."],
+["p","Thermal monitoring is the sense of touch that keeps the plasma from harming its own container."]
+],
+"related":[["cc-pfc-interferometry-thermography","IR thermography"],["cc-divertor-heat-flux-control","Divertor heat flux"],["cc-impurity-seeding-control","Impurity seeding"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-pfc-interferometry-thermography",
+"title":"Infrared Thermography for Plasma-Facing Components",
+"cat":"component-control",
+"lede":"Infrared cameras turn the glow of hot surfaces into real-time temperature maps that reveal heat-flux patterns and hot spots on the wall.",
+"body":[
+["h2","How it works"],
+["p","Every surface emits thermal radiation whose intensity and spectrum depend on its temperature. An infrared camera measures this radiation and, given the surface emissivity, converts it into a temperature map. Wide-angle views let a few cameras cover large areas of the divertor and first wall, imaging where the plasma deposits power."],
+["h3","From temperature to heat flux"],
+["p","The surface temperature history can be inverted, through a heat-conduction model of the tile, to estimate the incident heat flux. This is more useful for control than temperature alone because it directly shows the load the plasma is imposing. The inversion needs the tile's material properties and thickness and assumes the tile is intact, so surface layers and cracks complicate it."],
+["h3","Calibration challenges"],
+["p","Emissivity is the weak link: it depends on the surface finish, which changes as the wall erodes, deposits material, and grows layers during operation. Cameras must be recalibrated, and control logic uses conservative limits to allow for calibration drift. Reflections from other hot surfaces and windows that darken under neutron and particle exposure add further error."],
+["ul",["IR radiation maps surface temperature over wide areas","Inversion yields incident heat flux for control","Emissivity drift from erosion and deposits limits accuracy","Window darkening and reflections add error"]],
+["h3","Use in control"],
+["p","Real-time thermography feeds hot-spot protection and divertor heat-flux control, guiding strike-point sweeping and impurity seeding to spread the load. It also supports post-pulse analysis of wall condition. In the Kronos breeder design study, thermography is one channel among several for protecting plasma-facing components of the modeled spherical tokamak; the machine is a simulation and design case, and these behaviours are described in general terms."],
+["p","Thermography gives operators a live picture of where the plasma is pressing hardest on the wall."]
+],
+"related":[["cc-pfc-thermal-monitoring","PFC thermal monitoring"],["cc-divertor-heat-flux-control","Divertor heat flux"],["cc-real-time-control-network","Real-time networks"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-tritium-fuel-cycle-control",
+"title":"Tritium and Fuel-Cycle Control",
+"cat":"component-control",
+"lede":"A D-T device must recover, purify, and re-inject its fuel while accounting for every gram of tritium, all under continuous control.",
+"body":[
+["h2","The closed loop"],
+["p","Deuterium-tritium fuel is injected into the plasma, but only a small fraction burns per pass, so most fuel is exhausted, pumped out, and must be recycled. The fuel cycle is a controlled loop: exhaust gas is pumped, impurities and helium ash are separated, hydrogen isotopes are purified and re-mixed to the right ratio, and the fuel is returned to storage and the injectors."],
+["h3","Isotope separation and blending"],
+["p","The exhaust contains deuterium, tritium, helium, and protium along with impurities. Isotope separation, historically by cryogenic distillation, recovers pure deuterium and tritium streams. Control blends them to the deuterium-tritium ratio the plasma scenario needs and manages the storage beds that hold tritium as a metal hydride between pulses."],
+["h3","Accounting and control"],
+["p","Because tritium is radioactive and precious, its inventory is tracked through every stage as a control and safety requirement. Flow, pressure, and composition sensors feed an accounting system that must close the mass balance. Confinement barriers, glovebox pressures, and detritiation systems are actively controlled to keep tritium contained, with leak detection interlocked to safety systems."],
+["ul",["Recover and recycle unburned fuel each pulse","Separate isotopes and blend the D-T ratio","Store tritium on metal-hydride beds","Track inventory and hold containment barriers"]],
+["h3","Kronos context"],
+["p","The Hyperion breeder is designed to breed its own tritium in a surrounding blanket, with a modeled tritium breeding ratio of 1.8, so the fuel cycle must integrate bred tritium with recycled fuel. First tritium for the first-of-a-kind machine is targeted around 2030 in the program plan, following construction beginning in 2027; the machine is a design and simulation case, and no net-gain hardware claim precedes that milestone. The burner uses D-3He with a much smaller tritium role."],
+["p","Fuel-cycle control is where plasma operation meets the strict discipline of tritium stewardship."]
+],
+"related":[["cc-tritium-inventory-accounting","Tritium accounting"],["cc-breeding-blanket-control","Breeding blanket"],["cc-vacuum-pumping-control","Vacuum pumping"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-tritium-inventory-accounting",
+"title":"Tritium Inventory Accounting",
+"cat":"component-control",
+"lede":"Every gram of tritium in the plant is tracked through storage, processing, and the plasma so the mass balance always closes.",
+"body":[
+["h2","Why account for it"],
+["p","Tritium is radioactive, mobile, and regulated, so a device must know where all of it is at all times. Inventory accounting is both an operational need, to blend fuel correctly, and a safety and regulatory requirement, to detect losses that could indicate a leak or a permeation into structures. The goal is a closed mass balance across the whole plant."],
+["h3","Where tritium hides"],
+["p","Tritium is stored on metal-hydride beds, held as gas in process lines, dissolved and trapped in plasma-facing materials, and permeated into structural walls. The trapped and permeated fractions are the hardest to measure directly because they are distributed in solids. Accounting combines direct measurement of the accessible streams with models of retention in materials."],
+["h3","Measurement and control"],
+["p","Beds are weighed or calorimetered, since tritium's decay heat is a proxy for quantity. Gas streams are measured by pressure, volume, temperature, and composition. Room and glovebox monitors detect airborne tritium. A control system integrates these into a running inventory and flags any discrepancy in the balance, which triggers investigation before operation continues."],
+["ul",["Closed mass balance is the accounting goal","Stored, in-process, trapped, and permeated fractions","Calorimetry and composition measure accessible streams","Discrepancies trigger investigation and interlocks"]],
+["h3","Retention and removal"],
+["p","Because retained tritium in the wall grows over time and is a safety limit, plants include detritiation and wall-conditioning to recover it, and the accounting tracks how much is removed. In the Kronos breeder design study, which breeds tritium at a modeled breeding ratio of 1.8, accounting must reconcile bred, burned, recycled, and retained tritium. The machine is a simulation and design case; this page describes accounting as a general subsystem discipline."],
+["p","Rigorous accounting is what makes a tritium-fueled machine safe to operate and to license."]
+],
+"related":[["cc-tritium-fuel-cycle-control","Fuel-cycle control"],["cc-breeding-blanket-control","Breeding blanket"],["cc-leak-detection-control","Leak detection"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-breeding-blanket-control",
+"title":"Breeding Blanket Control",
+"cat":"component-control",
+"lede":"The blanket surrounding a D-T plasma captures neutrons to breed tritium and carry away heat, and its coolant and purge flows are actively controlled.",
+"body":[
+["h2","What the blanket does"],
+["p","A breeding blanket surrounds the plasma and does three jobs: it absorbs the energetic fusion neutrons and converts their energy to heat, it breeds tritium by reactions of neutrons with lithium, and it shields the magnets and structure. Control keeps its coolant flow and temperature within limits and manages the recovery of bred tritium."],
+["h3","Tritium breeding"],
+["p","Neutrons captured by lithium produce tritium and helium. A neutron multiplier such as beryllium or lead boosts the neutron count so that more than one tritium can be bred per fusion neutron, needed to replace the tritium burned plus losses. The tritium breeding ratio measures this; a value above one is required to sustain the fuel cycle."],
+["h3","Coolant and purge control"],
+["p","The blanket's coolant removes the deposited heat and feeds the power-conversion system, so its flow and temperature are regulated like any heat exchanger, with the added constraint of neutron-driven heating that follows the fusion power. A separate purge stream sweeps bred tritium out of the breeder material for recovery; its flow and pressure are controlled to maximize recovery while limiting tritium permeation into the coolant."],
+["ul",["Absorbs neutrons, breeds tritium, shields the magnets","Neutron multiplier raises the breeding ratio above one","Coolant flow tracks neutron-driven heat load","Purge stream recovers bred tritium"]],
+["h3","Kronos context"],
+["p","The Hyperion breeder targets a modeled tritium breeding ratio of 1.8, comfortably above unity in the design study, to supply its own fuel and build inventory. Blanket control ties directly to fuel-cycle and tritium-accounting systems, since bred tritium must be measured and reconciled. The machine is a design and simulation case, and no hardware net-gain claim is made before first tritium, targeted around 2030."],
+["p","The blanket is where fusion energy becomes usable heat and where the fuel cycle is closed."]
+],
+"related":[["cc-tritium-fuel-cycle-control","Fuel-cycle control"],["cc-tritium-inventory-accounting","Tritium accounting"],["cc-balance-of-plant-control","Balance of plant"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-vacuum-system-control",
+"title":"Vacuum System Control",
+"cat":"component-control",
+"lede":"A fusion device needs a very high vacuum before and during operation, maintained by staged pumps under continuous control and interlocking.",
+"body":[
+["h2","Why vacuum matters"],
+["p","The plasma chamber must be nearly free of air and water vapour so that impurities do not radiate away the plasma energy and so that fueling controls the composition. Achieving the required base pressure, orders of magnitude below atmosphere, takes staged pumping and a clean, leak-tight vessel. During a pulse, pumps also remove exhaust gas as part of particle control."],
+["h3","Pumping stages"],
+["p","Roughing pumps take the vessel from atmosphere down to a rough vacuum. High-vacuum pumps, turbomolecular and cryogenic pumps, then reach the base pressure. Cryopumps trap gas on cold surfaces and must be regenerated periodically by warming them to release the captured gas, a controlled cycle that has to be scheduled around operation."],
+["h3","Control and sequencing"],
+["p","Vacuum control is a sequenced state machine: valves open and close in the right order to avoid exposing high-vacuum pumps to high pressure, which would damage them. Pressure gauges across ranges feed the sequencer, which enforces interlocks so a pump is never run outside its window. Base-pressure and leak-rate criteria must be met before the interlock chain permits plasma operation."],
+["ul",["Reach base pressure far below atmosphere","Roughing then turbomolecular and cryogenic pumps","Regenerate cryopumps on a controlled cycle","Sequenced valves and interlocks protect the pumps"]],
+["h3","Wall conditioning"],
+["p","Even a clean vessel outgases, so the wall is conditioned by baking and glow discharge to drive off adsorbed gas before operation, and the vacuum system manages these procedures. In the Kronos designs, the breeder and burner both require high vacuum for their plasmas, and cryopumps' handling of tritiated exhaust ties the vacuum system to the fuel cycle. The machines are simulation and design cases; the control here is described generically."],
+["p","No plasma exists until the vacuum system has done its quiet, exacting work."]
+],
+"related":[["cc-vacuum-pumping-control","Vacuum pumping"],["cc-leak-detection-control","Leak detection"],["cc-tritium-fuel-cycle-control","Fuel-cycle control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-vacuum-pumping-control",
+"title":"Vacuum Pumping Control",
+"cat":"component-control",
+"lede":"Pumping control regulates the removal of exhaust gas during a pulse, setting particle throughput while protecting each pump's operating window.",
+"body":[
+["h2","Pumping during operation"],
+["p","While the plasma runs, fueling adds particles and pumping removes them; their balance sets the density and the exhaust of helium ash and impurities. Pumping speed at the divertor determines how effectively spent fuel and ash leave the chamber, so pumping is a control actuator in the particle balance, not just a background utility."],
+["h3","Cryopumps and throughput"],
+["p","Large cryopumps provide high pumping speed by freezing gas onto cold panels. Their speed depends on the panel temperature and the gas species, and they saturate as they fill, so control tracks the accumulated inventory and schedules regeneration before saturation. During regeneration, released gas, including tritiated species, is routed to the fuel cycle rather than vented."],
+["h3","Controlling conductance"],
+["p","Because a cryopump's raw speed is not easily varied, throughput can be trimmed with adjustable baffles or valves that change the conductance between the chamber and the pump. Control uses these, together with fueling, to hold the target density and to manage helium removal so ash does not dilute the fuel. Divertor neutral pressure, sensed by gauges, is a key feedback signal."],
+["ul",["Pumping and fueling together set the density","Cryopumps saturate and need scheduled regeneration","Regenerated gas returns to the fuel cycle","Adjustable conductance trims effective pumping"]],
+["h3","Helium ash"],
+["p","A D-T plasma produces helium ash that must be pumped out or it dilutes the fuel and quenches the reaction. Efficient helium exhaust is a design and control target. In the Kronos burner, which runs D-3He, helium chemistry differs, but ash and impurity removal remain a pumping-control task. The machines are simulation and design cases, and this page describes pumping control in general terms."],
+["p","Pumping control is the removal half of the particle balance the plasma depends on."]
+],
+"related":[["cc-vacuum-system-control","Vacuum system control"],["cc-density-feedback-control","Density feedback"],["cc-impurity-seeding-control","Impurity seeding"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-leak-detection-control",
+"title":"Vacuum Leak Detection",
+"cat":"component-control",
+"lede":"A single small leak can spoil the vacuum and, in a tritium plant, breach containment, so leak detection runs before and during operation.",
+"body":[
+["h2","Kinds of leak"],
+["p","A real leak lets air in through a physical path; a virtual leak is trapped gas slowly outgassing from a pocket or a poor weld. Both raise pressure, but only a real leak admits atmospheric gases. Distinguishing them matters because a real leak is a containment problem while a virtual leak is a cleanliness problem."],
+["h3","Detection methods"],
+["p","The standard tool is a helium leak detector: helium sprayed on the outside of a suspected joint is drawn through any real leak and detected inside by a mass spectrometer tuned to helium. The response time and location of the signal pinpoint the leak. During operation, residual-gas analysers watch the chamber's gas composition, and a rise in nitrogen or oxygen signals an in-leak of air."],
+["h3","Control integration"],
+["p","Leak detection is wired into the vacuum state machine and the safety interlocks. Base pressure and leak rate must be within limits before plasma operation is permitted. During a pulse, an unexpected pressure rise or a composition shift triggers an alarm and, if severe, a controlled shutdown. In a tritium plant, containment monitors add a further layer that acts on any sign of a breach."],
+["ul",["Real leaks admit air; virtual leaks are trapped gas","Helium spray plus mass spectrometry locates real leaks","Residual-gas analysis catches in-leaks during operation","Leak criteria gate permission to operate"]],
+["h3","Tritium containment"],
+["p","In a D-T device a leak can work both ways: air in, or tritium out. Detritiation systems, glovebox under-pressure, and room monitors form the containment that leak detection protects. In the Kronos breeder design study, tritium containment is integral to the fuel cycle and blanket; leak detection is part of keeping the modeled tritium inventory accounted for and contained. The machine is a simulation and design case."],
+["p","Finding a leak the size of a pinhole before it matters is a routine but essential control task."]
+],
+"related":[["cc-vacuum-system-control","Vacuum system control"],["cc-tritium-inventory-accounting","Tritium accounting"],["cc-magnet-protection-interlocks","Interlocks"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-direct-energy-converter-control",
+"title":"Direct Energy Converter Control (Burner)",
+"cat":"component-control",
+"lede":"A direct energy converter turns the kinetic energy of charged fusion products straight into electricity by decelerating them against a voltage.",
+"body":[
+["h2","The principle"],
+["p","When fusion products are charged particles rather than neutrons, their energy can be collected directly. A direct energy converter lets the escaping charged particles fly against an electric field that decelerates them, so their kinetic energy is delivered to electrodes as electrical current at high voltage. This bypasses the thermal cycle and can reach high conversion efficiency for the charged-particle power."],
+["h3","Why it suits D-3He"],
+["p","Deuterium-helium-3 fusion releases most of its energy in charged particles, a proton and an alpha, with relatively few neutrons. That makes direct conversion especially attractive for a D-3He burner, since a large fraction of the fusion power arrives as charged particles that a converter can collect, while only a small neutron fraction deposits as heat needing thermal handling."],
+["h3","What is controlled"],
+["p","The converter's collector electrodes are held at graded voltages matched to the spread of particle energies, so control regulates these electrode potentials to maximize the captured energy as the particle spectrum shifts with plasma conditions. It manages the current drawn from each stage, protects against arcing at high voltage, and conditions the collected direct current for the plant's electrical output."],
+["ul",["Charged particles decelerate against an electric field","Kinetic energy becomes current at high voltage","D-3He gives mostly charged-particle output","Graded electrode voltages match the energy spread"]],
+["h3","Kronos burner context"],
+["p","The Kronos burner is a D-3He tandem-mirror generator with a modeled neutron fraction of about 5.44 percent, so most of its output is available to a direct energy converter; it is deployed in fixed Aegis defense installations and MetroVolt data-center units. The converter control described here is a design and simulation behaviour; the machine is not built, and no hardware net-gain claim precedes the first-of-a-kind demonstration."],
+["p","Direct conversion is the feature that lets a burner turn fusion into electricity without a full thermal plant for the charged-particle share."]
+],
+"related":[["cc-dec-grid-synchronization","DEC electrical output"],["cc-mirror-confinement-control","Mirror confinement"],["cc-plug-magnet-control-burner","Plug magnets"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-dec-grid-synchronization",
+"title":"Direct Converter Electrical Output Control",
+"cat":"component-control",
+"lede":"The high-voltage direct current from a direct energy converter must be conditioned and inverted into stable, standards-compliant electrical output.",
+"body":[
+["h2","From collector to output"],
+["p","A direct energy converter produces high-voltage direct current whose voltage and current vary with the plasma's particle spectrum. Turning this into usable output requires power electronics that regulate the collector, aggregate the graded stages, and invert the direct current into alternating current, or condition it for a direct-current bus, at the right voltage and quality."],
+["h3","Regulation"],
+["p","Control regulates the operating point of the converter stages to draw the most energy from the particle beam while keeping electrode voltages within safe limits. Because the source varies with plasma conditions, the electronics present a controlled load that tracks the available power, similar in spirit to maximum-power-point tracking, so the converter is neither starved nor overdrawn."],
+["h3","Output quality"],
+["p","Output to a grid or local load must meet frequency, voltage, and waveform standards, so inverters use fast switching with feedback to hold voltage and, when grid-tied, to synchronize phase. Protection detects faults on the output side and isolates the converter to keep a downstream fault from propagating back into the high-voltage collector."],
+["ul",["Collector produces variable high-voltage DC","Power electronics track the available power","Inverters condition output to standards","Protection isolates output-side faults"]],
+["h3","Kronos burner context"],
+["p","In the D-3He burner, most fusion power reaches the direct energy converter because the neutron fraction is only about 5.44 percent, so output conditioning handles a large share of the plant's electrical production. This applies to both Aegis fixed-defense installations and MetroVolt data-center units. The control described is a design and simulation behaviour for a machine that is not built; no economics or performance-in-service claims are made here."],
+["p","Output control is where fusion charged-particle energy becomes electricity a load can use."]
+],
+"related":[["cc-direct-energy-converter-control","Direct energy converter"],["cc-balance-of-plant-control","Balance of plant"],["cc-mirror-confinement-control","Mirror confinement"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-plug-magnet-control-burner",
+"title":"Burner Plug Magnet Control",
+"cat":"component-control",
+"lede":"A tandem mirror confines plasma between strong end plugs, so controlling the high-field plug coils is central to the burner's operation.",
+"body":[
+["h2","How a mirror confines"],
+["p","A magnetic mirror uses regions of strong field at each end of a straight central cell. Charged particles moving toward a strong-field region feel a force that can reflect them back, trapping most of the plasma between the two mirrors. A tandem mirror adds electrostatic potential plugs at the ends to plug the loss of particles that a simple mirror would leak."],
+["h3","The plug coils"],
+["p","The end-plug coils produce the high magnetic field that forms the mirror and shapes the confining potential. These are the strongest coils in the machine, so their current control, protection, and cryogenics are demanding. Holding the plug field steady and symmetric is what keeps the central plasma confined, so plug-coil control has the same priority that toroidal-field control has in a tokamak."],
+["h3","What is controlled"],
+["p","Control regulates the plug-coil currents to set the mirror ratio and the plug field, coordinates them with the central-cell field, and holds the whole magnetic geometry steady during operation. Because the coils store large energy at high field, quench detection and protection are integral, as is temperature-margin monitoring under the machine's heat loads."],
+["ul",["Strong end fields reflect and trap particles","Electrostatic plugs reduce end losses","Plug coils are the highest-field coils in the machine","Control holds plug field steady and symmetric"]],
+["h3","Kronos burner context"],
+["p","The Kronos burner is a D-3He tandem-mirror generator with a modeled plug field of 26.49 T and a throat field of 17 T; these high fields make plug-magnet control and protection a central engineering task. The machine is deployed conceptually as fixed Aegis defense installations and MetroVolt data-center units. It is a design and simulation case, not built hardware, and no net-gain claim precedes its first-of-a-kind demonstration."],
+["p","The plugs are the burner's confinement, so their coils get the most careful control the machine offers."]
+],
+"related":[["cc-mirror-confinement-control","Mirror confinement"],["cc-magnet-current-ramp","Magnet current ramps"],["cc-quench-protection","Quench protection"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-mirror-confinement-control",
+"title":"Tandem Mirror Confinement Control",
+"cat":"component-control",
+"lede":"Confinement in a tandem mirror depends on maintaining the axial potential profile and mirror fields against particle and energy losses.",
+"body":[
+["h2","The confinement scheme"],
+["p","A tandem mirror confines a long central plasma between two end plugs. Magnetic mirrors at each end reflect most particles, and electrostatic potentials built up in the plugs confine the ions that the magnetic mirror alone would lose out the ends. Confinement quality depends on sustaining both the mirror fields and the axial potential profile."],
+["h3","Maintaining the potential"],
+["p","The confining potential in the plugs is created by localized heating that raises the plug density and temperature, often with radio-frequency heating tuned to build the potential barrier. Control regulates this heating to hold the potential profile that plugs ion losses. Losing the potential lets ions stream out the ends, so this is a continuous, active control task, not a set-and-forget condition."],
+["h3","Stability control"],
+["p","Simple mirrors are prone to interchange and other instabilities because of unfavourable field-line curvature. Tandem mirrors add stabilizing regions or wall stabilization to keep the plasma from bulging out. Control monitors for the onset of these modes and adjusts the field shaping and heating to keep the plasma stable, much as a tokamak actively manages its own instabilities."],
+["ul",["Mirror fields plus electrostatic plugs confine ions","Localized plug heating builds the confining potential","Losing the potential opens the end losses","Active stabilization counters interchange modes"]],
+["h3","Kronos burner context"],
+["p","The Kronos burner is a D-3He tandem-mirror generator whose confinement rests on a 26.49 T plug field and a 17 T throat, with a direct energy converter collecting the charged-particle output. Confinement control coordinates plug magnets, heating, and the converter load. The machine is a design and simulation case in fixed Aegis and MetroVolt configurations, not built hardware, and no net-gain claim precedes its first-of-a-kind demonstration."],
+["p","Mirror confinement is an active balance of fields, potentials, and heating held steady by control."]
+],
+"related":[["cc-plug-magnet-control-burner","Plug magnets"],["cc-direct-energy-converter-control","Direct energy converter"],["cc-icrh-control","Ion cyclotron control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-balance-of-plant-control",
+"title":"Balance-of-Plant Control",
+"cat":"component-control",
+"lede":"Beyond the reactor core, a fusion plant needs cooling, power distribution, and auxiliaries, all coordinated by a plant-wide control system.",
+"body":[
+["h2","What balance of plant means"],
+["p","Balance of plant is everything outside the fusion core that a working plant needs: primary and secondary cooling loops, heat rejection, electrical distribution to the many subsystems, compressed gas and cooling water, ventilation, and, for a power-producing machine, the conversion of fusion heat into electricity. Its control keeps these utilities matched to what the core demands."],
+["h3","Coordinated utilities"],
+["p","The core's needs swing with the operating cycle: magnets, heating, and pumping draw different power and cooling at different phases. Balance-of-plant control anticipates and follows these swings, staging cooling and power so that a subsystem always has the utility it needs when it needs it. This coordination is layered above the local loops that regulate each utility."],
+["h3","Heat path"],
+["p","In a device that converts heat to electricity, the primary coolant carries fusion heat from the blanket or first wall to a secondary loop and a conversion system, and finally to a heat sink. Control regulates flow and temperature along this path to deliver stable conditions to the conversion equipment. For the burner, a large share of energy is collected electrically by the direct converter, changing the balance between the thermal and electrical paths."],
+["ul",["Cooling, power, gases, and heat rejection for the whole plant","Utilities staged to follow the operating cycle","Primary-to-secondary heat path for conversion","Layered above local utility control loops"]],
+["h3","Kronos context"],
+["p","The Hyperion breeder carries its fusion heat through a breeding blanket to a conversion path, while the D-3He burner, with a neutron fraction near 5.44 percent, converts most of its output directly to electricity and needs a smaller thermal path. In both, balance-of-plant control ties the core to the utilities. The machines are design and simulation cases, and this page avoids any economic characterization."],
+["p","Balance-of-plant control is the housekeeping that lets the reactor core do its job uninterrupted."]
+],
+"related":[["cc-cooling-water-control","Cooling water"],["cc-breeding-blanket-control","Breeding blanket"],["cc-dec-grid-synchronization","DEC output"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-cooling-water-control",
+"title":"Cooling Water and Heat Rejection Control",
+"cat":"component-control",
+"lede":"Cooling loops carry heat from magnets, heating systems, and plasma-facing components to a heat sink, regulated to hold every component in its window.",
+"body":[
+["h2","Many loops, one job"],
+["p","A fusion plant has numerous cooling circuits: room-temperature water for power supplies, heating sources, and pumps; higher-grade coolant for plasma-facing components and the blanket; and the cryogenic loops for the magnets. Each carries heat from a component to a heat exchanger and ultimately to a heat sink such as a cooling tower or water body. Control keeps each loop's flow and temperature within its component's limits."],
+["h3","Regulation basics"],
+["p","A cooling loop is regulated by controlling pump speed, valve positions, and heat-exchanger duty to hold a target outlet temperature or component temperature. Because heat loads swing with the operating cycle, the loops must follow the load; feedforward from the operating schedule plus feedback on measured temperatures gives a stable response without large excursions."],
+["h3","Interlocks"],
+["p","Cooling is a protection function for hot components. Loss of flow to a plasma-facing component, a heating source, or a power supply is an interlock condition that reduces or stops the heat source before damage occurs. Flow, pressure, and temperature sensors feed both control and interlock chains, with the interlock path kept independent so a control fault cannot defeat protection."],
+["ul",["Separate loops for supplies, PFCs, blanket, and magnets","Pump speed, valves, and exchangers hold target temperatures","Feedforward from the cycle plus feedback trim","Loss of flow interlocks the heat source"]],
+["h3","Heat rejection"],
+["p","At the end of every loop the heat must leave the plant to a sink, and the rejection system's capacity sets an overall limit on sustained operation. Control balances the rejection duty against ambient conditions. In the Kronos designs the breeder rejects blanket heat while the burner rejects a smaller thermal load because most of its energy is converted directly; both are design and simulation cases described here without any cost or performance-in-service claims."],
+["p","Cooling control is the unglamorous backbone that keeps every heat-loaded component alive."]
+],
+"related":[["cc-balance-of-plant-control","Balance of plant"],["cc-pfc-thermal-monitoring","PFC thermal monitoring"],["cc-cryogenic-control","Cryogenic control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-pid-control-loops",
+"title":"PID Control Loops in Fusion Systems",
+"cat":"component-control",
+"lede":"The proportional-integral-derivative loop is the workhorse regulator behind coil currents, temperatures, flows, and pressures throughout the plant.",
+"body":[
+["h2","The three terms"],
+["p","A PID controller computes an actuator command from the error between a measured value and its set point. The proportional term reacts to the present error, the integral term accumulates past error to remove steady offset, and the derivative term anticipates by reacting to the error's rate of change. Their gains are tuned to give a fast, stable response."],
+["code",["python","def pid_step(err, integ, prev_err, dt, kp, ki, kd):\n    integ += err * dt\n    deriv = (err - prev_err) / dt\n    out = kp*err + ki*integ + kd*deriv\n    return out, integ, err"]],
+["h3","Where it is used"],
+["p","PID loops regulate power-supply currents, cooling-loop temperatures, vacuum-relevant pressures, gas-valve flows, and many balance-of-plant utilities. Each loop treats its actuator and sensor as a simple pairing. The strength of PID is that it needs little model of the system, only tuning, which makes it the default for the plant's many single-variable loops."],
+["h3","Tuning and limits"],
+["p","Gains are tuned for the loop's dynamics: too much gain oscillates, too little is sluggish. Practical loops add anti-windup so the integral term does not accumulate while the actuator is saturated, and output clamps to respect hardware limits. Derivative action is often filtered because it amplifies noise. These refinements make a textbook PID robust in a real plant."],
+["ul",["Proportional reacts, integral removes offset, derivative anticipates","Default regulator for single-variable loops","Anti-windup handles actuator saturation","Filter derivative to reject noise"]],
+["h3","When PID is not enough"],
+["p","Strongly coupled or fast-unstable problems, like plasma shape and vertical stabilization, exceed what independent PID loops handle well and use multivariable or model-based control instead. But even those systems rest on fast inner current loops that are often PID. In the Kronos control architecture, described as a design and simulation model, PID regulators form the base layer beneath the specialized plasma controllers."],
+["p","Most of a plant's regulation is PID doing its steady, dependable work out of sight."]
+],
+"related":[["cc-feedforward-control","Feedforward control"],["cc-power-supply-control","Coil power supplies"],["cc-real-time-control-network","Real-time networks"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-feedforward-control",
+"title":"Feedforward Control in Plant Scenarios",
+"cat":"component-control",
+"lede":"Feedforward uses a known plan or disturbance to command actuators in advance, leaving feedback to correct only the residual error.",
+"body":[
+["h2","Anticipate, then correct"],
+["p","Pure feedback reacts only after an error appears, which is too slow when a large, predictable change is coming. Feedforward acts first: knowing the planned scenario or an incoming disturbance, it commands the actuator to the value that should produce the desired result, so the system is already close before feedback trims the remainder."],
+["h3","Scenario feedforward"],
+["p","A fusion pulse follows a planned scenario of current, heating, and fueling, so most actuator commands are computed in advance from that plan. Coil currents follow a scheduled waveform, heating ramps on a timetable, and cryogenic pre-cooling anticipates the pulse's heat load. Feedback then corrects for the difference between the model and reality, a much smaller and slower job."],
+["h3","Disturbance feedforward"],
+["p","When a disturbance is measurable before it fully acts, its effect can be canceled preemptively. For example, a scheduled current ramp adds a known heat load to the cryoplant, so the cooling controller can increase duty in advance rather than waiting for temperature to rise. This keeps regulated variables steadier than feedback alone could."],
+["ul",["Command actuators from the plan before error appears","Scenario feedforward drives currents, heating, fueling","Disturbance feedforward cancels known upsets early","Feedback corrects only the residual"]],
+["h3","Combined structure"],
+["p","Real controllers combine feedforward and feedback: the feedforward carries the bulk of the command and the feedback handles model error, noise, and unmodeled disturbances. This split gives both a fast response and good steady accuracy. In the Kronos control architecture, described as a design and simulation model, scenario feedforward is central because fusion operation is highly scheduled, from magnet ramps to fueling."],
+["p","Good feedforward makes feedback's job small, and a small feedback job is a stable one."]
+],
+"related":[["cc-pid-control-loops","PID loops"],["cc-heating-power-modulation","Power modulation"],["cc-state-machine-plant-control","Plant state machines"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-state-machine-plant-control",
+"title":"Plant Control State Machines",
+"cat":"component-control",
+"lede":"A supervisory state machine sequences the whole plant through its operating phases and enforces the conditions required to move between them.",
+"body":[
+["h2","Operation as states"],
+["p","A fusion plant does not run continuously in one mode; it moves through distinct phases: standby, pump-down, magnet energization, plasma initiation, flat-top operation, ramp-down, and shutdown. A supervisory state machine represents these phases as states and defines the transitions between them, so the plant always occupies a well-defined, known condition."],
+["h3","Guarded transitions"],
+["p","Each transition has guard conditions that must be satisfied before it is allowed. Plasma operation is not permitted until vacuum, magnet, cooling, and safety conditions are all met. This structure turns a mass of interlocks into an orderly permission scheme: the plant advances only when it is ready, and any lost condition forces a transition back toward a safe state."],
+["h3","Coordination role"],
+["p","The state machine coordinates subsystems that would otherwise act independently. Entering the energization state tells power supplies to ramp, cryogenics to expect load, and quench protection to arm. Entering ramp-down reverses the sequence in the right order. Subsystems report readiness to the supervisor, which holds a transition until all are ready, preventing out-of-order actions."],
+["ul",["Phases become explicit, well-defined states","Guard conditions gate every transition","Lost conditions force a fallback to a safe state","Supervisor coordinates subsystem readiness"]],
+["h3","Fault handling"],
+["p","When a fault occurs, the state machine drives the plant to the appropriate safe state, coordinating a controlled plasma termination, magnet dump if needed, and safe parking of utilities. Because the safe state is explicit, the response is predictable rather than improvised. In the Kronos control architecture, described as a design and simulation model, the plant state machine is the top layer that ties component control, interlocks, and scenarios together."],
+["p","A clear state machine is what turns many subsystems into one coherently operated plant."]
+],
+"related":[["cc-magnet-protection-interlocks","Interlocks"],["cc-fault-ride-through","Fault ride-through"],["cc-feedforward-control","Feedforward control"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-real-time-control-network",
+"title":"Real-Time Control Networks",
+"cat":"component-control",
+"lede":"Plasma and component control demand deterministic communication, so a real-time network moves sensor and command data on a fixed, guaranteed schedule.",
+"body":[
+["h2","Why real time"],
+["p","A vertical-stability loop that must act within milliseconds cannot tolerate unpredictable delays. Real-time control means the system responds within a guaranteed time bound every cycle, not just on average. The network that carries measurements to controllers and commands to actuators must therefore deliver data deterministically, with bounded latency and jitter."],
+["h3","Deterministic transport"],
+["p","General office networks deliver data eventually, not on a schedule. Real-time control uses deterministic transports, time-triggered or scheduled protocols, dedicated links, or reflective memory that mirrors data across nodes, so each controller has fresh inputs at a fixed cadence. The control cycle is clocked, and every node knows exactly when data arrives and when its output is due."],
+["h3","Architecture"],
+["p","Fast loops run on dedicated real-time controllers close to their hardware, with the tightest loops, like vertical stabilization, on the fastest cycles. Slower supervisory functions run on a higher layer. The network is layered to match: hard-real-time links for the fast loops, and more relaxed links for monitoring and logging, so heavy data traffic never delays a critical command."],
+["ul",["Guaranteed response within a fixed time bound","Deterministic transport, not best-effort networking","Fast loops on dedicated controllers, close to hardware","Layered so logging never delays control"]],
+["h3","Synchronization and logging"],
+["p","A common time base synchronizes all nodes so measurements and commands share one clock, essential for reconstructing what happened and for coordinating multivariable loops. Every cycle is logged for analysis and for post-fault review. In the Kronos control architecture, described as a design and simulation model, the real-time network is the nervous system connecting diagnostics, controllers, and actuators across the plant."],
+["p","Determinism, not raw speed, is what makes a control network trustworthy."]
+],
+"related":[["cc-pid-control-loops","PID loops"],["cc-vertical-stability-control","Vertical stability"],["cc-state-machine-plant-control","Plant state machines"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-actuator-sharing-arbitration",
+"title":"Actuator Sharing and Control Arbitration",
+"cat":"component-control",
+"lede":"Many control goals compete for the same limited actuators, so an arbitration layer allocates them by priority and respects hard limits.",
+"body":[
+["h2","The competition problem"],
+["p","Several controllers want the same actuators at once: heating power is asked for by the temperature loop, the current-drive loop, and the mode-stabilization loop; gas valves serve both density and detachment control. Since actuators have finite capacity, something must decide who gets how much when the total request exceeds what the hardware can deliver."],
+["h3","Priority and reservation"],
+["p","Arbitration assigns priorities so that safety and stability tasks win over performance tasks. A stabilization loop may hold a reserved allocation of electron-cyclotron power that cannot be spent on heating, because losing stability is worse than losing a little temperature. When requests exceed capacity, lower-priority demands are scaled back first, keeping the plant within limits."],
+["h3","Respecting limits"],
+["p","The arbitration layer also enforces hard limits that no controller may exceed: total heating power bounded by plasma and divertor limits, coil currents bounded by their supplies, fueling bounded by the density limit. It converts high-level requests into commands that are simultaneously feasible for every shared resource, a constrained allocation solved each control cycle."],
+["ul",["Multiple loops compete for shared actuators","Priorities let safety and stability win","Reserve allocations protect critical tasks","Enforce hard limits across all resources"]],
+["h3","Why it matters"],
+["p","Without arbitration, independent loops can collectively command more than the hardware or the plasma can take, causing a trip or an instability. A clean arbitration layer makes the whole control system predictable under stress. In the Kronos control architecture, described as a design and simulation model, arbitration mediates between heating, fueling, and stabilization on the breeder and between heating and confinement on the burner."],
+["p","Arbitration is how many well-meaning controllers add up to one safe machine."]
+],
+"related":[["cc-heating-power-modulation","Power modulation"],["cc-ecrh-control","Electron cyclotron control"],["cc-state-machine-plant-control","Plant state machines"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cc-fault-ride-through",
+"title":"Fault Ride-Through and Safe Shutdown",
+"cat":"component-control",
+"lede":"When something goes wrong the plant must either ride through the disturbance or shut down safely in a controlled, predictable sequence.",
+"body":[
+["h2","Two responses to a fault"],
+["p","Not every fault warrants stopping. Minor, recoverable disturbances, a brief loss of coupling on a heating source or a transient sensor glitch, are ridden through: the affected loop trims or momentarily backs off and operation continues. Serious faults, a magnet quench, loss of cooling, or loss of vertical control, require a controlled shutdown before damage occurs."],
+["h3","Riding through"],
+["p","Ride-through relies on margin and graceful degradation. A heating system that loses one source continues on the others; a control loop near a limit backs off rather than tripping. Feedforward and reserved actuator margin give the system room to absorb a disturbance without losing the plasma, so a small upset does not cost an entire pulse."],
+["h3","Safe shutdown"],
+["p","When shutdown is required, the plant follows a planned termination: heating and fueling are reduced, the plasma current is ramped down in a controlled way to avoid a disruption, magnets are handled per their protection scheme, and utilities are parked safely. The state machine drives this sequence so the plant reaches a known safe state predictably rather than through ad-hoc reactions."],
+["ul",["Recoverable faults are ridden through with margin","Graceful degradation keeps operation going","Serious faults trigger a planned safe shutdown","Controlled current ramp-down avoids disruption"]],
+["h3","Avoiding disruptions"],
+["p","In a tokamak a sudden uncontrolled termination, a disruption, imposes large forces and heat loads, so a graceful shutdown is far preferable. Disruption prediction and mitigation systems watch for the precursors and, if a disruption is unavoidable, act to soften it. In the Kronos breeder design study, controlled termination and disruption avoidance protect the modeled spherical tokamak; the machine is a simulation and design case, and these behaviours are described in general engineering terms."],
+["p","The measure of a control system is how calmly it handles the moment something breaks."]
+],
+"related":[["cc-state-machine-plant-control","Plant state machines"],["cc-magnet-protection-interlocks","Interlocks"],["cc-vertical-stability-control","Vertical stability"]],
+"seo_type":"TechArticle"
+}
+]
