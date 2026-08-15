@@ -1,0 +1,1966 @@
+[
+ {
+  "slug": "l7-architecture-overview",
+  "title": "L7 Ecosystem and Strategy: Architecture Overview",
+  "cat": "l7-ecosystem",
+  "lede": "Layer 7 is the plant's single boundary to the outside world: one governed API for grid, supply chain, isotope offtake, regulators, and fleet coordination.",
+  "body": [
+   [
+    "h2",
+    "Where L7 sits in the stack"
+   ],
+   [
+    "p",
+    "Layer 7 (L7) is the outermost tier of the Kronos AI-Native S.M.A.R.T. Generator stack. Everything below it (L0 Foundation through L6) turns a physical machine into a governed, model-backed control system. L7 exposes that system to the world through a single, contract-defined boundary and, in the other direction, pulls the world's state (grid demand, isotope orders, component supply, regulatory obligations) into the control loops. It is deliberately the only door: no external party talks to L1 control or L3 twin directly."
+   ],
+   [
+    "p",
+    "L7 serves both machines from one framework. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30; its L7 concerns are tritium and helium-3 offtake, 14 MeV neutron services, and lithium blanket supply tied to a tritium breeding ratio treated as a design lever across 1.1/1.5/1.8. The burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction, is instead a firm-power exporter through direct energy conversion, with Aegis as fixed defense installations and MetroVolt as data-center generators."
+   ],
+   [
+    "h3",
+    "The five ecosystem functions"
+   ],
+   [
+    "ul",
+    [
+     "Unified API gateway: one authenticated door in and out of the plant",
+     "Grid integration: dispatch and firm-power participation for burner housings",
+     "Supply chain: deuterium, lithium, parts inbound; tritium, helium-3, neutrons outbound",
+     "Maintenance and service loops: fleet-level condition, spares, teleoperation",
+     "Regulatory and compliance feeds: byproduct-material accountancy and audit export"
+    ]
+   ],
+   [
+    "p",
+    "Above the single plant, L7 also carries fleet strategy: coordinating a foundry of breeders (FOAK to NOAK to BOAK from ~2030) and a fleet of burners, propagating validated models between units, and letting the plant participate in the wider energy and isotope economy."
+   ],
+   [
+    "p",
+    "These machines are design and simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030; no hardware net-gain is claimed before FOAK. L7 today is exercised against the digital twin and simulated markets, with a defined path to live operation once units exist."
+   ]
+  ],
+  "related": [
+   [
+    "unified-api-gateway",
+    "Unified API Gateway"
+   ],
+   [
+    "grid-integration-overview",
+    "Grid Integration Overview"
+   ],
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "unified-api-gateway",
+  "title": "The Unified API Gateway: One Door In and Out",
+  "cat": "l7-ecosystem",
+  "lede": "A single authenticated gateway mediates every external interaction with the plant, translating outside requests into governed L1-L6 actions and never exposing control internals.",
+  "body": [
+   [
+    "h2",
+    "One door, by design"
+   ],
+   [
+    "p",
+    "The unified API gateway is the only network endpoint any external party may reach. Grid operators, isotope customers, parts suppliers, regulators, and sibling plants in a fleet all speak to the same gateway. Internally it fans requests out to L1 control, the L3 KRONOS-CTRL twin, L4 logistics, and L5 compliance services, but the outside sees a stable, versioned contract, not the stack behind it. This collapses the attack surface to one hardened boundary and gives every interaction a single place for authentication, authorization, rate limiting, schema validation, and audit."
+   ],
+   [
+    "h3",
+    "Read model and write model"
+   ],
+   [
+    "p",
+    "The gateway separates a read plane (plant state, telemetry snapshots, availability forecasts, isotope inventory, compliance status) from a write plane (dispatch setpoints, offtake orders, maintenance windows). The read plane is high-fan-out and cacheable; the write plane is low-rate, strongly authenticated, and always idempotent so a retried command never double-executes."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# gateway request lifecycle (pseudocode)\ndef handle(req):\n    caller = mtls_identity(req)                 # who, cryptographically\n    authz(caller, req.action, req.resource)     # RBAC + scope check\n    validate_schema(req.body, contract_version) # reject malformed early\n    rate_limit(caller, req.action)\n    if req.plane == 'write':\n        require_idempotency_key(req)            # exactly-once semantics\n    resp = route_to_service(req)                # L1 / L3 / L4 / L5\n    audit_log(caller, req, resp)                # immutable trail (L5)\n    return sign(resp)"
+    ]
+   ],
+   [
+    "p",
+    "Every write is bounded by the L1 safe operating envelope. A grid dispatch command asking the burner for more power than the certified extraction limit is clamped or rejected at the gateway edge, before it can reach actuation. The gateway therefore acts as a policy enforcement point, not merely a transport."
+   ],
+   [
+    "p",
+    "Because the gateway is instantiated identically per unit, a fleet controller talks to twenty plants exactly as an operator talks to one. This uniformity is what makes multi-unit coordination and fleet model propagation tractable. All machines remain design and simulation studies today; the gateway is exercised against the twin and mock external clients."
+   ]
+  ],
+  "related": [
+   [
+    "api-contract-and-schemas",
+    "API Contract and Schemas"
+   ],
+   [
+    "api-authn-authz",
+    "Authentication and Authorization"
+   ],
+   [
+    "dispatch-command-api",
+    "Dispatch Command API"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "api-contract-and-schemas",
+  "title": "API Contract, Schemas, and Versioning",
+  "cat": "l7-ecosystem",
+  "lede": "Every external message is a validated, versioned document; the contract is the durable interface that lets the plant evolve without breaking the parties bound to it.",
+  "body": [
+   [
+    "h2",
+    "The contract is the interface"
+   ],
+   [
+    "p",
+    "External parties never depend on Kronos internals; they depend on the published contract. The contract defines each resource (plant state, dispatch order, isotope shipment, compliance report), its schema, its units, and its allowed transitions. Schemas are explicit and typed: physical quantities carry SI units and, where relevant, uncertainty. A telemetry snapshot for the breeder, for example, declares plasma current in MA, peak field in T, and each value's timestamp and confidence."
+   ],
+   [
+    "h3",
+    "Semantic versioning of the contract"
+   ],
+   [
+    "p",
+    "The contract is versioned MAJOR.MINOR.PATCH. Additive fields bump MINOR and are backward compatible; a removed field or changed meaning bumps MAJOR and runs behind a new path. The gateway can serve two MAJOR versions in parallel during a migration window so a slow-moving grid operator and a fast-moving fleet controller are never forced to upgrade in lockstep."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# an isotope-shipment resource (schema sketch)\nShipment = {\n  'id': 'uuid',\n  'product': 'tritium | helium3 | neutron_service',\n  'quantity': {'value': 'float', 'unit': 'kg | service_hours'},\n  'assay': {'purity': 'float', 'method': 'str', 'uncertainty': 'float'},\n  'origin_unit': 'plant_id',\n  'custody': ['chain_of_custody_event', ...],\n  'compliance_ref': 'byproduct_material_record_id',\n  'contract_version': '2.3.0',\n}"
+    ]
+   ],
+   [
+    "p",
+    "Validation is strict on ingress and lenient on egress within a version: unknown fields in a request are rejected (fail closed), while responses may carry additional MINOR fields a client can ignore. This asymmetry keeps writes safe while letting reads grow."
+   ],
+   [
+    "p",
+    "Physical canon is encoded in the schema's constraints, not left to prose. The breeder's tritium output is bounded near the ~4 kg/yr class and helium-3 near ~1.97 kg/yr; the burner's neutron fraction is 5.44%. A request or report that violates a hard physical bound is a schema error, caught before it reaches any control or accounting service."
+   ],
+   [
+    "p",
+    "The contract is published as machine-readable schema so that AI clients (the primary consumers of this documentation) can generate and validate messages automatically. Because these are design-stage machines, the contract is versioned from v0 against the twin and frozen to v1 at FOAK commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "unified-api-gateway",
+    "Unified API Gateway"
+   ],
+   [
+    "plant-state-api",
+    "Plant State API"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "api-authn-authz",
+  "title": "Authentication, Authorization, and Zero-Trust Boundary",
+  "cat": "l7-ecosystem",
+  "lede": "Mutual TLS proves who is calling, scoped RBAC decides what they may do, and every external actor is treated as untrusted until cryptographically identified.",
+  "body": [
+   [
+    "h2",
+    "Prove identity, then scope authority"
+   ],
+   [
+    "p",
+    "The gateway assumes zero trust: no network location, no prior session, and no claimed identity is believed without proof. Each caller presents a client certificate; mutual TLS establishes a cryptographic identity before any request body is read. Machine-to-machine callers (a grid dispatcher, a fleet controller, a supplier system) hold short-lived certificates issued by the Kronos internal CA and rotated automatically."
+   ],
+   [
+    "h3",
+    "Role-based scopes"
+   ],
+   [
+    "p",
+    "Identity is necessary but not sufficient. Every action is checked against a role with an explicit scope. A grid operator may read availability and write dispatch setpoints within the certified envelope, but may not read isotope inventory. A regulator may read compliance and byproduct-material records but may write nothing. An isotope customer may place and track offtake orders for their own shipments only."
+   ],
+   [
+    "matrix",
+    [
+     "Role x Permission",
+     [
+      [
+       "read_state",
+       "write_dispatch",
+       "read_isotope",
+       "write_offtake",
+       "read_compliance"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Rows above are grid operator, isotope customer, regulator, and fleet controller; columns are the coarse permission scopes. Fine-grained policy narrows these further per resource instance."
+   ],
+   [
+    "p",
+    "Authorization decisions are logged with the deciding policy and the caller identity, so any grant or denial is reconstructable. Denials fail closed and are rate-tracked: a caller repeatedly probing scopes it lacks is throttled and flagged to L5 compliance and security monitoring."
+   ],
+   [
+    "p",
+    "Because the write plane can move a real machine, dispatch and actuation-adjacent scopes require the strongest posture: hardware-backed keys, per-command idempotency keys, and clamping against the L1 safe operating envelope. No credential, however privileged, can command the plant outside its certified limits. All of this is exercised today against the digital twin; live certificates and regulator identities are provisioned at commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "unified-api-gateway",
+    "Unified API Gateway"
+   ],
+   [
+    "cybersecurity-zero-trust",
+    "Cybersecurity and Zero Trust"
+   ],
+   [
+    "dispatch-command-api",
+    "Dispatch Command API"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plant-state-api",
+  "title": "The Plant State API: A Governed Read Model",
+  "cat": "l7-ecosystem",
+  "lede": "A high-fan-out read plane publishes a coherent, versioned snapshot of plant state drawn from the digital twin, never from raw control internals.",
+  "body": [
+   [
+    "h2",
+    "One coherent snapshot"
+   ],
+   [
+    "p",
+    "External consumers need to know what the plant is doing without touching how it does it. The plant state API answers that. It publishes a versioned snapshot assembled from the L3 KRONOS-CTRL twin: current operating mode, power export, availability, key physics summaries, isotope production rates, and health rollups. The snapshot is internally consistent (all fields share one twin timestamp) so a consumer never sees a state stitched from different instants."
+   ],
+   [
+    "h3",
+    "What is exposed, and what is not"
+   ],
+   [
+    "p",
+    "The read model is a projection, not a firehose. It exposes decision-relevant summaries: for the breeder, instantaneous tritium and helium-3 production rate against the ~4 kg/yr and ~1.97 kg/yr classes, neutron flux availability for services, and breeding balance under the active TBR lever; for the burner, net export power, direct-energy-conversion efficiency, and plug status abstracted to a single confidence. Raw microsecond diagnostics, control gains, and model weights are never exposed."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# GET /v2/state  -> coherent projection from the twin\n{\n  'unit': 'hyperion-foak',\n  'twin_ts': '2030-05-01T12:00:00.000Z',\n  'mode': 'burn',\n  'availability': 0.0,           # design-stage: twin-simulated\n  'breeder': {\n     'tritium_rate_kg_yr': 3.9,  # ~4 kg/yr class\n     'he3_rate_kg_yr': 1.97,\n     'tbr_lever': 1.5,           # 1.1 / 1.5 / 1.8\n     'neutron_service_flux': 'nominal'},\n  'confidence': 0.92\n}"
+    ]
+   ],
+   [
+    "p",
+    "The read plane is cacheable and idempotent, so thousands of dashboards and AI agents can poll without loading control. Cache freshness is bounded and stamped; a consumer always knows the maximum age of what it reads. Streaming subscriptions are offered for consumers that need change-driven updates rather than polling."
+   ],
+   [
+    "p",
+    "Every field carries units and, where meaningful, uncertainty inherited from the twin's per-module confidence. This lets downstream AI consumers weight the data honestly rather than treating a low-confidence estimate as ground truth. Values in the design phase are twin-simulated and labeled as such; availability reads 0 until a unit is commissioned, so no operational claim is implied before FOAK."
+   ]
+  ],
+  "related": [
+   [
+    "api-contract-and-schemas",
+    "API Contract and Schemas"
+   ],
+   [
+    "dispatch-command-api",
+    "Dispatch Command API"
+   ],
+   [
+    "firm-power-forecasting",
+    "Firm-Power Forecasting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dispatch-command-api",
+  "title": "The Dispatch Command API: A Safe Write Model",
+  "cat": "l7-ecosystem",
+  "lede": "The write plane accepts bounded, idempotent commands that are validated, envelope-clamped, and staged into the L1 control plane rather than executed blindly.",
+  "body": [
+   [
+    "h2",
+    "Commands, not direct control"
+   ],
+   [
+    "p",
+    "External parties do not drive actuators. They submit intents: a grid operator requests a power setpoint, an isotope customer requests a neutron-service window, a maintenance planner requests an outage slot. The dispatch command API receives these, validates them, and stages them into the L1 control plane where the twin and the safe operating envelope have final say. The separation means an external system can never bypass plant physics or safety."
+   ],
+   [
+    "h3",
+    "Exactly-once, envelope-bounded"
+   ],
+   [
+    "p",
+    "Every write carries an idempotency key so a retried or duplicated request executes at most once. Every write is checked against the certified envelope before staging. For the burner, a requested export above the direct-energy-conversion limit is clamped to the limit and the caller is told it was clamped; for the breeder, a neutron-service request that would perturb the breeding balance below the active TBR target under lever 1.1/1.5/1.8 is deferred, not forced."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def submit_dispatch(cmd):\n    if seen(cmd.idempotency_key):\n        return prior_result(cmd.idempotency_key)   # exactly-once\n    target = clamp(cmd.setpoint, envelope(cmd.unit)) # never exceed certified limit\n    ramp   = rate_limit_ramp(target, current_state())# respect slew limits\n    ticket = L1.stage(cmd.unit, ramp)                # twin/failsafe authoritative\n    record(cmd.idempotency_key, ticket)\n    return {'accepted': True, 'clamped': target != cmd.setpoint,\n            'ticket': ticket, 'eta_s': ramp.duration}"
+    ]
+   ],
+   [
+    "p",
+    "Commands are asynchronous and observable. The API returns a ticket; the caller polls or subscribes for progress as L1 ramps the machine and the twin confirms the new state through the read plane. This closes the loop honestly: the external party learns what actually happened, including partial fulfillment or a safety-driven abort."
+   ],
+   [
+    "p",
+    "Ramp rates matter as much as endpoints. A burner cannot step instantly between export levels; the API translates a setpoint into a rate-limited ramp the twin has certified as stable. Grid frequency-response commands, which must act in seconds, use a separate fast lane described in the grid-integration pages, still bounded by the same envelope."
+   ],
+   [
+    "p",
+    "All dispatch is twin-simulated until commissioning. The write path is validated end to end against KRONOS-CTRL so that, at FOAK ~2030, the same commands drive real hardware with no interface change."
+   ]
+  ],
+  "related": [
+   [
+    "plant-state-api",
+    "Plant State API"
+   ],
+   [
+    "grid-frequency-response",
+    "Grid Frequency Response"
+   ],
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grid-integration-overview",
+  "title": "Grid Integration: Dispatching Firm Power",
+  "cat": "l7-ecosystem",
+  "lede": "The burner housings export firm, dispatchable power through direct energy conversion; L7 is the interface that makes that export legible and controllable to a grid.",
+  "body": [
+   [
+    "h2",
+    "Firm power from the burner"
+   ],
+   [
+    "p",
+    "Among the two machines, the burner (Aegis / MetroVolt) is the electricity exporter. It is a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat whose 5.44% neutron fraction means most of its output leaves as charged-particle energy suitable for direct energy conversion. That gives a source that is firm (not weather-driven) and dispatchable within its ramp limits. L7 grid integration is the layer that presents this capability to a grid operator and accepts dispatch back."
+   ],
+   [
+    "p",
+    "Aegis serves fixed defense installations, where the priority is islanded reliability and ride-through; MetroVolt serves data centers, where the priority is steady baseload with fast response to campus load steps. The same grid-integration framework serves both, parameterized by the interconnection it faces."
+   ],
+   [
+    "h3",
+    "What the grid needs from the plant"
+   ],
+   [
+    "ul",
+    [
+     "Availability and forecast: how much firm power, with what confidence, over the horizon",
+     "Dispatchability: setpoint following within certified ramp limits",
+     "Frequency response: inertia-like and droop behavior on sub-second to second scales",
+     "Voltage and reactive support at the interconnection",
+     "Ride-through and islanding for defense sites"
+    ]
+   ],
+   [
+    "p",
+    "L7 answers each through the read and write planes. The plant-state API publishes availability and forecast; the dispatch command API accepts setpoints; a fast frequency-response lane handles sub-second grid services; and the twin certifies every requested behavior against the safe operating envelope before it is offered to the grid at all."
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is not a grid exporter in the same sense. Its products are tritium, helium-3, and 14 MeV neutron services; its L7 face is supply chain and isotope offtake, not dispatch. Keeping these roles distinct prevents the common error of promising grid electricity from a machine whose purpose is breeding and materials."
+   ],
+   [
+    "p",
+    "No net-electric-to-grid claim is made before hardware exists. Grid integration is today validated against the twin and simulated interconnection models; the interfaces are frozen so a burner unit can be enrolled with a real operator once built."
+   ]
+  ],
+  "related": [
+   [
+    "grid-frequency-response",
+    "Grid Frequency Response"
+   ],
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ],
+   [
+    "firm-power-forecasting",
+    "Firm-Power Forecasting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grid-frequency-response",
+  "title": "Grid Frequency Response and Synthetic Inertia",
+  "cat": "l7-ecosystem",
+  "lede": "On sub-second timescales the burner supports grid frequency through droop control and direct-energy-conversion-backed synthetic inertia, all bounded by the safe envelope.",
+  "body": [
+   [
+    "h2",
+    "Fast services from a fast converter"
+   ],
+   [
+    "p",
+    "Grid frequency reflects the instantaneous balance of generation and load. When load exceeds generation, frequency falls; the grid needs sources that inject power within milliseconds to seconds to arrest the fall. The burner's direct energy conversion train couples plasma output to electrical output with little rotating mass, so it can modulate export electronically and fast, unlike a thermal turbine's inertia."
+   ],
+   [
+    "h3",
+    "Droop and synthetic inertia"
+   ],
+   [
+    "p",
+    "L7 exposes two fast behaviors. Droop control adjusts export in proportion to frequency deviation with a configured slope. Synthetic inertia responds to the rate of change of frequency, emulating the stabilizing effect of spinning mass. Both are computed at the interconnection controller and executed through a fast lane that bypasses the slower dispatch queue but never the envelope clamp."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# fast-lane frequency response (executes every few ms)\ndf   = f_meas - f_nom             # frequency error (Hz)\ndfdt = derivative(f_meas)         # rate of change (Hz/s)\nP_droop   = -(1.0/R) * df         # R = droop constant\nP_inertia = -H_syn * dfdt         # H_syn = synthetic inertia gain\nP_cmd = clamp(P_base + P_droop + P_inertia, envelope)\nissue_fast(P_cmd)                 # DEC train follows, twin-certified"
+    ]
+   ],
+   [
+    "p",
+    "The gains R and H_syn are not free parameters; the twin certifies the range over which the direct-energy-conversion train and the tandem-mirror plug can follow without violating the 26.49 T plug or 17 T throat operating point. A frequency service that would demand a plasma excursion outside the certified region is limited to the certified magnitude, and the grid operator is informed of the deliverable range in advance."
+   ],
+   [
+    "p",
+    "Because Aegis serves fixed defense installations, its frequency-response profile is tuned for islanded and microgrid operation, where the burner may be the dominant or sole source and must set frequency rather than follow it. MetroVolt, feeding data centers, is tuned to ride large, fast load steps as compute clusters switch."
+   ],
+   [
+    "p",
+    "All response profiles are validated against the twin and simulated grid disturbances; no live grid-stabilization claim is made before a unit is commissioned and interconnected."
+   ]
+  ],
+  "related": [
+   [
+    "grid-integration-overview",
+    "Grid Integration Overview"
+   ],
+   [
+    "dispatch-command-api",
+    "Dispatch Command API"
+   ],
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dispatch-optimization",
+  "title": "Fleet Dispatch and Unit Commitment",
+  "cat": "l7-ecosystem",
+  "lede": "Across many burner units, L7 solves a constrained scheduling problem that meets firm-power obligations while respecting maintenance, ramp, and physics limits.",
+  "body": [
+   [
+    "h2",
+    "Scheduling firm power across units"
+   ],
+   [
+    "p",
+    "A single burner follows setpoints; a fleet must decide which units run, at what level, and when they take outages, to meet aggregate firm-power obligations. L7 formulates this as a constrained optimization over a rolling horizon: minimize deviation from committed export and from planned maintenance windows, subject to each unit's ramp limits, envelope, and required service hours. No monetary objective enters; the problem is stated purely in physical availability and reliability terms."
+   ],
+   [
+    "h3",
+    "The optimization, stated plainly"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# rolling-horizon unit commitment (physical objective only)\n# u[i,t] in {0,1} on/off ; p[i,t] export level\nminimize  sum_t | sum_i p[i,t] - demand[t] |        # meet firm obligation\n        + w * unmet_maintenance_penalty(u)          # honor service windows\nsubject to:\n  p_min*u[i,t] <= p[i,t] <= p_cap[i]*u[i,t]         # capacity per unit\n  |p[i,t]-p[i,t-1]| <= ramp[i]                       # certified slew\n  reserve: sum_i (p_cap[i]*u[i,t]-p[i,t]) >= R[t]    # spinning reserve\n  u respects planned_outage[i]                        # maintenance loops"
+    ]
+   ],
+   [
+    "p",
+    "The solver is warm-started from the previous horizon and re-solved as forecasts and unit health update. Because commitment decisions are discrete, the problem is a mixed-integer program; for fleet sizes it is solved with a rolling relaxation and repair heuristic that keeps re-solve latency low enough for intraday adjustment."
+   ],
+   [
+    "p",
+    "Constraints come from lower layers. Each unit's ramp and capacity are the twin-certified envelope; maintenance windows come from the predictive-maintenance service loop; reserve requirements come from the interconnection agreement. The optimizer never invents headroom a unit does not have."
+   ],
+   [
+    "p",
+    "Dispatch optimization also feeds the breeder foundry indirectly: burner fuel is helium-3, whose supply is gated by breeder production and, later, lunar sourcing. The scheduler treats helium-3 availability as a hard input constraint, not an assumption, so a fleet plan is never more ambitious than the fuel supply supports."
+   ],
+   [
+    "p",
+    "The optimizer runs today against simulated demand and a twin-modeled fleet. As real units commission from ~2030 onward, the same formulation coordinates them with no structural change."
+   ]
+  ],
+  "related": [
+   [
+    "grid-integration-overview",
+    "Grid Integration Overview"
+   ],
+   [
+    "multi-unit-coordination",
+    "Multi-Unit Coordination"
+   ],
+   [
+    "helium-3-offtake",
+    "Helium-3 Offtake"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "firm-power-forecasting",
+  "title": "Firm-Power Availability Forecasting",
+  "cat": "l7-ecosystem",
+  "lede": "L7 forecasts how much firm power each unit can guarantee over the horizon by fusing twin health estimates, maintenance plans, and fuel availability.",
+  "body": [
+   [
+    "h2",
+    "Forecasting availability, not weather"
+   ],
+   [
+    "p",
+    "A fusion source is not intermittent like wind or solar, so forecasting is not about weather; it is about the machine. The question is: over the next hours to weeks, how much export can this unit firmly commit to, and with what confidence? L7 answers by combining the L3 twin's health and confidence estimates, the maintenance service loop's planned outages, and fuel (helium-3) availability into a probabilistic availability forecast."
+   ],
+   [
+    "h3",
+    "Inputs to the forecast"
+   ],
+   [
+    "ul",
+    [
+     "Twin confidence: per-module health and remaining-useful-life on magnets, DEC train, plug",
+     "Planned outages: scheduled maintenance windows from the service loop",
+     "Fuel supply: committed helium-3 inventory and inbound deliveries",
+     "Historical de-rate: distribution of unplanned trips from fleet learning"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# probabilistic availability for unit i over horizon h\n# returns firm level p_firm with confidence 1-alpha\ndef firm_forecast(i, h, alpha=0.05):\n    base   = twin_capacity(i, h)                 # nominal export\n    derate = rul_derate(i, h)                     # from RUL models\n    outage = planned_outage_mask(i, h)           # service loop\n    fuel   = min(1.0, he3_available(i,h)/he3_need(i,h))\n    samples = monte_carlo(base, derate, outage, fuel, trip_dist(i))\n    p_firm  = quantile(samples, alpha)            # conservative commit level\n    return p_firm, confidence(samples)"
+    ]
+   ],
+   [
+    "p",
+    "The forecast is deliberately conservative: the firm level is a low quantile of the sampled availability distribution, so committing to it is safe even when several risks land together. The expected level is reported separately, but only the firm level is offered to the grid as a guarantee."
+   ],
+   [
+    "p",
+    "Forecast errors feed back. When actual availability diverges from forecast, the residual updates the trip distribution and de-rate models via fleet learning, so the forecast sharpens as the fleet accumulates operating hours. Early units contribute the most learning; by NOAK and BOAK the availability distribution is tighter."
+   ],
+   [
+    "p",
+    "Today the forecast runs on twin-simulated operation and historical device analogues; it reports availability as design-stage until real units exist. This keeps the firm-power promise honest: no availability is claimed for hardware that has not been built and run."
+   ]
+  ],
+  "related": [
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ],
+   [
+    "predictive-maintenance-fleet",
+    "Fleet Predictive Maintenance"
+   ],
+   [
+    "fleet-learning-propagation",
+    "Fleet Learning and Model Propagation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "supply-chain-integration-overview",
+  "title": "Supply-Chain Integration: Inbound and Outbound",
+  "cat": "l7-ecosystem",
+  "lede": "L7 tracks what the plant consumes (deuterium, lithium, components) and what it produces (tritium, helium-3, 14 MeV neutrons) as one governed material flow.",
+  "body": [
+   [
+    "h2",
+    "The plant as a material transformer"
+   ],
+   [
+    "p",
+    "Both machines are, materially, transformers: they consume feedstock and components and produce isotopes, neutrons, and power. L7 supply-chain integration makes that flow legible end to end. Inbound, it tracks deuterium fuel, lithium for the breeder blanket, and the physical components a maintenance program needs. Outbound, it tracks the breeder's tritium (~4 kg/yr class), helium-3 (~1.97 kg/yr), and 14 MeV neutron services, plus the burner's firm power."
+   ],
+   [
+    "h3",
+    "Coupled inbound and outbound"
+   ],
+   [
+    "p",
+    "Inbound and outbound are not independent. Lithium supply and the chosen tritium breeding ratio lever (1.1, 1.5, or 1.8) together set how much tritium the breeder can produce and export versus retain. Helium-3 output from the breeder is, in turn, an inbound fuel for the burner fleet. L7 models this as a closed material graph so a change in one node propagates to the others rather than being tracked on separate spreadsheets."
+   ],
+   [
+    "matrix",
+    [
+     "Material flow (rows=inbound, cols=machine)",
+     [
+      [
+       "breeder",
+       "burner"
+      ],
+      [
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Rows above are deuterium, lithium, and helium-3; columns are the machines. Deuterium feeds both; lithium feeds only the breeder blanket; helium-3 produced by the breeder feeds the burner. This coupling is why the fleet is a foundry-plus-fleet, not two unrelated product lines."
+   ],
+   [
+    "p",
+    "Every material node carries quantity, assay, and provenance so that outbound isotope shipments inherit a full chain of custody and inbound feedstock is quality-gated before use. The same records serve the compliance layer's byproduct-material accountancy without a separate data path."
+   ],
+   [
+    "p",
+    "Supply-chain integration runs today against modeled flows and the design-stage production rates. As units commission, the same graph tracks real material, and the honest framing holds: no isotope is promised for delivery before the breeder produces it at FOAK ~2030."
+   ]
+  ],
+  "related": [
+   [
+    "deuterium-supply-tracking",
+    "Deuterium Supply Tracking"
+   ],
+   [
+    "lithium-blanket-supply",
+    "Lithium and the Breeding Blanket"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deuterium-supply-tracking",
+  "title": "Deuterium Supply Tracking",
+  "cat": "l7-ecosystem",
+  "lede": "Deuterium fuels both machines; L7 tracks its inventory, purity, and consumption rate against burn plans so fuel never becomes the limiting constraint.",
+  "body": [
+   [
+    "h2",
+    "The common feedstock"
+   ],
+   [
+    "p",
+    "Deuterium is the one feedstock both machines share. The breeder burns deuterium with tritium; the burner burns deuterium with helium-3. Deuterium is abundant and separable from water, so the supply question is not scarcity but continuity, purity, and matching delivery to burn rate. L7 tracks deuterium as an inventory with assay and a consumption model tied to each unit's operating plan."
+   ],
+   [
+    "h3",
+    "Purity gating and consumption modeling"
+   ],
+   [
+    "p",
+    "Fuel purity matters to plasma performance and to the diagnostics that infer plasma state; contaminants raise effective charge and radiation. Inbound deuterium is assayed and gated before it enters the fuel cycle, and the assay is recorded so a later performance anomaly can be correlated with a fuel batch. Consumption is modeled from the twin's burn state, not from nameplate, so inventory projections track what the machine actually uses."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# days-of-supply projection per unit\ninv    = deuterium_inventory(unit)          # kg, assayed\nrate   = twin_burn_rate(unit)                # kg/day from L3 state\ninbound = scheduled_deliveries(unit)         # (day, kg) list\ndef days_of_supply(horizon):\n    stock = inv\n    for d in range(horizon):\n        stock += delivered(inbound, d) - rate(d)\n        if stock < reserve_floor(unit):\n            return d                         # trigger reorder before floor\n    return horizon"
+    ]
+   ],
+   [
+    "p",
+    "L7 keeps a reserve floor per unit and triggers reorder before inventory approaches it, so a delivery slip never forces an unplanned burn stop. Because deuterium serves both machine types, a fleet view aggregates demand across the breeder foundry and burner fleet and smooths ordering."
+   ],
+   [
+    "p",
+    "Deuterium supply is the least constrained node in the material graph; the binding constraints are lithium-and-TBR for the breeder and helium-3 for the burner. L7 nonetheless tracks it with the same rigor so that fuel is never the reason a unit under-produces."
+   ],
+   [
+    "p",
+    "Consumption figures today are twin-simulated at design-stage burn rates. The tracking interface is exercised now so that, from construction start Q2 2027 through FOAK, real deliveries and burns flow through the same accounting."
+   ]
+  ],
+  "related": [
+   [
+    "supply-chain-integration-overview",
+    "Supply-Chain Integration Overview"
+   ],
+   [
+    "lithium-blanket-supply",
+    "Lithium and the Breeding Blanket"
+   ],
+   [
+    "helium-3-offtake",
+    "Helium-3 Offtake"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "lithium-blanket-supply",
+  "title": "Lithium Supply and the Breeding Blanket",
+  "cat": "l7-ecosystem",
+  "lede": "Lithium in the breeder blanket converts 14 MeV neutrons into tritium; L7 links lithium supply, the TBR design lever, and tritium output as one balance.",
+  "body": [
+   [
+    "h2",
+    "Lithium closes the tritium cycle"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) makes its own tritium by capturing 14 MeV neutrons in a lithium blanket. Neutron capture on lithium yields tritium and helium; the ratio of tritium bred to tritium burned is the tritium breeding ratio (TBR), treated across the design as a lever at 1.1, 1.5, or 1.8. Lithium supply, blanket design, and TBR are therefore one coupled question, and L7 tracks them together."
+   ],
+   [
+    "h3",
+    "Why the lever matters to supply"
+   ],
+   [
+    "p",
+    "A higher TBR lever breeds more tritium per unit of neutron flux, increasing exportable tritium toward the ~4 kg/yr class and building margin against inventory loss, but it demands more capable blanket coverage and lithium inventory. A lower lever eases the blanket but leaves less export margin. L7 does not choose the lever; it exposes the consequence of the chosen lever on lithium demand and tritium output so the choice is made with full material visibility."
+   ],
+   [
+    "truth",
+    [
+     [
+      "TBR lever",
+      "Tritium export margin",
+      "Lithium/blanket demand"
+     ],
+     [
+      [
+       "1.1",
+       "tight",
+       "lower"
+      ],
+      [
+       "1.5",
+       "moderate",
+       "moderate"
+      ],
+      [
+       "1.8",
+       "ample",
+       "higher"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Lithium isotopic composition (the lithium-6 fraction) strongly affects breeding, so inbound lithium is tracked by isotopic assay, not just mass. Enriched lithium-6 raises local breeding for a given blanket, changing how much total lithium a target TBR requires. L7 records the assay and feeds it to the neutronics module of the twin so predicted TBR matches the material actually loaded."
+   ],
+   [
+    "p",
+    "The tritium bred is not all exported: the breeder must retain enough to sustain its own D-T burn and cover radioactive decay and process losses. L7 accounts for retention, decay, and loss so that exported tritium is a true surplus, never a figure that ignores the plant's own consumption."
+   ],
+   [
+    "p",
+    "These balances run today on the twin's neutronics at design-stage flux. The lithium-to-tritium accounting interface is live now so that, at FOAK ~2030, real blanket performance is measured against the same model rather than a new one."
+   ]
+  ],
+  "related": [
+   [
+    "supply-chain-integration-overview",
+    "Supply-Chain Integration Overview"
+   ],
+   [
+    "tritium-offtake-logistics",
+    "Tritium Offtake and Logistics"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "tritium-offtake-logistics",
+  "title": "Tritium Offtake and Logistics",
+  "cat": "l7-ecosystem",
+  "lede": "Exportable tritium from the breeder is scheduled, assayed, and moved under full chain of custody, with self-consumption and decay accounted before anything ships.",
+  "body": [
+   [
+    "h2",
+    "From breeding surplus to shipment"
+   ],
+   [
+    "p",
+    "The breeder's headline product is tritium, near the ~4 kg/yr class depending on the TBR lever. Tritium is valuable, radioactive, and decays (half-life ~12.3 years), so offtake logistics must account for time as a first-class variable. L7 schedules offtake from the true surplus (bred minus self-consumption minus decay and process loss) and never from gross breeding."
+   ],
+   [
+    "h3",
+    "Assay, custody, and decay accounting"
+   ],
+   [
+    "p",
+    "Each shipment is assayed for quantity and purity, tagged with an isotopic composition, and entered into a chain of custody that follows it from the plant boundary onward. Because tritium decays continuously, the recorded quantity is stamped with its measurement time, and any quoted delivery quantity is decay-corrected to the delivery date so the customer receives what was promised, not a stale figure."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\nLAMBDA = math.log(2) / (12.32*365.25*24*3600)  # tritium decay const (1/s)\ndef decay_correct(q0, t0, t_deliver):\n    dt = (t_deliver - t0).total_seconds()\n    return q0 * math.exp(-LAMBDA * dt)          # quantity at delivery\n# exportable surplus = bred - self_burn - process_loss, then decay-corrected\nsurplus = bred - self_burn - process_loss\nquote   = decay_correct(surplus, now, delivery_date)"
+    ]
+   ],
+   [
+    "p",
+    "Offtake scheduling is coupled to plant operation. Tritium inventory must never fall below the level the breeder needs to sustain its own burn and startup reserve; L7 enforces this floor as a hard constraint on how much may be committed for export. A customer order that would breach the floor is queued to a later window, not fulfilled from operating inventory."
+   ],
+   [
+    "p",
+    "Every tritium movement is a byproduct-material event under the compliance framework. The offtake record and the byproduct-material accountancy record are the same underlying data, so a shipment cannot leave without a complete, auditable compliance entry attached."
+   ],
+   [
+    "p",
+    "No tritium is offered for delivery before the breeder produces it. Through construction (from Q2 2027) and up to FOAK first tritium ~2030, offtake logistics run against twin-projected surplus so the process, custody chain, and decay accounting are proven before the first real gram exists."
+   ]
+  ],
+  "related": [
+   [
+    "lithium-blanket-supply",
+    "Lithium and the Breeding Blanket"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ],
+   [
+    "byproduct-material-accountancy",
+    "Byproduct-Material Accountancy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "helium-3-offtake",
+  "title": "Helium-3 Offtake and the Fuel Loop",
+  "cat": "l7-ecosystem",
+  "lede": "Breeder helium-3 (~1.97 kg/yr) is both a saleable isotope and the burner's fuel; L7 arbitrates between external offtake and internal fleet demand.",
+  "body": [
+   [
+    "h2",
+    "A product that is also a fuel"
+   ],
+   [
+    "p",
+    "Helium-3 is unusual in the Kronos material graph: the breeder produces it (~1.97 kg/yr class), and the burner consumes it as fuel in its D-3He reaction. So every kilogram is contested between external customers (quantum computing cryogenics, medical and national-security uses, neutron detection) and internal burner-fleet demand. L7 arbitrates this explicitly rather than letting one side silently starve the other."
+   ],
+   [
+    "h3",
+    "Allocation as a constraint, not an afterthought"
+   ],
+   [
+    "p",
+    "Helium-3 is stable (it does not decay), so unlike tritium the accounting is simpler in time but harder in allocation: it is genuinely scarce. L7 treats helium-3 as a shared pool with a policy that reserves the burner fleet's committed fuel need first, then releases the remainder to external offtake. The fleet dispatch optimizer reads the same pool as a hard fuel constraint, so a firm-power commitment is never made against helium-3 that has been sold externally."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# helium-3 allocation policy\npool      = he3_inventory() + he3_breeder_inflow(horizon)\nfleet_need = sum(burner_fuel_need(u, horizon) for u in burner_fleet)\nreserved  = min(pool, fleet_need)             # burners first (firm power)\nexternal  = max(0.0, pool - reserved)         # remainder to offtake\nassert reserved + external <= pool            # never over-commit"
+    ]
+   ],
+   [
+    "p",
+    "The scarcity of helium-3 is the reason the burner fleet's growth is fuel-gated. Breeder output alone supports a limited burner population; larger fleets depend on additional sourcing beyond the breeder foundry. L7 encodes this honestly: burner fleet plans are constrained by projected helium-3 supply and are never scaled beyond it in the dispatch and fleet-strategy layers."
+   ],
+   [
+    "p",
+    "External helium-3 shipments carry the same assay, custody, and byproduct-material record as tritium, and are drawn only from the released remainder. A customer sees firm availability only for quantities outside the reserved fleet pool."
+   ],
+   [
+    "p",
+    "Production and allocation run today on twin-projected breeder output at design stage. No helium-3 is delivered, internally or externally, before the breeder produces it at FOAK ~2030; the allocation machinery is validated now against the modeled pool."
+   ]
+  ],
+  "related": [
+   [
+    "supply-chain-integration-overview",
+    "Supply-Chain Integration Overview"
+   ],
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ],
+   [
+    "energy-isotope-economy",
+    "The Energy and Isotope Economy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutron-services-scheduling",
+  "title": "14 MeV Neutron Services Scheduling",
+  "cat": "l7-ecosystem",
+  "lede": "The breeder's 14 MeV neutron flux is a schedulable service for irradiation, testing, and isotope production, arbitrated against tritium breeding.",
+  "body": [
+   [
+    "h2",
+    "Neutrons as a service"
+   ],
+   [
+    "p",
+    "Beyond isotopes, the breeder (Hyperion) offers its 14 MeV fusion neutrons directly as a service: materials irradiation and qualification, activation-based isotope production, and fusion-relevant testing that no fission or accelerator source reproduces at the same energy and spectrum. L7 exposes irradiation positions as schedulable resources with defined flux, spectrum, and dwell time."
+   ],
+   [
+    "h3",
+    "The trade against breeding"
+   ],
+   [
+    "p",
+    "Every neutron sent to a service position is a neutron not captured by the lithium blanket for tritium breeding. Neutron services therefore compete directly with the tritium breeding ratio target. L7 makes this trade explicit: a service booking specifies a fluence, and the scheduler checks that fulfilling it keeps the breeding balance at or above the active TBR lever (1.1/1.5/1.8). Bookings that would push TBR below target are deferred or scaled."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# accept a neutron-service booking only if breeding stays on target\ndef book(service_req):\n    fluence = service_req.fluence            # n/cm^2 over window\n    diverted = neutrons_for(fluence)\n    tbr_after = projected_tbr(diverted)      # twin neutronics\n    if tbr_after >= tbr_target():\n        return schedule(service_req)\n    else:\n        return defer(service_req, reason='TBR floor')"
+    ]
+   ],
+   [
+    "p",
+    "Service positions differ in flux and spectrum by location relative to the plasma, so L7 publishes a catalog of positions with their neutronic characteristics from the twin. A customer requests a spectrum and fluence; the scheduler assigns a position and window that meets it without disturbing breeding beyond the allowed lever."
+   ],
+   [
+    "p",
+    "Neutron activation of samples creates radioactive material, so every service creates byproduct-material records for the irradiated articles as they leave the plant, handled through the same compliance data path as isotope shipments."
+   ],
+   [
+    "p",
+    "Neutron services are a design-stage offering: the flux, spectrum, and position catalog are twin-computed. No irradiation is performed before the breeder operates at FOAK ~2030, and the scheduling and TBR-trade machinery is validated now against the neutronics twin."
+   ]
+  ],
+  "related": [
+   [
+    "lithium-blanket-supply",
+    "Lithium and the Breeding Blanket"
+   ],
+   [
+    "byproduct-material-accountancy",
+    "Byproduct-Material Accountancy"
+   ],
+   [
+    "energy-isotope-economy",
+    "The Energy and Isotope Economy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "isotope-inventory-accounting",
+  "title": "Isotope Inventory and Mass-Balance Accounting",
+  "cat": "l7-ecosystem",
+  "lede": "A continuous mass balance tracks every gram of tritium and helium-3 from creation through burn, decay, retention, and shipment, with no unexplained gaps.",
+  "body": [
+   [
+    "h2",
+    "Conservation as the accounting principle"
+   ],
+   [
+    "p",
+    "Isotope accounting rests on conservation: what is created must equal what is burned, retained, decayed, lost, and shipped. L7 maintains a continuous mass balance for tritium and helium-3 per unit and per fleet, reconciling measured inventory against modeled flows every accounting period. A discrepancy beyond measurement uncertainty is an anomaly, surfaced immediately rather than absorbed."
+   ],
+   [
+    "h3",
+    "The balance equation"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-period tritium balance (kg); must close within uncertainty\n#  bred      : from lithium blanket (twin neutronics)\n#  burned    : consumed sustaining D-T plasma\n#  decayed   : lambda * inventory * dt\n#  shipped   : offtake out\n#  loss      : process/permeation loss\nd_inventory = bred - burned - decayed - shipped - loss\nresidual = measured_inventory_change - d_inventory\nassert abs(residual) <= k * meas_uncertainty   # else flag anomaly"
+    ]
+   ],
+   [
+    "p",
+    "Tritium and helium-3 differ in the balance: tritium decays (into helium-3, which the balance credits back), while helium-3 is stable and its scarcity makes shipment-versus-retention the dominant term. The accounting captures the tritium-to-helium-3 decay coupling so a helium-3 inventory rise from decaying tritium is not mistaken for unexplained gain."
+   ],
+   [
+    "p",
+    "This mass balance is the same data the compliance layer needs for byproduct-material accountancy, so there is one authoritative ledger, not a separate operational count and regulatory count. Every entry carries provenance (measurement, method, uncertainty, timestamp) so the ledger is auditable end to end."
+   ],
+   [
+    "p",
+    "The residual term is a diagnostic in its own right. A persistent nonzero residual can indicate permeation loss, a diagnostic drift, or an unmodeled breeding effect; feeding it back to the twin's neutronics improves the production model. Mass balance thus serves both accounting and physics validation."
+   ],
+   [
+    "p",
+    "The ledger runs today on twin-modeled flows and reports design-stage quantities. At FOAK ~2030, measured inventory replaces modeled inventory in the same equation, and the residual becomes a real reconciliation between physics prediction and hardware."
+   ]
+  ],
+  "related": [
+   [
+    "tritium-offtake-logistics",
+    "Tritium Offtake and Logistics"
+   ],
+   [
+    "helium-3-offtake",
+    "Helium-3 Offtake"
+   ],
+   [
+    "byproduct-material-accountancy",
+    "Byproduct-Material Accountancy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "maintenance-service-loops-overview",
+  "title": "Maintenance and Service Loops",
+  "cat": "l7-ecosystem",
+  "lede": "L7 closes the loop from condition monitoring to spares, scheduling, and teleoperated intervention, so maintenance is planned from physics rather than the calendar.",
+  "body": [
+   [
+    "h2",
+    "Condition-driven, not calendar-driven"
+   ],
+   [
+    "p",
+    "A fusion plant's high-value, high-radiation components (superconducting magnets, first wall, divertor, direct-energy-conversion electrodes, the tandem-mirror plug coils) do not fail on a schedule; they degrade under load. L7 maintenance service loops turn continuous condition monitoring into maintenance decisions: what to service, when, with which spare, and whether a human or a teleoperated system does it."
+   ],
+   [
+    "h3",
+    "The loop"
+   ],
+   [
+    "ul",
+    [
+     "Sense: twin health estimates and remaining-useful-life per component",
+     "Decide: predictive maintenance ranks interventions by risk and lead time",
+     "Supply: spare-parts lifecycle ensures the right part is staged",
+     "Schedule: outage windows fed to the dispatch optimizer as hard constraints",
+     "Execute: human or teleoperated intervention in radiation-controlled zones",
+     "Learn: outcomes update RUL models across the fleet"
+    ]
+   ],
+   [
+    "p",
+    "Each stage is a distinct L7 service, but they form one loop: a rising strain trend on a REBCO magnet raises its remaining-useful-life risk, which triggers a spare check and an outage request, which the dispatch optimizer schedules against firm-power obligations, after which the intervention outcome updates the model that generated the trend. Nothing in the loop is manual bookkeeping."
+   ],
+   [
+    "p",
+    "Radiation makes hands-on maintenance slow and limited, so teleoperation and robotic intervention are first-class, not fallbacks. The breeder's activated first wall and blanket and the burner's neutron-exposed structures (5.44% neutron fraction still activates material) both require remote handling designed into the maintenance loop from the start."
+   ],
+   [
+    "p",
+    "The maintenance loop is validated today on twin-simulated degradation and historical component data. Real degradation replaces simulated degradation as units accumulate hours from FOAK onward; the loop structure is unchanged, and no availability is claimed for unbuilt hardware."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-maintenance-fleet",
+    "Fleet Predictive Maintenance"
+   ],
+   [
+    "spare-parts-lifecycle",
+    "Spare Parts and Component Lifecycle"
+   ],
+   [
+    "remote-maintenance-teleoperation",
+    "Remote Maintenance and Teleoperation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "predictive-maintenance-fleet",
+  "title": "Fleet-Wide Predictive Maintenance",
+  "cat": "l7-ecosystem",
+  "lede": "Remaining-useful-life models trained across the whole fleet predict component degradation earlier and more sharply than any single unit's history allows.",
+  "body": [
+   [
+    "h2",
+    "Remaining useful life, learned across units"
+   ],
+   [
+    "p",
+    "Predictive maintenance estimates each component's remaining useful life (RUL) from its condition signals. A single early unit has little failure history, so its RUL estimates are wide. L7 trains RUL models across every unit in the fleet, so a degradation signature seen on one breeder informs the RUL estimate for the same component on every other breeder, and likewise across the burner fleet."
+   ],
+   [
+    "h3",
+    "From signal to RUL"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# RUL as time until a health index crosses a limit\n# health index h(t) from twin (strain, resistance, thermal margin ...)\ndef rul(component, now):\n    traj = degradation_model(component).forecast(h_history(component))\n    for t in future_times(now):\n        if traj.mean(t) - k*traj.std(t) <= h_limit(component):\n            return t - now                 # conservative RUL (lower band)\n    return horizon                          # beyond horizon: no action\n# model is shared across fleet units of the same component type"
+    ]
+   ],
+   [
+    "p",
+    "The estimate is deliberately conservative: RUL is taken where the lower confidence band, not the mean, crosses the limit, so maintenance is triggered before the expected failure, with margin for model uncertainty. As the fleet accumulates hours the band tightens, allowing later, better-timed intervention without raising risk."
+   ],
+   [
+    "p",
+    "Component types map to specific physics. Breeder RUL focuses on REBCO magnet strain and quench-precursor trends toward the 16.84 T peak field, first-wall and divertor erosion under 14 MeV neutron and heat load, and blanket integrity. Burner RUL focuses on the 26.49 T plug and 17 T throat coils, direct-energy-conversion electrode wear, and neutron-activated structures."
+   ],
+   [
+    "p",
+    "RUL outputs feed the maintenance loop and the firm-power forecast: a shortening RUL both schedules an intervention and de-rates the availability a unit can firmly commit. This keeps grid commitments consistent with the true condition of the machines."
+   ],
+   [
+    "p",
+    "Fleet predictive maintenance runs today on twin-simulated degradation and analogous historical data. The models are structured for transfer so that, as real units come online from ~2030, early-unit experience immediately benefits later NOAK and BOAK units."
+   ]
+  ],
+  "related": [
+   [
+    "maintenance-service-loops-overview",
+    "Maintenance Service Loops"
+   ],
+   [
+    "firm-power-forecasting",
+    "Firm-Power Forecasting"
+   ],
+   [
+    "fleet-learning-propagation",
+    "Fleet Learning and Model Propagation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "spare-parts-lifecycle",
+  "title": "Spare Parts and Component Lifecycle",
+  "cat": "l7-ecosystem",
+  "lede": "L7 links predicted degradation to spare inventory and long-lead manufacturing so the right component is staged before a unit needs it, fleet-wide.",
+  "body": [
+   [
+    "h2",
+    "Matching parts to predicted need"
+   ],
+   [
+    "p",
+    "High-value fusion components have long manufacturing lead times: superconducting magnets, first-wall modules, and direct-energy-conversion electrode assemblies cannot be sourced overnight. L7 spare-parts lifecycle management reads the fleet's remaining-useful-life forecasts and ensures a spare exists, staged and qualified, before the predicted need date minus the lead time."
+   ],
+   [
+    "h3",
+    "Lead time is the binding variable"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# trigger procurement when predicted-need minus lead-time is near\nfor comp in fleet_components():\n    need_date = now + rul(comp, now)          # from predictive maintenance\n    order_by  = need_date - lead_time(comp.type) - safety_margin\n    if now >= order_by and not staged(comp.type):\n        procure(comp.type)                    # start long-lead manufacture\n    if staged(comp.type) and expiring(spare(comp.type)):\n        requalify(spare(comp.type))           # shelf-life / re-cert"
+    ]
+   ],
+   [
+    "p",
+    "Spares themselves have a lifecycle. A staged superconducting magnet or an electrode assembly may have shelf-life, storage, and re-qualification requirements; a spare that sits too long must be re-certified before use. L7 tracks each spare's own condition and certification, so a nominally available spare is never assumed serviceable without verification."
+   ],
+   [
+    "p",
+    "The fleet view is what makes this efficient. A pool of spares shared across a breeder foundry, or across a burner fleet of the same design, covers many units with fewer total spares than per-unit stocking, because failures are staggered. Fleet learning sharpens the failure distribution the pool is sized against, so the pool is neither over- nor under-provisioned as the fleet matures from FOAK to NOAK to BOAK."
+   ],
+   [
+    "p",
+    "Commonality across the design generations matters: components shared between FOAK, NOAK, and BOAK units draw from one pool, while generation-specific parts are tracked separately. L7 maintains the bill of materials per generation so a spare is matched to a compatible unit."
+   ],
+   [
+    "p",
+    "Lifecycle management runs today against twin-derived RUL and modeled lead times; no physical spares are consumed before units operate. The interface is proven now so procurement can begin ahead of first hardware need after construction start in Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-maintenance-fleet",
+    "Fleet Predictive Maintenance"
+   ],
+   [
+    "maintenance-service-loops-overview",
+    "Maintenance Service Loops"
+   ],
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "remote-maintenance-teleoperation",
+  "title": "Remote Maintenance and Teleoperation",
+  "cat": "l7-ecosystem",
+  "lede": "Activated components demand robotic and teleoperated intervention; L7 coordinates remote handling against the twin so humans stay out of high-radiation zones.",
+  "body": [
+   [
+    "h2",
+    "Why maintenance must be remote"
+   ],
+   [
+    "p",
+    "After operation, the breeder's first wall, blanket, and divertor are activated by 14 MeV neutron exposure, and even the burner, with its lower 5.44% neutron fraction, activates nearby structure. Hands-on maintenance in these zones is limited by dose. L7's remote-maintenance service coordinates robotic and teleoperated intervention so most in-vessel and near-vessel work is done without a human entering the radiation field."
+   ],
+   [
+    "h3",
+    "Twin-guided teleoperation"
+   ],
+   [
+    "p",
+    "Teleoperation is not blind driving; it is guided by the digital twin. The twin provides the remote operator or autonomous manipulator with a live geometric and radiation model of the workspace: where activated hotspots are, where residual field remains, and where the component under service sits relative to tooling. Motion plans are checked against this model before execution so a manipulator does not collide with structure or linger in a hotspot."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# validate a remote-handling motion plan against the twin\ndef safe_plan(plan, comp):\n    twin_scene = twin_geometry(comp.location)      # live geometry\n    dose_field = twin_dose_map(comp.location)       # residual activation\n    if collides(plan, twin_scene): return reject('collision')\n    if cumulative_dose(plan, dose_field) > tool_limit:\n        return reject('dose to tooling/electronics')\n    return approve(plan)                            # then execute teleop"
+    ]
+   ],
+   [
+    "p",
+    "Radiation degrades the robots too: manipulator electronics and sensors have dose limits, so L7 tracks cumulative dose to the tooling as a resource, scheduling tool rotation and shielding just as it schedules component maintenance. A remote-handling campaign is planned to keep both the components and the tools within limits."
+   ],
+   [
+    "p",
+    "Latency and autonomy are traded deliberately. Fine manipulation may be teleoperated with a human in the loop; repetitive or well-modeled tasks run autonomously with the twin as supervisor and the operator as approver. Either way, the same envelope-and-collision checks apply."
+   ],
+   [
+    "p",
+    "Remote maintenance is developed today against the twin's geometry and simulated activation fields. The procedures are validated in simulation and mockup before FOAK, so that when real activated hardware exists from ~2030, intervention is rehearsed rather than improvised."
+   ]
+  ],
+  "related": [
+   [
+    "maintenance-service-loops-overview",
+    "Maintenance Service Loops"
+   ],
+   [
+    "predictive-maintenance-fleet",
+    "Fleet Predictive Maintenance"
+   ],
+   [
+    "digital-twin-fleet-registry",
+    "Digital-Twin Fleet Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "regulatory-compliance-feeds",
+  "title": "Regulatory and Compliance Data Feeds",
+  "cat": "l7-ecosystem",
+  "lede": "L7 provides regulators a read-only, provenance-complete feed of the plant's byproduct-material activity, generated from the same ledger operations use.",
+  "body": [
+   [
+    "h2",
+    "One ledger, a regulator-facing view"
+   ],
+   [
+    "p",
+    "Kronos's fusion machines are regulated primarily as handlers of byproduct material (the radioactive isotopes they produce and the activated components they generate), rather than under a fission-reactor framework. L7 provides the regulator-facing data feed for this: a read-only, authenticated view of byproduct-material creation, inventory, movement, and disposition, derived from the same isotope mass-balance ledger operations rely on."
+   ],
+   [
+    "h3",
+    "Why one source matters"
+   ],
+   [
+    "p",
+    "There is no separate compliance database that could drift from operational reality. The compliance feed is a projection of the authoritative ledger, so a regulator sees exactly what the plant's own mass balance shows, with the same provenance (measurement method, uncertainty, timestamp) on every entry. This eliminates the reconciliation gap where operational and regulatory records disagree."
+   ],
+   [
+    "ul",
+    [
+     "Creation: tritium and helium-3 bred, activation products from irradiation",
+     "Inventory: current holdings by isotope, decay-corrected, with uncertainty",
+     "Movement: shipments out with full chain of custody",
+     "Disposition: activated components leaving as waste or for reprocessing",
+     "Provenance: method, uncertainty, and time on every quantity"
+    ]
+   ],
+   [
+    "p",
+    "The feed is read-only to external parties by construction: a regulator can read and audit but cannot write, matching the authorization model where the regulator role has broad read of compliance and no write scope anywhere. Reports can be generated on demand or on a schedule, and every report is itself logged so the act of reporting is auditable."
+   ],
+   [
+    "p",
+    "Because byproduct-material events are generated automatically from operations (a tritium shipment, a neutron-service irradiation, a component removal each emit their compliance record), nothing depends on someone remembering to file. The record is a side effect of doing the work, not a separate step."
+   ],
+   [
+    "p",
+    "The compliance feed runs today on twin-modeled activity for design and pre-application engagement. As units operate from FOAK ~2030, real measured quantities flow through the identical feed, so the regulatory interface is proven long before it carries live regulatory weight."
+   ]
+  ],
+  "related": [
+   [
+    "byproduct-material-accountancy",
+    "Byproduct-Material Accountancy"
+   ],
+   [
+    "audit-trail-provenance",
+    "Audit Trail and Provenance Export"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "byproduct-material-accountancy",
+  "title": "Byproduct-Material Accountancy",
+  "cat": "l7-ecosystem",
+  "lede": "Every gram of regulated isotope and every activated component is tracked as byproduct material from creation to disposition, closing to the operational mass balance.",
+  "body": [
+   [
+    "h2",
+    "Accountancy as continuous conservation"
+   ],
+   [
+    "p",
+    "Byproduct-material accountancy answers a regulator's core question: is every quantity of regulated radioactive material accounted for at all times? L7 answers it continuously by identifying accountancy with the operational isotope mass balance. Tritium and helium-3 inventories, and the activation inventory of components, are the same numbers the plant uses to run itself, so accountancy is never a reconstruction after the fact."
+   ],
+   [
+    "h3",
+    "Material balance areas"
+   ],
+   [
+    "p",
+    "The plant is divided into material balance areas (breeding blanket and tritium plant, isotope storage and shipping, neutron-service positions, activated-component handling). Each area maintains its own balance, and inter-area transfers are logged as paired debit and credit entries so material moving between areas is never lost or double-counted. The plant balance is the sum of area balances plus logged inflows and outflows."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# an inter-area transfer is a paired, conserving event\ndef transfer(material, qty, src_area, dst_area, t):\n    assert qty <= balance(src_area, material, t)\n    debit(src_area, material, qty, t)      # leaves source\n    credit(dst_area, material, qty, t)     # enters destination\n    log_custody(material, qty, src_area, dst_area, t)\n    # plant total conserved by construction\n"
+    ]
+   ],
+   [
+    "p",
+    "Decay is an accountancy term, not an error. Tritium decays to helium-3; the accountancy debits tritium and credits helium-3 by the decay law over each period, so a falling tritium inventory and rising helium-3 inventory are explained by physics, not flagged as loss. Only residuals beyond measurement uncertainty are treated as anomalies to investigate."
+   ],
+   [
+    "p",
+    "Activated components are byproduct material too. When a first-wall module or electrode is removed, its activation inventory (estimated by the twin's neutronics from its exposure history) enters the accountancy as it moves to waste handling or reprocessing, so the material does not disappear from the ledger when it leaves the vessel."
+   ],
+   [
+    "p",
+    "Accountancy runs today on twin-modeled creation, decay, and activation at design stage. The same balance areas and transfer logic carry real measured material from FOAK ~2030 onward, so the regulatory accounting method is validated before it is relied upon."
+   ]
+  ],
+  "related": [
+   [
+    "regulatory-compliance-feeds",
+    "Regulatory and Compliance Feeds"
+   ],
+   [
+    "isotope-inventory-accounting",
+    "Isotope Inventory Accounting"
+   ],
+   [
+    "audit-trail-provenance",
+    "Audit Trail and Provenance Export"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "audit-trail-provenance",
+  "title": "Audit Trail and Provenance Export",
+  "cat": "l7-ecosystem",
+  "lede": "An append-only, cryptographically chained log records every external action and every material quantity's origin, so any claim the plant makes is reconstructable.",
+  "body": [
+   [
+    "h2",
+    "Reconstructable by construction"
+   ],
+   [
+    "p",
+    "Trust in a plant's numbers depends on being able to trace any figure back to its origin. L7 maintains an append-only audit trail: every external API call, every dispatch command, every isotope movement, and every compliance report is logged with the caller identity, the deciding policy, the inputs, and the outcome. Entries are chained by hash so the log cannot be silently altered; tampering breaks the chain and is detectable."
+   ],
+   [
+    "h3",
+    "Provenance of a quantity"
+   ],
+   [
+    "p",
+    "Beyond actions, L7 records provenance for physical quantities. A shipped kilogram of tritium can be traced to the breeding periods that produced it, the measurements that assayed it, the decay corrections applied, and the custody events that moved it. Provenance is a directed graph from a delivered quantity back to its physical origin and every transformation between."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# hash-chained audit entry (tamper-evident)\ndef append(entry):\n    entry['prev']  = head_hash()\n    entry['ts']    = now()\n    entry['hash']  = sha256(canonical(entry))   # over content + prev\n    store(entry)                                 # append-only\n    set_head(entry['hash'])\n# verify: recompute each hash; any break => tamper between here and there\n"
+    ]
+   ],
+   [
+    "p",
+    "Provenance export is a first-class product of L7. A regulator, an auditor, or an isotope customer can request the provenance of a specific quantity or the audit trail over a period, and receive a self-verifying document: the hash chain lets the recipient confirm the export was not altered after leaving the plant. Because entries are signed at the gateway, authenticity is verifiable independently of Kronos."
+   ],
+   [
+    "p",
+    "The audit trail and provenance graph are what let every other L7 claim be honest. A firm-power forecast, an isotope assay, or a compliance figure is only as trustworthy as its traceability, and here each is anchored to an immutable record with stated uncertainty and method."
+   ],
+   [
+    "p",
+    "The trail runs today over twin-driven, design-stage operations, so the provenance and audit machinery is exercised end to end before real material and real regulatory scrutiny arrive at FOAK ~2030."
+   ]
+  ],
+  "related": [
+   [
+    "regulatory-compliance-feeds",
+    "Regulatory and Compliance Feeds"
+   ],
+   [
+    "byproduct-material-accountancy",
+    "Byproduct-Material Accountancy"
+   ],
+   [
+    "api-authn-authz",
+    "Authentication and Authorization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fleet-strategy-overview",
+  "title": "Fleet Strategy: A Foundry and a Fleet",
+  "cat": "l7-ecosystem",
+  "lede": "Kronos runs two populations: a foundry of breeders that make fuel and materials, and a fleet of burners that make power; L7 coordinates them as one system.",
+  "body": [
+   [
+    "h2",
+    "Two populations, one strategy"
+   ],
+   [
+    "p",
+    "The Kronos fleet is not one kind of machine replicated; it is two populations with a supply relationship. A foundry of breeders (Hyperion units) produces tritium, helium-3, and neutron services. A fleet of burners (Aegis and MetroVolt housings) consumes helium-3 to produce firm power. L7 fleet strategy coordinates both as one coupled system, because the burner fleet's fuel comes from the breeder foundry."
+   ],
+   [
+    "h3",
+    "FOAK to NOAK to BOAK"
+   ],
+   [
+    "p",
+    "The breeder foundry grows through learning generations: first-of-a-kind (FOAK), then next-of-a-kind (NOAK), then best-of-a-kind (BOAK). Each generation inherits the validated models, spares commonality, and operating experience of the prior one. L7 tracks which generation each unit belongs to, because generation determines its expected performance envelope, its spare-parts pool, and how much its data should update fleet models."
+   ],
+   [
+    "ul",
+    [
+     "Breeder foundry: FOAK first tritium ~2030, then NOAK, then BOAK units",
+     "Burner fleet: enrolled as helium-3 supply and validated performance allow",
+     "Coupling: burner growth gated by breeder (and later lunar) helium-3 supply",
+     "Shared: models, spares pools, and operating experience across each generation"
+    ]
+   ],
+   [
+    "p",
+    "The coupling is the strategy's honest constraint. A burner fleet cannot grow faster than helium-3 supply, and helium-3 supply is set by the breeder foundry's output and allocation. L7 encodes this so fleet plans are always fuel-consistent: the burner population in any plan is bounded by projected helium-3, never assumed."
+   ],
+   [
+    "p",
+    "Fleet strategy is expressed in physical and reliability terms only: how many units of each population, at which generation, with what firm-power and isotope-production capability, gated by fuel and validated performance. No economic figure enters the strategy at this layer."
+   ],
+   [
+    "p",
+    "Today the fleet is a plan and a set of design-stage units in the twin. Construction of the first breeder begins Q2 2027; FOAK first tritium is targeted ~2030; the burner fleet follows as fuel and validation permit. No net-gain or fleet-scale claim is made ahead of that hardware."
+   ]
+  ],
+  "related": [
+   [
+    "multi-unit-coordination",
+    "Multi-Unit Coordination"
+   ],
+   [
+    "fleet-learning-propagation",
+    "Fleet Learning and Model Propagation"
+   ],
+   [
+    "digital-twin-fleet-registry",
+    "Digital-Twin Fleet Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-unit-coordination",
+  "title": "Multi-Unit Coordination and Control",
+  "cat": "l7-ecosystem",
+  "lede": "A fleet controller coordinates many units through the same unified API each unit exposes, balancing power obligations, fuel, and maintenance across the population.",
+  "body": [
+   [
+    "h2",
+    "Coordinating through the single door"
+   ],
+   [
+    "p",
+    "Because every unit exposes the identical unified API, a fleet controller talks to twenty plants exactly as an operator talks to one. Multi-unit coordination is therefore a client of the same read and write planes, one tier up: it reads each unit's state and forecast and writes dispatch and maintenance intents back, while each unit's own L1 through L3 stack keeps final authority over its own safety."
+   ],
+   [
+    "h3",
+    "What the coordinator balances"
+   ],
+   [
+    "p",
+    "The coordinator solves an allocation across units: meet aggregate firm-power obligations from the burner fleet, meet isotope-production and offtake commitments from the breeder foundry, respect each unit's maintenance windows, and keep helium-3 flowing from foundry to fleet. These are the same constraints the dispatch optimizer and material graph express; the coordinator is where they meet at fleet scale."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# fleet coordinator loop (each unit is an API client target)\nwhile True:\n    states = {u: read_state(u) for u in fleet}         # unified read plane\n    plan   = coordinate(states, obligations, he3_pool,\n                        maintenance_windows)            # constrained solve\n    for u, intent in plan.items():\n        submit_dispatch(u, intent)                      # unified write plane\n    # each unit clamps to its own envelope; coordinator never overrides safety\n"
+    ]
+   ],
+   [
+    "p",
+    "The coordinator cannot override unit safety. Every intent it issues is clamped by the target unit's own envelope, so a fleet-level decision can never push an individual machine outside its certified operating point. This preserves the invariant that safety is local and authoritative even as strategy is global."
+   ],
+   [
+    "p",
+    "Coordination is resilient to unit loss. If a unit trips or enters an unplanned outage, its firm-power contribution drops out of the coordinator's next solve, which re-allocates across the remaining units within their headroom and reserve. The firm-power forecast's conservatism is what makes this re-allocation feasible without breaching obligations."
+   ],
+   [
+    "p",
+    "Multi-unit coordination runs today over a twin-modeled fleet. As real units commission from ~2030, they are enrolled into the same coordinator with no interface change, and coordination scope grows with the validated fleet rather than ahead of it."
+   ]
+  ],
+  "related": [
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ],
+   [
+    "dispatch-optimization",
+    "Dispatch Optimization"
+   ],
+   [
+    "fleet-learning-propagation",
+    "Fleet Learning and Model Propagation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fleet-learning-propagation",
+  "title": "Fleet Learning and Model Propagation",
+  "cat": "l7-ecosystem",
+  "lede": "Validated models learned on one unit propagate to others under governance, so each new breeder or burner starts from the accumulated experience of the fleet.",
+  "body": [
+   [
+    "h2",
+    "Learning once, applying everywhere"
+   ],
+   [
+    "p",
+    "The strategic value of a fleet is that experience compounds. A degradation signature, a control refinement, or a physics correction learned on one unit should benefit every comparable unit. L7 fleet learning collects validated model updates from units and propagates them under governance to the rest of the fleet, so a NOAK unit begins with everything FOAK learned and a BOAK unit with everything before it."
+   ],
+   [
+    "h3",
+    "Governed, not automatic"
+   ],
+   [
+    "p",
+    "Propagation is gated, not blind. A model update learned on one unit is validated against the receiving unit's own twin and history before it is allowed to influence control, because units differ by generation, configuration, and wear. Updates that improve a shared physics surrogate (equilibrium, neutronics, RUL) propagate readily; updates tied to a specific unit's idiosyncrasy do not."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# federated-style propagation with per-unit validation gate\ndef propagate(update, source_unit):\n    for u in fleet_peers(source_unit):\n        if not compatible(update, generation(u), config(u)):\n            continue\n        score = validate(update, twin(u), holdout_history(u))\n        if score >= accept_threshold and safety_review(update, u):\n            stage(update, u)          # into shadow, then L3 after soak\n# raw telemetry stays local; only validated model deltas move\n"
+    ]
+   ],
+   [
+    "p",
+    "Raw plant telemetry does not need to move between units for learning to happen; validated model deltas do. This federated pattern keeps each unit's high-rate data local (respecting security boundaries, especially for Aegis defense installations) while still letting the fleet share what was learned from it."
+   ],
+   [
+    "p",
+    "Propagation direction follows the generation gradient but is not one-way. Early FOAK experience seeds NOAK and BOAK; but a later, better-instrumented unit can also correct a model the earlier generation carried. L7 records the provenance of every propagated update so a fleet-wide model change is traceable to the unit and data that justified it."
+   ],
+   [
+    "p",
+    "Fleet learning runs today across twin-modeled units and historical device data, structured so that real early-unit experience from FOAK ~2030 immediately improves the models later units inherit. No performance is claimed for a later unit beyond what validated propagation supports."
+   ]
+  ],
+  "related": [
+   [
+    "multi-unit-coordination",
+    "Multi-Unit Coordination"
+   ],
+   [
+    "predictive-maintenance-fleet",
+    "Fleet Predictive Maintenance"
+   ],
+   [
+    "digital-twin-fleet-registry",
+    "Digital-Twin Fleet Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "digital-twin-fleet-registry",
+  "title": "The Digital-Twin Fleet Registry",
+  "cat": "l7-ecosystem",
+  "lede": "A registry holds a live twin for every unit, tagged by machine type, generation, and configuration, forming the addressable model of the whole fleet.",
+  "body": [
+   [
+    "h2",
+    "Every unit has a twin; the registry holds them all"
+   ],
+   [
+    "p",
+    "Each Kronos unit runs its own L3 KRONOS-CTRL twin. The fleet registry is the L7 index of all of them: a directory that maps each unit to its live twin, its machine type (breeder or burner), its housing (Aegis or MetroVolt for burners), its generation (FOAK/NOAK/BOAK), and its configuration (for the breeder, the active TBR lever; for the burner, the plug operating point). The registry is how fleet-level services address individual units."
+   ],
+   [
+    "h3",
+    "What the registry enables"
+   ],
+   [
+    "ul",
+    [
+     "Discovery: which units exist, of what type and generation",
+     "Addressing: route a coordination or learning action to the right twins",
+     "Compatibility: match spares, models, and updates to a unit's configuration",
+     "Rollup: aggregate state, forecast, and inventory across the fleet"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# registry entry per unit\n{\n  'unit': 'metrovolt-noak-03',\n  'type': 'burner', 'housing': 'MetroVolt',\n  'generation': 'NOAK',\n  'config': {'plug_field_T': 26.49, 'throat_field_T': 17.0,\n             'neutron_fraction': 0.0544},\n  'twin_endpoint': 'internal://twin/metrovolt-noak-03',\n  'status': 'design-stage',        # -> commissioned at build-out\n}\n"
+    ]
+   ],
+   [
+    "p",
+    "The registry is the join point for the other fleet services. Multi-unit coordination iterates the registry to read state and issue intents; fleet learning uses the type/generation/config tags to decide where a model update is compatible; spare-parts lifecycle uses configuration to match a spare to a unit. Without the registry, fleet-scale services would have no consistent way to know what they are acting on."
+   ],
+   [
+    "p",
+    "Configuration is part of identity because it changes physics. A breeder at TBR lever 1.8 breeds and consumes differently from one at 1.1; a burner at its nominal 26.49 T plug behaves differently from one de-rated for maintenance. The registry carries the active configuration so fleet decisions use each unit's true operating point, not a nominal one."
+   ],
+   [
+    "p",
+    "The registry today lists design-stage units backed by their twins in simulation. As units are built from Q2 2027 and commissioned from FOAK ~2030, their status advances in the registry, and fleet services extend to them automatically because they are already addressable."
+   ]
+  ],
+  "related": [
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ],
+   [
+    "multi-unit-coordination",
+    "Multi-Unit Coordination"
+   ],
+   [
+    "fleet-learning-propagation",
+    "Fleet Learning and Model Propagation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "energy-isotope-economy",
+  "title": "Participating in the Energy and Isotope Economy",
+  "cat": "l7-ecosystem",
+  "lede": "L7 is where the plant meets the wider world: exporting firm power and scarce isotopes, importing feedstock and parts, as a node in two coupled economies.",
+  "body": [
+   [
+    "h2",
+    "A node in two economies"
+   ],
+   [
+    "p",
+    "The Kronos fleet participates in two distinct economies at once. Through the burner fleet it is a node in the energy economy, exporting firm, dispatchable power. Through the breeder foundry it is a node in the isotope economy, supplying tritium, helium-3, and 14 MeV neutron services that no other source produces at the same scale and spectrum. L7 is the boundary through which the plant plays both roles."
+   ],
+   [
+    "h3",
+    "What the plant offers each"
+   ],
+   [
+    "p",
+    "To the energy economy the burner offers firmness: a source that is not weather-dependent and can provide inertia-like frequency support, valuable precisely where reliability matters (Aegis for fixed defense installations, MetroVolt for data centers). To the isotope economy the breeder offers materials that are otherwise scarce: tritium for the fusion field itself, helium-3 for cryogenics and quantum and detection uses, and fusion-spectrum neutrons for materials qualification and isotope production."
+   ],
+   [
+    "p",
+    "The two roles are coupled through helium-3. Helium-3 is both an isotope-economy product and the burner's fuel, so the plant's participation in the energy economy is gated by its own and external isotope supply. L7 makes this dependency explicit rather than treating power and isotopes as independent markets: a firm-power commitment implicitly consumes helium-3 that could otherwise be sold, and the allocation policy governs the split."
+   ],
+   [
+    "p",
+    "Participation is described here strictly in physical and functional terms: quantities, spectra, firmness, and availability, with no price, cost, or market-value figure. The plant's economic role is real, but this layer documents the material and energy flows that underlie it, not their commercial value."
+   ],
+   [
+    "p",
+    "The strategic arc is honest about sequencing. The breeder foundry comes first (FOAK first tritium ~2030), seeding the isotope economy and the helium-3 that lets the burner fleet grow into the energy economy afterward, with larger burner fleets ultimately dependent on helium-3 supply beyond the breeders. No participation is claimed ahead of the hardware that enables it."
+   ]
+  ],
+  "related": [
+   [
+    "helium-3-offtake",
+    "Helium-3 Offtake"
+   ],
+   [
+    "neutron-services-scheduling",
+    "14 MeV Neutron Services"
+   ],
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l7-external-standards-interop",
+  "title": "External Standards and Interoperability",
+  "cat": "l7-ecosystem",
+  "lede": "L7 speaks the standards the outside world already uses for grid dispatch, isotope custody, and regulatory reporting, so the plant integrates without bespoke adapters.",
+  "body": [
+   [
+    "h2",
+    "Meet the world where it is"
+   ],
+   [
+    "p",
+    "A plant that invents its own protocols for everything forces every counterparty to build a custom adapter. L7 instead maps its contract onto the standards each external domain already uses: established grid dispatch and telemetry conventions for interconnection, recognized chain-of-custody and assay formats for isotope shipments, and the reporting schemas regulators expect for byproduct material. The internal model stays clean; the boundary translates."
+   ],
+   [
+    "h3",
+    "Translation, not leakage"
+   ],
+   [
+    "p",
+    "Standards interoperability is a translation at the gateway, not an exposure of internals. An incoming grid dispatch message in a standard format is validated and mapped to the internal dispatch command schema; an internal isotope shipment record is projected into the standard custody format on export. The internal contract can evolve independently of any external standard's version, and vice versa, because neither is bound directly to the other."
+   ],
+   [
+    "ul",
+    [
+     "Grid: standard dispatch, telemetry, and frequency-response conventions",
+     "Isotopes: recognized assay, packaging, and chain-of-custody formats",
+     "Regulatory: byproduct-material reporting schemas and provenance export",
+     "Fleet: the Kronos unified API as the internal interoperability standard"
+    ]
+   ],
+   [
+    "p",
+    "Within the fleet, the unified API is itself the interoperability standard: because every unit exposes it identically, breeders and burners of every generation interoperate with fleet services without per-unit adapters. The single internal standard is what makes the foundry-plus-fleet coordination tractable as the population grows."
+   ],
+   [
+    "p",
+    "Interoperability is also a security boundary. Speaking standard formats does not mean trusting them: every standard-format message crossing the gateway passes the same authentication, authorization, schema validation, and envelope clamping as any other request. A well-formed standard message is still rejected if it exceeds authority or physical limits."
+   ],
+   [
+    "p",
+    "Standards mappings are exercised today against simulated counterparties and the twin. As real grid operators, isotope customers, and regulators engage from FOAK ~2030, the mappings carry live traffic with the internal contract unchanged, which is the point of translating at the boundary rather than throughout the stack."
+   ]
+  ],
+  "related": [
+   [
+    "unified-api-gateway",
+    "Unified API Gateway"
+   ],
+   [
+    "api-contract-and-schemas",
+    "API Contract and Schemas"
+   ],
+   [
+    "regulatory-compliance-feeds",
+    "Regulatory and Compliance Feeds"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cybersecurity-zero-trust",
+  "title": "Cybersecurity and the Zero-Trust Boundary",
+  "cat": "l7-ecosystem",
+  "lede": "L7 hardens the single external door with zero-trust identity, strict segmentation, and physics-limited authority, so no external compromise can drive the machine unsafely.",
+  "body": [
+   [
+    "h2",
+    "The boundary is the defense"
+   ],
+   [
+    "p",
+    "Concentrating all external interaction at one gateway is a security decision as much as an architectural one: there is a single boundary to harden, monitor, and reason about. L7 treats every external actor as untrusted (zero trust): identity is proven cryptographically per request, authority is scoped narrowly, and no network position confers privilege. A compromised credential is contained by its scope, and even full scope cannot exceed plant physics."
+   ],
+   [
+    "h3",
+    "Defense in depth"
+   ],
+   [
+    "ul",
+    [
+     "Identity: mutual TLS, short-lived certificates, hardware-backed keys for writes",
+     "Segmentation: external gateway isolated from L1 control and L3 twin networks",
+     "Least privilege: narrow role scopes, deny by default, per-resource policy",
+     "Physics limit: every write clamped to the certified safe operating envelope",
+     "Observability: tamper-evident audit trail on every action"
+    ]
+   ],
+   [
+    "p",
+    "The most important control is the last resort: the safe operating envelope. Even an attacker with a valid dispatch credential cannot command the burner above its certified extraction limit or perturb the breeder outside its equilibrium bounds, because L1 clamps every intent against the twin-certified envelope and the autonomous hardware failsafe remains authoritative. Cybersecurity here is backed by physics, not only by software."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# every external write passes identity, scope, THEN physics\ndef guarded_write(req):\n    ident = mtls_identity(req)               # zero-trust identity\n    require_scope(ident, req.action)         # least privilege\n    cmd = validate(req)                       # schema, idempotency\n    cmd = clamp(cmd, certified_envelope(req.unit))  # physics limit\n    return L1.stage(cmd)                      # failsafe still authoritative\n"
+    ]
+   ],
+   [
+    "p",
+    "Segmentation keeps the blast radius small. The external gateway sits in its own network zone with no direct route to the high-rate control networks; it communicates with internal services through narrow, validated interfaces. A breach of the gateway does not grant a path to actuation, only to the same scoped requests any authenticated client could make, all still envelope-clamped."
+   ],
+   [
+    "p",
+    "Aegis defense installations raise the bar further: their telemetry and models stay local under fleet learning's federated pattern, and their external exposure is minimized. Security posture is validated today against the twin and adversarial testing, so the boundary is proven before it protects operating hardware from FOAK ~2030."
+   ]
+  ],
+  "related": [
+   [
+    "api-authn-authz",
+    "Authentication and Authorization"
+   ],
+   [
+    "unified-api-gateway",
+    "Unified API Gateway"
+   ],
+   [
+    "audit-trail-provenance",
+    "Audit Trail and Provenance Export"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l7-roadmap-honest-framing",
+  "title": "L7 Roadmap and Honest Framing",
+  "cat": "l7-ecosystem",
+  "lede": "Layer 7 is built and validated now against the digital twin and simulated counterparties; it carries live external traffic only as real units commission from FOAK ~2030.",
+  "body": [
+   [
+    "h2",
+    "What exists now, and what does not"
+   ],
+   [
+    "p",
+    "L7's interfaces, policies, and coordination logic are built and exercised today, but against the digital twin and simulated external counterparties, not operating hardware. This is the honest framing that governs every page in this layer: the two machines are design and simulation studies. Breeder construction begins Q2 2027; first-of-a-kind first tritium is targeted ~2030; no hardware net-gain is claimed before FOAK."
+   ],
+   [
+    "h3",
+    "Why build the ecosystem layer before the hardware"
+   ],
+   [
+    "p",
+    "Building L7 against the twin first means the external boundary (API contract, dispatch path, isotope offtake, compliance feeds, fleet coordination) is validated end to end before it carries consequence. When a real unit commissions, it is enrolled into interfaces that already work, rather than interfaces invented under operational pressure. The registry status field simply advances a unit from design-stage to commissioned; nothing else in the boundary changes."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Milestone",
+      "Machines",
+      "L7 status"
+     ],
+     [
+      [
+       "Now",
+       "design & simulation",
+       "validated vs twin"
+      ],
+      [
+       "Q2 2027",
+       "breeder construction",
+       "interfaces frozen"
+      ],
+      [
+       "~2030 FOAK",
+       "first tritium",
+       "live isotope + compliance"
+      ],
+      [
+       "NOAK / BOAK",
+       "foundry + fleet grows",
+       "full fleet coordination"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The sequencing is fuel-honest. The breeder foundry leads, producing tritium, helium-3, and neutron services from FOAK; the burner fleet follows as helium-3 supply and validated performance allow, with larger fleets ultimately gated by helium-3 sourcing beyond the breeders. L7 encodes these dependencies so no plan outruns the physics or the fuel."
+   ],
+   [
+    "p",
+    "Every quantitative claim in this layer is bounded by the frozen canon: breeder Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T, delta -0.30, ~4 kg/yr tritium and ~1.97 kg/yr helium-3 classes, TBR lever 1.1/1.5/1.8; burner 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. No figure outside this canon is invented, and no economic figure appears anywhere in the layer."
+   ],
+   [
+    "p",
+    "The roadmap is therefore not a promise of operation but a plan for readiness: an ecosystem boundary proven in simulation, frozen at construction, and switched to live traffic unit by unit as the foundry and fleet become real."
+   ]
+  ],
+  "related": [
+   [
+    "l7-architecture-overview",
+    "L7 Architecture Overview"
+   ],
+   [
+    "fleet-strategy-overview",
+    "Fleet Strategy Overview"
+   ],
+   [
+    "energy-isotope-economy",
+    "The Energy and Isotope Economy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

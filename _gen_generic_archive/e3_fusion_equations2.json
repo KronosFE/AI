@@ -1,0 +1,924 @@
+[
+{
+  "slug": "diffusion-equation",
+  "title": "The Diffusion Equation",
+  "cat": "fusion-equations",
+  "lede": "A parabolic partial differential equation describing how a conserved quantity spreads down its own gradient over time.",
+  "body": [
+    ["h2", "Statement"],
+    ["p", "The diffusion equation is <b>dn/dt = div(D grad n)</b>, where n is a density (particles, heat, or magnetic flux recast as a field), D is the diffusion coefficient, div is divergence and grad is gradient. For constant scalar D in one dimension it reduces to dn/dt = D d2n/dx2. It is the canonical parabolic PDE: local in time, smoothing in space, and irreversible."],
+    ["p", "The equation follows from a conservation law dn/dt + div(flux) = 0 combined with a Fick's-law closure flux = -D grad n. The minus sign encodes that transport carries material from high to low concentration. In plasmas D is rarely a simple constant; it depends on collisionality, magnetic geometry, and turbulence, and it is generally a tensor with very different values along and across the magnetic field."],
+    ["h2", "Solutions and Scaling"],
+    ["p", "A point source in free space spreads as a Gaussian whose width grows as sqrt(D t), so the characteristic diffusion time across a system of size L is tau ~ L^2 / D. This quadratic scaling is why confinement improves faster than linearly as a device grows, and why cross-field diffusion coefficients are the central figure of merit for magnetic confinement. Eigenmode solutions on a bounded domain decay as exp(-t/tau_k) with the shortest wavelengths dying first."],
+    ["h2", "Anisotropy in Magnetized Plasma"],
+    ["p", "In a strong magnetic field, parallel transport is fast (free streaming limited only by collisions) while perpendicular transport is suppressed because particles are tied to field lines within a gyroradius. Classical theory gives cross-field D of order the gyroradius squared times the collision frequency. Observed transport is usually much larger, driven by turbulence rather than collisions, which motivates the anomalous-transport and gyrokinetic programs."],
+    ["p", "For the Hyperion breeder concept, the relevant quantity is the effective cross-field thermal and particle diffusivity that sets energy confinement; because the diffusion time scales as L^2/D, the spherical-tokamak geometry and its transport assumptions are load-bearing inputs to any confinement estimate. All such estimates here are simulation-stage, not measured hardware."]
+  ],
+  "related": [["heat-conduction-equation", "Heat Conduction Equation"], ["magnetic-diffusion-equation", "Magnetic Diffusion"], ["braginskii-transport-coefficients", "Braginskii Transport"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "heat-conduction-equation",
+  "title": "The Heat Conduction Equation",
+  "cat": "fusion-equations",
+  "lede": "The energy-transport counterpart of diffusion, governing how temperature relaxes through conductive heat flux.",
+  "body": [
+    ["h2", "Form"],
+    ["p", "The heat equation is <b>(3/2) n dT/dt = div(chi n grad T) + S</b> in the simplest fluid closure, where T is temperature, chi is the thermal diffusivity, n is density and S is a heat source or sink. With constant coefficients and no source it is dT/dt = alpha d2T/dx2, alpha = chi being the thermal diffusivity. It is mathematically identical to the particle diffusion equation, but its coefficient chi carries distinct physics."],
+    ["p", "The (3/2) factor comes from the internal energy density (3/2)nT of an ideal gas. The conductive flux q = -chi n grad T is the Fourier-law closure. Sources include ohmic heating, auxiliary heating, and fusion alpha heating; sinks include radiation and transport losses across the boundary."],
+    ["h2", "Parallel and Perpendicular Conduction"],
+    ["p", "In magnetized plasma the electron parallel thermal conductivity is enormous and scales strongly with temperature (Spitzer conduction goes as T^{5/2}). Perpendicular conduction is far smaller. This anisotropy flattens temperature along field lines almost instantly while allowing steep gradients across them, which is precisely what sustains a confined temperature profile. Ion and electron channels have separate chi and exchange energy through collisions."],
+    ["h2", "Confinement Consequences"],
+    ["p", "Energy confinement time tau_E is essentially the stored thermal energy divided by the loss power, and it is governed by the effective cross-field chi. Because chi is usually turbulence-dominated rather than collisional, predicting it requires gyrokinetic simulation. A stiff temperature profile, where chi rises sharply above a critical gradient, is a widely observed nonlinear feature."],
+    ["p", "For a D-T device the alpha-particle heating term feeds the same equation that governs losses, so ignition analysis is fundamentally a balance in the heat-conduction equation between fusion self-heating and conductive plus radiative losses. Kronos design points such as the Hyperion Q of 3.424 are outputs of transport-balance modeling, not measured results."]
+  ],
+  "related": [["diffusion-equation", "Diffusion Equation"], ["spitzer-resistivity", "Spitzer Resistivity"], ["braginskii-transport-coefficients", "Braginskii Transport"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mhd-waves",
+  "title": "Magnetohydrodynamic Waves",
+  "cat": "fusion-equations",
+  "lede": "The three fundamental linear wave modes of a magnetized conducting fluid: shear Alfven, fast, and slow magnetosonic.",
+  "body": [
+    ["h2", "Origin"],
+    ["p", "Linearizing the ideal MHD equations about a uniform state with density rho, pressure p, and magnetic field B yields a dispersion relation supporting three wave families. The restoring forces are magnetic tension along field lines, magnetic pressure, and thermal pressure. Two characteristic speeds appear: the Alfven speed v_A = B / sqrt(mu0 rho) and the sound speed c_s = sqrt(gamma p / rho)."],
+    ["h2", "The Three Modes"],
+    ["ul", ["Shear Alfven wave: propagates along B with speed v_A cos(theta); driven purely by magnetic tension; incompressible; bends field lines without changing their strength.", "Fast magnetosonic wave: magnetic and thermal pressure add; propagates in all directions with the largest phase speed; compresses both plasma and field together.", "Slow magnetosonic wave: magnetic and thermal pressure oppose; slowest of the three; compresses plasma while field partly rarefies."]],
+    ["h2", "Dispersion Relation"],
+    ["p", "For propagation at angle theta to B, the shear Alfven branch has phase speed v_A cos(theta). The fast and slow branches solve v^4 - (v_A^2 + c_s^2) v^2 + v_A^2 c_s^2 cos^2(theta) = 0. When v_A greatly exceeds c_s, as in a hot low-density fusion plasma, the fast wave approaches v_A and the slow wave approaches the sound branch confined near the field direction."],
+    ["h2", "Relevance to Confinement Devices"],
+    ["p", "MHD waves set the fastest timescales in a confined plasma and underlie many diagnostics and heating schemes. Global Alfven eigenmodes can be driven unstable by energetic particles, which matters for any burning plasma where fusion-born ions or beam ions provide a fast population. In the Hyperion spherical-tokamak concept the strong on-axis field and low aspect ratio place the Alfven speed high, so Alfven-eigenmode analysis is part of the design-stage stability assessment; no such behavior has been measured on hardware, which does not yet exist."]
+  ],
+  "related": [["alfven-wave-equations", "Alfven Wave Equations"], ["magnetosonic-waves", "Magnetosonic Waves"], ["ideal-mhd-equations", "Ideal MHD Equations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dispersion-relations",
+  "title": "Dispersion Relations",
+  "cat": "fusion-equations",
+  "lede": "The relation between frequency and wavevector that classifies every linear wave and instability in a plasma.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A dispersion relation D(omega, k) = 0 links the angular frequency omega to the wavevector k for plane-wave perturbations of the form exp(i(k.x - omega t)). It is obtained by linearizing the governing equations, assuming this wave form, and demanding a nontrivial solution, which sets the determinant of the resulting linear system to zero. Every branch omega(k) is a distinct wave or instability."],
+    ["h2", "Reading the Roots"],
+    ["p", "Solving for complex omega = omega_r + i gamma reveals behavior directly. A real omega is an undamped propagating wave; gamma > 0 is exponential growth (instability); gamma < 0 is damping. The phase velocity is omega_r / k and the group velocity, which carries energy, is d omega_r / dk. Whether a mode is convective or absolute (growing at a fixed point) requires the Briggs-Bers analysis of the complex k-plane."],
+    ["h2", "Examples Across Regimes"],
+    ["ul", ["Cold plasma waves: the dielectric-tensor determinant gives the O and X modes, R and L modes, and hybrid resonances.", "MHD: the fluid dispersion relation gives the Alfven and magnetosonic branches.", "Kinetic: the Vlasov dispersion relation contains the plasma dispersion function and yields Landau damping and kinetic instabilities."]],
+    ["h2", "Practical Use"],
+    ["p", "Dispersion relations are the workhorse of heating and current-drive design: to deposit radio-frequency power one launches a wave that propagates to a resonance layer where D has a singularity or the group velocity vanishes. They also set instability thresholds by locating where gamma crosses zero."],
+    ["p", "For Kronos concepts, dispersion analysis governs both the D-T Hyperion breeder (Alfven-eigenmode and drift-wave stability) and the D-3He tandem-mirror burner, where wave accessibility to the high-field 26.49 T plug region constrains any radio-frequency scheme. These are modeling inputs; the machines are design and simulation studies."]
+  ],
+  "related": [["plasma-dielectric-tensor", "Plasma Dielectric Tensor"], ["landau-damping", "Landau Damping"], ["mhd-waves", "MHD Waves"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "two-fluid-plasma-equations",
+  "title": "The Two-Fluid Plasma Equations",
+  "cat": "fusion-equations",
+  "lede": "Separate momentum and continuity equations for electrons and ions, coupled through electromagnetic fields and collisions.",
+  "body": [
+    ["h2", "Why Two Fluids"],
+    ["p", "Single-fluid MHD treats the plasma as one conducting medium and cannot describe effects that differ between species: charge separation, Hall physics, electron inertia, and separate temperatures. The two-fluid model keeps electrons and ions as distinct fluids, each with its own density n_s, velocity u_s, and pressure p_s, s labeling species."],
+    ["h2", "The Equations"],
+    ["p", "For each species the continuity equation is dn_s/dt + div(n_s u_s) = 0. The momentum equation is m_s n_s (du_s/dt) = q_s n_s (E + u_s x B) - grad p_s + R_s, where R_s is the collisional friction between species and du_s/dt is the convective derivative. An energy or pressure equation closes each fluid, and Maxwell's equations supply E and B self-consistently with the charge and current densities summed over species."],
+    ["h2", "Generalized Ohm's Law"],
+    ["p", "Subtracting the electron and ion momentum equations, weighted by charge, yields a generalized Ohm's law. It contains the resistive term eta J, the Hall term J x B / (n e), the electron-pressure term grad p_e / (n e), and the electron-inertia term. Dropping all but the resistive term recovers resistive MHD; keeping the Hall term gives Hall MHD."],
+    ["h2", "Scales and Application"],
+    ["p", "Two-fluid effects matter at the ion skin depth and ion gyroradius scales, and they are essential for fast magnetic reconnection, drift waves, and edge physics. Electron and ion temperatures decouple whenever collisional equilibration is slower than heating or transport, which is common in hot fusion plasmas. In the Hyperion breeder and in the D-3He burner alike, separate ion and electron energy channels are standard modeling practice; these are simulation results, not measurements."]
+  ],
+  "related": [["hall-mhd", "Hall MHD"], ["ideal-mhd-equations", "Ideal MHD Equations"], ["drift-wave-instability", "Drift Waves"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "hall-mhd",
+  "title": "Hall Magnetohydrodynamics",
+  "cat": "fusion-equations",
+  "lede": "An extension of MHD that retains the Hall term, decoupling ion and electron motion at small scales.",
+  "body": [
+    ["h2", "The Hall Term"],
+    ["p", "Hall MHD keeps the J x B / (n e) contribution in the generalized Ohm's law, so E + u x B = eta J + (J x B)/(n e) - grad p_e/(n e). Physically the magnetic field is frozen to the electron fluid rather than to the bulk plasma. Because electrons and ions move differently below the ion inertial scale, the field lines slip relative to the ions."],
+    ["h2", "Characteristic Scale"],
+    ["p", "The Hall term becomes important at the ion inertial length d_i = c / omega_pi, where omega_pi is the ion plasma frequency, and at the ion gyroradius. Above these scales the plasma behaves as a single MHD fluid; below them, dispersion and species decoupling appear. This introduces the whistler and kinetic-Alfven branches into the wave spectrum, which are dispersive unlike the non-dispersive ideal-MHD Alfven wave."],
+    ["h2", "Fast Reconnection"],
+    ["p", "The most cited role of Hall physics is enabling fast magnetic reconnection. In pure resistive MHD, reconnection through a long thin current sheet is far too slow to match observations. The Hall term opens the reconnection geometry into an X-point with an out-of-plane quadrupolar magnetic field, decoupling the electron diffusion region and raising the reconnection rate to a nearly geometry-independent value."],
+    ["h2", "Relevance"],
+    ["p", "Reconnection matters for sawtooth crashes, tearing modes, and disruptions in tokamaks, all of which redistribute energy and can damage confinement. For a spherical tokamak such as the Hyperion breeder concept, low aspect ratio and strong shaping change reconnection geometry, so Hall-resolving extended-MHD simulation is part of the design-stage stability toolset. Any conclusions are computational; no Kronos device has been built."]
+  ],
+  "related": [["two-fluid-plasma-equations", "Two-Fluid Equations"], ["tearing-mode-equation", "Tearing Mode"], ["magnetosonic-waves", "Magnetosonic Waves"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "plasma-dielectric-tensor",
+  "title": "The Plasma Dielectric Tensor",
+  "cat": "fusion-equations",
+  "lede": "The frequency-dependent response tensor that encodes how a magnetized plasma polarizes and conducts under an oscillating field.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "For a wave of frequency omega the plasma responds to the electric field through a current, and this response is packaged into a dielectric tensor epsilon(omega, k). The wave equation becomes a matrix eigenvalue problem: n x (n x E) + epsilon . E = 0, where n = c k / omega is the refractive index vector. Nontrivial solutions require the determinant to vanish, which is the dispersion relation."],
+    ["h2", "Cold-Plasma Form"],
+    ["p", "In the cold-plasma limit with B along z, the tensor has the Stix form with diagonal element S, off-diagonal +/- iD in the plane perpendicular to B, and P along B. These are built from the plasma frequencies and cyclotron frequencies of each species: P = 1 - sum omega_ps^2/omega^2, and S and D contain omega/(omega +/- omega_cs). Setting the determinant to zero yields the ordinary, extraordinary, R, and L wave branches."],
+    ["matrix", ["Cold-plasma dielectric tensor (Stix)", [["S", "-iD", "0"], ["iD", "S", "0"], ["0", "0", "P"]]]],
+    ["h2", "Hot-Plasma Extension"],
+    ["p", "When thermal motion matters, the tensor is obtained from the linearized Vlasov equation and involves the plasma dispersion function and sums over cyclotron harmonics. This warm form captures cyclotron absorption, Landau damping, and finite-Larmor-radius corrections, which are essential for radio-frequency heating and current-drive calculations."],
+    ["h2", "Application"],
+    ["p", "Resonances (where a diagonal element diverges) and cutoffs (where the refractive index goes to zero) determine where launched waves are absorbed or reflected. Designing electron-cyclotron or ion-cyclotron heating for the Hyperion breeder, or evaluating wave accessibility to the high-field burner plug, both rest on the dielectric tensor. These are design computations for machines not yet built."]
+  ],
+  "related": [["dispersion-relations", "Dispersion Relations"], ["landau-damping", "Landau Damping"], ["gyrofrequency-and-plasma-frequency", "Gyro and Plasma Frequency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "landau-damping",
+  "title": "Landau Damping",
+  "cat": "fusion-equations",
+  "lede": "Collisionless damping of a plasma wave by resonant particles moving near the wave's phase velocity.",
+  "body": [
+    ["h2", "The Effect"],
+    ["p", "Landau damping is the transfer of wave energy to particles even in the complete absence of collisions. It arises from the resonant interaction between a wave of phase velocity omega/k and particles whose velocity is close to that value. Slightly slower particles are accelerated by the wave and gain energy; slightly faster particles are decelerated and lose energy. Because a Maxwellian has more slow than fast particles near any point on its falling tail, the net effect drains the wave."],
+    ["h2", "Mathematics"],
+    ["p", "The damping rate is proportional to the slope of the velocity distribution f evaluated at the phase velocity: gamma is proportional to df/dv at v = omega/k. For a Maxwellian this slope is negative, giving damping. The rate emerges from correctly handling the pole in the Vlasov dispersion integral using the Landau contour, which Landau introduced by treating the initial-value problem rather than assuming a steady oscillation."],
+    ["h2", "Inverse Landau Damping"],
+    ["p", "If the distribution has a positive slope at the resonant velocity, for example a beam or a bump-on-tail, energy flows from particles to the wave and the mode grows. This inverse Landau damping is the free-energy source for many velocity-space instabilities, and it is the kinetic origin of the bump-on-tail and two-stream instabilities."],
+    ["h2", "Relevance"],
+    ["p", "Landau damping sets the absorption of radio-frequency and lower-hybrid waves used for heating and current drive, and it damps or destabilizes Alfven eigenmodes through resonance with fast ions. In a burning plasma the fusion-born fast-ion population can drive modes through inverse Landau damping, a stability concern for any D-T device including the Hyperion breeder concept. All such analysis is simulation-stage."]
+  ],
+  "related": [["vlasov-poisson-system", "Vlasov-Poisson System"], ["quasilinear-theory", "Quasilinear Theory"], ["dispersion-relations", "Dispersion Relations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "vlasov-poisson-system",
+  "title": "The Vlasov-Poisson System",
+  "cat": "fusion-equations",
+  "lede": "The kinetic description of a collisionless plasma: a phase-space transport equation coupled to its self-consistent electric field.",
+  "body": [
+    ["h2", "The Vlasov Equation"],
+    ["p", "The Vlasov equation states that the phase-space distribution function f(x, v, t) is conserved along particle trajectories in the collisionless limit: df/dt + v . grad_x f + (q/m)(E + v x B) . grad_v f = 0. It is a continuity equation in the six-dimensional phase space of position and velocity. Every kinetic effect that fluid models miss, including Landau damping and velocity-space instabilities, lives here."],
+    ["h2", "Coupling to Poisson"],
+    ["p", "In the electrostatic limit the field is not external but generated by the charges themselves. Poisson's equation div E = rho/epsilon0, with the charge density rho = sum_s q_s integral f_s dv, closes the system. The result is nonlinear because f determines the field and the field advects f. Adding Ampere and Faraday laws generalizes this to the Vlasov-Maxwell system for electromagnetic problems."],
+    ["h2", "Conserved Structure"],
+    ["p", "The system conserves total energy, momentum, and every Casimir invariant of the form integral G(f) dx dv, including phase-space volume (Liouville's theorem). This rich structure makes numerical schemes hard: particle-in-cell methods sample trajectories statistically, while continuum Vlasov solvers grid the full phase space and must resolve filamentation, the progressive fine-scale folding of f in velocity that underlies Landau damping."],
+    ["h2", "Use in Fusion"],
+    ["p", "The gyrokinetic equation used for turbulent-transport prediction is a reduced Vlasov equation averaged over the fast gyromotion. Fast-ion physics, radio-frequency heating, and micro-instability growth are all Vlasov-level problems. For Kronos concepts, gyrokinetic transport modeling of the Hyperion breeder plasma is downstream of the Vlasov framework; results are computational, not measured."]
+  ],
+  "related": [["landau-damping", "Landau Damping"], ["gyrokinetic-equation", "Gyrokinetic Equation"], ["quasilinear-theory", "Quasilinear Theory"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "quasilinear-theory",
+  "title": "Quasilinear Theory",
+  "cat": "fusion-equations",
+  "lede": "A weak-turbulence framework in which a spectrum of small waves slowly reshapes the background distribution through velocity-space diffusion.",
+  "body": [
+    ["h2", "The Idea"],
+    ["p", "Quasilinear theory bridges linear stability and full nonlinear turbulence. It assumes many small-amplitude waves whose phases are random, so their combined effect on the slowly evolving average distribution f0 is a diffusion in velocity space rather than a coherent force. The waves feed on gradients in f0; f0 in turn flattens under their influence until the drive is exhausted."],
+    ["h2", "The Diffusion Equation"],
+    ["p", "The averaged distribution obeys df0/dt = d/dv (D_QL df0/dv), where the quasilinear diffusion coefficient D_QL is built from the wave spectrum and is peaked at resonant velocities. For a bump-on-tail instability, this equation predicts the plateau formation: the positive-slope region of f0 flattens to marginal stability, shutting off the growth that created the waves."],
+    ["h2", "Assumptions and Limits"],
+    ["p", "The theory requires that the wave amplitudes stay small, that the spectrum be broad enough for resonance overlap to randomize particle orbits, and that the background evolve slowly compared with the wave period. It breaks down for coherent large-amplitude waves, where particle trapping and mode-coupling dominate; there strong-turbulence or direct simulation is needed."],
+    ["h2", "Applications"],
+    ["p", "Quasilinear models are the practical backbone of radio-frequency heating and current-drive codes, which compute how injected waves diffuse resonant ions or electrons in velocity space. Reduced quasilinear transport models are also widely used to predict turbulent heat and particle fluxes at a fraction of the cost of nonlinear gyrokinetics. In Kronos design work, quasilinear estimates inform heating and transport scenarios for the Hyperion breeder; these are modeling outputs for a machine still in simulation."]
+  ],
+  "related": [["landau-damping", "Landau Damping"], ["vlasov-poisson-system", "Vlasov-Poisson System"], ["gyrokinetic-equation", "Gyrokinetic Equation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "tearing-mode-equation",
+  "title": "The Tearing-Mode Equation",
+  "cat": "fusion-equations",
+  "lede": "The resistive-MHD instability that reconnects field lines at rational surfaces, forming magnetic islands.",
+  "body": [
+    ["h2", "Physical Picture"],
+    ["p", "A tearing mode is a resistive instability that occurs at a rational surface where the safety factor q equals m/n for integers m and n. There the perturbation is resonant, the field line closes on itself after m toroidal and n poloidal transits, and finite resistivity lets field lines break and reconnect. The reconnected topology forms magnetic islands that short-circuit the pressure gradient across their width, degrading confinement."],
+    ["h2", "The Delta-Prime Criterion"],
+    ["p", "Outside the thin resistive layer the plasma behaves ideally and the perturbed flux psi satisfies Newcomb's equation. The stability is set by the tearing stability index Delta', the jump in the logarithmic derivative of psi across the rational surface: Delta' = [psi'/psi] evaluated just outside minus just inside. If Delta' > 0 the mode grows; if Delta' < 0 it is stable. The classical linear growth rate scales with resistivity as eta^{3/5}, intermediate between ideal and fully resistive rates."],
+    ["h2", "Neoclassical Tearing Modes"],
+    ["p", "In high-pressure plasmas a more dangerous variant appears. Once a seed island forms, the loss of bootstrap current inside the flattened-pressure island removes a helical current that would otherwise be stabilizing, so the island grows even when the classical Delta' is negative. This neoclassical tearing mode is a leading limit on achievable beta in tokamaks and is typically controlled by driving replacement current at the island with localized electron-cyclotron waves."],
+    ["h2", "Relevance"],
+    ["p", "Because neoclassical tearing modes cap sustainable pressure and can trigger disruptions, they are a central stability concern for any tokamak breeder. For the Hyperion spherical-tokamak concept, the design-stage analysis assesses rational-surface placement and localized current-drive options; these are simulation studies, not results from operating hardware."]
+  ],
+  "related": [["newcomb-equation", "Newcomb Equation"], ["sauter-bootstrap-formula", "Bootstrap Formula"], ["resistive-mhd-equations", "Resistive MHD"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "neoclassical-transport-overview",
+  "title": "Neoclassical Transport",
+  "cat": "fusion-equations",
+  "lede": "Collisional transport enhanced by toroidal geometry and trapped-particle orbits, the irreducible floor beneath turbulent losses.",
+  "body": [
+    ["h2", "Beyond Classical Transport"],
+    ["p", "Classical transport treats cross-field diffusion as a random walk of gyro-orbits scattered by collisions, giving a diffusivity of order the gyroradius squared times the collision frequency. In a torus this underestimates transport because the magnetic field is non-uniform: it is stronger on the inboard side. Particles drift off flux surfaces and some become trapped in the low-field region, and their wide banana-shaped orbits set the true collisional step size."],
+    ["h2", "Three Collisionality Regimes"],
+    ["ul", ["Banana regime (low collisionality): trapped particles complete banana orbits between collisions; the diffusivity is enhanced over classical by roughly the aspect ratio to the power 3/2.", "Plateau regime (intermediate): the diffusivity is independent of collision frequency.", "Pfirsch-Schluter regime (high collisionality): particles are collisional over a connection length; transport is enhanced over classical by a factor of order q^2."]],
+    ["h2", "The Bootstrap Current"],
+    ["p", "The most consequential neoclassical effect is not a loss but a current. Trapped-particle pressure gradients drive a self-generated toroidal current, the bootstrap current, proportional to the pressure gradient and to the fraction of trapped particles. It offsets externally driven current and is essential to steady-state tokamak scenarios, but its loss inside a magnetic island drives neoclassical tearing modes."],
+    ["h2", "Relevance"],
+    ["p", "Neoclassical theory sets the minimum achievable transport and predicts the bootstrap current that shapes the current profile. Spherical tokamaks like the Hyperion concept have large trapped fractions because of their low aspect ratio, raising both neoclassical transport and the bootstrap fraction. These are design-stage calculations for a machine in simulation."]
+  ],
+  "related": [["pfirsch-schluter-transport", "Pfirsch-Schluter"], ["banana-regime-transport", "Banana Regime"], ["sauter-bootstrap-formula", "Bootstrap Formula"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pfirsch-schluter-transport",
+  "title": "Pfirsch-Schluter Transport",
+  "cat": "fusion-equations",
+  "lede": "The high-collisionality neoclassical regime, where parallel return currents enhance cross-field diffusion by roughly q squared.",
+  "body": [
+    ["h2", "The Mechanism"],
+    ["p", "In a torus the vertical grad-B and curvature drifts push ions and electrons in opposite directions, tending to separate charge and create a vertical electric field. In the collisional Pfirsch-Schluter regime this is neutralized by parallel currents that flow along field lines from the top to the bottom of each flux surface, the so-called Pfirsch-Schluter currents. These currents close the drift-driven circuit but themselves cause additional radial transport."],
+    ["h2", "The q-Squared Enhancement"],
+    ["p", "The parallel return path has length of order q R, the connection length, where q is the safety factor and R the major radius. Following the diffusive step over this longer path enhances the cross-field particle and heat diffusivity over the classical value by a factor of order 1 + 2 q^2. Because q is typically above one across most of the plasma, Pfirsch-Schluter transport is several times classical."],
+    ["h2", "When It Applies"],
+    ["p", "This regime holds when the collision frequency is high enough that a particle cannot complete a poloidal circuit or a trapped banana orbit before being scattered, quantified by the normalized collisionality nu-star being much greater than one. This is typical of the cool, dense plasma edge, whereas the hot core usually sits in the low-collisionality banana regime."],
+    ["h2", "Relevance"],
+    ["p", "Pfirsch-Schluter transport dominates the collisional edge and contributes to the neoclassical floor on confinement. The q-squared scaling ties transport directly to the current profile. For the Hyperion breeder concept, edge collisionality and safety-factor profile are design inputs to neoclassical estimates; the machine remains a simulation study."]
+  ],
+  "related": [["neoclassical-transport-overview", "Neoclassical Transport"], ["banana-regime-transport", "Banana Regime"], ["collisionality-nu-star", "Collisionality nu-star"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "banana-regime-transport",
+  "title": "The Banana Regime",
+  "cat": "fusion-equations",
+  "lede": "Low-collisionality neoclassical transport set by the wide banana orbits of trapped particles.",
+  "body": [
+    ["h2", "Trapped Particles"],
+    ["p", "In a torus the magnetic field is stronger on the inboard side, so a particle with small enough parallel velocity is reflected by the magnetic mirror before reaching the high-field side. Such particles are trapped and bounce back and forth in the low-field outboard region. Projected onto a poloidal cross-section, their guiding-center orbit traces a crescent, the banana orbit, whose radial width greatly exceeds the gyroradius."],
+    ["h2", "Transport Scaling"],
+    ["p", "The trapped fraction is of order the square root of the inverse aspect ratio, sqrt(epsilon) with epsilon = r/R. Random-walking with a step equal to the banana width and an effective de-trapping collision frequency (larger than the bare collision frequency because a small pitch-angle scatter suffices to de-trap) gives a diffusivity enhanced over classical by roughly epsilon^{-3/2} q^2. This is the largest neoclassical enhancement of the three regimes."],
+    ["h2", "Validity"],
+    ["p", "The banana regime requires that a trapped particle complete many bounce orbits before being de-trapped, meaning the normalized collisionality nu-star is much less than one. This holds in the hot, low-density core of a good-confinement plasma. As collisionality rises toward the edge the plasma passes through the plateau regime and then into the Pfirsch-Schluter regime."],
+    ["h2", "Relevance"],
+    ["p", "Banana-orbit physics also determines the trapped fraction that drives the bootstrap current, so the banana regime is doubly important: it sets both the core neoclassical transport floor and the self-generated current. Spherical tokamaks such as the Hyperion concept have large inverse aspect ratio and thus large trapped fractions, amplifying both effects in design-stage modeling."]
+  ],
+  "related": [["neoclassical-transport-overview", "Neoclassical Transport"], ["collisionality-nu-star", "Collisionality nu-star"], ["sauter-bootstrap-formula", "Bootstrap Formula"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "collisionality-nu-star",
+  "title": "Collisionality nu-star",
+  "cat": "fusion-equations",
+  "lede": "The dimensionless ratio that places a plasma in the banana, plateau, or Pfirsch-Schluter transport regime.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The normalized collisionality nu-star is the ratio of the effective collision frequency for de-trapping to the bounce frequency of a trapped particle. Equivalently it is the number of times a trapped particle would be scattered out of its banana orbit during one bounce period. A common form is nu-star = nu_eff q R / (epsilon^{3/2} v_th), where nu_eff is the pitch-angle scattering rate, q the safety factor, R the major radius, epsilon the inverse aspect ratio, and v_th the thermal speed."],
+    ["h2", "Regime Boundaries"],
+    ["ul", ["nu-star much less than one: banana regime; trapped orbits survive many bounces; diffusivity peaks.", "nu-star of order one to epsilon^{-3/2}: plateau regime; diffusivity independent of collision frequency.", "nu-star much greater than one: Pfirsch-Schluter regime; collisional parallel return currents dominate."]],
+    ["h2", "Why It Is Dimensionless"],
+    ["p", "Collisionality is one of the small set of dimensionless parameters (with normalized gyroradius rho-star and beta) that determine plasma behavior independent of absolute size. Two devices with matched nu-star, rho-star, beta, and shape are expected to exhibit the same normalized transport. This underpins the dimensionless-scaling approach to projecting confinement from present experiments to future devices."],
+    ["h2", "Relevance"],
+    ["p", "Because the bootstrap current fraction and neoclassical transport both depend on nu-star, it is a primary design parameter. A reactor-grade core is deep in the banana regime, giving high bootstrap fraction but also the largest neoclassical transport enhancement. For the Hyperion breeder concept, the nu-star profile is an input to neoclassical and confinement modeling; the device is a simulation study, not built hardware."]
+  ],
+  "related": [["banana-regime-transport", "Banana Regime"], ["pfirsch-schluter-transport", "Pfirsch-Schluter"], ["normalized-gyroradius-rho-star", "Normalized Gyroradius"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnetic-shear",
+  "title": "Magnetic Shear",
+  "cat": "fusion-equations",
+  "lede": "The radial variation of the field-line pitch, a primary stabilizing ingredient for pressure-driven and current-driven instabilities.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "Magnetic shear measures how the pitch angle of the helical field lines changes across flux surfaces. It is usually written as the dimensionless quantity s = (r/q)(dq/dr), where q is the safety factor, r the minor radius coordinate, and dq/dr its gradient. Positive shear means q rises outward, so field lines on neighboring surfaces wind at progressively different rates."],
+    ["h2", "Stabilizing Role"],
+    ["p", "Shear stabilizes many instabilities by decorrelating perturbations on adjacent flux surfaces. A mode resonant at one rational surface cannot easily extend to neighbors whose field-line pitch differs, so the mode is localized and its drive limited. Shear enters the Mercier and ballooning stability criteria directly, where sufficient shear can hold off pressure-driven interchange and ballooning modes."],
+    ["h2", "Reversed and Weak Shear"],
+    ["p", "Where dq/dr is negative the shear is reversed, producing a q profile with an off-axis minimum. Reversed-shear configurations can form internal transport barriers because the reversal region suppresses turbulence, and they modify the location of rational surfaces. Weak or zero shear near the axis, by contrast, can leave low-order rational surfaces vulnerable to tearing and infernal modes."],
+    ["h2", "Relevance"],
+    ["p", "Tailoring the shear profile is a central lever in advanced tokamak scenarios, balancing turbulence suppression, MHD stability, and bootstrap-current alignment. For the Hyperion spherical-tokamak breeder concept, the safety-factor and shear profiles are design variables in the stability and transport analysis. Such profiles are computational targets for a machine still in simulation, with construction of first hardware targeted no earlier than 2027."]
+  ],
+  "related": [["safety-factor-formula", "Safety Factor"], ["mercier-criterion", "Mercier Criterion"], ["ballooning-mode-equation", "Ballooning Modes"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "poloidal-beta",
+  "title": "Poloidal Beta",
+  "cat": "fusion-equations",
+  "lede": "The ratio of plasma pressure to the pressure of the poloidal magnetic field, a key equilibrium and stability parameter.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "Poloidal beta is beta_p = 2 mu0 <p> / B_p^2, where <p> is the volume-averaged plasma pressure and B_p is the poloidal magnetic field, typically evaluated at the plasma edge. Whereas the total beta compares pressure to the full magnetic pressure, poloidal beta isolates the poloidal field produced by the plasma current, making it the natural measure for current-driven equilibrium effects."],
+    ["h2", "Equilibrium Meaning"],
+    ["p", "Poloidal beta controls the outward Shafranov shift of the plasma column and the diamagnetic or paramagnetic character of the equilibrium. At high beta_p the plasma pressure pushes flux surfaces outward and the plasma becomes diamagnetic. Poloidal beta also sets the bootstrap current fraction, which scales roughly with beta_p times the square root of the inverse aspect ratio, so high beta_p is desirable for self-driven steady-state operation."],
+    ["h2", "Relation to Other Parameters"],
+    ["p", "Total beta, toroidal beta, and poloidal beta are related through the field decomposition B^2 = B_t^2 + B_p^2. Because B_p is much smaller than the toroidal field in a conventional tokamak, poloidal beta can substantially exceed unity even when total beta is a few percent. In spherical tokamaks the poloidal field is relatively larger, changing this balance."],
+    ["h2", "Relevance"],
+    ["p", "High poloidal beta is a signature of advanced, bootstrap-dominated scenarios but is also associated with equilibrium limits and increased Shafranov shift. For the Hyperion breeder concept, beta_p is an output of the equilibrium reconstruction and a driver of bootstrap-current estimates in design-stage modeling; the machine is not yet built."]
+  ],
+  "related": [["plasma-beta-parameter", "Plasma Beta"], ["shafranov-shift", "Shafranov Shift"], ["sauter-bootstrap-formula", "Bootstrap Formula"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "shafranov-shift",
+  "title": "The Shafranov Shift",
+  "cat": "fusion-equations",
+  "lede": "The outward displacement of inner flux surfaces relative to the plasma boundary, driven by pressure and internal current.",
+  "body": [
+    ["h2", "What It Is"],
+    ["p", "In a toroidal equilibrium the nested flux surfaces are not concentric: the centers of inner surfaces are shifted outward, toward the low-field side, relative to the plasma boundary. This displacement is the Shafranov shift. It is a direct consequence of force balance in a torus, where the plasma pressure and the hoop force of the toroidal current must be held by the poloidal field, and the result is an outboard compression of flux surfaces."],
+    ["h2", "Scaling"],
+    ["p", "The shift grows with poloidal beta and with the internal inductance of the current profile, and it scales with the inverse aspect ratio. Roughly, the normalized shift of the magnetic axis relative to the geometric center increases in proportion to beta_p + l_i/2 times epsilon, where l_i measures current-profile peaking. High-pressure, peaked-current plasmas therefore show large shifts."],
+    ["h2", "Consequences"],
+    ["p", "The outward shift compresses flux surfaces on the outboard side, steepening pressure gradients there and increasing the local magnetic well, which can be stabilizing for ballooning modes at high beta, the origin of second-stability access. It also moves the magnetic axis, changing the effective aspect ratio seen by the core plasma and affecting heating and current-drive deposition."],
+    ["h2", "Relevance"],
+    ["p", "The Shafranov shift is computed self-consistently by any Grad-Shafranov equilibrium solver and must be accounted for in coil design and plasma positioning. Spherical tokamaks such as the Hyperion breeder concept, with low aspect ratio and high beta, exhibit pronounced shifts, which feed into stability and transport analysis at the design stage."]
+  ],
+  "related": [["grad-shafranov-solver", "Grad-Shafranov Solver"], ["poloidal-beta", "Poloidal Beta"], ["ballooning-mode-equation", "Ballooning Modes"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mhd-energy-principle",
+  "title": "The MHD Energy Principle",
+  "cat": "fusion-equations",
+  "lede": "A variational test for ideal stability: an equilibrium is stable if every allowed displacement raises the potential energy.",
+  "body": [
+    ["h2", "The Principle"],
+    ["p", "The ideal MHD energy principle recasts stability as an energy minimization. For a plasma displacement field xi, the change in potential energy is a quadratic functional delta-W(xi). The equilibrium is stable if and only if delta-W is positive for every physically allowed xi that satisfies the boundary conditions. If any displacement makes delta-W negative, that mode can grow and the plasma is unstable."],
+    ["h2", "Terms in delta-W"],
+    ["p", "The energy functional decomposes into stabilizing and destabilizing pieces. Stabilizing terms include the energy of bending field lines (line tension, the shear Alfven term) and of compressing the plasma and field. Destabilizing terms include the work done by the pressure gradient against unfavorable field-line curvature (the interchange and ballooning drive) and the parallel-current drive of kink modes. Stability is the competition between these."],
+    ["h2", "Why It Is Powerful"],
+    ["p", "Because it is variational, one does not need to solve the full eigenvalue problem to prove stability: exhibiting that delta-W is positive for all trial displacements suffices, and finding a single test displacement with negative delta-W proves instability. Minimizing delta-W over restricted classes of displacements yields the classic stability criteria, including Mercier for localized interchange and the ballooning equation for high-n modes."],
+    ["h2", "Relevance"],
+    ["p", "The energy principle is the theoretical foundation for ideal-MHD stability codes that qualify any tokamak equilibrium against kink, ballooning, and interchange modes, and it defines the ideal beta limit. For the Hyperion breeder concept, delta-W-based analysis is part of the design-stage stability assessment of candidate equilibria; the machine remains a simulation study."]
+  ],
+  "related": [["mercier-criterion", "Mercier Criterion"], ["ballooning-mode-equation", "Ballooning Modes"], ["ideal-mhd-equations", "Ideal MHD Equations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mercier-criterion",
+  "title": "The Mercier Criterion",
+  "cat": "fusion-equations",
+  "lede": "The local stability condition against pressure-driven interchange modes on a single flux surface.",
+  "body": [
+    ["h2", "What It Tests"],
+    ["p", "The Mercier criterion is a necessary condition for ideal MHD stability against localized interchange (flute-like) modes. Derived by minimizing the energy functional for displacements localized near a rational surface, it balances the destabilizing pressure gradient against the stabilizing effects of magnetic shear and the average magnetic well or hill of the flux surface. Violating Mercier guarantees instability; satisfying it does not by itself guarantee stability against non-local modes."],
+    ["h2", "The Ingredients"],
+    ["p", "The criterion combines three quantities on a flux surface: the magnetic shear s, the pressure gradient dp/dr, and the field-line curvature averaged over the surface. Strong shear is stabilizing, a favorable average curvature (a magnetic well, where the field weakens toward the plasma) is stabilizing, and the pressure gradient is destabilizing where curvature is unfavorable. The combination must satisfy an inequality often written as D_I < 1/4."],
+    ["h2", "Relation to Suydam"],
+    ["p", "The Mercier criterion is the toroidal generalization of the Suydam criterion for a cylindrical screw pinch. Both express the same physics: sufficient magnetic shear must overcome the pressure-gradient drive of interchange modes. In a torus the average curvature and the toroidal geometry enter through flux-surface averages that the cylindrical version omits."],
+    ["h2", "Relevance"],
+    ["p", "Mercier stability is checked at every flux surface as a baseline in equilibrium and stability workflows, flagging surfaces where the pressure gradient is locally too steep for the available shear and well. For the Hyperion breeder concept, Mercier evaluation across the profile is a routine design-stage screen preceding fuller ballooning and kink analysis; the device is a simulation study."]
+  ],
+  "related": [["suydam-criterion", "Suydam Criterion"], ["mhd-energy-principle", "MHD Energy Principle"], ["magnetic-shear", "Magnetic Shear"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sauter-bootstrap-formula",
+  "title": "The Sauter Bootstrap Formula",
+  "cat": "fusion-equations",
+  "lede": "A widely used analytic fit for the neoclassical bootstrap current valid across collisionality regimes.",
+  "body": [
+    ["h2", "The Bootstrap Current"],
+    ["p", "The bootstrap current is a toroidal current generated by the plasma itself, driven by the radial pressure gradient acting through trapped-particle physics. It flows without external drive and can supply a large fraction of the total current in high-pressure, low-collisionality plasmas, which is why it is central to steady-state tokamak scenarios. Predicting it accurately across the profile requires a formula valid in all collisionality regimes."],
+    ["h2", "The Sauter Fit"],
+    ["p", "The Sauter formula expresses the bootstrap current density as a sum of terms proportional to the logarithmic gradients of pressure, density, and temperature, each multiplied by transport coefficients L31, L32, and L34 (and alpha) that depend on the trapped fraction and on collisionality nu-star. It is an analytic fit to numerical drift-kinetic solutions, extending earlier collisionless results to finite collisionality and arbitrary aspect ratio."],
+    ["p", "Schematically j_bootstrap is proportional to -(I p / <B>) [ L31 (dln p/dpsi) + ... ], where I is the poloidal current function and psi the poloidal flux. The trapped fraction f_t enters every coefficient, so accurate f_t evaluation at each aspect ratio is essential."],
+    ["h2", "Accuracy and Use"],
+    ["p", "The Sauter formula and its later refinements are standard in transport and equilibrium codes for self-consistent current-profile evolution. Because it covers the banana, plateau, and Pfirsch-Schluter regimes with a single expression, it is convenient for whole-discharge modeling, though at very low aspect ratio and high collisionality it is checked against full drift-kinetic calculations."],
+    ["h2", "Relevance"],
+    ["p", "Spherical tokamaks such as the Hyperion breeder concept have large trapped fractions and can reach high bootstrap fractions. The Sauter formula is used at the design stage to estimate the self-driven current and its alignment with the desired q profile; results are computational for a machine not yet built."]
+  ],
+  "related": [["banana-regime-transport", "Banana Regime"], ["neoclassical-transport-overview", "Neoclassical Transport"], ["poloidal-beta", "Poloidal Beta"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "wall-stabilized-beta-limits",
+  "title": "Ideal-Wall and No-Wall Beta Limits",
+  "cat": "fusion-equations",
+  "lede": "The two pressure ceilings set by external kink stability, with and without a perfectly conducting boundary.",
+  "body": [
+    ["h2", "The Kink-Limited Ceiling"],
+    ["p", "Beyond internal instabilities, a tokamak is limited by the external kink mode, a global current- and pressure-driven displacement of the whole plasma column. Its stability depends strongly on the surrounding conducting structure. Two limiting cases bracket reality: no wall (the vacuum extends to infinity) and an ideal wall (a perfect conductor at a finite radius)."],
+    ["h2", "No-Wall Limit"],
+    ["p", "With no conducting wall, the external kink sets the no-wall beta limit. Below this normalized pressure the plasma is stable to the ideal external kink even in the absence of any wall. It is the conservative ceiling and is often close to the Troyon-scaling value for standard profiles. Operating below it requires no active stabilization of the kink."],
+    ["h2", "Ideal-Wall Limit"],
+    ["p", "A perfectly conducting wall close to the plasma raises the ceiling: image currents in the wall oppose the kink displacement and stabilize it up to the higher ideal-wall beta limit. Real walls are resistive, not ideal, so between the two limits the plasma is unstable on the slow resistive-wall timescale to the resistive-wall mode, which requires active feedback or rotation to stabilize."],
+    ["h2", "Relevance"],
+    ["p", "The gap between the no-wall and ideal-wall limits is the operating window that advanced scenarios try to exploit, trading higher pressure for the need to control the resistive-wall mode. For the Hyperion breeder concept, wall proximity, profile shaping, and rotation are design levers evaluated against both limits in stability modeling; the machine is a simulation study, and no beta value is a measured hardware result."]
+  ],
+  "related": [["troyon-beta-limit", "Troyon Beta Limit"], ["resistive-wall-mode", "Resistive-Wall Mode"], ["kruskal-shafranov-limit", "Kruskal-Shafranov Limit"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "alfven-wave-equations",
+  "title": "Alfven Wave Equations",
+  "cat": "fusion-equations",
+  "lede": "The transverse magnetic-tension wave of MHD, and the eigenmodes it forms in a nonuniform confined plasma.",
+  "body": [
+    ["h2", "The Basic Wave"],
+    ["p", "The shear Alfven wave is a transverse oscillation in which magnetic tension provides the restoring force, analogous to a wave on a plucked string where the field line is the string. It is incompressible, propagates along the field at the Alfven speed v_A = B / sqrt(mu0 rho), and does not perturb the field magnitude or plasma pressure. Its dispersion relation is simply omega = k_parallel v_A."],
+    ["h2", "The Alfven Continuum"],
+    ["p", "In a nonuniform plasma v_A varies across flux surfaces, so the local Alfven frequency omega_A(r) = k_parallel(r) v_A(r) forms a continuum of frequencies. A wave launched at a fixed frequency resonates with whichever surface matches it, where the amplitude sharpens and energy is absorbed by continuum (phase-mixing) damping. This resonant absorption is the basis of Alfven-wave heating."],
+    ["h2", "Discrete Eigenmodes"],
+    ["p", "Toroidal geometry breaks the continuum by coupling neighboring poloidal harmonics, opening frequency gaps. Discrete global eigenmodes can exist inside these gaps free of continuum damping, most importantly the toroidal Alfven eigenmode in the gap formed between m and m+1 harmonics. Because they are weakly damped, such modes are easily driven unstable by resonant fast ions through inverse Landau damping."],
+    ["h2", "Relevance"],
+    ["p", "In a burning plasma, fusion-born alpha particles and beam ions can destabilize Alfven eigenmodes and expel fast ions before they thermalize, degrading self-heating. For the Hyperion D-T breeder concept, the high Alfven speed set by strong field and low density places these modes in the design-stage stability analysis; conclusions are computational for a machine not yet built."]
+  ],
+  "related": [["mhd-waves", "MHD Waves"], ["landau-damping", "Landau Damping"], ["magnetosonic-waves", "Magnetosonic Waves"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gyrofrequency-and-plasma-frequency",
+  "title": "Gyrofrequency and Plasma Frequency",
+  "cat": "fusion-equations",
+  "lede": "The two fundamental frequencies of a plasma: gyration about field lines and collective electrostatic oscillation.",
+  "body": [
+    ["h2", "Cyclotron (Gyro) Frequency"],
+    ["p", "A charged particle in a magnetic field circles the field line at the cyclotron frequency omega_c = |q| B / m. Electrons, being light, gyrate far faster than ions: the electron cyclotron frequency is thousands of times the ion value at the same field. The gyrofrequency sets the timescale of magnetization and defines the cyclotron resonances used for radio-frequency heating."],
+    ["h2", "Plasma Frequency"],
+    ["p", "If electrons are displaced from the ions, the resulting electric field pulls them back and they overshoot, oscillating at the plasma frequency omega_p = sqrt(n q^2 / (epsilon0 m)). It depends only on density and species, not on the magnetic field. The electron plasma frequency is the natural frequency of collective electrostatic response and sets the cutoff below which electromagnetic waves cannot propagate through the plasma."],
+    ["h2", "Ratios That Classify a Plasma"],
+    ["p", "The ratio omega_p / omega_c distinguishes magnetically dominated from inertially dominated behavior. A related length, the inertial skin depth c / omega_p, sets the scale for field penetration and for the Hall term. The Debye length, thermal speed divided by plasma frequency, sets the scale of charge screening. Together these characterize whether a system behaves as a magnetized fluid or a kinetic medium."],
+    ["h2", "Relevance"],
+    ["p", "Heating scheme selection depends directly on these frequencies: electron-cyclotron systems target omega_c e, ion-cyclotron systems target omega_c i, and lower-hybrid schemes sit between them. For Kronos concepts, the Hyperion breeder on-axis field near 8 T and peak field of 16.84 T set the cyclotron layers, while the D-3He burner plug at 26.49 T raises them further; these are design values for machines in simulation."]
+  ],
+  "related": [["plasma-dielectric-tensor", "Plasma Dielectric Tensor"], ["guiding-center-drifts", "Guiding-Center Drifts"], ["magnetic-moment-adiabatic-invariant", "Magnetic Moment"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "lundquist-number",
+  "title": "The Lundquist Number",
+  "cat": "fusion-equations",
+  "lede": "The ratio of resistive diffusion time to Alfven transit time, controlling the rate of magnetic reconnection.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The Lundquist number is S = mu0 L v_A / eta, where L is a characteristic length, v_A the Alfven speed, and eta the magnetic diffusivity (resistivity divided by mu0). Equivalently it is the ratio of the resistive diffusion time L^2/eta to the Alfven crossing time L/v_A. It is the magnetic Reynolds number evaluated with the Alfven speed as the velocity scale."],
+    ["h2", "What It Measures"],
+    ["p", "A large Lundquist number means the field is nearly frozen to the plasma over dynamical timescales, with resistive slippage confined to thin current layers. Fusion plasmas have enormous S, often above ten to the sixth or higher, because the Spitzer resistivity of a hot plasma is tiny. This makes ideal MHD an excellent description almost everywhere, with resistivity mattering only in narrow layers."],
+    ["h2", "Reconnection Scaling"],
+    ["p", "Classical Sweet-Parker reconnection through a current sheet proceeds at a rate scaling as S^{-1/2}, which at fusion-relevant S is far too slow to explain observed fast events like sawtooth crashes. Above a critical S of roughly ten thousand the thin current sheet becomes unstable to the plasmoid instability, breaking into chains of magnetic islands and restoring a fast, nearly S-independent reconnection rate. Hall physics does the same at small scales."],
+    ["h2", "Relevance"],
+    ["p", "The Lundquist number sets which reconnection regime governs tearing modes, sawteeth, and disruptions in a device. For the Hyperion breeder concept, the high plasma temperature implies very high S, placing reconnection in the plasmoid-mediated fast regime in extended-MHD modeling. Such simulations inform disruption and stability planning for a machine not yet built."]
+  ],
+  "related": [["magnetic-reynolds-number", "Magnetic Reynolds Number"], ["tearing-mode-equation", "Tearing Mode"], ["magnetic-diffusion-equation", "Magnetic Diffusion"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnetic-reynolds-number",
+  "title": "The Magnetic Reynolds Number",
+  "cat": "fusion-equations",
+  "lede": "The dimensionless ratio of magnetic advection to magnetic diffusion in a conducting flow.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The magnetic Reynolds number is Rm = U L / eta_m, where U is a characteristic flow speed, L a length scale, and eta_m = eta/mu0 the magnetic diffusivity. It is the magnetic analog of the ordinary Reynolds number, comparing the advection of magnetic field by the flow to its resistive diffusion. It appears directly in the induction equation as the coefficient governing the relative size of the two terms."],
+    ["h2", "The Two Limits"],
+    ["p", "When Rm is much greater than one, advection dominates and the field is effectively frozen into the moving plasma, the ideal-MHD flux-freezing regime. When Rm is much less than one, diffusion dominates and the field slips freely through the medium, decaying as if the flow were absent. Most laboratory and astrophysical plasmas sit deep in the high-Rm regime."],
+    ["h2", "Relation to the Lundquist Number"],
+    ["p", "The Lundquist number is the special case of Rm evaluated with the Alfven speed as the velocity scale, U = v_A. The distinction matters because different processes have different natural velocities: bulk flows for Rm, Alfvenic dynamics for S. Both express the same competition between induction and resistive diffusion but reference different dynamics."],
+    ["h2", "Relevance"],
+    ["p", "High Rm underlies flux conservation, current-profile relaxation timescales, and the slow resistive evolution of tokamak equilibria relative to fast MHD dynamics. It also governs whether externally imposed error fields can penetrate or are screened by plasma rotation. For the Hyperion breeder concept, high Rm justifies treating the bulk plasma as ideal on dynamical timescales while tracking slow resistive current diffusion separately; these are modeling assumptions for a simulated device."]
+  ],
+  "related": [["lundquist-number", "Lundquist Number"], ["magnetic-diffusion-equation", "Magnetic Diffusion"], ["frozen-in-flux-theorem", "Frozen-In Flux"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "normalized-gyroradius-rho-star",
+  "title": "Normalized Gyroradius rho-star",
+  "cat": "fusion-equations",
+  "lede": "The ratio of the ion gyroradius to the plasma size, the key parameter for scaling turbulent transport across devices.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The normalized gyroradius rho-star is the ion gyroradius rho_i divided by the plasma minor radius a: rho-star = rho_i / a. It measures how many gyroradii span the machine. Fusion plasmas have small rho-star, of order a few thousandths, meaning the turbulent eddies that set transport are tiny compared with the device, so the plasma contains many correlation lengths."],
+    ["h2", "Why It Governs Transport"],
+    ["p", "Turbulent transport theory predicts that the normalized heat diffusivity scales as a power of rho-star. In gyro-Bohm scaling the diffusivity is proportional to rho-star, so confinement improves as the machine grows and rho-star shrinks. In Bohm scaling the dependence is stronger. Which scaling holds is a central question because it determines how confidently confinement can be projected from small experiments to larger devices."],
+    ["h2", "The Dimensionless Trio"],
+    ["p", "Together with beta and collisionality nu-star, rho-star forms the set of dimensionless parameters that, along with geometry, are believed to fully determine normalized plasma behavior. Dimensionless-identity experiments match all three between different-sized devices to test transport scaling directly, isolating the rho-star dependence by holding beta and nu-star fixed."],
+    ["h2", "Relevance"],
+    ["p", "Because gyro-Bohm scaling rewards low rho-star, larger and higher-field devices are favored for good confinement. A useful way to read rho-star is as the inverse of the number of turbulent eddies that fit across the plasma, so shrinking it means each eddy transports a smaller fraction of the stored energy per step. Spherical tokamaks such as the Hyperion breeder concept achieve high field at compact size, and the resulting rho-star is an input to gyrokinetic transport projections. These are computational estimates; the machine is a simulation study, not built hardware."]
+  ],
+  "related": [["collisionality-nu-star", "Collisionality nu-star"], ["plasma-beta-parameter", "Plasma Beta"], ["gyrokinetic-equation", "Gyrokinetic Equation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "plasma-beta-parameter",
+  "title": "The Plasma Beta Parameter",
+  "cat": "fusion-equations",
+  "lede": "The ratio of plasma pressure to magnetic pressure, the primary measure of magnetic confinement efficiency.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "Plasma beta is beta = 2 mu0 p / B^2, the ratio of the thermal pressure p to the magnetic pressure B^2/(2 mu0). It quantifies how much plasma pressure a given magnetic field confines. High beta is economically and physically desirable because fusion power density rises with pressure squared while the cost and engineering burden rise with field strength, so more pressure per unit field is more effective confinement."],
+    ["h2", "Variants"],
+    ["ul", ["Toroidal beta: uses the toroidal field, usually the vacuum field on axis.", "Poloidal beta: uses the poloidal field from the plasma current.", "Normalized beta (beta_N): beta divided by the ratio I/(a B), giving a shape- and current-independent stability figure of merit used in the Troyon limit."]],
+    ["h2", "Stability Ceiling"],
+    ["p", "Beta cannot be raised without bound: pressure-driven MHD instabilities set a maximum. The Troyon scaling caps normalized beta at roughly a few, and neoclassical tearing modes often intervene below the ideal limit. The achievable beta is therefore a compromise between pressure drive and stability, and pushing it is a main objective of advanced scenarios."],
+    ["h2", "Relevance"],
+    ["p", "Spherical tokamaks are notable for achieving high beta because their geometry provides strong magnetic well and shaping. The Hyperion breeder concept is a spherical tokamak whose design-stage equilibria target high beta consistent with stability limits; the on-axis field near 8 T and peak field of 16.84 T frame the magnetic pressure against which beta is measured. All values here are simulation-stage design points, not measured results."]
+  ],
+  "related": [["poloidal-beta", "Poloidal Beta"], ["troyon-beta-limit", "Troyon Beta Limit"], ["wall-stabilized-beta-limits", "Wall Beta Limits"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "safety-factor-formula",
+  "title": "The Safety Factor Formula",
+  "cat": "fusion-equations",
+  "lede": "The number of toroidal transits a field line makes per poloidal transit, the master parameter of tokamak stability.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The safety factor q counts how many times a magnetic field line winds the long way around the torus for each time it winds the short way. In a large-aspect-ratio circular tokamak, q(r) = r B_t / (R B_p), where B_t is the toroidal field, B_p the poloidal field, r the minor radius, and R the major radius. It is dimensionless and varies across the profile, giving q(r)."],
+    ["h2", "Why It Is Called Safety"],
+    ["p", "The name reflects its role in stability: low q means a strongly wound, current-heavy field that is prone to kink instabilities, while higher q is safer. The Kruskal-Shafranov condition requires q at the edge to exceed one to avoid the most dangerous external kink, and in practice edge q of two to four is typical. The overall level of q scales inversely with the plasma current."],
+    ["h2", "Rational Surfaces"],
+    ["p", "Where q equals a ratio of small integers m/n, field lines close on themselves and the surface is resonant with an m,n perturbation. These rational surfaces host tearing modes and are focal points for MHD activity. The q=1 surface governs sawtooth oscillations, and the q=2 surface is frequently associated with disruptive tearing modes."],
+    ["h2", "Relevance"],
+    ["p", "The q profile ties together current, field, stability, and confinement, and shaping it is central to scenario design. Spherical tokamaks like the Hyperion breeder concept, with low aspect ratio, carry high plasma current at modest field, giving distinctive q profiles that the design-stage stability analysis evaluates. The reported currents such as 9.86 MA are design targets for a machine in simulation."]
+  ],
+  "related": [["magnetic-shear", "Magnetic Shear"], ["kruskal-shafranov-limit", "Kruskal-Shafranov Limit"], ["tearing-mode-equation", "Tearing Mode"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "eikonal-ray-tracing-equations",
+  "title": "The Eikonal and Ray-Tracing Equations",
+  "cat": "fusion-equations",
+  "lede": "The short-wavelength approximation that turns wave propagation into the trajectories of rays through a plasma.",
+  "body": [
+    ["h2", "The Eikonal Ansatz"],
+    ["p", "When the wavelength is much shorter than the scale over which the plasma varies, a wave can be written as an amplitude times exp(i S), where S is a rapidly varying phase, the eikonal. The local wavevector is k = grad S and the frequency is omega = -dS/dt. Substituting into the wave equation and keeping the leading order recovers the local dispersion relation D(omega, k, x, t) = 0 at each point."],
+    ["h2", "Ray Equations"],
+    ["p", "Treating the dispersion relation as a Hamiltonian D in the phase space of position and wavevector yields Hamilton-like ray equations: dx/dt = -(dD/dk)/(dD/domega) is the group velocity, and dk/dt = (dD/dx)/(dD/domega) describes how the wavevector refracts as the ray traverses inhomogeneous plasma. The rays trace the path of energy flow, bending toward resonances and reflecting at cutoffs."],
+    ["h2", "Absorption Along the Ray"],
+    ["p", "Ray tracing gives geometry; the power deposited is computed by carrying an imaginary part of the dispersion relation (from the warm dielectric tensor) along the ray, so the wave energy is attenuated where kinetic damping is strong, typically at cyclotron-resonance layers. This separates the fast phase evolution from the slow amplitude evolution and makes heating calculations tractable."],
+    ["h2", "Relevance"],
+    ["p", "Ray-tracing and its extension, beam tracing, are standard tools for designing electron-cyclotron heating and current drive, predicting where a launched beam deposits power and drives current. For the Hyperion breeder concept, ray tracing through the strongly varying field, from about 8 T on axis to 16.84 T peak, positions resonance layers for candidate heating schemes at the design stage; these are computations for a machine not yet built."]
+  ],
+  "related": [["dispersion-relations", "Dispersion Relations"], ["plasma-dielectric-tensor", "Plasma Dielectric Tensor"], ["gyrofrequency-and-plasma-frequency", "Gyro and Plasma Frequency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "grad-shafranov-solver",
+  "title": "The Grad-Shafranov Solver",
+  "cat": "fusion-equations",
+  "lede": "How the axisymmetric equilibrium equation is discretized and solved to find nested flux surfaces.",
+  "body": [
+    ["h2", "The Equation"],
+    ["p", "The Grad-Shafranov equation is the force-balance condition for an axisymmetric toroidal plasma, a nonlinear elliptic PDE for the poloidal flux psi(R, Z). It reads Delta-star psi = -mu0 R^2 dp/dpsi - F dF/dpsi, where Delta-star is a modified Laplacian, p(psi) is the pressure profile and F(psi) = R B_t is the poloidal current function. The two free functions p(psi) and F(psi) are chosen inputs; psi is the unknown."],
+    ["h2", "Discretization"],
+    ["p", "A fixed-boundary solver imposes the plasma shape as the boundary where psi is constant and solves on a grid inside it. A free-boundary solver instead includes external coil currents and solves for the boundary self-consistently, requiring the plasma-vacuum interface to be found as part of the solution. Finite-difference and finite-element schemes both discretize Delta-star; the source term is nonlinear in psi through the profile functions."],
+    ["h2", "Iterative Solution"],
+    ["p", "Because the right side depends on psi, the equation is solved by iteration: guess psi, evaluate the source, invert the elliptic operator to get a new psi, and repeat under-relaxed until convergence. A Picard or Newton iteration handles the nonlinearity. Free-boundary solvers add an outer loop that adjusts to the coil currents and enforces the flux at the boundary and X-points."],
+    ["code", ["python", "import numpy as np\n# One Picard sweep of a fixed-boundary Grad-Shafranov solve (schematic)\ndef gs_sweep(psi, R, dpsi_grid, invert_delta_star, p_prime, ff_prime):\n    # source S = -mu0 R^2 p'(psi) - F F'(psi)\n    mu0 = 4e-7 * np.pi\n    S = -mu0 * R**2 * p_prime(psi) - ff_prime(psi)\n    psi_new = invert_delta_star(S)   # solve Delta* psi_new = S with fixed BC\n    return 0.5 * psi + 0.5 * psi_new  # under-relaxed update"]],
+    ["h2", "Relevance"],
+    ["p", "Every tokamak equilibrium, stability input, and transport grid begins with a Grad-Shafranov solution; it produces the flux surfaces, the Shafranov shift, and the q profile. For the Hyperion breeder concept, the equilibrium reconstruction underlying its design point, including negative triangularity of -0.30, is a Grad-Shafranov solution for a machine in simulation, not a fit to measured hardware."]
+  ],
+  "related": [["shafranov-shift", "Shafranov Shift"], ["safety-factor-formula", "Safety Factor"], ["ideal-mhd-equations", "Ideal MHD Equations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ideal-mhd-equations",
+  "title": "The Ideal MHD Equations",
+  "cat": "fusion-equations",
+  "lede": "The single-fluid model of a perfectly conducting magnetized plasma: mass, momentum, energy, and induction.",
+  "body": [
+    ["h2", "The Closed Set"],
+    ["p", "Ideal magnetohydrodynamics treats the plasma as one conducting fluid with negligible resistivity. The equations are mass continuity drho/dt + div(rho u) = 0; momentum rho du/dt = J x B - grad p; an adiabatic energy law d/dt (p/rho^gamma) = 0; and the ideal induction equation dB/dt = curl(u x B). Ampere's law J = curl B / mu0 and div B = 0 complete the set. The electric field is E = -u x B, the ideal Ohm's law with zero resistivity."],
+    ["h2", "The Lorentz Force"],
+    ["p", "The J x B force can be split into magnetic pressure and magnetic tension: J x B = -grad(B^2/2mu0) + (B . grad)B / mu0. The first term acts like an isotropic pressure of the field; the second is a tension along curved field lines. This decomposition explains equilibrium (pressure balanced by field) and the Alfven wave (tension as restoring force)."],
+    ["h2", "Validity"],
+    ["p", "Ideal MHD is valid when the plasma is highly conducting (large Lundquist number), collisional enough to behave as a fluid, and observed on scales larger than the ion gyroradius and skin depth. It fails in thin reconnection layers, in low-collisionality kinetic regimes, and wherever two-fluid or finite-Larmor-radius effects matter. Despite these limits it captures the fastest and largest-scale plasma dynamics remarkably well."],
+    ["h2", "Relevance"],
+    ["p", "Equilibrium (Grad-Shafranov) and gross stability (kink, ballooning, interchange) both derive from ideal MHD, making it the first screen any confinement design must pass. For the Hyperion breeder concept, ideal-MHD equilibrium and stability analysis frame the design point; results are computational for a machine in simulation."]
+  ],
+  "related": [["resistive-mhd-equations", "Resistive MHD"], ["mhd-energy-principle", "MHD Energy Principle"], ["frozen-in-flux-theorem", "Frozen-In Flux"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "resistive-mhd-equations",
+  "title": "The Resistive MHD Equations",
+  "cat": "fusion-equations",
+  "lede": "Ideal MHD plus finite resistivity, admitting magnetic diffusion, reconnection, and tearing instabilities.",
+  "body": [
+    ["h2", "The Modification"],
+    ["p", "Resistive MHD keeps the ideal fluid equations but replaces the ideal Ohm's law with E + u x B = eta J, retaining a finite resistivity eta. Substituting into Faraday's law gives the resistive induction equation dB/dt = curl(u x B) + eta_m laplacian B, where eta_m = eta/mu0 is the magnetic diffusivity. The added diffusion term lets the field slip relative to the plasma."],
+    ["h2", "What Resistivity Enables"],
+    ["p", "In ideal MHD field lines cannot break; topology is conserved. Resistivity relaxes this, permitting magnetic reconnection: field lines can tear and reconnect in thin current layers where gradients are steep. This opens the tearing-mode and resistive-wall-mode instability families, allows the slow ohmic decay of currents, and governs how externally applied fields penetrate the plasma."],
+    ["h2", "Timescale Separation"],
+    ["p", "Because fusion-plasma resistivity is tiny (Spitzer resistivity falls as T^{-3/2}), the resistive diffusion time is far longer than the Alfven time; their ratio is the Lundquist number S, typically very large. Resistive effects therefore act slowly and are localized to thin layers, while the bulk plasma evolves ideally. Resistive-MHD codes must resolve these thin layers, a numerically demanding task."],
+    ["h2", "Relevance"],
+    ["p", "Neoclassical tearing modes, current-profile relaxation, error-field penetration, and disruption dynamics all require resistive MHD. For the Hyperion breeder concept, resistive and extended-MHD modeling assesses tearing stability and disruption avoidance at the design stage; the high plasma temperature implies very small resistivity and very high Lundquist number. These are simulations for a device not yet built."]
+  ],
+  "related": [["ideal-mhd-equations", "Ideal MHD Equations"], ["tearing-mode-equation", "Tearing Mode"], ["spitzer-resistivity", "Spitzer Resistivity"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "frozen-in-flux-theorem",
+  "title": "The Frozen-In Flux Theorem",
+  "cat": "fusion-equations",
+  "lede": "Alfven's theorem: in a perfectly conducting fluid, magnetic field lines move with the plasma.",
+  "body": [
+    ["h2", "Statement"],
+    ["p", "The frozen-in flux theorem, due to Alfven, states that in ideal MHD the magnetic flux through any surface that moves with the fluid is constant in time. Equivalently, two fluid elements initially on the same field line remain on the same field line forever. The plasma and field are locked together: the field is dragged by flows and, reciprocally, the field's tension resists fluid motion across it."],
+    ["h2", "Derivation Sketch"],
+    ["p", "Starting from the ideal induction equation dB/dt = curl(u x B), one computes the rate of change of flux through a comoving surface. The advective and stretching terms exactly cancel the boundary contribution, leaving d(flux)/dt = 0. The key requirement is zero resistivity, so that E + u x B = 0 holds; any finite resistivity introduces a diffusion term that breaks the freezing."],
+    ["h2", "Consequences"],
+    ["p", "Flux freezing underlies flux amplification by compression, the winding-up of field by shear flows, and the very concept of a flux surface in a confined plasma. It is why field topology is conserved in ideal MHD and why reconnection, which changes topology, requires non-ideal physics. It also explains why plasma cannot cross field lines freely, the basis of magnetic confinement."],
+    ["h2", "Relevance"],
+    ["p", "Confinement itself relies on flux freezing keeping plasma tied to closed nested surfaces. Where the theorem locally breaks, at rational surfaces under finite resistivity, islands form and confinement degrades. For the Hyperion breeder concept, the high Lundquist number means flux is well frozen over dynamical timescales, with slow resistive slippage tracked separately in design-stage modeling of a simulated machine."]
+  ],
+  "related": [["ideal-mhd-equations", "Ideal MHD Equations"], ["magnetic-diffusion-equation", "Magnetic Diffusion"], ["magnetic-reynolds-number", "Magnetic Reynolds Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnetic-diffusion-equation",
+  "title": "The Magnetic Diffusion Equation",
+  "cat": "fusion-equations",
+  "lede": "The induction equation in the static-fluid limit, describing how magnetic field decays and penetrates by resistivity.",
+  "body": [
+    ["h2", "Derivation"],
+    ["p", "Take the resistive induction equation dB/dt = curl(u x B) + eta_m laplacian B and drop the flow term, either because the fluid is at rest or because diffusion dominates advection (low magnetic Reynolds number). What remains is the magnetic diffusion equation dB/dt = eta_m laplacian B, a vector diffusion equation with magnetic diffusivity eta_m = eta / mu0."],
+    ["h2", "Solutions"],
+    ["p", "Being a diffusion equation, it has the same structure as heat conduction: field gradients smooth out, and a field imposed at a boundary penetrates a conductor over a skin depth that grows as sqrt(eta_m t). The characteristic resistive diffusion time across a system of size L is tau_R = mu0 L^2 / eta = L^2 / eta_m. In a good conductor eta_m is small and tau_R is long, so the field is nearly frozen."],
+    ["h2", "Skin Effect"],
+    ["p", "For a field oscillating at frequency omega, the penetration depth is the skin depth sqrt(2 eta_m / omega). Faster changes are screened to a thinner layer near the surface. This governs how quickly external coil fields, error fields, or feedback fields can reach the plasma interior, and how induced eddy currents in conducting walls shield transient fields."],
+    ["h2", "Relevance"],
+    ["p", "Current-profile evolution in a tokamak is governed by magnetic diffusion of the poloidal field, with the resistive time setting how long a driven current profile takes to relax. Because resistivity falls steeply with temperature, hot plasmas have very long current-relaxation times. For the Hyperion breeder concept, resistive diffusion sets current-drive and profile-control timescales in design-stage modeling of a simulated machine."]
+  ],
+  "related": [["diffusion-equation", "Diffusion Equation"], ["resistive-mhd-equations", "Resistive MHD"], ["spitzer-resistivity", "Spitzer Resistivity"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "spitzer-resistivity",
+  "title": "Spitzer Resistivity",
+  "cat": "fusion-equations",
+  "lede": "The collisional electrical resistivity of a fully ionized plasma, falling steeply as temperature rises.",
+  "body": [
+    ["h2", "The Formula"],
+    ["p", "Spitzer resistivity is the electrical resistivity of a fully ionized plasma set by electron-ion Coulomb collisions. It scales as eta proportional to Z_eff ln(Lambda) / T_e^{3/2}, where Z_eff is the effective ion charge, ln(Lambda) the Coulomb logarithm, and T_e the electron temperature. The striking feature is the inverse three-halves temperature dependence: hotter plasmas conduct dramatically better."],
+    ["h2", "Physical Origin"],
+    ["p", "Resistivity arises because electrons carrying current are scattered by ions, transferring momentum and impeding the flow. Faster electrons in a hotter plasma have smaller Coulomb cross-sections (scattering falls with the fourth power of speed), so collisions become rare and resistivity plummets. The Coulomb logarithm accounts for the cumulative effect of many small-angle collisions, which dominate over rare large-angle ones."],
+    ["h2", "Corrections"],
+    ["p", "The basic Spitzer value is modified by trapped particles in a torus, which cannot carry current freely and raise the effective (neoclassical) resistivity, and by the effective charge Z_eff, which rises with impurity content. The parallel neoclassical resistivity used in transport codes multiplies Spitzer by a trapped-fraction correction factor, since trapped particles bounce rather than stream and cannot contribute to the parallel current. The Coulomb logarithm itself varies only weakly, so the temperature and charge dependences dominate the practical variation of resistivity across a discharge."],
+    ["h2", "Relevance"],
+    ["p", "Spitzer resistivity sets ohmic heating power (proportional to eta J^2), the resistive diffusion time for current-profile evolution, and the Lundquist number that governs reconnection. Its steep temperature dependence means ohmic heating becomes ineffective at reactor temperatures, requiring auxiliary heating, and that hot plasmas have enormous Lundquist numbers. For the Hyperion breeder concept these consequences frame the heating and current-drive strategy in design-stage modeling of a simulated device."]
+  ],
+  "related": [["resistive-mhd-equations", "Resistive MHD"], ["magnetic-diffusion-equation", "Magnetic Diffusion"], ["lundquist-number", "Lundquist Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "braginskii-transport-coefficients",
+  "title": "Braginskii Transport Coefficients",
+  "cat": "fusion-equations",
+  "lede": "The closed set of collisional fluid transport coefficients for a magnetized two-fluid plasma.",
+  "body": [
+    ["h2", "The Framework"],
+    ["p", "Braginskii derived a systematic fluid closure for a collisional magnetized plasma by expanding the kinetic equation in the ratio of gyroradius to mean free path. The result is expressions for the viscosity, thermal conductivity, resistivity, and thermoelectric coefficients of electrons and ions, each split into components parallel to the field, perpendicular to it, and in the cross (Hall) direction."],
+    ["h2", "Anisotropy"],
+    ["p", "The defining feature is strong anisotropy imposed by magnetization. Parallel transport coefficients are large, set only by collisions along the field. Perpendicular coefficients are suppressed by the factor (gyrofrequency times collision time) squared, because gyration confines cross-field steps to a gyroradius. Cross coefficients, odd in the field, drive fluxes perpendicular to both the gradient and the field, including diamagnetic heat flux."],
+    ["h2", "Key Coefficients"],
+    ["ul", ["Parallel electron heat conductivity: very large, scales as T_e^{5/2}, drives fast temperature equilibration along field lines.", "Perpendicular ion heat conductivity: sets the collisional cross-field heat loss floor before turbulence.", "Ion viscosity: a tensor with parallel, perpendicular, and gyroviscous parts governing flow damping and momentum transport."]],
+    ["h2", "Validity and Relevance"],
+    ["p", "The Braginskii closure requires high collisionality, so the plasma is fluid-like and the distribution is near-Maxwellian. In the hot low-collisionality core it is replaced by neoclassical or kinetic theory, but it remains the standard model for the collisional edge and scrape-off layer, and for extended-MHD codes. For the Hyperion breeder concept, Braginskii coefficients inform edge and divertor modeling at the design stage; the machine is a simulation study."]
+  ],
+  "related": [["heat-conduction-equation", "Heat Conduction Equation"], ["two-fluid-plasma-equations", "Two-Fluid Equations"], ["spitzer-resistivity", "Spitzer Resistivity"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gyrokinetic-equation",
+  "title": "The Gyrokinetic Equation",
+  "cat": "fusion-equations",
+  "lede": "A reduced kinetic equation that averages over fast gyromotion to make turbulence simulation tractable.",
+  "body": [
+    ["h2", "The Reduction"],
+    ["p", "Direct kinetic simulation of a plasma must resolve the gyromotion, far faster and finer than the turbulence of interest. Gyrokinetics removes this by averaging the Vlasov equation over the gyro-orbit, reducing the six-dimensional phase space to five: three spatial coordinates plus parallel velocity and magnetic moment. The fast gyrophase is integrated out, leaving the slow drift dynamics that actually transport heat and particles."],
+    ["h2", "Ordering"],
+    ["p", "The reduction rests on an ordering: fluctuations are small in amplitude, have long parallel wavelength but short perpendicular wavelength comparable to the gyroradius, and evolve slowly compared with the gyrofrequency. Finite-Larmor-radius effects are retained through gyro-averaged fields, so the equation correctly captures how eddies of gyroradius scale interact with particles. This is essential because drift-wave turbulence lives precisely at those scales."],
+    ["h2", "What It Predicts"],
+    ["p", "Nonlinear gyrokinetic simulation is the leading first-principles predictor of turbulent heat, particle, and momentum transport in the plasma core. It resolves ion-temperature-gradient modes, trapped-electron modes, and electron-temperature-gradient modes, and the zonal flows that regulate them. The output is the turbulent diffusivity that sets energy confinement, which fluid models cannot predict from first principles. Because the turbulence self-organizes into zonal flows that shear apart the eddies driving it, the saturated transport level is an emergent nonlinear balance rather than a simple function of the linear growth rate."],
+    ["h2", "Relevance"],
+    ["p", "Because confinement is dominated by turbulent rather than collisional transport, gyrokinetic modeling underpins confinement projections for any modern design. For the Hyperion breeder concept, gyrokinetic transport analysis of the core plasma informs the confinement estimate behind its design point; the resulting Q of 3.424 is a simulation-stage figure, not a measured hardware result."]
+  ],
+  "related": [["vlasov-poisson-system", "Vlasov-Poisson System"], ["ion-temperature-gradient-mode", "ITG Mode"], ["normalized-gyroradius-rho-star", "Normalized Gyroradius"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "fokker-planck-collision-operator",
+  "title": "The Fokker-Planck Collision Operator",
+  "cat": "fusion-equations",
+  "lede": "The velocity-space diffusion and drag operator describing cumulative small-angle Coulomb collisions.",
+  "body": [
+    ["h2", "Why Fokker-Planck"],
+    ["p", "In a plasma, particles interact through the long-range Coulomb force, so a given particle undergoes many simultaneous weak deflections rather than rare hard collisions. The cumulative effect of these small-angle encounters is described by the Fokker-Planck operator, which appears on the right side of the kinetic equation as a term modeling collisions: df/dt collision term = drag plus diffusion in velocity space."],
+    ["h2", "Structure"],
+    ["p", "The operator has two parts: a dynamical friction (drag) that slows fast particles toward the bulk, and a diffusion that spreads the distribution in velocity. Written with the Rosenbluth potentials, these coefficients are integrals over the field-particle distribution, making the operator nonlinear when a species collides with itself. The dominance of small-angle scattering appears through the Coulomb logarithm multiplying the whole operator, which is the accumulated factor by which many distant weak deflections outweigh the rare close encounter. Because the deflections are correlated with the field-particle distribution, the operator conserves particle number, momentum, and energy when integrated over the interacting species."],
+    ["h2", "Consequences"],
+    ["p", "The Fokker-Planck operator relaxes any distribution toward a Maxwellian, sets collision and slowing-down frequencies, and determines how fast ions from beams or fusion reactions thermalize. Its velocity dependence explains why fast particles are collisionless while thermal particles are collisional, and it underlies runaway-electron generation when the electric-field acceleration outruns the collisional drag on fast electrons."],
+    ["h2", "Relevance"],
+    ["p", "Fast-ion slowing-down, neutral-beam and radio-frequency heating deposition, alpha-particle thermalization, and runaway-electron risk during disruptions all require Fokker-Planck modeling. For the Hyperion D-T breeder concept, the slowing-down of 3.5 MeV fusion alphas onto the bulk plasma, which delivers self-heating, is a Fokker-Planck calculation in design-stage modeling of a machine not yet built."]
+  ],
+  "related": [["vlasov-poisson-system", "Vlasov-Poisson System"], ["spitzer-resistivity", "Spitzer Resistivity"], ["quasilinear-theory", "Quasilinear Theory"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "drift-wave-instability",
+  "title": "Drift-Wave Instability",
+  "cat": "fusion-equations",
+  "lede": "The universal instability driven by density and temperature gradients, the seed of most plasma turbulence.",
+  "body": [
+    ["h2", "The Drift Wave"],
+    ["p", "A drift wave is a low-frequency electrostatic oscillation propagating in the diamagnetic drift direction, driven by the pressure gradient perpendicular to the magnetic field. Its natural frequency is the diamagnetic frequency omega-star, proportional to the perpendicular wavenumber and the density gradient. In its stable form it is a benign wave; a small phase shift between density and potential perturbations turns it unstable."],
+    ["h2", "The Destabilizing Phase Shift"],
+    ["p", "If electrons responded instantly along field lines, density and potential would stay in phase and the wave would neither grow nor decay. Any mechanism that delays the electron response, such as collisions, electron Landau damping, or magnetic trapping, introduces a phase lag. That lag lets the E-cross-B convection transport plasma down the gradient in step with the wave, feeding energy from the gradient into the fluctuation."],
+    ["h2", "Family of Modes"],
+    ["p", "Drift waves are the parent class of the microinstabilities that dominate core transport: the ion-temperature-gradient mode, the trapped-electron mode, and the electron-temperature-gradient mode are all drift-type instabilities driven by different gradients and resonances. Because some gradient is always present, drift waves are called universal instabilities, and they set the anomalous transport that exceeds neoclassical predictions."],
+    ["h2", "Relevance"],
+    ["p", "Drift-wave turbulence, regulated by self-generated zonal flows, sets the turbulent diffusivity and thus the energy confinement time. Suppressing it, for example through sheared flow or reversed magnetic shear, produces transport barriers. For the Hyperion breeder concept, drift-wave stability and turbulent transport are evaluated with gyrokinetics at the design stage; the machine is a simulation study."]
+  ],
+  "related": [["ion-temperature-gradient-mode", "ITG Mode"], ["gyrokinetic-equation", "Gyrokinetic Equation"], ["two-fluid-plasma-equations", "Two-Fluid Equations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ion-temperature-gradient-mode",
+  "title": "The Ion-Temperature-Gradient Mode",
+  "cat": "fusion-equations",
+  "lede": "A drift-type microinstability driven by steep ion temperature gradients, a leading cause of core heat loss.",
+  "body": [
+    ["h2", "The Drive"],
+    ["p", "The ion-temperature-gradient (ITG) mode is destabilized when the ion temperature gradient exceeds a critical value, usually expressed through the ratio eta_i = (dln T_i/dr)/(dln n/dr). When eta_i is larger than a threshold near one, the mode grows. Physically, ions drifting in unfavorable field-line curvature carry heat in phase with the perturbation, so a temperature bump is convected to reinforce itself."],
+    ["h2", "Slab and Toroidal Branches"],
+    ["p", "There are two variants. The slab branch relies on parallel ion dynamics and Landau resonance and exists even without curvature. The toroidal branch, usually more virulent in a tokamak, is driven by the bad-curvature region on the outboard side where the grad-B and curvature drifts point down the pressure gradient. The toroidal branch sets the critical gradient for core ion transport."],
+    ["h2", "Profile Stiffness"],
+    ["p", "Because the ITG mode switches on sharply above its critical gradient and drives large transport, the ion temperature profile tends to be stiff: it resists steepening beyond the marginal gradient no matter how much power is added, since extra heat simply drives more turbulence. This stiffness is a dominant constraint on achievable core ion temperature and thus on fusion performance."],
+    ["h2", "Relevance"],
+    ["p", "ITG turbulence is often the largest single contributor to core ion heat loss, so its critical gradient effectively caps the ion temperature. Mitigation through sheared E-cross-B flow, reversed shear, or fast-ion dilution is a main lever in scenario design. For the Hyperion breeder concept, ITG stability sets part of the confinement estimate behind its design point in gyrokinetic modeling of a simulated device."]
+  ],
+  "related": [["drift-wave-instability", "Drift Waves"], ["gyrokinetic-equation", "Gyrokinetic Equation"], ["heat-conduction-equation", "Heat Conduction Equation"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ballooning-mode-equation",
+  "title": "The Ballooning-Mode Equation",
+  "cat": "fusion-equations",
+  "lede": "The high-mode-number pressure-driven instability that localizes on the bad-curvature outboard side.",
+  "body": [
+    ["h2", "The Instability"],
+    ["p", "Ballooning modes are pressure-driven ideal-MHD instabilities that balloon outward on the low-field, outboard side of a torus where field-line curvature is unfavorable, meaning the curvature points in the same direction as the pressure gradient. There the pressure gradient does positive work on a displacement, driving growth, while magnetic tension and shear resist. They have high toroidal mode number and short perpendicular wavelength."],
+    ["h2", "The Ballooning Transform"],
+    ["p", "High-n modes are hard to treat because they vary rapidly across flux surfaces. The ballooning transformation maps the problem onto a single field line parametrized by the extended poloidal angle, converting the two-dimensional eigenvalue problem into a one-dimensional ordinary differential equation along the line. The resulting ballooning equation balances field-line bending (stabilizing) against the curvature-pressure drive (destabilizing) as a function of the shear and the normalized pressure gradient alpha."],
+    ["h2", "s-alpha Diagram"],
+    ["p", "Stability is summarized in the s-alpha diagram, with magnetic shear s on one axis and the normalized pressure-gradient parameter alpha on the other. A first stability region exists at low alpha. Remarkably, at high alpha a second stability region reopens, accessible when the Shafranov shift deepens the local magnetic well enough to restabilize the mode, a route advanced high-beta scenarios exploit."],
+    ["h2", "Relevance"],
+    ["p", "Ballooning stability sets an important part of the pressure-gradient limit, particularly in the steep-gradient edge pedestal, where it combines with peeling modes to trigger edge-localized modes. For the Hyperion breeder concept, ballooning analysis across the profile and access to second stability are design-stage considerations for a simulated machine; the negative triangularity of -0.30 alters the curvature and pedestal behavior in this analysis."]
+  ],
+  "related": [["mercier-criterion", "Mercier Criterion"], ["magnetic-shear", "Magnetic Shear"], ["shafranov-shift", "Shafranov Shift"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "newcomb-equation",
+  "title": "The Newcomb Equation",
+  "cat": "fusion-equations",
+  "lede": "The marginal ideal-MHD equation governing the perturbed flux outside a resistive layer.",
+  "body": [
+    ["h2", "The Marginal Problem"],
+    ["p", "The Newcomb equation is the Euler-Lagrange equation obtained by minimizing the ideal-MHD energy functional for a given helical perturbation at marginal stability (zero growth rate). In a cylindrical screw pinch it is a second-order ordinary differential equation for the radial displacement or, equivalently, the perturbed poloidal flux, with coefficients built from the equilibrium profiles and the mode numbers m and n."],
+    ["h2", "Singular Surfaces"],
+    ["p", "The equation has regular singular points at the rational surfaces where q = m/n. There the coefficient of the highest derivative vanishes and the ideal solution is singular. Newcomb's analysis specifies how to treat these surfaces: an ideal-stable equilibrium requires that no solution has a zero (a marginal point) between singular surfaces, a small-solution criterion that generalizes Suydam's local test to the global mode."],
+    ["h2", "Connection to Tearing"],
+    ["p", "The jump in the logarithmic derivative of the Newcomb solution across a rational surface defines the tearing stability index Delta'. Thus the Newcomb equation is the ideal outer-region equation whose matching to the thin resistive inner layer determines tearing-mode stability. Solving it for the equilibrium of interest is the first step in any tearing analysis, and the same solution reveals whether an ideal external kink is present when a marginal point appears in the vacuum region outside the plasma. Because the equation is only second order, it is inexpensive to solve repeatedly across a scan of equilibria."],
+    ["h2", "Relevance"],
+    ["p", "The Newcomb equation is the practical bridge between ideal external-kink stability and resistive tearing modes, both central to tokamak operating limits. For the Hyperion breeder concept, Newcomb solutions provide the Delta' inputs to tearing-stability assessment across candidate equilibria at the design stage; these are computations for a machine in simulation."]
+  ],
+  "related": [["tearing-mode-equation", "Tearing Mode"], ["suydam-criterion", "Suydam Criterion"], ["mhd-energy-principle", "MHD Energy Principle"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "suydam-criterion",
+  "title": "The Suydam Criterion",
+  "cat": "fusion-equations",
+  "lede": "The cylindrical local stability condition against pressure-driven interchange in a screw pinch.",
+  "body": [
+    ["h2", "Statement"],
+    ["p", "The Suydam criterion is a necessary condition for ideal-MHD stability of a cylindrical screw pinch against localized interchange modes near a rational surface. It requires that the stabilizing effect of magnetic shear exceed the destabilizing pressure gradient: (r/8)(q'/q)^2 B_z^2/mu0 + r dp/dr > 0, where q'/q is the shear and dp/dr the pressure gradient. Violation guarantees instability."],
+    ["h2", "The Physical Balance"],
+    ["p", "The first term is the energy cost of bending field lines with finite shear, which resists a localized interchange. The second term is the free energy of the pressure gradient, negative where pressure falls outward. Suydam's inequality states that the shear term must dominate; strong shear stabilizes, and steep pressure gradients destabilize, precisely where the shear is weak."],
+    ["h2", "Relation to Mercier"],
+    ["p", "Suydam is the straight-cylinder limit of the more general Mercier criterion for a torus. The toroidal version adds the average field-line curvature and the magnetic well through flux-surface averages, which can either help or hurt depending on geometry. Both are local, necessary but not sufficient conditions: passing them does not ensure stability against global modes, which require solving the full Newcomb or ballooning equation across the profile. The historical importance of Suydam is that it first made explicit the trade between shear and pressure gradient that governs every later interchange criterion."],
+    ["h2", "Relevance"],
+    ["p", "Historically important for pinch and stellarator analysis, Suydam remains a quick screen for whether a pressure profile is locally over-steep for the available shear. For the Hyperion breeder concept the toroidal Mercier criterion is the working tool, but the Suydam picture supplies the intuition that pressure gradients must be shear-limited, an input to profile design in simulation-stage modeling."]
+  ],
+  "related": [["mercier-criterion", "Mercier Criterion"], ["newcomb-equation", "Newcomb Equation"], ["magnetic-shear", "Magnetic Shear"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "kruskal-shafranov-limit",
+  "title": "The Kruskal-Shafranov Limit",
+  "cat": "fusion-equations",
+  "lede": "The current-driven external kink threshold requiring the edge safety factor to exceed unity.",
+  "body": [
+    ["h2", "The Limit"],
+    ["p", "The Kruskal-Shafranov limit is the classic stability boundary for the current-driven external kink mode. For a current-carrying plasma column, the m=1, n=1 external kink becomes unstable when the safety factor at the edge falls below one, equivalently when the plasma current exceeds a threshold set by the toroidal field and geometry. Stable operation requires q_edge greater than one, and in practice comfortably above two."],
+    ["h2", "Physical Picture"],
+    ["p", "The kink is driven by the parallel current: a helical displacement of the column lets the magnetic energy of the current decrease, so the perturbation grows. The stabilizing agent is the toroidal field, whose tension resists bending of the nearly straight field lines. When the field line's own pitch (measured by q) becomes too tight, the toroidal field can no longer hold the column and it kinks."],
+    ["h2", "Consequence for Current"],
+    ["p", "Because q at the edge is inversely proportional to the plasma current, the Kruskal-Shafranov condition places a hard ceiling on how much current a given toroidal field can carry stably. This ties maximum current to field strength and is one reason high-field devices can run higher current, which in turn improves confinement and raises the density limit."],
+    ["h2", "Relevance"],
+    ["p", "The current limit set by Kruskal-Shafranov, together with the density and beta limits, defines the operational boundary of a tokamak. Spherical tokamaks such as the Hyperion breeder concept carry high current relative to their field, so edge-q margin against the external kink is a key design constraint; the reported 9.86 MA is a design target for a machine in simulation."]
+  ],
+  "related": [["safety-factor-formula", "Safety Factor"], ["wall-stabilized-beta-limits", "Wall Beta Limits"], ["greenwald-density-limit", "Greenwald Density Limit"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "troyon-beta-limit",
+  "title": "The Troyon Beta Limit",
+  "cat": "fusion-equations",
+  "lede": "The empirical and theoretical ceiling on normalized plasma pressure set by ideal-MHD stability.",
+  "body": [
+    ["h2", "The Scaling"],
+    ["p", "The Troyon limit states that the maximum stable beta in a tokamak scales as beta_max = beta_N I / (a B), where I is the plasma current in mega-amperes, a the minor radius, B the toroidal field, and beta_N the normalized beta or Troyon coefficient. Rearranged, the achievable normalized beta beta_N = beta a B / I is capped near a value of order three for conventional profiles, rising for optimized shapes."],
+    ["h2", "Origin"],
+    ["p", "The limit emerges from ideal-MHD stability against pressure- and current-driven kink and ballooning modes. Numerical stability scans across many equilibria collapse onto this simple scaling, which is why beta_N is used as a universal figure of merit: it measures how close a plasma sits to the ideal stability boundary independent of size, field, and current."],
+    ["h2", "Beyond the Limit"],
+    ["p", "The Troyon value is the no-wall ideal limit for standard profiles. Profile optimization, strong shaping, and access to second stability can raise the achievable beta_N, while a nearby conducting wall plus resistive-wall-mode control extends operation toward the higher ideal-wall limit. Neoclassical tearing modes often intervene below the ideal limit, setting a practical ceiling."],
+    ["h2", "Relevance"],
+    ["p", "Since fusion power density scales as beta squared times field to the fourth, operating near the Troyon limit at high field is the route to compact high-power designs. Spherical tokamaks like the Hyperion breeder concept naturally achieve high beta_N because of their strong shaping and magnetic well; the target beta is a design-stage value consistent with stability limits for a simulated machine."]
+  ],
+  "related": [["plasma-beta-parameter", "Plasma Beta"], ["wall-stabilized-beta-limits", "Wall Beta Limits"], ["ballooning-mode-equation", "Ballooning Modes"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "greenwald-density-limit",
+  "title": "The Greenwald Density Limit",
+  "cat": "fusion-equations",
+  "lede": "An empirical ceiling on the line-averaged density set by the plasma current and minor radius.",
+  "body": [
+    ["h2", "The Limit"],
+    ["p", "The Greenwald limit is an empirical bound on the line-averaged electron density in a tokamak: n_G = I / (pi a^2), with the density in units of ten to the twentieth per cubic meter, current I in mega-amperes, and minor radius a in meters. Discharges pushed above the Greenwald fraction (density divided by n_G) near one tend to develop a cold radiative edge, detached plasma, and often disruptions."],
+    ["h2", "Why It Matters"],
+    ["p", "Fusion power density scales with the square of the density, so operating at high density is desirable. The Greenwald limit therefore constrains achievable performance directly. Because n_G is proportional to current over area, higher current or more compact plasmas raise the accessible density, which is another reason high-current, high-field devices are attractive."],
+    ["h2", "Physical Mechanism"],
+    ["p", "Unlike the beta and current limits, the Greenwald limit is not a clean ideal-MHD boundary; it reflects edge physics. As density rises the edge cools, radiation losses grow, the current profile contracts, and MHD instability or a radiative collapse follows. Careful fueling, edge control, and high edge temperature allow operation modestly above the classic limit, so it is a soft, physics-dependent boundary rather than a hard wall."],
+    ["h2", "Relevance"],
+    ["p", "The Greenwald fraction is a standard planning parameter for any tokamak scenario, traded against confinement and power. For the Hyperion breeder concept, the high plasma current relative to its compact size raises the Greenwald density, supporting high fusion power density in design-stage modeling; these are simulation values for a machine not yet built."]
+  ],
+  "related": [["kruskal-shafranov-limit", "Kruskal-Shafranov Limit"], ["safety-factor-formula", "Safety Factor"], ["plasma-beta-parameter", "Plasma Beta"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "resistive-wall-mode",
+  "title": "The Resistive-Wall Mode",
+  "cat": "fusion-equations",
+  "lede": "A slow external kink that grows on the wall's resistive timescale in the gap between the no-wall and ideal-wall limits.",
+  "body": [
+    ["h2", "The Mode"],
+    ["p", "The resistive-wall mode is the external kink modified by a resistive, rather than perfectly conducting, wall. A perfect wall would fully stabilize the kink up to the ideal-wall beta limit; a resistive wall only delays it. In the beta range between the no-wall and ideal-wall limits, the mode cannot be fully stabilized and grows slowly, on the timescale of magnetic flux diffusion through the wall rather than the fast Alfven time."],
+    ["h2", "Growth Timescale"],
+    ["p", "Because the instability must push flux through the resistive wall to grow, its growth rate is set by the wall's resistive time, which is milliseconds to seconds, far slower than an ideal kink. This slowness is both a curse and an opportunity: the mode is persistent and will terminate a high-beta discharge if unchecked, but its leisurely growth makes it amenable to active feedback control."],
+    ["h2", "Stabilization"],
+    ["p", "Two mechanisms suppress the resistive-wall mode. Plasma rotation above a critical fraction of the Alfven speed couples the mode to the stabilizing effect of the wall through kinetic dissipation, effectively converting it back toward a stable state. Alternatively, active feedback coils detect the mode's field and drive currents to oppose it. Real scenarios use a combination of rotation and feedback."],
+    ["h2", "Relevance"],
+    ["p", "Accessing the high-beta region above the no-wall limit, where fusion performance is best, requires controlling the resistive-wall mode. For the Hyperion breeder concept, wall proximity, achievable rotation, and feedback capability are design-stage levers evaluated against the no-wall and ideal-wall limits; all such analysis is computational for a simulated device."]
+  ],
+  "related": [["wall-stabilized-beta-limits", "Wall Beta Limits"], ["troyon-beta-limit", "Troyon Beta Limit"], ["resistive-mhd-equations", "Resistive MHD"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnetosonic-waves",
+  "title": "Magnetosonic Waves",
+  "cat": "fusion-equations",
+  "lede": "The compressional fast and slow MHD waves in which magnetic and thermal pressure jointly provide restoring force.",
+  "body": [
+    ["h2", "Two Compressional Branches"],
+    ["p", "Besides the shear Alfven wave, ideal MHD supports two compressional waves called magnetosonic. Both compress the plasma and the magnetic field, and both are driven by a combination of thermal pressure and magnetic pressure. They are distinguished by whether the two pressures reinforce (fast wave) or oppose (slow wave) one another during the compression."],
+    ["h2", "Fast Magnetosonic Wave"],
+    ["p", "In the fast wave the magnetic and thermal pressures oscillate in phase, adding their restoring forces, so it has the highest phase speed of the three MHD modes and propagates in all directions, including across the field. Perpendicular to B its speed approaches sqrt(v_A^2 + c_s^2). The fast wave is the workhorse of ion-cyclotron-range heating, since it can carry energy across field lines to a central resonance."],
+    ["h2", "Slow Magnetosonic Wave"],
+    ["p", "In the slow wave the magnetic and thermal pressures are out of phase and partly cancel, giving the lowest phase speed. It propagates nearly along the field, becoming the ordinary sound wave when magnetic effects are weak. The slow wave is strongly damped in hot plasmas and plays a smaller role in heating but matters for parallel dynamics and shocks."],
+    ["h2", "Relevance"],
+    ["p", "Fast-wave propagation and accessibility govern ion-cyclotron heating scheme design, including mode conversion at hybrid layers. For the Hyperion breeder concept, magnetosonic accessibility through the varying field profile is part of the design-stage heating analysis; the high on-axis field near 8 T sets the fast-wave speeds and resonance structure in modeling of a machine not yet built."]
+  ],
+  "related": [["mhd-waves", "MHD Waves"], ["alfven-wave-equations", "Alfven Wave Equations"], ["plasma-dielectric-tensor", "Plasma Dielectric Tensor"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "guiding-center-drifts",
+  "title": "Guiding-Center Drifts",
+  "cat": "fusion-equations",
+  "lede": "The slow motion of a particle's gyration center across field lines under crossed forces and field gradients.",
+  "body": [
+    ["h2", "The Guiding-Center Picture"],
+    ["p", "A charged particle in a strong magnetic field executes fast circular gyration around a slowly moving center, the guiding center. Averaging over the fast gyration reduces the motion to the drift of this center. Any force perpendicular to B, or any spatial variation of B, causes the guiding center to drift across field lines at a velocity much smaller than the thermal speed but crucial for confinement."],
+    ["h2", "The Main Drifts"],
+    ["ul", ["E-cross-B drift: v = E x B / B^2; independent of charge, mass, and energy, so all species drift together with no current.", "Grad-B drift: v proportional to (perpendicular energy) grad B x B / B^3; charge-dependent, so ions and electrons drift oppositely, driving a current.", "Curvature drift: from the centrifugal force along curved field lines; also charge-dependent and, in a torus, adds to the grad-B drift.", "Polarization drift: a transient drift responding to a time-changing electric field, proportional to dE/dt."]],
+    ["h2", "Consequences in a Torus"],
+    ["p", "In a torus the grad-B and curvature drifts are vertical and oppositely directed for ions and electrons, so they separate charge and would destroy confinement in a purely toroidal field. The helical twist of the field, produced by the plasma current, short-circuits this charge separation along field lines. This is the fundamental reason a tokamak needs a poloidal field, not just a toroidal one."],
+    ["h2", "Relevance"],
+    ["p", "Guiding-center drifts underlie neoclassical transport, the physics of trapped-particle banana orbits, and the E-cross-B shear that suppresses turbulence. For the Hyperion breeder concept, drift orbits set neoclassical transport and fast-ion confinement in design-stage modeling; the analysis is computational for a machine in simulation."]
+  ],
+  "related": [["neoclassical-transport-overview", "Neoclassical Transport"], ["magnetic-moment-adiabatic-invariant", "Magnetic Moment"], ["banana-regime-transport", "Banana Regime"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "magnetic-moment-adiabatic-invariant",
+  "title": "The Magnetic Moment Adiabatic Invariant",
+  "cat": "fusion-equations",
+  "lede": "The conserved ratio of perpendicular energy to field strength that governs magnetic mirroring.",
+  "body": [
+    ["h2", "The Invariant"],
+    ["p", "The magnetic moment mu = m v_perp^2 / (2 B) is the first adiabatic invariant of charged-particle motion. It is conserved whenever the magnetic field changes slowly compared with the gyration period and gently over a gyroradius. Unlike energy or momentum, mu is not an exact constant of the motion but an adiabatic invariant, preserved to high accuracy under slow variation."],
+    ["h2", "Magnetic Mirroring"],
+    ["p", "Because mu is conserved and total energy is conserved, as a particle moves into stronger field its perpendicular energy m v_perp^2/2 = mu B must rise, which drains its parallel energy. If the field is strong enough, the parallel velocity reaches zero and the particle is reflected: this is the magnetic mirror. The reflection condition depends only on the pitch angle and the mirror ratio, the ratio of maximum to minimum field."],
+    ["h2", "Loss Cone"],
+    ["p", "Particles whose pitch angle at the low-field point is too small relative to the mirror ratio are not reflected and escape through the high-field throat. In velocity space these form the loss cone. A mirror-confined plasma continuously loses particles into the loss cone, and collisions refill it, setting a fundamental confinement constraint for open magnetic systems."],
+    ["h2", "Relevance"],
+    ["p", "The magnetic moment invariant is the operating principle of both toroidal trapped-particle physics and open mirror machines. The Kronos D-3He burner is a tandem-mirror generator that confines plasma between high-field plugs, with the throat field reaching 17 T and the plug field 26.49 T; mirror confinement and loss-cone control are central to its design. Tandem-mirror end plugs raise the confining potential to reduce end losses. These are design-stage figures for a machine in simulation."]
+  ],
+  "related": [["guiding-center-drifts", "Guiding-Center Drifts"], ["banana-regime-transport", "Banana Regime"], ["gyrofrequency-and-plasma-frequency", "Gyro and Plasma Frequency"]],
+  "seo_type": "TechArticle"
+}
+]

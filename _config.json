@@ -1,0 +1,28 @@
+{
+  "route": "ai",
+  "title": "Kronos AI-Native Architecture",
+  "short": "AI Architecture",
+  "kicker": "AI-NATIVE S.M.A.R.T. GENERATOR",
+  "headline": "The intelligence that runs the machine.",
+  "tagline": "How Kronos applies AI, machine learning, and quantum computing to fusion — an 8-layer architecture (L0 Foundation → L7 Ecosystem) wired into both machines: the breeder (Hyperion) and the burner. Not a computing textbook; the real control stack, layer by layer.",
+  "hero_clip": "f5-quantum-verdict.mp4",
+  "cats": {
+    "overview": ["The Master Blueprint", "The 8-layer stack, the color grammar and line semantics, and how one architecture runs both machines."],
+    "l0-foundation": ["L0 · Foundation", "Cloud HPC, bare metal, and supercomputing — the offline multi-physics and batch-training substrate."],
+    "l1-control-plane": ["L1 · Control Plane", "Edge FPGA microsecond-determinism, hard real-time actuation, and the autonomous hardware failsafe."],
+    "l2-data-fabric": ["L2 · Data Fabric", "60+ port telemetry, signal validation, feature engineering, the archive, feature store, and vector DB."],
+    "l3-twin-modeling": ["L3 · Twin Modeling & AI", "GNNs, PINNs, anomaly ensembles, MPC, and the KRONOS-CTRL digital twin with its predictive shadow."],
+    "l4-orchestration": ["L4 · Orchestration", "Event streaming, the workflow engine, the rules engine & safety bounds, and human-in-the-loop routing."],
+    "l5-copilots": ["L5 · Applications & Copilots", "Agentic Plasma, Engineering, and Operations copilots."],
+    "l6-experience": ["L6 · Experience", "The control-room 3D twin overlays, plant-floor SCADA, and mobile engineering."],
+    "l7-ecosystem": ["L7 · Ecosystem & Strategy", "Grid, supply-chain, maintenance, and regulatory integrations via the unified API layer."],
+    "physical-interfaces": ["Physical Interfaces", "How the stack touches each subsystem — magnets & ice-piston, fuel cycle, vessel/SHM, divertor, DEC train, diagnostics."],
+    "control-safety": ["Real-Time Control & Safety", "The sub-10µs control loop, synchronized gates, autonomous failsafe, and human oversight."],
+    "security": ["Security & Zero-Trust", "IT/OT separation, airgaps, unidirectional data diodes, and full decision-audit lineage."],
+    "mlops": ["MLOps & Learning", "Offline retraining, twin refinement, drift detection, and reinforcement learning from human feedback."],
+    "resiliency": ["Resiliency & Operations", "The timing model, the operating narrative, failure-mode/failover, and predictive maintenance."],
+    "foundations-math": ["Mathematical Foundations", "The math behind each layer — PINNs, Grad-Shafranov, MPC, GNNs, state estimation — anchored to Kronos's use."],
+    "quantum-for-fusion": ["Quantum for Fusion", "Where quantum computing fits — materials & chemistry, and the helium-3 flywheel."],
+    "advanced-capabilities": ["Advanced Capabilities", "The roadmap — formal assurance, physics-fidelity twins, stronger algorithms, and fleet-scale trust. We publish the gaps, not just the wins: each is real, sequenced to a milestone, and not yet built."]
+  }
+}

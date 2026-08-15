@@ -1,0 +1,997 @@
+[
+{
+"slug":"l0-foundation-overview",
+"title":"The L0 Foundation Layer",
+"cat":"l0-foundation",
+"lede":"L0 is the offline, high-compute substrate that trains, simulates, and re-grounds everything the real-time layers do for both Kronos machines.",
+"body":[
+["h2","Where L0 sits in the S.M.A.R.T. stack"],
+["p","The Kronos AI-native architecture is an eight-layer stack. L0 Foundation is its base: the non-real-time compute substrate where offline multi-physics simulation, batch model retraining, and large-scale reproducible study campaigns run. It is deliberately separated from L1, the microsecond control plane. L0 is allowed to be slow, expansive, and thorough; L1 is not allowed to be anything but fast and deterministic."],
+["p","Every predictive object that later runs in the real-time <a href=./gpu-clusters-twin-sync.html>digital twin</a> is born here. The Grad-Shafranov surrogates, the physics-informed neural networks, the neutronics response tables, and the anomaly-detection ensembles are all trained on L0 and only then compiled down toward the edge. L0 is the ground truth generator; the fast layers are its accelerated shadows."],
+["h3","What runs on L0"],
+["ul",["Offline multi-physics Monte Carlo for neutronics and activation, both machines","Batch retraining and refinement of every twin surrogate","GPU-cluster training runs for PINNs, GNNs, and anomaly ensembles","Large parameter sweeps: breeder triangularity and TBR levers, burner plug-density scans","Petabyte-scale archival and replay of pulse histories"]],
+["h3","Both machines, always"],
+["p","L0 serves the breeder (Hyperion), a D-T spherical tokamak with R0 1.2 m, aspect ratio 2.5, peak field 16.84 T (8 T on-axis), Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, and negative triangularity delta -0.30. It equally serves the burner, a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, and 5.44 percent neutron fraction. The physics differs sharply, but both share this compute base."],
+["p","Because construction of the breeder begins Q2 2027 and first tritium is expected around 2030, everything on L0 today is design and simulation. There is no hardware net-gain claim before FOAK. L0 is therefore where the machines currently exist most fully: as validated, reproducible numerical models rather than as steel and plasma."]
+],
+"related":[["compute-substrate-architecture","The Compute Substrate"],["offline-realtime-separation","Offline vs Real-Time"],["gpu-clusters-twin-sync","Twin Synchronization"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"compute-substrate-architecture",
+"title":"The Compute Substrate",
+"cat":"l0-foundation",
+"lede":"A tiered mix of cloud HPC and owned bare-metal that carries every offline workload from Monte Carlo transport to twin retraining.",
+"body":[
+["h2","One substrate, many workload shapes"],
+["p","The L0 compute substrate is not a single machine class. It is a heterogeneous pool sized to the three dominant workload shapes Kronos runs: embarrassingly parallel Monte Carlo transport, tightly coupled multi-physics finite-element solves, and dense GPU training. Each shape stresses a different resource, so the substrate is provisioned along three axes rather than one."],
+["ul",["CPU-dense partitions for particle transport, where per-history work is light but histories number in the billions","Low-latency interconnect partitions for implicit MHD and thermomechanical solves that exchange halos every iteration","GPU-dense partitions for PINN, GNN, and surrogate training with high memory bandwidth demand"]],
+["h3","Cloud plus bare-metal"],
+["p","Bursty study campaigns, parameter sweeps, and retraining spikes run on elastic <a href=./cloud-hpc-and-bare-metal.html>cloud HPC</a>. Steady, latency-sensitive, or data-gravity-bound work runs on owned bare-metal near the petabyte pulse archive. The split is an operational and reproducibility decision, not an economic one: bare-metal gives byte-stable numerics and unshared interconnect; cloud gives elasticity for wide sweeps."],
+["h3","Abstraction over the pool"],
+["p","Workloads never target hardware directly. They target the <a href=./hardware-abstraction-layer.html>hardware abstraction layer</a>, which resolves a declared workload profile to a concrete partition. A neutronics job asks for CPU histories and scratch bandwidth; a training job asks for GPUs and a checkpoint volume. The scheduler places them, and the same job specification reproduces on cloud or bare-metal."],
+["p","This substrate feeds both machines. A breeder blanket neutronics sweep and a burner end-cell MHD solve can share the same pool at the same time, differentiated only by their declared profiles. The substrate is machine-agnostic; the physics lives in the workloads, not the metal."],
+["p","Sizing is driven by campaign cadence: the batch-retraining loop, the Monte Carlo variance targets, and the sweep breadth set peak demand. The substrate is deliberately over-provisioned in interconnect and storage bandwidth relative to raw FLOPs, because Kronos workloads are more often bandwidth- and communication-bound than compute-bound."]
+],
+"related":[["cloud-hpc-and-bare-metal","Cloud HPC vs Bare-Metal"],["hardware-abstraction-layer","Hardware Abstraction Layer"],["interconnect-fabric","Interconnect Fabric"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cloud-hpc-and-bare-metal",
+"title":"Cloud HPC vs Bare-Metal Compute",
+"cat":"l0-foundation",
+"lede":"When Kronos runs on elastic cloud HPC and when it runs on owned bare-metal, and why the choice is about reproducibility and data gravity.",
+"body":[
+["h2","Two regimes, one workload catalogue"],
+["p","L0 workloads land in one of two regimes. Elastic cloud HPC absorbs wide, bursty, independent work: TBR sweeps across the breeder blanket lever set 1.1, 1.5, 1.8; burner plug-density scans; hyperparameter searches. Owned bare-metal carries work that is latency-bound, numerically sensitive, or bound to the petabyte archive by data gravity."],
+["h3","Why bare-metal for the sensitive core"],
+["p","Reproducibility is easier to guarantee on hardware Kronos controls. Bare-metal fixes the CPU microarchitecture, the interconnect topology, and the numerical libraries, so a coupled MHD-thermomechanics solve produces the same trajectory today and after FOAK. Shared virtualized fabrics introduce jitter that is harmless for training but corrosive for bitwise-reproducible physics runs."],
+["h3","Why cloud for the wide frontier"],
+["p","Parameter sweeps are the opposite case. A negative-triangularity shape scan launches thousands of independent Grad-Shafranov solves; a neutronics campaign launches thousands of independent Monte Carlo batches. These have no cross-talk, tolerate heterogeneous nodes, and benefit from scaling out fast and releasing capacity when the campaign ends."],
+["matrix",["Regime fit (rows: cloud, bare-metal)",[["wide sweeps","tight coupling"],["bursty","steady"],["elastic","data-gravity"],["training spikes","reproducible core"]]]],
+["p","The two regimes are not walled off. A campaign frequently begins as a broad cloud sweep to find interesting regions of the breeder or burner operating space, then re-runs the survivors on bare-metal under strict reproducibility controls before their results are allowed to update a twin surrogate. Cloud explores; bare-metal certifies."],
+["p","Both regimes present identically through the <a href=./hardware-abstraction-layer.html>hardware abstraction layer</a>, so a workload does not know or care where it runs. Placement is a policy decision keyed to the job profile, the sensitivity tier, and current archive proximity, never something a physicist hand-codes."]
+],
+"related":[["compute-substrate-architecture","The Compute Substrate"],["reproducibility-of-compute","Reproducibility of Compute"],["bare-metal-provisioning","Bare-Metal Provisioning"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"bare-metal-provisioning",
+"title":"Bare-Metal Provisioning and Determinism",
+"cat":"l0-foundation",
+"lede":"How Kronos pins microarchitecture, libraries, and topology on owned nodes so that physics runs are numerically stable across years.",
+"body":[
+["h2","Determinism as a provisioning requirement"],
+["p","For the reproducible core of L0, provisioning is not just about acquiring cycles; it is about acquiring the same cycles every time. A coupled solve of the breeder equilibrium and blanket thermomechanics can be chaotic in the mathematical sense: tiny numerical differences amplify. To certify a result years apart, Kronos pins the entire numerical environment on bare-metal."],
+["ul",["Fixed CPU microarchitecture and vector ISA per reproducibility class","Pinned BLAS, LAPACK, MPI, and PETSc versions","Disabled frequency scaling and turbo variability on certified nodes","Locked NUMA topology and thread affinity","Recorded firmware and microcode revisions"]],
+["h3","The reproducibility class"],
+["p","Certified nodes are grouped into reproducibility classes. A run declares its class; the scheduler places it only on matching hardware. This means a Grad-Shafranov equilibrium computed for the negative-triangularity delta -0.30 breeder shape can be re-derived bit-for-bit, which matters because these equilibria seed the twin surrogates that will later run in real time."],
+["h3","Why this precedes hardware"],
+["p","The breeder does not exist yet; construction begins Q2 2027 and first tritium is expected around 2030. Until then, the numerical model is the machine. If the model is not reproducible, there is nothing stable to design against. Bare-metal determinism is therefore a design-integrity requirement, not an optimization."],
+["p","Provisioning also records everything needed to reconstruct a run: node identity, environment hash, library manifest, and RNG seeds. This manifest travels with every result into the petabyte archive, so a burner or breeder study can be audited and replayed on demand. Determinism without recording is not reproducibility; the two are provisioned together."]
+],
+"related":[["reproducibility-of-compute","Reproducibility of Compute"],["deterministic-simulation-seeds","Deterministic Seeds"],["containerized-environments","Containerized Environments"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gpu-cluster-architecture",
+"title":"GPU Cluster Architecture",
+"cat":"l0-foundation",
+"lede":"The GPU partitions where Kronos trains PINNs, GNNs, surrogates, and anomaly ensembles for both the breeder and the burner.",
+"body":[
+["h2","GPUs as the training engine of L0"],
+["p","The GPU partitions of L0 exist to train the models that later run in the real-time twin. This is dense, memory-bandwidth-bound work: physics-informed neural networks solving Grad-Shafranov and MHD residuals, graph neural networks over the diagnostic sensor topology, surrogate emulators of expensive solvers, and anomaly-detection ensembles for sub-threshold quench precursors."],
+["h3","Node and memory design"],
+["p","Nodes are built around high-bandwidth GPU memory and fast intra-node GPU-to-GPU links, because PINN training is dominated by repeated evaluation of differential-operator residuals over large collocation sets. The bottleneck is rarely raw arithmetic; it is feeding tensors and gradients through memory. Kronos sizes memory per GPU to hold the largest single-machine twin module without sharding."],
+["h3","Multi-GPU and multi-node scaling"],
+["p","Larger models shard across GPUs with tensor and data parallelism; large sweeps run one model per GPU in parallel. The <a href=./interconnect-fabric.html>interconnect fabric</a> carries gradient all-reduce traffic for distributed training. For the breeder disruption-precursor ensembles, many small models train concurrently, so throughput matters more than single-model scale."],
+["ul",["High-bandwidth GPU memory sized to full twin modules","Fast intra-node GPU links for tensor-parallel PINNs","RDMA interconnect for gradient all-reduce across nodes","Local NVMe scratch for training-shard streaming"]],
+["p","The clusters serve both machines from one pool. A breeder equilibrium PINN and a burner ambipolar-potential surrogate can train side by side; only their data and residual definitions differ. Machine specialization lives in the loss functions and datasets, not the silicon."],
+["p","Trained artifacts do not stay on the GPUs. They are versioned, validated, then compiled and quantized for the <a href=./gpu-clusters-twin-sync.html>real-time twin</a> and, where applicable, down to the L1 edge. The GPU clusters are the forge; the fast layers are where the finished tools are used."]
+],
+"related":[["pinn-training-workloads","PINN Training"],["gnn-training-sensor-topology","GNN Training"],["distributed-training-strategy","Distributed Training"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gpu-clusters-twin-sync",
+"title":"GPU Clusters for Millisecond Twin Synchronization",
+"cat":"l0-foundation",
+"lede":"How L0-trained models feed the KRONOS-CTRL twin so its Power, Neutronics, Thermomechanics, and MHD modules run a 50 to 100 ms predictive shadow.",
+"body":[
+["h2","From offline forge to predictive shadow"],
+["p","The KRONOS-CTRL digital twin runs a predictive shadow of the live machine on a 50 to 100 ms horizon, updating its Power, Neutronics, Thermomechanics, and MHD modules continuously. It cannot achieve that horizon by solving the underlying physics from scratch each step. It runs surrogates and PINNs that were trained offline on the L0 GPU clusters and compiled for fast inference."],
+["h3","Why L0 makes millisecond sync possible"],
+["p","A full Grad-Shafranov equilibrium or an implicit MHD stability solve takes far longer than the twin budget allows. L0 pays that cost once, offline, generating training data and fitting surrogates that reproduce the solver output in a single forward pass. The twin then evaluates the surrogate in milliseconds, which is what makes the shadow tractable at 50 to 100 ms."],
+["ul",["Equilibrium surrogates for the breeder negative-triangularity shape","Fast MHD stability estimators for disruption margin","Neutronics response tables for real-time isotope balancing","Burner end-plug and ambipolar-potential emulators"]],
+["h3","Keeping the shadow honest"],
+["p","A surrogate drifts if the machine drifts. The <a href=./batch-retraining-pipeline.html>batch retraining pipeline</a> continually re-grounds twin models against fresh pulse histories, closing the loop between the fast twin and the slow foundation. L0 both creates and maintains the twin; synchronization is a standing relationship, not a one-time build."],
+["p","This applies to both machines. The breeder twin tracks equilibrium, the ELM-free negative-triangularity shape, and disruption margin; the burner twin tracks end-plug density, the ambipolar potential, and the direct-energy-conversion train. Both draw their fast models from the same GPU forge and both are refreshed by the same retraining cadence."],
+["p","Because the machines are still design and simulation until FOAK around 2030, the twin today runs against simulated pulses and archived study campaigns rather than live plasma. The synchronization machinery is being validated now so that it is trustworthy the moment real pulses begin."]
+],
+"related":[["batch-retraining-pipeline","Batch Retraining"],["twin-refinement-loop","Twin Refinement Loop"],["offline-realtime-separation","Offline vs Real-Time"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"exascale-considerations",
+"title":"Exascale Considerations",
+"cat":"l0-foundation",
+"lede":"Where Kronos workloads actually scale toward exascale, where they do not, and why bandwidth and reproducibility bound the frontier.",
+"body":[
+["h2","What exascale means for Kronos"],
+["p","Exascale is only useful where a workload can consume it without falling apart on communication or losing reproducibility. Kronos has both kinds of workload. Monte Carlo neutronics scales almost perfectly and would happily absorb exascale-class throughput; tightly coupled implicit multi-physics solves hit communication walls long before that."],
+["h3","The workloads that scale"],
+["p","Particle transport is the exascale-friendly case. Each neutron history is independent, so a breeder blanket TBR study or a burner 5.44 percent neutron-fraction shielding study partitions cleanly across an enormous node count. The limit is not coupling but variance: more cores buy more histories, and error falls as one over the square root of history count."],
+["h3","The workloads that resist"],
+["p","Implicit MHD and coupled thermomechanics resist naive scaling. They exchange halo data every iteration, so at extreme node counts communication dominates and the strong-scaling curve flattens. Here the frontier is set by the <a href=./interconnect-fabric.html>interconnect</a> and the solver's communication-avoidance, not by adding nodes."],
+["matrix",["Scaling behavior (rows: MC transport, implicit MHD)",[["weak-scales","strong-scale-limited"],["comm-light","comm-heavy"],["variance-bound","latency-bound"]]]],
+["p","Exascale also strains reproducibility. Non-deterministic reduction orders across millions of parallel operations perturb the last bits of a result. For sweeps this is tolerable; for the certified reproducible core it is not, so those runs deliberately trade some scale for deterministic reductions."],
+["p","Kronos therefore treats exascale as a tool for the wide, independent frontier, chiefly Monte Carlo campaigns and large training sweeps, and treats the coupled reproducible core as a smaller, tightly controlled regime. The point is not to reach a headline scale but to size each workload to where it stops being efficient or trustworthy."]
+],
+"related":[["offline-monte-carlo-supercomputing","Offline Monte Carlo"],["interconnect-fabric","Interconnect Fabric"],["reproducibility-of-compute","Reproducibility of Compute"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"hardware-abstraction-layer",
+"title":"The Hardware Abstraction Layer",
+"cat":"l0-foundation",
+"lede":"A declarative boundary that lets Kronos workloads target profiles, not machines, so the same job reproduces on cloud or bare-metal.",
+"body":[
+["h2","Why abstract the hardware at all"],
+["p","L0 spans cloud HPC and owned bare-metal, CPU-dense and GPU-dense nodes, high-latency and low-latency fabrics. If workloads addressed hardware directly, every neutronics study or PINN training run would encode brittle assumptions about node counts, memory, and topology. The hardware abstraction layer (HAL) removes those assumptions."],
+["h3","Declaring, not placing"],
+["p","A job declares a profile: what it needs, not where to run. A breeder blanket Monte Carlo run declares CPU histories, scratch bandwidth, and a reproducibility class. A burner ambipolar-potential surrogate training run declares GPUs, memory per device, and a checkpoint volume. The HAL resolves the profile to a concrete partition and places it."],
+["ul",["Resource shape: CPU or GPU dominant, memory, scratch","Fabric class: latency-sensitive coupled or throughput-parallel","Reproducibility class: certified deterministic or elastic","Data affinity: proximity to the pulse archive"]],
+["h3","Portability and reproducibility"],
+["p","Because the profile is the contract, the same job specification runs on cloud during a wide sweep and re-runs on <a href=./bare-metal-provisioning.html>certified bare-metal</a> for the final reproducible pass. Nothing in the physics code changes; only the resolved placement does. This is what makes the cloud-explores, bare-metal-certifies workflow practical."],
+["p","The HAL also isolates the physics teams from hardware churn. When a node class is retired or a new GPU generation arrives, profiles are re-mapped once inside the HAL rather than across thousands of job scripts. The breeder and burner study code stays stable while the substrate beneath it evolves."],
+["p","Above the HAL sits scheduling and orchestration; below it sits the heterogeneous pool. The HAL is the seam that keeps L0 both flexible and reproducible, and it is the reason a workload never needs to know whether it is running on a rented cloud partition or a pinned deterministic node."]
+],
+"related":[["compute-substrate-architecture","The Compute Substrate"],["compute-scheduling-orchestration","Scheduling and Orchestration"],["containerized-environments","Containerized Environments"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"compute-scheduling-orchestration",
+"title":"Compute Scheduling and Orchestration",
+"cat":"l0-foundation",
+"lede":"How L0 packs Monte Carlo, coupled solves, and GPU training onto a shared pool without starving the reproducible core.",
+"body":[
+["h2","Three workload shapes, one queue discipline"],
+["p","L0 runs three very different shapes on one pool: throughput-parallel Monte Carlo, latency-bound coupled solves, and GPU training. A single fair-share scheduler cannot treat them alike. Kronos orchestration classifies each job by shape and reproducibility tier, then places it where it will neither waste the pool nor collide with sensitive work."],
+["h3","Backfill for the wide frontier"],
+["p","Monte Carlo and hyperparameter sweeps are ideal backfill: they are independent, checkpointable, and preemptible. The scheduler uses them to fill gaps left by large coupled solves, keeping utilization high without delaying tightly scheduled reproducible runs. A breeder TBR sweep can be paused, migrated, and resumed with no scientific loss."],
+["h3","Reservations for the reproducible core"],
+["p","Certified reproducible runs, the coupled MHD-thermomechanics solves that seed twin surrogates, get reserved placement on <a href=./bare-metal-provisioning.html>pinned nodes</a>. They are never co-scheduled with noisy neighbors that could perturb timing or numerics. The scheduler treats reproducibility as a hard constraint, not a preference."],
+["ul",["Shape-aware placement: throughput, coupled, or training","Preemptible backfill for sweeps and Monte Carlo","Hard reservations for certified deterministic runs","Gang scheduling for multi-node coupled and distributed-training jobs"]],
+["p","Coupled solves and distributed training both need gang scheduling: all ranks start together or not at all, because a partial allocation deadlocks a synchronous job. Orchestration allocates these atomically and holds them until the full set of nodes and the required <a href=./interconnect-fabric.html>fabric</a> topology are available."],
+["p","The scheduler is machine-blind by design. A breeder equilibrium campaign and a burner end-cell study compete for the pool on equal terms, arbitrated by shape, tier, and priority. This keeps both machines' study cadences moving without either one monopolizing the substrate."]
+],
+"related":[["hardware-abstraction-layer","Hardware Abstraction Layer"],["checkpointing-and-fault-tolerance","Checkpointing"],["interconnect-fabric","Interconnect Fabric"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"interconnect-fabric",
+"title":"Interconnect Fabric and Collective Communication",
+"cat":"l0-foundation",
+"lede":"The low-latency, high-bandwidth fabric that decides how far Kronos coupled solves and distributed training can scale.",
+"body":[
+["h2","The fabric is the real limit"],
+["p","For a large class of L0 work, the interconnect, not the processor, sets the ceiling. Implicit MHD, coupled thermomechanics, and distributed GPU training all spend a large fraction of their time in collective communication. The fabric's latency and bandwidth therefore decide the scaling frontier more than FLOPs do."],
+["h3","Halo exchange in coupled solves"],
+["p","A domain-decomposed breeder equilibrium or blanket thermomechanics solve partitions the mesh across ranks. Every iteration, ranks exchange boundary (halo) data with neighbors. As the partition count grows, surface-to-volume ratio grows, so communication rises relative to computation. Low fabric latency is what keeps this from dominating."],
+["h3","All-reduce in distributed training"],
+["p","Data-parallel PINN and surrogate training synchronizes gradients with an all-reduce every step. The all-reduce cost scales with model size and rank count, so bandwidth and a good reduction topology, tree or ring, determine whether adding GPUs still helps. RDMA transport keeps the reduction off the CPU and out of the critical path."],
+["ul",["RDMA transport for halo and gradient traffic","Topology-aware collective reduction, ring and tree","Rank placement matched to physical fabric layout","Bandwidth over-provisioned relative to raw compute"]],
+["p","Kronos orchestration places gang-scheduled jobs with topology awareness, so ranks that talk most sit closest in the fabric. A poorly placed all-reduce can erase the benefit of extra GPUs; a well-placed one keeps strong scaling alive further out."],
+["p","This is why the compute substrate is deliberately over-provisioned in interconnect relative to arithmetic. Both the breeder and burner coupled workloads are more often bound by communication than by computation, so the fabric is treated as a first-class resource, sized and scheduled with the same care as the processors it connects."]
+],
+"related":[["compute-substrate-architecture","The Compute Substrate"],["exascale-considerations","Exascale Considerations"],["distributed-training-strategy","Distributed Training"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"numerical-precision-strategy",
+"title":"Mixed-Precision Numerical Strategy",
+"cat":"l0-foundation",
+"lede":"Where Kronos uses double, single, and reduced precision across simulation and training, and why precision is a correctness decision.",
+"body":[
+["h2","Precision is chosen per workload"],
+["p","L0 mixes numerical precisions deliberately. Precision trades accuracy against memory and speed, and the right point differs sharply between an implicit physics solve that must converge to a tight residual and a neural-network training run that tolerates noise. Kronos assigns precision per workload, not per machine."],
+["h3","Double precision for the physics core"],
+["p","Coupled MHD, Grad-Shafranov equilibria, and thermomechanics run in double precision. These are stiff, iterative, and sometimes chaotic; single precision would let rounding accumulate into a different converged state, which breaks reproducibility. For the certified core, double precision is non-negotiable."],
+["h3","Reduced precision for training"],
+["p","PINN, GNN, and surrogate training use mixed precision: reduced-precision matrix math with a higher-precision master copy of the weights and a loss-scaling step to protect small gradients. This roughly doubles throughput and halves memory with no meaningful loss in the trained surrogate's fidelity, because the training objective is already statistical."],
+["ul",["Double precision: equilibrium, MHD, thermomechanics, coupled solves","Mixed precision: PINN, GNN, surrogate, anomaly training","Reduced precision at inference: compiled twin surrogates","Higher-precision accumulation for reductions and dot products"]],
+["p","Monte Carlo transport is an intermediate case. Per-history arithmetic tolerates single precision, but tallies accumulate over billions of histories, so their accumulators use higher-precision summation to avoid catastrophic cancellation. Precision is thus split within a single code: cheap per-history, careful per-tally."],
+["p","At the far end, twin surrogates are quantized to reduced precision for fast inference in the 50 to 100 ms shadow. The chain runs from double-precision truth at the physics core, through mixed-precision training, to reduced-precision real-time evaluation, each step chosen so the final control decision stays inside its physics-validated envelope."]
+],
+"related":[["reproducibility-of-compute","Reproducibility of Compute"],["pinn-training-workloads","PINN Training"],["monte-carlo-variance-reduction","Variance Reduction"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"offline-monte-carlo-supercomputing",
+"title":"Supercomputing for Offline Multi-Physics Monte Carlo",
+"cat":"l0-foundation",
+"lede":"The largest recurring L0 workload: billions of particle histories tracing neutron transport, breeding, and damage through both machines.",
+"body":[
+["h2","Monte Carlo as the L0 workhorse"],
+["p","The single largest recurring workload on L0 is Monte Carlo particle transport. Neutron and photon histories are traced stochastically through detailed 3D models of both machines, scoring the quantities that matter: tritium breeding, energy deposition, activation, and material damage. Because the machines are not built, these campaigns are how their nuclear behavior is currently known."],
+["h3","Why Monte Carlo and not deterministic"],
+["p","Neutron transport in complex, heterogeneous geometry with sharp resonances is where Monte Carlo excels. It handles the breeder's blanket, coolant channels, and structure without the discretization error a deterministic mesh imposes on angle, energy, and space. The cost is statistical noise, which falls only as one over the square root of the history count."],
+["h3","Both machines, different questions"],
+["p","For the breeder (Hyperion), the central question is the tritium breeding ratio, studied as a design lever across 1.1, 1.5, and 1.8, plus 14 MeV neutron flux and blanket heating. For the burner, the question is the 5.44 percent neutron fraction of the D-3He reaction: shielding, activation, and the low but non-zero neutron load on structure and the direct-conversion train."],
+["ul",["Tritium breeding and 14 MeV flux mapping in the breeder blanket","Nuclear heating for coupling into thermomechanics","Activation inventories for both machines","Shielding of the burner direct-conversion train"]],
+["p","These runs scale almost perfectly because histories are independent. A campaign fans out across a large node count, each node tracing a batch, with tallies combined at the end. This is the workload that could absorb exascale throughput; the practical limit is the variance target, not coupling."],
+["p","Every campaign records its cross-section library, geometry hash, and RNG seeds so the result can be replayed. Monte Carlo output does not stay isolated: nuclear heating fields feed the thermomechanics solves, and breeding results feed the fuel-cycle and isotope-balance models, making this the entry point of the multi-physics chain."]
+],
+"related":[["neutronics-monte-carlo-breeder","Breeder Neutronics"],["neutronics-monte-carlo-burner","Burner Neutronics"],["monte-carlo-variance-reduction","Variance Reduction"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"neutronics-monte-carlo-breeder",
+"title":"Neutronics Monte Carlo for the Breeder",
+"cat":"l0-foundation",
+"lede":"Tracing 14 MeV neutrons through Hyperion's blanket to quantify tritium breeding, heating, and activation across the TBR lever set.",
+"body":[
+["h2","The breeder neutronics problem"],
+["p","The breeder (Hyperion) is a D-T spherical tokamak producing 88.7 MW of fusion power, dominated by 14 MeV neutrons from the D-T reaction. Those neutrons must do two jobs in the blanket: breed tritium via lithium reactions and deposit their energy as recoverable heat. Monte Carlo transport on L0 is how both are quantified before the machine exists."],
+["h3","Tritium breeding as a design lever"],
+["p","The tritium breeding ratio (TBR) is treated as a design lever, studied across 1.1, 1.5, and 1.8. Each value corresponds to different blanket composition, lithium enrichment, and neutron multiplier choices. The Monte Carlo campaign scores the T(n,x) and Li(n,x) reaction rates that determine TBR, letting the design team map breeding against the geometry that produces it."],
+["h3","Coupled outputs"],
+["p","Neutronics does not stop at breeding. The same histories score nuclear heating throughout the blanket and structure, and those heating fields are handed to the <a href=./activation-and-damage-modeling.html>activation and damage</a> and thermomechanics workloads. The breeder's roughly 4 kg/yr tritium class output and 1.97 kg/yr helium-3 co-product trace back to these transport results."],
+["ul",["14 MeV source sampling over the plasma volume","Li(n,alpha)T and Li(n,n'alpha)T breeding reaction rates","Neutron multiplication and spectral softening in the blanket","Nuclear heating maps for thermomechanical coupling"]],
+["p","Geometry fidelity matters. The spherical-tokamak layout, with R0 1.2 m and aspect ratio 2.5, places the center column and blanket in a tight, strongly heterogeneous arrangement. Monte Carlo captures this without homogenizing it, which is essential because streaming paths and local breeding hot and cold spots dominate the achievable TBR."],
+["p","Every breeder neutronics result carries its cross-section library and seed manifest into the archive, so a TBR value can be re-derived and audited. These certified results become the training data for the twin's real-time neutronics response tables used in isotope balancing."]
+],
+"related":[["tritium-breeding-ratio-sweeps","TBR Sweeps"],["activation-and-damage-modeling","Activation and Damage"],["cross-section-data-pipeline","Cross-Section Pipeline"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"neutronics-monte-carlo-burner",
+"title":"Neutronics Monte Carlo for the Burner",
+"cat":"l0-foundation",
+"lede":"Quantifying the D-3He reaction's 5.44 percent neutron fraction so the burner's shielding and direct-conversion train are designed honestly.",
+"body":[
+["h2","Low-neutron, not aneutronic"],
+["p","The burner is a D-3He tandem-mirror generator. Its primary reaction is low-neutron but not aneutronic: a neutron fraction of 5.44 percent arises chiefly from D-D side reactions and their tritium products. Monte Carlo on L0 quantifies exactly where those neutrons go, because honest shielding and activation design depends on treating that 5.44 percent as real, not zero."],
+["h3","What the neutrons threaten"],
+["p","In the burner, neutrons are the component that most stresses structure and the direct-energy-conversion (DEC) train. The multi-modal DEC path, TWDEC, ultra-high-field MHD, and thermionics, sits in the particle exhaust and must be shielded from the neutron and activation environment. Monte Carlo maps the flux reaching each stage so materials and shielding are sized to the true load."],
+["ul",["D-D and secondary D-T neutron source characterization","Neutron and gamma flux at the DEC train","Activation of the 26.49 T plug and 17 T throat magnet regions","Shielding optimization for the end cells and expander"]],
+["h3","Why this is subtle"],
+["p","Because the neutron fraction is small, naive analog Monte Carlo wastes effort tracking the dominant charged-particle physics that carries no neutrons. Kronos uses <a href=./monte-carlo-variance-reduction.html>variance reduction</a> to bias sampling toward the rare neutron-producing channels and the deep-shield regions where flux is low but consequential."],
+["p","The tandem-mirror geometry is open-ended, not toroidal, so neutron streaming along the axis and out the end cells behaves very differently from the breeder's closed blanket. Monte Carlo captures this axial leakage directly, which matters for siting the DEC train and the expander in the neutron shadow."],
+["p","Burner neutronics results feed the same downstream chain as the breeder: heating into thermomechanics, activation into waste and maintenance planning, and response tables into the twin. The difference is emphasis, the burner asks how to keep a small neutron flux from degrading a precise energy-conversion system, rather than how to maximize breeding."]
+],
+"related":[["offline-monte-carlo-supercomputing","Offline Monte Carlo"],["monte-carlo-variance-reduction","Variance Reduction"],["activation-and-damage-modeling","Activation and Damage"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"tritium-breeding-ratio-sweeps",
+"title":"Tritium Breeding Ratio Parameter Sweeps",
+"cat":"l0-foundation",
+"lede":"Wide, independent Monte Carlo campaigns that map breeder blanket design against the TBR lever set 1.1, 1.5, and 1.8.",
+"body":[
+["h2","TBR as a swept design lever"],
+["p","Kronos treats the breeder's tritium breeding ratio as a design lever rather than a single fixed target, studying it across 1.1, 1.5, and 1.8. A parameter sweep on L0 launches many independent neutronics runs, each with different blanket composition, lithium-6 enrichment, multiplier fraction, and structural layout, and scores the TBR each configuration achieves."],
+["h3","An embarrassingly parallel campaign"],
+["p","Each configuration is independent, so the sweep is embarrassingly parallel: thousands of Monte Carlo jobs run concurrently with no cross-talk, ideal for elastic <a href=./cloud-hpc-and-bare-metal.html>cloud HPC</a>. The campaign fans out, each job traces its histories to a variance target, and results are gathered into a response surface over the design space."],
+["ul",["Lithium-6 enrichment fraction","Neutron multiplier loading","Blanket thickness and coolant fraction","Structural and manifold penalties on breeding"]],
+["h3","Reading the response surface"],
+["p","The output is a map from blanket design to achievable TBR, with statistical error bars from the Monte Carlo. Configurations that reach 1.5 or 1.8 cost geometry and material choices that the sweep makes explicit, so the design team trades breeding margin against practicality with quantified confidence rather than intuition."],
+["p","Interesting regions of the surface are then re-run on <a href=./bare-metal-provisioning.html>certified nodes</a> under strict reproducibility before any value is trusted for design. Cloud explores the space broadly; bare-metal certifies the specific points that matter. A TBR figure that will drive design must be replayable bit-for-bit."],
+["p","The sweep result is more than a number. It quantifies how sensitive breeding is to each lever, which tells the fuel-cycle model how much margin exists and tells the twin's isotope-balancing surrogate how breeding responds to configuration. The lever set 1.1, 1.5, 1.8 is a deliberate span from marginal to comfortable, chosen to bracket the honest engineering range."]
+],
+"related":[["neutronics-monte-carlo-breeder","Breeder Neutronics"],["uncertainty-quantification","Uncertainty Quantification"],["cloud-hpc-and-bare-metal","Cloud vs Bare-Metal"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"monte-carlo-variance-reduction",
+"title":"Monte Carlo Variance Reduction",
+"cat":"l0-foundation",
+"lede":"Weight windows, importance biasing, and splitting that let Kronos resolve deep-shield and rare-channel quantities without brute force.",
+"body":[
+["h2","Why brute force is not enough"],
+["p","Monte Carlo error falls as one over the square root of the history count, so halving the error costs four times the compute. For deep-shield fluxes and rare reaction channels, the burner's 5.44 percent neutron fraction or the flux behind thick breeder shielding, analog sampling almost never reaches the region of interest. Variance reduction is what makes these quantities affordable."],
+["h3","Importance and weight windows"],
+["p","Kronos assigns spatial and energy-dependent importance so particles heading toward the tally region are split into more, lower-weight particles, while those heading away are played roulette. Weight windows bound particle weights in each cell, keeping the population productive where it matters and thin where it does not, without biasing the expected result."],
+["ul",["Geometry splitting and Russian roulette by cell importance","Weight windows over space and energy","Source biasing toward rare neutron-producing channels","Adjoint-informed importance maps for deep penetration"]],
+["h3","Adjoint-informed importance"],
+["p","The most powerful maps come from an adjoint (importance) calculation: a cheap deterministic solve of the adjoint transport equation estimates how much each region contributes to the target tally, and that field becomes the importance function for the forward Monte Carlo. This couples a deterministic pre-pass to the stochastic run, a hybrid method Kronos uses for the hardest shielding problems."],
+["p","Variance reduction is unbiased in expectation but must be validated. A badly tuned importance map can produce a confident-looking answer that is wrong, so Kronos checks the figure-of-merit, error times compute time, and the tally's statistical health across batches before trusting a reduced-variance result."],
+["p","The payoff is decisive for both machines. It lets the breeder shielding and burner DEC-train shielding be resolved to useful precision on tractable compute, and it is what keeps the burner's small-but-real neutron load from requiring an impossible number of analog histories."]
+],
+"related":[["offline-monte-carlo-supercomputing","Offline Monte Carlo"],["neutronics-monte-carlo-burner","Burner Neutronics"],["neutron-transport-mathematics","Transport Mathematics"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"neutron-transport-mathematics",
+"title":"The Neutron Transport Equation",
+"cat":"l0-foundation",
+"lede":"The Boltzmann transport equation that both Kronos neutronics workloads solve, and why its structure dictates the compute approach.",
+"body":[
+["h2","The governing equation"],
+["p","All Kronos neutronics, breeder breeding and burner shielding alike, is governed by the linear Boltzmann transport equation for the angular neutron flux. In steady state it balances streaming, collisions, scattering-in, and sources across seven dimensions: three of space, two of angle, one of energy, and time."],
+["code",["python","# Steady-state neutron transport (angular flux psi):\n# Omega . grad(psi) + Sigma_t(r,E) psi(r,Omega,E)\n#   = integral_E' integral_4pi Sigma_s(r,E'->E, Omega'->Omega) psi dOmega' dE'\n#     + S(r,Omega,E)\n# Omega : direction  Sigma_t : total cross-section  Sigma_s : scattering kernel"]],
+["h3","Why seven dimensions forces a choice"],
+["p","Discretizing all seven dimensions on a grid is prohibitive: fine angle, energy, and space multiply into an intractable unknown count, and the sharp resonances in nuclear cross-sections demand very fine energy resolution. This is why Kronos solves the equation stochastically with Monte Carlo rather than deterministically for its production neutronics."],
+["h3","The Monte Carlo interpretation"],
+["p","Monte Carlo does not discretize the equation; it samples its solution. Each simulated history is a random walk drawn from the same collision and scattering probabilities the equation encodes, and the average over many histories converges to the flux. Tallies estimate integrals of the flux, breeding rate, heating, damage, as expected values."],
+["ul",["Streaming term: transport between collisions","Total cross-section: collision probability per path length","Scattering kernel: redistribution in angle and energy","Source: 14 MeV D-T in the breeder, D-D and secondaries in the burner"]],
+["p","The adjoint form of the same equation, run backward from the tally, yields the importance function used in <a href=./monte-carlo-variance-reduction.html>variance reduction</a>. Forward and adjoint are two readings of one equation, and Kronos uses both: forward to score quantities, adjoint to steer sampling toward where those quantities live."],
+["p","Understanding the equation's structure is what justifies the L0 compute design. Its high dimensionality and resonance structure make it Monte-Carlo-shaped, its per-history independence makes it scale to huge node counts, and its slow one-over-root-N convergence is exactly what variance reduction exists to beat."]
+],
+"related":[["offline-monte-carlo-supercomputing","Offline Monte Carlo"],["monte-carlo-variance-reduction","Variance Reduction"],["cross-section-data-pipeline","Cross-Section Pipeline"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cross-section-data-pipeline",
+"title":"Nuclear Cross-Section Data Pipeline",
+"cat":"l0-foundation",
+"lede":"How Kronos ingests, processes, and version-pins evaluated nuclear data so every neutronics run is reproducible and auditable.",
+"body":[
+["h2","Data is an input, not a detail"],
+["p","A neutronics result is only as trustworthy as the nuclear data behind it. Cross-sections, the probabilities that drive every collision in the transport equation, come from evaluated nuclear data libraries and must be processed into the point-wise, temperature-dependent form the Monte Carlo code consumes. Kronos treats this pipeline as a first-class, version-controlled L0 workload."],
+["h3","From evaluation to usable data"],
+["p","Raw evaluated files are processed: resonance parameters are reconstructed into point-wise cross-sections, Doppler broadening is applied at the operating temperatures of the breeder blanket and burner structure, and the data is formatted for the transport code. This processing is itself a compute job, and its output is a dataset that many downstream runs share."],
+["ul",["Resonance reconstruction to point-wise cross-sections","Doppler broadening to material temperatures","Thermal scattering treatment for moderating materials","Format conversion and integrity hashing for the transport code"]],
+["h3","Version pinning and reproducibility"],
+["p","Every processed library is hashed and versioned. A neutronics run records exactly which library it used, so a breeder TBR value or a burner shielding flux can be re-derived years later against the identical data. Because cross-section evaluations are updated over time, pinning is the only way to keep old and new results comparable."],
+["p","Data choice is also a source of uncertainty. Different evaluations disagree, especially for the lithium and beryllium reactions central to breeding. Kronos runs key studies against more than one library to bound how much the TBR estimate depends on the data itself, feeding that spread into the <a href=./uncertainty-quantification.html>uncertainty quantification</a>."],
+["p","The pipeline serves both machines from one curated store. The breeder needs accurate 14 MeV and lithium data; the burner needs accurate D-D, D-T secondary, and structural-activation data. Curating them together, with shared processing and shared version control, keeps both machines' neutronics on a common, auditable footing."]
+],
+"related":[["neutron-transport-mathematics","Transport Mathematics"],["uncertainty-quantification","Uncertainty Quantification"],["reproducibility-of-compute","Reproducibility of Compute"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"activation-and-damage-modeling",
+"title":"Activation and Material Damage Modeling",
+"cat":"l0-foundation",
+"lede":"Turning neutron flux into activation inventories and displacement damage for the breeder blanket and burner structure over their lives.",
+"body":[
+["h2","From flux to consequences"],
+["p","Monte Carlo gives the neutron flux; activation and damage modeling turns that flux into the quantities that govern material life. On L0, flux spectra from the neutronics runs are folded with reaction and damage cross-sections to compute nuclide inventories, decay heat, and displacements per atom (dpa) throughout both machines."],
+["h3","Activation inventories"],
+["p","Neutron capture and threshold reactions transmute structural nuclides into radioactive products. An activation solve integrates the coupled decay and transmutation equations over an assumed operating history to produce time-dependent inventories, activity, and decay heat. For the breeder, this drives maintenance planning; for the burner, it characterizes the modest activation from the 5.44 percent neutron fraction."],
+["code",["python","# Bateman-type transmutation-decay system:\n# dN_i/dt = sum_j (lambda_ji + phi * sigma_ji) N_j\n#         - (lambda_i + phi * sigma_i) N_i\n# N_i : nuclide density  phi : neutron flux (from Monte Carlo)\n# lambda : decay constants  sigma : transmutation cross-sections"]],
+["h3","Displacement damage"],
+["p","The 14 MeV neutrons of the breeder are especially damaging: each one can displace many atoms, accumulating dpa in the first wall, blanket, and the CrMoNbV vessel. The damage model folds the flux spectrum with a displacement cross-section to estimate dpa rate, which bounds component life and feeds the structural-health-monitoring assumptions."],
+["ul",["Time-dependent nuclide inventories and decay heat","Displacements per atom in first wall and vessel","Gas production, helium and hydrogen, in structure","Waste classification and hands-on maintenance windows"]],
+["p","The two machines pose different damage problems. The breeder's high 14 MeV fluence makes dpa and gas production in the blanket and center column the dominant concern. The burner's lower neutron load shifts emphasis to protecting the precise direct-conversion train and magnets from cumulative activation and localized damage."],
+["p","These results close the neutronics chain that began with transport. Flux feeds heating into thermomechanics and feeds activation and damage into life and maintenance models, so a single Monte Carlo campaign propagates into structural design, waste planning, and the twin's assumptions about how the machine ages."]
+],
+"related":[["neutronics-monte-carlo-breeder","Breeder Neutronics"],["neutronics-monte-carlo-burner","Burner Neutronics"],["coupled-multiphysics-mathematics","Multi-Physics Coupling"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"mhd-simulation-workloads",
+"title":"MHD Simulation Workloads",
+"cat":"l0-foundation",
+"lede":"The magnetohydrodynamic solves that establish stability limits for both machines and generate training data for the twin's MHD module.",
+"body":[
+["h2","MHD as a stability oracle"],
+["p","Magnetohydrodynamics treats the plasma as a conducting fluid coupled to the magnetic field. L0 runs MHD workloads to answer the stability question for both machines: for the breeder, how close an equilibrium sits to disruptive limits; for the burner, whether the tandem-mirror configuration confines against interchange and other modes. These solves are the source of the twin's MHD module."],
+["h3","Ideal and resistive regimes"],
+["p","Kronos runs both ideal MHD, which asks whether a configuration is unstable in principle, and resistive MHD, which captures slower reconnection-driven modes that grow when finite resistivity lets field lines break. Ideal solves are cheaper eigenvalue problems; resistive solves are stiff, time-dependent, and communication-heavy, and they set the demand for low-latency interconnect."],
+["ul",["Ideal MHD stability spectra and growth rates","Resistive tearing and reconnection dynamics","Breeder disruption and vertical-stability margins","Burner interchange and flute-mode stability in the mirror"]],
+["h3","The governing balance"],
+["p","The MHD momentum equation balances inertia, pressure gradient, and the Lorentz force, closed by Ohm's law and the induction equation. The equilibrium limit, where inertia vanishes, is the force balance the Grad-Shafranov solver enforces; the dynamic solves add time evolution to test whether small perturbations grow."],
+["code",["python","# Resistive MHD (schematic):\n# rho (dv/dt + v.grad v) = -grad p + J x B\n# dB/dt = curl(v x B) + eta/mu0 * laplacian(B)   # induction + resistive diffusion\n# J = curl(B)/mu0   div(B)=0"]],
+["p","These runs are tightly coupled and iterate to convergence, so they live on the reproducible bare-metal core rather than on elastic cloud. A breeder disruption study or burner stability scan that will inform control must be replayable, because its output becomes ground truth for a surrogate the twin runs in real time."],
+["p","The value of MHD on L0 is that it converts an intractable real-time question into a tractable offline one. The twin cannot solve resistive MHD in 50 to 100 ms, but it can evaluate a stability-margin surrogate trained on these solves, so the expensive physics is paid for once here and consumed cheaply forever after."]
+],
+"related":[["grad-shafranov-solver-farm","Grad-Shafranov Solver Farm"],["disruption-simulation-breeder","Disruption Simulation"],["tandem-mirror-equilibrium-burner","Tandem-Mirror Equilibrium"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"grad-shafranov-solver-farm",
+"title":"Grad-Shafranov Equilibrium Solver Farm",
+"cat":"l0-foundation",
+"lede":"A parallel farm computing breeder magnetohydrostatic equilibria that anchor the negative-triangularity shape and seed the twin PINN.",
+"body":[
+["h2","Equilibrium is the starting point"],
+["p","Every breeder plasma calculation begins from an equilibrium: the magnetohydrostatic force balance that fixes the shape of the flux surfaces. For an axisymmetric tokamak this is the Grad-Shafranov equation, a nonlinear elliptic PDE for the poloidal flux. L0 runs a farm of these solves to map how equilibrium responds to plasma current, pressure, and coil configuration."],
+["code",["python","# Grad-Shafranov equation for poloidal flux psi(R,Z):\n# R d/dR( (1/R) dpsi/dR ) + d2psi/dZ2\n#   = -mu0 R^2 dp/dpsi - F dF/dpsi\n# p(psi) : pressure profile   F(psi)=R B_toroidal\n# solved for the breeder: R0 1.2 m, aspect ratio 2.5, Ip 9.86 MA"]],
+["h3","The negative-triangularity target"],
+["p","The breeder's design shape has negative triangularity, delta -0.30, chosen to access an ELM-free edge regime. The solver farm computes equilibria across current, pressure, and coil settings to find and hold this shape at the design point: R0 1.2 m, aspect ratio 2.5, plasma current 9.86 MA, and the fields consistent with 16.84 T peak, 8 T on-axis."],
+["h3","Why a farm, not a single solve"],
+["p","A single equilibrium is cheap; the design needs thousands. Shape scans, current and pressure sweeps, and coil-current studies each demand an independent solve, so the farm runs them in parallel, one equilibrium per core. This is where offline compute buys a dense map of the breeder's accessible equilibrium space."],
+["ul",["Shape scans around delta -0.30","Plasma-current and pressure-profile sweeps","Poloidal-field coil-current optimization","Boundary and separatrix control studies"]],
+["p","The farm's output is the training set for the twin's equilibrium PINN. Thousands of certified Grad-Shafranov solutions teach a network to reproduce equilibrium in a single fast forward pass, which is what lets the real-time twin track the negative-triangularity shape inside its 50 to 100 ms budget."],
+["p","Because these equilibria anchor the entire breeder design, they run on the reproducible bare-metal core with pinned solvers and recorded seeds. An equilibrium that seeds a control surrogate must be exactly re-derivable, or the surrogate it trains cannot be trusted."]
+],
+"related":[["negative-triangularity-shape-scans","Triangularity Shape Scans"],["pinn-training-workloads","PINN Training"],["mhd-simulation-workloads","MHD Workloads"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"disruption-simulation-breeder",
+"title":"Disruption Simulation for the Breeder",
+"cat":"l0-foundation",
+"lede":"Simulating how Hyperion loses control so the twin can recognize precursors and the failsafe can act before damage occurs.",
+"body":[
+["h2","Studying failure to avoid it"],
+["p","A disruption is the sudden loss of plasma equilibrium and confinement in a tokamak, dumping stored magnetic and thermal energy into the structure. The breeder cannot afford uncontrolled disruptions, so L0 simulates them extensively: how they initiate, how fast they grow, and what signatures precede them. The goal is to make disruptions predictable and therefore avoidable."],
+["h3","The physics being modeled"],
+["p","Disruption simulation couples MHD instability growth, the thermal quench, the current quench, and, where relevant, runaway-electron generation. These solves are stiff and multi-scale, spanning fast MHD growth and slower current decay, which makes them among the more demanding coupled workloads on the reproducible core."],
+["ul",["Growth of tearing and locked modes toward a disruption","Thermal quench energy deposition on plasma-facing components","Current quench rate and induced vessel forces","Vertical displacement events and halo currents"]],
+["h3","From simulation to precursor detection"],
+["p","The most valuable output is not the disruption itself but its precursors: the sub-threshold signatures in Mirnov coils, flux loops, and equilibrium drift that appear before the event. These labeled trajectories train the twin's <a href=./gnn-training-sensor-topology.html>anomaly-detection ensembles</a> to flag a developing disruption early enough for the MPC agents to steer away."],
+["p","There is a hard boundary here. The twin advises and the control plane steers, but the ultimate protection is the autonomous hardware failsafe at L1 that dumps a quench with zero AI dependency. Disruption simulation informs the AI layers and sets the thresholds, but it never becomes the sole line of defense; the failsafe is deterministic and independent."],
+["p","Because the breeder is still design and simulation until first tritium around 2030, these disruption studies run against simulated equilibria and synthetic diagnostics rather than real plasma. They are how Kronos builds a disruption-avoidance capability that is ready and validated before the first real pulse."]
+],
+"related":[["mhd-simulation-workloads","MHD Workloads"],["grad-shafranov-solver-farm","Grad-Shafranov Solver Farm"],["gnn-training-sensor-topology","Anomaly Ensembles"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"tandem-mirror-equilibrium-burner",
+"title":"Tandem-Mirror Equilibrium for the Burner",
+"cat":"l0-foundation",
+"lede":"Modeling the burner's open-ended magnetic geometry, end-plug fields, and ambipolar potential that confine a D-3He plasma.",
+"body":[
+["h2","A different confinement problem"],
+["p","The burner is not a tokamak; it is a D-3He tandem-mirror generator with an open-ended magnetic geometry. Its equilibrium problem is not Grad-Shafranov but the balance of an axial magnetic mirror plus electrostatic confinement. L0 models this geometry to establish how the central cell is confined by the high-field end plugs at 26.49 T with a 17 T throat."],
+["h3","The ambipolar potential"],
+["p","Confinement in a tandem mirror depends on the ambipolar potential: end plugs are held at higher density to raise an electrostatic potential that plugs the ends against ion loss. Modeling this couples the magnetic field structure to the plasma potential and density along the axis, a self-consistent problem the burner solves on L0 across plug and central-cell conditions."],
+["ul",["Axial magnetic field profile: 26.49 T plug, 17 T throat, central cell","Ambipolar potential barrier from plug density","Central-cell density and temperature confinement scaling","Mirror-ratio and end-loss balance"]],
+["h3","Stability of the open system"],
+["p","Open systems are prone to interchange and flute modes driven by unfavorable field-line curvature. The burner MHD workloads test whether the configuration is stable and what shaping or profile control keeps it so. These solves are the burner's analogue of the breeder's disruption studies: they establish the operating envelope the control system must hold."],
+["p","The equilibrium and potential solves generate the training data for the burner's twin modules, the <a href=./ambipolar-potential-solver.html>ambipolar-potential surrogate</a> and end-plug density estimators that must run in real time. As with the breeder, expensive self-consistent physics is computed once offline so the twin can evaluate it cheaply during operation."],
+["p","This work also feeds the direct-energy-conversion design. The end-loss ion distribution that the mirror deliberately allows to escape is exactly what the DEC train, TWDEC, ultra-high-field MHD, and thermionics, harvests, so the equilibrium model is coupled to the conversion physics from the start."]
+],
+"related":[["ambipolar-potential-solver","Ambipolar Potential Solver"],["mhd-simulation-workloads","MHD Workloads"],["transport-simulation-workloads","Transport Workloads"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"transport-simulation-workloads",
+"title":"Transport Simulation Workloads",
+"cat":"l0-foundation",
+"lede":"Solving how particles, heat, and momentum move across the plasma to predict confinement and profiles for both machines.",
+"body":[
+["h2","Transport sets performance"],
+["p","Beyond equilibrium and stability lies transport: how particles, energy, and momentum diffuse and convect across the confining field. Transport determines the density and temperature profiles, and therefore the fusion power and confinement, of both machines. L0 runs transport solves to predict these profiles and to close the loop between heating, fueling, and performance."],
+["h3","The transport equations"],
+["p","Plasma transport is described by coupled continuity and energy-balance equations for each species, with fluxes driven by gradients through diffusivities and convective velocities. The central difficulty is that the transport coefficients are set by turbulence, so they are not simple constants but depend on the very gradients they redistribute."],
+["code",["python","# 1D flux-surface-averaged transport (per species):\n# dn/dt = -1/V' d/drho( V' Gamma ) + S_n\n# 3/2 d(nT)/dt = -1/V' d/drho( V' q ) + P_heat - P_loss\n# Gamma = -D dn/drho + n v   ;  q = -n chi dT/drho\n# D, chi, v from turbulence models / gyrokinetics"]],
+["h3","Where the coefficients come from"],
+["p","Kronos supplies transport coefficients either from reduced turbulence models or from first-principles <a href=./gyrokinetic-turbulence-runs.html>gyrokinetic runs</a>. The gyrokinetic route is expensive and lives among the heaviest L0 workloads; the reduced-model route is cheap enough to sweep. Both feed the same profile solver, trading fidelity against breadth."],
+["ul",["Breeder core profiles feeding 88.7 MW fusion power estimates","Edge transport in the negative-triangularity ELM-free regime","Burner central-cell profiles under mirror confinement","Impurity and helium-ash transport"]],
+["p","The two machines pose distinct transport questions. The breeder's negative triangularity changes edge transport and is a central reason for the delta -0.30 choice; the burner's open geometry couples transport to end losses and the ambipolar potential rather than to a closed-flux edge. The same solver framework handles both with different geometry and closures."],
+["p","Transport results are the bridge from physics to performance. They set the profiles that feed neutronics source distributions, thermomechanical loads, and the twin's Power module, making transport the workload that ties the rest of the L0 chain to the numbers that define each machine."]
+],
+"related":[["gyrokinetic-turbulence-runs","Gyrokinetic Turbulence"],["negative-triangularity-shape-scans","Triangularity Scans"],["coupled-multiphysics-mathematics","Multi-Physics Coupling"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gyrokinetic-turbulence-runs",
+"title":"Gyrokinetic Turbulence Simulations",
+"cat":"l0-foundation",
+"lede":"First-principles turbulence solves that supply the transport coefficients no reduced model can reliably predict for either machine.",
+"body":[
+["h2","Turbulence is the transport source"],
+["p","Cross-field transport in both machines is dominated by micro-turbulence driven by density and temperature gradients. Gyrokinetics is the first-principles description of that turbulence, and it is among the most compute-intensive workloads on L0. It exists to supply the diffusivities the <a href=./transport-simulation-workloads.html>transport solver</a> needs but cannot invent."],
+["h3","Why gyrokinetic and not full kinetic"],
+["p","A full six-dimensional kinetic treatment of every particle orbit is intractable. Gyrokinetics averages over the fast gyration around field lines, reducing velocity space to two dimensions and removing the fastest timescale, while keeping the turbulence physics. The result is a five-dimensional distribution-function problem, still enormous but solvable on large parallel systems."],
+["code",["python","# Gyrokinetic equation (schematic, gyro-averaged f):\n# df/dt + (v_par b + v_drift).grad f\n#   + (q/m) E_par df/dv_par = C[f]\n# 5D phase space (3 space, v_parallel, magnetic moment)\n# C[f] : collision operator"]],
+["h3","How Kronos uses the output"],
+["p","Gyrokinetic runs produce turbulent fluxes as functions of the local gradients, from which effective diffusivities are extracted. Because the runs are costly, Kronos uses them to train and calibrate reduced models and surrogates, then uses the cheap surrogates for broad profile sweeps, reserving full gyrokinetics for anchor points and validation."],
+["ul",["Ion- and electron-scale turbulence drives","Effective particle and heat diffusivities","Calibration data for reduced transport models","Sensitivity of confinement to gradient stiffness"]],
+["p","For the breeder, gyrokinetics helps quantify how negative triangularity and the spherical-tokamak geometry shape turbulent transport, part of the physics case for the delta -0.30 design. For the burner, it informs central-cell transport under mirror confinement. Both machines draw on the same solver with different geometry and profiles."],
+["p","These runs are strong-scaling-limited by communication, so they sit toward the coupled end of the substrate and demand low-latency interconnect. They are the clearest case where L0 pays an extreme compute cost once, offline, to buy transport knowledge that would otherwise be a guess."]
+],
+"related":[["transport-simulation-workloads","Transport Workloads"],["surrogate-model-generation","Surrogate Generation"],["interconnect-fabric","Interconnect Fabric"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"negative-triangularity-shape-scans",
+"title":"Negative-Triangularity Shape Scans",
+"cat":"l0-foundation",
+"lede":"Wide equilibrium and stability campaigns mapping the breeder's delta -0.30 ELM-free shape and its operating margins.",
+"body":[
+["h2","Why scan the shape"],
+["p","The breeder's edge shape is a deliberate design choice: negative triangularity, delta -0.30, chosen to access an ELM-free edge that avoids the pulsed heat loads of edge-localized modes. To trust that choice, L0 scans the shape space around delta -0.30, computing equilibria and their stability so the design point is understood as a region, not a single fragile setting."],
+["h3","What the scan varies"],
+["p","Each point in the scan is a full equilibrium solve, followed by stability and edge-transport evaluation. The campaign varies triangularity, elongation, and edge gradients around the target, holding the design anchors, R0 1.2 m, aspect ratio 2.5, plasma current 9.86 MA, near their design values, to map how edge behavior changes with shape."],
+["ul",["Triangularity around delta -0.30","Elongation and squareness of the boundary","Edge pressure gradient and current","Proximity to stability and operational limits"]],
+["h3","An independent-solve campaign"],
+["p","Because each shape is an independent equilibrium plus stability solve, the scan parallelizes cleanly across the <a href=./grad-shafranov-solver-farm.html>solver farm</a>. It behaves like the neutronics TBR sweep: a wide, embarrassingly parallel exploration that produces a response surface, here mapping shape to edge stability and confinement rather than blanket design to breeding."],
+["p","The scan quantifies margin. It shows how far the design can drift from delta -0.30 before the ELM-free benefit is lost or a stability limit is approached, which tells the control system how tightly it must hold the shape. That margin becomes a requirement on the twin's equilibrium tracking and the MPC agents that maintain the boundary."],
+["p","Selected points are re-run on the reproducible core and become training data for the twin's shape-control surrogate. In this way a broad offline exploration of negative triangularity turns into a specific, fast, validated capability to hold the delta -0.30 shape in real time once the breeder operates."]
+],
+"related":[["grad-shafranov-solver-farm","Grad-Shafranov Solver Farm"],["transport-simulation-workloads","Transport Workloads"],["disruption-simulation-breeder","Disruption Simulation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"ambipolar-potential-solver",
+"title":"Ambipolar Potential Solver",
+"cat":"l0-foundation",
+"lede":"Computing the electrostatic barriers that plug the burner's magnetic mirror, the control problem at the heart of tandem-mirror confinement.",
+"body":[
+["h2","Electrostatics as confinement"],
+["p","A tandem mirror confines its central-cell ions not only with magnetic fields but with electrostatic potential barriers raised at the high-density end plugs. Computing that ambipolar potential self-consistently is the burner's defining plasma-physics workload on L0, because it determines whether the central cell is confined at all."],
+["h3","The self-consistent problem"],
+["p","The potential and the plasma density are mutually dependent: density sets the potential through quasi-neutrality and the plug physics, and the potential sets which ions are confined, which sets the density. The solver iterates this coupling along the machine axis, from central cell through the throat at 17 T to the plug at 26.49 T, until it converges on a consistent profile."],
+["code",["python","# Ambipolar/quasi-neutral closure along axis (schematic):\n# sum_species q_s n_s(phi, B) = 0     # quasi-neutrality -> phi(z)\n# n_s from confined + passing populations in mirror field B(z)\n# barrier: phi_plug - phi_center confines central-cell ions\n# solved self-consistently for phi(z), n(z)"]],
+["h3","Why end-plug density is the lever"],
+["p","The barrier height depends on plug density, so end-plug density is the primary control lever of the burner, the counterpart to the breeder's shape and current. The solver maps how barrier height and central-cell confinement respond to plug density and heating, defining the operating window the control system must hold and the sensitivity around it."],
+["ul",["Axial potential profile and barrier height","Plug-density to barrier-height sensitivity","Central-cell confinement time versus barrier","Coupling to end-loss distribution for the DEC train"]],
+["p","The solver's output trains the burner twin's ambipolar-potential and end-plug surrogates, so the real-time twin can estimate barrier health and confinement from diagnostics without re-solving the self-consistent problem each step. This is the burner's version of paying for expensive physics once, offline, to enable fast control."],
+["p","The escaping end-loss ions that the barrier deliberately does not confine are the input to direct energy conversion. The potential solver therefore couples directly to the DEC train design, tying the burner's confinement physics to its energy-harvesting physics within one L0 workload family."]
+],
+"related":[["tandem-mirror-equilibrium-burner","Tandem-Mirror Equilibrium"],["surrogate-model-generation","Surrogate Generation"],["transport-simulation-workloads","Transport Workloads"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"batch-retraining-pipeline",
+"title":"Batch Retraining Pipeline",
+"cat":"l0-foundation",
+"lede":"The scheduled L0 loop that re-grounds every twin surrogate against fresh pulse histories so the real-time shadow does not drift.",
+"body":[
+["h2","Why retraining is a standing process"],
+["p","A surrogate trained once will drift as the machine and its diagnostics change. The batch retraining pipeline is the L0 process that periodically re-fits every twin model, PINNs, GNNs, surrogates, and anomaly ensembles, against the latest accumulated pulse histories. It is scheduled, versioned, and validated, not ad hoc, because the twin's trustworthiness depends on it."],
+["h3","The loop"],
+["p","Each cycle pulls curated data from the petabyte archive, retrains or fine-tunes the affected models on the GPU clusters, validates them against held-out pulses and physics checks, and, only on passing, promotes them for compilation to the real-time twin. Failing candidates are rejected and the prior model stays in service."],
+["ul",["Ingest curated pulses and simulation campaigns from the archive","Retrain or fine-tune affected surrogates on GPU clusters","Validate against held-out data and physics residuals","Promote, version, and stage for twin compilation"]],
+["h3","Cadence and triggers"],
+["p","Retraining runs on a regular cadence and also on triggers: a new simulation campaign, a diagnostic recalibration, or drift flagged by the twin against reality. Because it runs offline on L0, it can take the time to do full validation, which is exactly why this work is separated from the real-time layers that cannot pause to retrain."],
+["p","The pipeline serves both machines. Breeder equilibrium and disruption models and burner ambipolar-potential and DEC models are retrained on the same infrastructure, each against its own machine's data. A single loop keeps both twins current without duplicating machinery."],
+["p","Every promotion is recorded with the data version, code version, and validation report, so any deployed twin model can be traced back to the exact data and run that produced it. Retraining is thus not only about accuracy but about maintaining an auditable lineage from live model back to certified L0 ground truth."]
+],
+"related":[["twin-refinement-loop","Twin Refinement Loop"],["gpu-clusters-twin-sync","Twin Synchronization"],["training-data-curation","Training-Data Curation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"twin-refinement-loop",
+"title":"The Twin Refinement Loop",
+"cat":"l0-foundation",
+"lede":"How discrepancies between the KRONOS-CTRL twin and reality are captured, diagnosed offline, and folded back into better models.",
+"body":[
+["h2","Closing the loop between fast and slow"],
+["p","The twin refinement loop is the feedback path that keeps the real-time twin honest. When the KRONOS-CTRL twin's 50 to 100 ms prediction diverges from what actually happens, that residual is a signal. L0 collects these residuals, diagnoses their cause, and refines the models so the next version predicts better. It is how the twin learns from its own mistakes."],
+["h3","Residual as data"],
+["p","Every predicted-versus-actual mismatch, in the Power, Neutronics, Thermomechanics, or MHD module, is logged with full context: the inputs, the prediction, the outcome, and the diagnostic state. Aggregated over many pulses, these residuals reveal where a surrogate is systematically wrong, which is far more useful than any single miss."],
+["ul",["Log predicted-versus-actual residuals per twin module","Attribute error to model, data, or genuine novelty","Enrich the training set with the informative cases","Refine, revalidate, and promote through retraining"]],
+["h3","Diagnosis before retraining"],
+["p","Not every residual means the model is wrong. It might reflect a bad sensor, a data-fabric issue, or genuinely new machine behavior. The loop diagnoses the cause first, because retraining on mislabeled or corrupted residuals degrades the model. Only cleanly attributed discrepancies are folded into the next <a href=./batch-retraining-pipeline.html>retraining</a> cycle."],
+["p","The loop is deliberately offline. Refinement requires re-solving physics, curating data, and revalidating, none of which can happen inside a real-time control budget. The twin runs fast and fixed during operation; it improves only between deployments, through this slow, careful L0 process."],
+["p","For both machines, the loop is what turns operating experience into better prediction. Until FOAK around 2030 it runs against simulated pulses and study campaigns, exercising the refinement machinery so that when real breeder and burner pulses arrive, the loop is already trusted and ready to learn from them."]
+],
+"related":[["batch-retraining-pipeline","Batch Retraining"],["gpu-clusters-twin-sync","Twin Synchronization"],["verification-and-validation","Verification and Validation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"pinn-training-workloads",
+"title":"PINN Training Workloads",
+"cat":"l0-foundation",
+"lede":"Training physics-informed neural networks that solve Grad-Shafranov and MHD residuals natively for fast twin evaluation.",
+"body":[
+["h2","Neural networks that obey physics"],
+["p","A physics-informed neural network (PINN) is trained not only to fit data but to satisfy a governing equation. Kronos trains PINNs on L0 to solve the breeder's Grad-Shafranov equilibrium and MHD stability relations natively, so the twin can evaluate physics in a single forward pass instead of iterating a solver. The GPU clusters exist largely to make these training runs feasible."],
+["h3","The residual loss"],
+["p","The PINN's loss penalizes the residual of the PDE itself, evaluated by automatic differentiation of the network, plus boundary and data terms. Minimizing this loss forces the network toward a solution that respects the physics, not merely one that interpolates points. This is what lets a PINN generalize across operating conditions rather than memorize."],
+["code",["python","# PINN loss for Grad-Shafranov (schematic):\n# L = w_pde * mean( GS_residual(psi_net)^2 )\n#   + w_bc  * mean( boundary(psi_net)^2 )\n#   + w_data* mean( (psi_net - psi_obs)^2 )\n# GS_residual computed via autodiff of the network psi_net(R,Z)"]],
+["h3","Why training is expensive"],
+["p","Each training step evaluates differential-operator residuals over large collocation sets and backpropagates through them, which is memory-bandwidth-heavy and iteration-intensive. Balancing the loss terms, physics versus data versus boundary, is delicate, so training often includes <a href=./hyperparameter-search-farm.html>hyperparameter search</a>. This is dense GPU work that belongs firmly in offline L0."],
+["ul",["Autodiff evaluation of PDE residuals","Collocation sampling across the domain","Loss-term weighting between physics and data","Mixed-precision training for throughput"]],
+["p","PINNs serve both machines. The breeder trains equilibrium and stability PINNs around the negative-triangularity design point; the burner trains PINNs for its mirror equilibrium and ambipolar potential. The technique is shared; the governing equations and geometry differ."],
+["p","Once trained and validated, a PINN is compiled and quantized for the real-time twin, where it evaluates equilibrium or stability inside the 50 to 100 ms budget. The expensive training is the price L0 pays so the twin can honor physics at millisecond speed."]
+],
+"related":[["grad-shafranov-solver-farm","Grad-Shafranov Solver Farm"],["gpu-cluster-architecture","GPU Cluster Architecture"],["hyperparameter-search-farm","Hyperparameter Search"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"gnn-training-sensor-topology",
+"title":"GNN Training on Sensor Topology",
+"cat":"l0-foundation",
+"lede":"Training graph neural networks over the diagnostic constellation so the twin can impute dropped signals and detect anomalies.",
+"body":[
+["h2","The diagnostics form a graph"],
+["p","Both machines are instrumented with a constellation of diagnostics, Thomson scattering, interferometry, Mirnov coils, flux loops, REBCO strain gauges, ECE, fast-ion trackers, and neutron flux, arranged in space with physical relationships. That arrangement is naturally a graph: sensors are nodes, and their spatial and physical couplings are edges. Kronos trains graph neural networks (GNNs) on L0 to exploit that structure."],
+["h3","Imputing dropped signals"],
+["p","Diagnostics drop out. A channel saturates, a feedthrough degrades, a signal is momentarily lost. Because neighboring sensors are correlated, a GNN trained on the sensor topology can impute a missing signal from its neighbors, giving the twin a complete, physically consistent input even when part of the constellation is unavailable."],
+["ul",["Nodes: individual diagnostic channels","Edges: spatial adjacency and physical coupling","Message passing to reconstruct missing nodes","Robustness to correlated and single-channel dropout"]],
+["h3","Anomaly detection"],
+["p","The same graph structure powers anomaly-detection ensembles. Trained on normal operation and on simulated <a href=./disruption-simulation-breeder.html>disruption precursors</a>, these models flag sub-threshold deviations, patterns across many sensors that are individually within range but jointly abnormal, that can indicate a developing quench or instability before any single threshold trips."],
+["p","GNN training is a GPU workload with heavy message-passing over graph structure. It requires large, well-labeled datasets of both normal and off-normal behavior, which is why it is tightly coupled to <a href=./training-data-curation.html>data curation</a> and to the simulation campaigns that generate labeled off-normal cases the real machines have not yet produced."],
+["p","Both machines share the approach with different graphs. The breeder's toroidal diagnostic layout and the burner's axial, open-geometry layout produce different topologies, but the same GNN machinery learns each. The output is a twin that sees the whole diagnostic picture even through gaps and that notices trouble early, feeding the MPC agents and, as a distinct and independent line, never replacing the L1 hardware failsafe."]
+],
+"related":[["disruption-simulation-breeder","Disruption Simulation"],["training-data-curation","Training-Data Curation"],["gpu-cluster-architecture","GPU Cluster Architecture"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"surrogate-model-generation",
+"title":"Surrogate Model Generation",
+"cat":"l0-foundation",
+"lede":"Building fast emulators of expensive solvers so the twin can evaluate neutronics, transport, and equilibrium in real time.",
+"body":[
+["h2","Emulating the expensive solvers"],
+["p","Many L0 solvers, gyrokinetic turbulence, Monte Carlo neutronics, coupled transport, are far too slow for the real-time twin. Surrogate model generation is the L0 process that replaces each with a fast emulator: a model trained to reproduce the solver's input-output mapping in a single cheap evaluation. Surrogates are what let the twin carry physics it could never solve live."],
+["h3","Design of experiments"],
+["p","A surrogate is only as good as the samples it learns from. Kronos uses design-of-experiments sampling, space-filling designs over the input parameters, to run the expensive solver at well-chosen points, then fits the surrogate to that data. The sampling strategy matters more than raw sample count, because coverage of the input space determines where the surrogate can be trusted."],
+["ul",["Space-filling sampling of solver inputs","Fitting emulators to solver outputs","Error estimation across the input domain","Active-learning to add samples where error is high"]],
+["h3","Knowing the surrogate's limits"],
+["p","Every surrogate carries an error estimate and a domain of validity. Outside the sampled region, its output is extrapolation and must not drive control. Kronos records these bounds with the model so the twin knows when a prediction is inside its trained envelope and when it should defer or trigger a fresh solve. A surrogate that hides its uncertainty is dangerous."],
+["p","Surrogates serve both machines and many modules. Breeder neutronics response tables, burner ambipolar-potential emulators, transport-coefficient surrogates from gyrokinetics, and equilibrium surrogates all follow the same generate-validate-bound pattern. The physics differs; the discipline of building a bounded, validated emulator does not."],
+["p","Surrogate generation is coupled to <a href=./batch-retraining-pipeline.html>retraining</a>: as new solver runs accumulate, surrogates are refreshed and their validity domains extended. This is how the twin's fast physics stays anchored to the slow ground truth, and it is a central reason the offline foundation exists."]
+],
+"related":[["gyrokinetic-turbulence-runs","Gyrokinetic Turbulence"],["batch-retraining-pipeline","Batch Retraining"],["uncertainty-quantification","Uncertainty Quantification"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"hyperparameter-search-farm",
+"title":"Hyperparameter Search Farm",
+"cat":"l0-foundation",
+"lede":"Parallel search over model architectures and training settings that tunes Kronos PINNs, GNNs, and surrogates at scale.",
+"body":[
+["h2","Tuning as a first-class workload"],
+["p","A PINN's loss weighting, a GNN's depth, a surrogate's architecture, these hyperparameters strongly affect model quality, and the right values are not known in advance. Kronos runs a hyperparameter search farm on L0: many training runs launched in parallel across the search space, each an independent job, evaluated and compared to find configurations that generalize."],
+["h3","An embarrassingly parallel search"],
+["p","Like the neutronics and shape sweeps, hyperparameter search is embarrassingly parallel: each trial is independent, so the farm scales out cleanly on elastic cloud GPUs and releases capacity when the search ends. Trials are checkpointable and preemptible, making them ideal backfill for the scheduler between larger reserved jobs."],
+["ul",["Search over architecture, depth, and width","Loss-term weighting for PINNs","Learning-rate schedules and regularization","Early stopping and pruning of weak trials"]],
+["h3","Efficient search strategies"],
+["p","Brute-force grid search wastes compute, so Kronos uses smarter strategies: Bayesian optimization that models the objective and samples promising regions, and early pruning that kills clearly losing trials before they finish. This concentrates GPU time on configurations likely to matter, cutting the cost of a thorough search substantially."],
+["p","The search matters most for the physics-informed models. A PINN with mis-weighted loss terms can satisfy data while violating the governing equation, or vice versa; the search finds the balance that respects both. For the breeder equilibrium PINN and the burner ambipolar surrogate alike, tuning is what turns a plausible model into a trustworthy one."],
+["p","Search results feed the <a href=./batch-retraining-pipeline.html>retraining pipeline</a>: the chosen configuration becomes the recipe retraining uses each cycle, and searches are re-run when the data or requirements shift. The farm is how Kronos keeps its model architectures matched to the physics they must capture."]
+],
+"related":[["pinn-training-workloads","PINN Training"],["distributed-training-strategy","Distributed Training"],["compute-scheduling-orchestration","Scheduling"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"distributed-training-strategy",
+"title":"Distributed Training Strategy",
+"cat":"l0-foundation",
+"lede":"How Kronos splits large model training across many GPUs with data, tensor, and pipeline parallelism without losing reproducibility.",
+"body":[
+["h2","When one GPU is not enough"],
+["p","Some Kronos models are too large or their datasets too big for a single GPU. Distributed training spreads the work across many devices, but naively splitting a model can wreck both efficiency and reproducibility. Kronos chooses a parallelism strategy per model, matched to whether the bottleneck is data volume, model size, or both."],
+["h3","Three axes of parallelism"],
+["p","Data parallelism replicates the model and splits the batch, synchronizing gradients with an all-reduce each step; it suits models that fit on one GPU but have large datasets. Tensor parallelism splits a single layer's math across GPUs for models too big to fit; pipeline parallelism splits the model into stages across devices. Large jobs combine them."],
+["ul",["Data parallelism: split the batch, all-reduce gradients","Tensor parallelism: split individual layers","Pipeline parallelism: split the model into staged layers","Hybrid combinations for the largest models"]],
+["h3","Communication is the constraint"],
+["p","Every parallelism axis adds communication, so the strategy is chosen with the <a href=./interconnect-fabric.html>interconnect</a> in mind. Data-parallel all-reduce scales with model size and GPU count; tensor parallelism demands very fast intra-node links. Kronos places ranks topology-aware so the heaviest traffic stays on the fastest links, keeping strong scaling alive."],
+["p","Distributed training must remain reproducible. Gradient reductions can be order-sensitive, so runs that feed certified twin models fix the reduction order and seeds, accepting a small performance cost to guarantee that a retrained model can be reproduced. Reproducibility is a constraint on the strategy, not an afterthought."],
+["p","These jobs are gang-scheduled: all ranks start together or the synchronous training deadlocks. Orchestration allocates the full GPU set and the required fabric topology atomically. The strategy applies equally to breeder and burner models, since both draw from the same GPU forge and the same distributed-training machinery."]
+],
+"related":[["gpu-cluster-architecture","GPU Cluster Architecture"],["interconnect-fabric","Interconnect Fabric"],["reproducibility-of-compute","Reproducibility of Compute"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"training-data-curation",
+"title":"Training-Data Curation from Pulse Histories",
+"cat":"l0-foundation",
+"lede":"Turning raw petabyte pulse histories and simulation campaigns into clean, labeled, versioned datasets fit to train twin models.",
+"body":[
+["h2","Models are only as good as their data"],
+["p","Every twin model is trained on data, and the quality of that data bounds the model. Training-data curation is the L0 process that converts raw pulse histories and simulation campaigns into clean, labeled, versioned datasets. It sits between the petabyte archive and the GPU clusters, and it is where much of a model's eventual accuracy is actually determined."],
+["h3","From raw to trainable"],
+["p","Curation cleans and validates signals, aligns them in time and space, labels events, and splits data into training, validation, and test sets that do not leak. It draws on the L2 data fabric's validated telemetry and metadata lineage, so each curated sample carries provenance back to its source diagnostics and calibration state."],
+["ul",["Signal validation and outlier handling","Temporal and spatial alignment across diagnostics","Event labeling, including simulated off-normal cases","Leakage-safe train/validation/test splits"]],
+["h3","Filling the gaps with simulation"],
+["p","Some events are rare or, before FOAK, have never occurred on hardware. Disruption precursors, off-normal burner potential collapse, and edge-case transients are supplied by the L0 simulation campaigns, disruption studies, stability scans, transport solves, so that models can learn behaviors the real machines have not yet shown. Curation blends simulated and, in time, real data with clear labeling of each."],
+["p","Curated datasets are versioned like code. A model records the exact dataset version it trained on, so a result can be reproduced and a regression traced to either the data or the model. This lineage is what lets the <a href=./batch-retraining-pipeline.html>retraining pipeline</a> promote models with confidence and roll them back cleanly."],
+["p","Curation serves both machines from a common framework. Breeder equilibrium and disruption datasets and burner potential and DEC datasets are prepared with the same tools and standards, differing only in content. Disciplined curation is the quiet prerequisite behind every trustworthy twin model."]
+],
+"related":[["petabyte-pulse-histories","Petabyte Pulse Histories"],["batch-retraining-pipeline","Batch Retraining"],["gnn-training-sensor-topology","GNN Training"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"edge-to-cloud-pipeline",
+"title":"The Edge-to-Cloud Pipeline",
+"cat":"l0-foundation",
+"lede":"The path a signal travels from a diagnostic feedthrough at the machine to the offline archive and back as a refined model.",
+"body":[
+["h2","A signal's journey"],
+["p","Data in the Kronos architecture moves along a defined path from the machine to the foundation and back. It begins at the edge, a diagnostic signal through a cryo-rated vacuum feedthrough into the L1 control plane, passes through the L2 data fabric, lands in the L0 archive, is turned into models, and returns to the edge as compiled surrogates. The edge-to-cloud pipeline is that full circuit."],
+["h3","Outbound: from edge to foundation"],
+["p","On the way in, data is progressively aggregated. The edge sees raw, high-rate telemetry it must act on in microseconds; only a fraction of that, and derived features, flows onward for storage and learning. By the time data reaches L0 it is validated, contextualized, and archived, ready for the slow, thorough work the edge has no time for."],
+["ul",["Edge: diagnostic feedthrough into the control plane","Data fabric: validation, feature engineering, lineage","Foundation: archive, simulation, and model training","Return: compiled surrogates pushed back toward the edge"]],
+["h3","Inbound: from foundation to edge"],
+["p","On the way back, refined artifacts flow the opposite direction: retrained PINNs, GNNs, and surrogates are compiled, quantized, and deployed into the real-time twin and, where applicable, the edge. The pipeline is therefore a loop, not a one-way feed; the foundation continuously ships improved intelligence back toward the machine."],
+["p","The defining feature of the pipeline is its <a href=./latency-gradient.html>latency gradient</a>: microseconds at the edge, milliseconds in the twin, minutes to hours at the foundation. Each stage operates at the timescale its job demands, and data is escalated between stages as its purpose shifts from acting to learning."],
+["p","The pipeline serves both machines identically in structure. Whether the source is the breeder's Mirnov coils or the burner's fast-ion trackers, the same outbound-aggregate, inbound-deploy loop applies, which is what lets one foundation support two very different machines."]
+],
+"related":[["latency-gradient","The Latency Gradient"],["data-escalation-tiers","Data Escalation"],["offline-realtime-separation","Offline vs Real-Time"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"latency-gradient",
+"title":"The Latency Gradient",
+"cat":"l0-foundation",
+"lede":"From microseconds at the edge to hours at the foundation, each layer operates at the timescale its responsibility demands.",
+"body":[
+["h2","Different jobs, different clocks"],
+["p","The Kronos stack spans an enormous range of timescales, and that range is deliberate. The latency gradient describes how each layer operates at the clock its responsibility requires: the edge in microseconds, the real-time twin in milliseconds, the foundation in minutes to hours. Trying to force any layer onto another's clock would break it."],
+["h3","The three regimes"],
+["p","At L1, the control plane enforces a strict sub-10-microsecond command boundary for hard real-time actuation, and the autonomous hardware failsafe acts with no AI in the path. The KRONOS-CTRL twin runs a 50 to 100 ms predictive shadow. L0, the foundation, runs offline over minutes to hours for simulation and retraining. Each regime is separated by orders of magnitude."],
+["matrix",["Latency regimes (rows: edge, twin, foundation)",[["microseconds","actuation and failsafe"],["50-100 ms","predictive shadow"],["minutes-hours","simulation and retraining"]]]],
+["h3","Why the gradient exists"],
+["p","Fast decisions must be simple and deterministic; thorough decisions must be slow. The edge cannot wait for a Monte Carlo campaign, and the foundation should not be rushed into a microsecond budget. The gradient lets each concern live where it belongs: reflex at the edge, prediction in the twin, deep computation at the foundation."],
+["p","Data escalates up the gradient as its purpose changes from acting to learning, and models descend it as they are compiled from slow training to fast inference. The gradient is thus the organizing principle of the whole <a href=./edge-to-cloud-pipeline.html>edge-to-cloud pipeline</a>, not merely a description of it."],
+["p","The gradient applies to both machines. The breeder's disruption reflex and the burner's plug-density stabilization both need microsecond edge action, millisecond twin prediction, and hours-long offline study. One gradient, one architecture, two machines, and a clean separation that keeps the fast paths fast and the deep paths deep."]
+],
+"related":[["edge-to-cloud-pipeline","Edge-to-Cloud Pipeline"],["offline-realtime-separation","Offline vs Real-Time"],["data-escalation-tiers","Data Escalation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"data-escalation-tiers",
+"title":"Data Escalation Tiers",
+"cat":"l0-foundation",
+"lede":"How telemetry is progressively filtered and promoted from raw edge streams to curated foundation datasets along the pipeline.",
+"body":[
+["h2","Not all data travels the whole way"],
+["p","The machines produce far more raw telemetry than could ever be stored or learned from in full. Data escalation is the principle that data is progressively filtered and promoted as it moves up the pipeline: everything is seen at the edge, a fraction is archived, and a curated subset becomes training data. Escalation decides what earns the trip to the foundation."],
+["h3","The tiers"],
+["p","At the edge, raw high-rate signals are consumed for control and mostly discarded after acting. The data fabric promotes validated signals and derived features for storage. The archive holds full pulse histories. Curation elevates the most informative of those into versioned training sets. Each tier holds less data but more distilled value."],
+["ul",["Edge tier: full-rate raw, consumed and largely discarded","Fabric tier: validated signals and engineered features","Archive tier: complete stored pulse histories","Curated tier: labeled, versioned training datasets"]],
+["h3","What earns escalation"],
+["p","Promotion is not uniform. Anomalous or off-normal segments, a disruption precursor in the breeder, a potential-barrier wobble in the burner, are escalated preferentially because they carry the most information for learning. Routine steady-state data is subsampled. Escalation is thus an information-density decision, keeping the rare and surprising while thinning the ordinary."],
+["p","Escalation is governed by metadata and lineage from the L2 data fabric, so every promoted sample knows where it came from and under what calibration. This is what makes the curated tier trustworthy: it is not a random sample but a governed, traceable selection from the full history."],
+["p","The tiered design is what makes petabyte-scale operation sustainable for both machines. The foundation never tries to learn from raw firehoses; it learns from a curated distillate, while the full history remains available in the archive for replay whenever a study needs to reach back below the curated tier."]
+],
+"related":[["edge-to-cloud-pipeline","Edge-to-Cloud Pipeline"],["petabyte-pulse-histories","Petabyte Pulse Histories"],["training-data-curation","Training-Data Curation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"petabyte-pulse-histories",
+"title":"Petabyte Pulse Histories",
+"cat":"l0-foundation",
+"lede":"The complete, replayable archive of every pulse and simulation campaign that grounds retraining, refinement, and audit.",
+"body":[
+["h2","The archive as ground truth"],
+["p","At the base of L0 sits the pulse-history archive: a petabyte-scale store of complete records from every pulse and every major simulation campaign for both machines. It is the memory of the whole system. Every retraining cycle, every refinement, and every audit reaches into this archive, which is why it is engineered for completeness and replay, not just capacity."],
+["h3","What a pulse record contains"],
+["p","A stored pulse is more than raw waveforms. It bundles the validated diagnostic streams from the full constellation, the engineered features, the twin's predictions and residuals, the control decisions, and the metadata and lineage needed to interpret them. A record is meant to be sufficient to reconstruct and re-analyze the pulse long after it occurred."],
+["ul",["Validated multi-diagnostic telemetry","Twin predictions and predicted-versus-actual residuals","Control decisions and actuation traces","Calibration state, provenance, and lineage"]],
+["h3","Replay, not just storage"],
+["p","The archive is designed for replay. A refinement study can pull an old pulse, feed it back through a new twin model, and compare, exactly the mechanism the <a href=./twin-refinement-loop.html>refinement loop</a> relies on. This demands not only capacity but read bandwidth and indexing, so studies can find and stream the pulses they need without scanning petabytes."],
+["p","Because the machines are still design and simulation until FOAK around 2030, today's archive is dominated by simulation campaigns rather than hardware pulses: neutronics sweeps, equilibrium and stability scans, transport runs. These populate the archive so the retraining and refinement machinery is exercised and trusted before the first real pulse arrives."],
+["p","Archive integrity is treated as sacred. Records are immutable and hashed; a stored pulse cannot silently change, or the models trained on it lose their provenance. This immutability is what lets a deployed twin model be traced, years later, to the exact data that produced it, closing the loop on reproducibility."]
+],
+"related":[["storage-array-architecture","Storage Arrays"],["cold-warm-hot-storage-tiers","Storage Tiers"],["training-data-curation","Training-Data Curation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"storage-array-architecture",
+"title":"Storage Array Architecture",
+"cat":"l0-foundation",
+"lede":"The parallel storage systems that hold petabyte pulse histories and feed high-bandwidth reads to Monte Carlo and training jobs.",
+"body":[
+["h2","Storage as a compute resource"],
+["p","At L0 scale, storage is not passive; it is a performance resource. Monte Carlo campaigns write large tallies, training jobs stream shards continuously, and refinement studies replay old pulses at speed. The storage array architecture is designed for parallel high-bandwidth access, because a starved storage system throttles the compute it feeds."],
+["h3","Parallel and tiered"],
+["p","The archive uses a parallel file system striping data across many devices so that many nodes can read and write concurrently at aggregate bandwidth no single device could reach. Fast NVMe scratch sits close to compute for active jobs, while the bulk archive holds the full petabyte history on higher-capacity media, connected by the escalation and staging logic."],
+["ul",["Parallel file system striped for aggregate bandwidth","NVMe scratch near compute for active jobs","Bulk capacity tier for the full pulse archive","Redundancy and integrity checking across devices"]],
+["h3","Matching storage to workload"],
+["p","Different L0 workloads stress storage differently. Monte Carlo is write-heavy at the end of each batch; training is read-heavy and streaming; replay is random-access into the archive. The architecture provides staging so that the data a job needs is moved to fast media before the job runs, keeping expensive compute from waiting on slow reads."],
+["p","Integrity is built in. Data is checksummed and redundantly stored, so a device failure never corrupts a pulse record or a certified simulation result. Given that the archive is the ground truth for all retraining, silent corruption would be worse than loss; the architecture is designed to detect and repair it."],
+["p","One storage foundation serves both machines and all workload classes. Breeder neutronics tallies, burner stability scans, and twin residual logs all live in the same tiered, parallel, integrity-checked system, staged to fast media on demand. Storage is the quiet substrate beneath every other L0 capability."]
+],
+"related":[["petabyte-pulse-histories","Petabyte Pulse Histories"],["cold-warm-hot-storage-tiers","Storage Tiers"],["compute-substrate-architecture","The Compute Substrate"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"cold-warm-hot-storage-tiers",
+"title":"Cold, Warm, and Hot Storage Tiers",
+"cat":"l0-foundation",
+"lede":"How Kronos places data across access tiers so active pulses are fast to reach while the full history stays affordable to keep.",
+"body":[
+["h2","Not all data needs to be fast"],
+["p","Petabyte histories cannot all sit on the fastest media, and they do not need to. Kronos tiers storage by access temperature: hot data close to compute for immediate use, warm data on capable but slower media, cold data in deep archive for long-term retention. Placement matches how likely and how urgently each record will be read."],
+["h3","The three temperatures"],
+["p","Hot storage holds the pulses and datasets an active campaign is training or refining against, on fast NVMe near the GPUs. Warm storage holds recent and frequently referenced history on capacity media with good bandwidth. Cold storage holds the long tail, older pulses and completed campaigns, retained for audit and occasional replay but rarely touched."],
+["matrix",["Storage tiers (rows: hot, warm, cold)",[["active jobs","fast NVMe"],["recent history","capacity media"],["long tail","deep archive"]]]],
+["h3","Movement between tiers"],
+["p","Data migrates by policy and by demand. A pulse cools from hot to warm to cold as it stops being referenced; a cold pulse pulled by a <a href=./twin-refinement-loop.html>refinement study</a> is staged back to hot for the duration. This staging is handled below the workload, so a study requests a pulse and the tiering system makes it fast without the user managing media."],
+["p","Tiering is what keeps petabyte-scale retention sustainable while keeping active work fast. If every pulse demanded hot storage, the archive would be impractical; if every read hit cold storage, campaigns would stall. Tiering resolves the tension by matching placement to actual access patterns."],
+["p","The tiers serve both machines and both data kinds, hardware pulses and simulation campaigns, under one policy. Immutable and hashed at every tier, records keep their integrity as they move, so a cold-archived certified neutronics result is exactly as trustworthy as the day it was written when it is eventually recalled."]
+],
+"related":[["storage-array-architecture","Storage Arrays"],["petabyte-pulse-histories","Petabyte Pulse Histories"],["data-escalation-tiers","Data Escalation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"offline-realtime-separation",
+"title":"Why Offline Compute Is Separated from Real-Time",
+"cat":"l0-foundation",
+"lede":"The architectural decision to keep heavy, non-deterministic foundation compute strictly apart from the microsecond control plane.",
+"body":[
+["h2","A firewall between clocks"],
+["p","The most important structural decision in the Kronos architecture is the strict separation of L0 offline compute from the L1 real-time control plane. They are not merely different layers; they are different worlds with incompatible requirements, and the boundary between them is deliberate and hard. Mixing them would compromise both safety and depth."],
+["h3","Real-time cannot wait"],
+["p","The control plane enforces a sub-10-microsecond command boundary and hosts the autonomous hardware failsafe that dumps a quench with zero AI dependency. Nothing that can stall, garbage-collect, page from disk, or take an unbounded amount of time is allowed in that path. A Monte Carlo campaign or a retraining run has exactly those properties, so it must live elsewhere."],
+["ul",["Real-time: bounded, deterministic, simple, safety-critical","Offline: unbounded, thorough, exploratory, non-critical","No offline dependency in the failsafe path","Models cross the boundary only after offline validation"]],
+["h3","Offline cannot be rushed"],
+["p","The reverse is equally true. Deep simulation, uncertainty quantification, and full validation cannot be squeezed into a control budget without becoming worthless. Forcing the foundation to answer in microseconds would mean answering badly. Separation lets L0 take the time correctness requires."],
+["p","The two worlds meet only at controlled interfaces. Models trained and validated on L0 are compiled and promoted into the real-time twin; residuals and data flow back up for the next cycle. But the failsafe never depends on the foundation, and the foundation never sits in the actuation loop. The <a href=./latency-gradient.html>latency gradient</a> is the physical expression of this separation."],
+["p","This discipline protects both machines. The breeder's disruption failsafe and the burner's plug-stabilization interlocks act deterministically at the edge regardless of what the foundation is doing, while the foundation improves the intelligence behind them without ever being able to jeopardize the reflex. Depth and safety coexist precisely because they are kept apart."]
+],
+"related":[["latency-gradient","The Latency Gradient"],["l0-foundation-overview","L0 Overview"],["gpu-clusters-twin-sync","Twin Synchronization"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"checkpointing-and-fault-tolerance",
+"title":"Checkpointing and Fault Tolerance",
+"cat":"l0-foundation",
+"lede":"How long-running Kronos simulations and training runs survive node failures without losing days of compute.",
+"body":[
+["h2","Long jobs will hit failures"],
+["p","L0 runs jobs that last hours to days across many nodes, and at that scale hardware failures are not exceptional but expected. A single node fault should never cost a whole campaign. Checkpointing and fault tolerance are what let long-running simulations and training runs survive failures and resume, rather than restart from zero."],
+["h3","Checkpointing"],
+["p","A checkpoint is a saved snapshot of a job's state, solver fields and iteration count, or model weights and optimizer state, written periodically to storage. If a node fails, the job restarts from the last checkpoint instead of the beginning. The checkpoint interval trades storage and I/O overhead against the amount of work lost on failure."],
+["ul",["Periodic state snapshots to durable storage","Restart from last checkpoint after a fault","Interval tuned to failure rate and job length","Asynchronous writes to hide checkpoint cost"]],
+["h3","Tolerance strategies by workload"],
+["p","Different workloads tolerate faults differently. Monte Carlo is naturally resilient: histories are independent, so a lost batch is simply re-run and only its contribution is redone. Coupled solves and synchronous training are fragile: a lost rank stalls the whole job, so they lean on checkpoints and, where possible, elastic recovery that re-forms the job around a replacement node."],
+["p","Checkpoints double as reproducibility anchors. A checkpoint plus the recorded environment and seeds lets a run be resumed or re-derived exactly, which ties fault tolerance to the broader <a href=./reproducibility-of-compute.html>reproducibility</a> discipline. The same snapshot that survives a crash also lets an auditor replay from a known state."],
+["p","Fault tolerance keeps both machines' study cadences reliable. A multi-day breeder gyrokinetic run or a burner stability campaign can complete despite node churn, and the scheduler's use of preemptible backfill depends on it: a preempted sweep job resumes from its checkpoint elsewhere with no scientific loss."]
+],
+"related":[["compute-scheduling-orchestration","Scheduling"],["reproducibility-of-compute","Reproducibility of Compute"],["storage-array-architecture","Storage Arrays"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"reproducibility-of-compute",
+"title":"Reproducibility of Compute",
+"cat":"l0-foundation",
+"lede":"The discipline that lets any Kronos simulation or training result be re-derived exactly, because the machines are still numerical.",
+"body":[
+["h2","Reproducibility is design integrity"],
+["p","Because the breeder and burner are still design and simulation until FOAK around 2030, their numerical models are, for now, the machines themselves. If a result cannot be reproduced, there is nothing stable to design against. Reproducibility of compute is therefore not a nicety at Kronos; it is the integrity of the design record."],
+["h3","What must be pinned"],
+["p","A result is reproducible only if everything that shaped it is recorded and re-createable: the code version, the numerical libraries, the hardware class, the input data and its version, the random seeds, and the environment. Kronos captures all of these as a manifest attached to every certified run, so the run can be reconstructed rather than merely described."],
+["ul",["Code and library versions, hashed","Hardware reproducibility class","Input data and cross-section versions","Random seeds and reduction order","Container or environment image"]],
+["h3","Determinism where it counts"],
+["p","Not everything is bitwise reproducible, and not everything needs to be. Certified physics runs, equilibria, coupled solves, the results that seed twin surrogates, run on <a href=./bare-metal-provisioning.html>pinned bare-metal</a> with deterministic reductions and fixed seeds. Wide sweeps and training tolerate more variability, but even they record enough to reproduce their statistical conclusions."],
+["p","Reproducibility and lineage together make the whole stack auditable. A deployed twin model can be traced to its retraining run, that run to its curated dataset, that dataset to its source pulses, and a physics surrogate to the certified solves behind it. Every link in that chain is recorded, so a claim can always be checked."],
+["p","This discipline is also what lets old and new results be compared as codes and data evolve. A breeder TBR value or a burner stability margin computed today can be re-derived years from now against the identical inputs, or deliberately re-run against updated data to measure what changed. Reproducibility is how Kronos keeps a coherent design record over time."]
+],
+"related":[["bare-metal-provisioning","Bare-Metal Provisioning"],["deterministic-simulation-seeds","Deterministic Seeds"],["verification-and-validation","Verification and Validation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"deterministic-simulation-seeds",
+"title":"Deterministic Simulation Seeds",
+"cat":"l0-foundation",
+"lede":"How Kronos manages random-number seeds so stochastic Monte Carlo and training runs remain exactly reproducible.",
+"body":[
+["h2","Randomness must be controlled, not free"],
+["p","Monte Carlo transport and neural-network training are both stochastic: they consume streams of random numbers. Left uncontrolled, that randomness makes a result impossible to reproduce. Kronos manages seeds deterministically so that a stochastic run, despite being random, produces the same result whenever it is re-executed with the same seed and environment."],
+["h3","Seeds as recorded inputs"],
+["p","A seed is treated as a first-class input, recorded in the run manifest alongside code and data versions. Given the seed and the pinned environment, the pseudo-random stream is fully determined, so the run is reproducible. This is what lets a certified neutronics result or a trained surrogate be re-derived exactly rather than merely re-approximated."],
+["ul",["Seeds recorded in every run manifest","Independent streams per parallel rank","Reproducible parallel reductions of stochastic tallies","Distinct seeds for genuine statistical replicas"]],
+["h3","Parallelism complicates seeding"],
+["p","In a parallel Monte Carlo run, each rank needs its own independent stream, or ranks would trace identical histories and the statistics would be wrong. Kronos assigns per-rank streams derived deterministically from a master seed, so the whole parallel run is both correctly independent across ranks and exactly reproducible as a whole."],
+["p","Reproducibility also requires deterministic combination. Summing stochastic tallies across ranks in a floating-point-sensitive order can perturb the last bits, so certified runs fix the reduction order. This connects seed management to the broader <a href=./numerical-precision-strategy.html>precision strategy</a>: controlled randomness plus controlled arithmetic yields a repeatable answer."],
+["p","Seeds are not only for reproducibility; they are for honest statistics. Uncertainty studies deliberately vary the seed to generate independent replicas and estimate the Monte Carlo error, while keeping every replica individually reproducible. Deterministic seeding thus supports both exact replay and rigorous <a href=./uncertainty-quantification.html>uncertainty quantification</a> for both machines."]
+],
+"related":[["reproducibility-of-compute","Reproducibility of Compute"],["monte-carlo-variance-reduction","Variance Reduction"],["uncertainty-quantification","Uncertainty Quantification"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"containerized-environments",
+"title":"Containerized Simulation Environments",
+"cat":"l0-foundation",
+"lede":"Packaging code, libraries, and dependencies into immutable images so Kronos runs the same everywhere, from cloud to bare-metal.",
+"body":[
+["h2","The environment is part of the result"],
+["p","Two runs of the same code can differ if their libraries, compilers, or dependencies differ. Kronos packages each simulation and training environment into an immutable container image, so the exact software stack that produced a result is captured and re-runnable. The environment stops being an invisible variable and becomes a recorded, versioned artifact."],
+["h3","What a container fixes"],
+["p","A container image pins the numerical libraries, the solver code, the Python and system dependencies, and their versions into a single hashed artifact. A run records which image it used, so the software half of reproducibility is guaranteed by construction. Changing a library means building a new, distinctly versioned image, never silently altering an existing one."],
+["ul",["Pinned solver code and numerical libraries","Recorded image hash in the run manifest","Identical stack across cloud and bare-metal","New image per dependency change, never in place"]],
+["h3","Portability across the substrate"],
+["p","Containers are what make the cloud-explores, bare-metal-certifies workflow practical. The same image runs on an elastic cloud partition during a wide sweep and on a <a href=./bare-metal-provisioning.html>certified node</a> for the reproducible pass, so the software stack is identical in both places. Combined with the hardware abstraction layer, this makes placement a policy choice rather than a source of numerical difference."],
+["p","There are limits. A container fixes software but not hardware; the same image on different microarchitectures can still differ in the last bits, which is why certified runs also pin the hardware class. Containers handle the software axis of reproducibility; bare-metal and seed management handle the rest."],
+["p","One image library serves both machines. Breeder neutronics, burner stability, and twin-training environments are each captured as versioned images, so any run for either machine can be reconstructed by pulling its recorded image. Containerization is the software backbone of the whole <a href=./reproducibility-of-compute.html>reproducibility</a> discipline."]
+],
+"related":[["reproducibility-of-compute","Reproducibility of Compute"],["hardware-abstraction-layer","Hardware Abstraction Layer"],["bare-metal-provisioning","Bare-Metal Provisioning"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"simulation-mathematics-overview",
+"title":"The Mathematics of the Simulation Workloads",
+"cat":"l0-foundation",
+"lede":"A map of the equation families L0 solves, from transport and MHD to transport PDEs, and the numerical methods each demands.",
+"body":[
+["h2","One foundation, several equation families"],
+["p","The L0 workloads are diverse, but they reduce to a handful of mathematical families, each with its own structure and numerical demands. Understanding this map explains why the compute substrate is shaped the way it is: the mathematics of each workload dictates whether it is stochastic or deterministic, explicit or implicit, cheap to parallelize or communication-bound."],
+["h3","The families"],
+["p","Kronos solves: the linear Boltzmann transport equation, stochastically, for neutronics; nonlinear elliptic PDEs, the Grad-Shafranov equilibrium; time-dependent PDE systems, resistive MHD and transport; a high-dimensional kinetic equation, gyrokinetics; and coupled decay-transmutation ODE systems for activation. Each is a distinct mathematical object requiring a distinct method."],
+["ul",["Boltzmann transport: stochastic Monte Carlo","Grad-Shafranov: nonlinear elliptic PDE","MHD and transport: time-dependent PDE systems","Gyrokinetics: 5D kinetic PDE","Activation: coupled linear ODE systems"]],
+["h3","Method follows structure"],
+["p","The equation's structure chooses the method. High dimensionality and resonance make transport Monte-Carlo-shaped and perfectly parallel. Ellipticity makes equilibrium a boundary-value problem needing a global solve. Stiffness in MHD forces implicit <a href=./time-integration-schemes.html>time integration</a>. Coupling between physics forces the <a href=./coupled-multiphysics-mathematics.html>multi-physics</a> strategies. The numerics are not arbitrary; they are consequences of the math."],
+["p","This map also explains the compute demands. Stochastic and independent workloads weak-scale to huge node counts; implicit coupled workloads are communication-bound and strong-scaling-limited; kinetic workloads are the heaviest of all. The substrate's mix of CPU-dense, low-latency, and GPU-dense partitions is a direct answer to this spread of mathematical shapes."],
+["p","The same mathematics serves both machines. The breeder and burner differ in geometry and dominant physics, but both are described by these equation families. The equations and methods are shared; the boundary conditions, sources, and parameters make one a spherical tokamak and the other a tandem mirror."]
+],
+"related":[["neutron-transport-mathematics","Transport Mathematics"],["finite-element-discretization","Finite-Element Discretization"],["coupled-multiphysics-mathematics","Multi-Physics Coupling"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"finite-element-discretization",
+"title":"Finite-Element Discretization",
+"cat":"l0-foundation",
+"lede":"How Kronos turns the continuous equations of equilibrium, MHD, and thermomechanics into large sparse systems a computer can solve.",
+"body":[
+["h2","From continuous to discrete"],
+["p","The PDEs of equilibrium, MHD, and thermomechanics are continuous; a computer solves discrete systems. Finite-element discretization is the bridge: it represents the solution on a mesh using basis functions, converting a PDE into a large sparse system of algebraic equations. This is the numerical backbone of Kronos's non-stochastic physics workloads."],
+["h3","The method"],
+["p","The domain is divided into elements; the unknown field is approximated as a weighted sum of basis functions over those elements. The PDE is cast in weak form and required to hold against test functions, producing a system whose matrix is sparse because each basis function overlaps only its neighbors. Solving that system yields the discrete solution."],
+["code",["python","# Weak form -> discrete system (schematic):\n# find u_h = sum_j u_j phi_j  such that\n# integral( grad v . grad u_h ) dV = integral( v f ) dV  for all test v\n# assembles to  K u = b  (K sparse stiffness matrix)"]],
+["h3","Why mesh quality matters"],
+["p","Accuracy depends on the mesh. The breeder's negative-triangularity boundary and the burner's high-field end plugs demand fine, well-shaped elements where fields vary sharply, and coarser elements elsewhere for efficiency. A poor mesh either misses the physics or wastes compute, so mesh generation and adaptivity are part of the workload, not a preliminary."],
+["ul",["Mesh resolution concentrated where fields vary","Sparse stiffness matrices from local basis overlap","Iterative solvers with preconditioning for large systems","Adaptive refinement guided by error estimates"]],
+["p","The resulting sparse systems are large and are solved iteratively, with preconditioning to accelerate convergence. These solves are the communication-heavy, strong-scaling-limited workloads that drive the demand for a low-latency <a href=./interconnect-fabric.html>interconnect</a>, because the iterative solver exchanges data across partitions every step."],
+["p","Discretization applies across both machines and several physics. Breeder equilibrium, MHD stability, and thermomechanical response of the CrMoNbV vessel, and the burner's field and structural solves, all rest on the same finite-element foundation, differing in geometry, mesh, and the equations assembled onto it."]
+],
+"related":[["simulation-mathematics-overview","Simulation Mathematics"],["grad-shafranov-solver-farm","Grad-Shafranov Solver Farm"],["time-integration-schemes","Time Integration"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"time-integration-schemes",
+"title":"Time-Integration Schemes",
+"cat":"l0-foundation",
+"lede":"Choosing explicit or implicit stepping for Kronos's time-dependent MHD, transport, and disruption solves, and why stiffness decides.",
+"body":[
+["h2","Marching equations forward in time"],
+["p","Time-dependent workloads, resistive MHD, transport evolution, disruption dynamics, must be marched forward step by step. The scheme that advances them, explicit or implicit, is one of the most consequential numerical choices Kronos makes, because it decides both the cost per step and the size of step allowed. The right choice is dictated by stiffness."],
+["h3","Explicit versus implicit"],
+["p","An explicit scheme computes the next state directly from the current one: cheap per step, but stable only for steps below a limit set by the fastest timescale. An implicit scheme solves a system coupling the new state to itself: costly per step, but stable at much larger steps. When timescales span orders of magnitude, implicit wins despite its per-step cost."],
+["matrix",["Scheme trade-off (rows: explicit, implicit)",[["cheap step","costly step"],["step-size limited","large steps stable"],["non-stiff","stiff"]]]],
+["h3","Stiffness in Kronos physics"],
+["p","MHD and transport are stiff: fast MHD modes and slow resistive or transport evolution coexist. An explicit scheme would be forced to the fastest timescale, taking impractically many tiny steps. So Kronos uses implicit integration for these, accepting a linear or nonlinear solve each step, the same sparse systems <a href=./finite-element-discretization.html>finite elements</a> produce, in exchange for stable, physically meaningful step sizes."],
+["p","Accuracy and stability are distinct. A stable scheme will not blow up, but it can still be inaccurate if the step is too large for the dynamics of interest. Kronos chooses step size and scheme order to resolve the physics a study cares about, disruption growth in the breeder, potential dynamics in the burner, not merely to stay stable."],
+["p","The choice ties directly to compute. Implicit steps mean solving large systems repeatedly, which is communication-bound and reproducibility-sensitive, so these solves live on the certified core. Explicit steps, where physics allows, are cheaper and more parallel. Time integration is thus both a mathematical and an architectural decision for both machines."]
+],
+"related":[["mhd-simulation-workloads","MHD Workloads"],["finite-element-discretization","Finite-Element Discretization"],["coupled-multiphysics-mathematics","Multi-Physics Coupling"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"coupled-multiphysics-mathematics",
+"title":"Coupled Multi-Physics Coupling Mathematics",
+"cat":"l0-foundation",
+"lede":"How Kronos links neutronics, thermomechanics, and MHD so the interactions between them are captured, not assumed away.",
+"body":[
+["h2","The physics does not decouple"],
+["p","In a real machine, neutrons heat the blanket, heat deforms structure, structure and fields interact, and the plasma responds. These physics are coupled, and treating them in isolation misses the interactions that matter. Multi-physics coupling is the mathematics of linking separate solvers so their mutual influence is captured, which is central to honest L0 simulation."],
+["h3","The coupling chain"],
+["p","A representative breeder chain runs: Monte Carlo neutronics produces a nuclear-heating field; that field drives a thermomechanical solve of the blanket and CrMoNbV vessel; the resulting temperatures and deformations feed back into geometry and material properties. Each arrow is a data handoff between solvers with different meshes and timescales, which coupling must reconcile."],
+["ul",["Neutronics heating into thermomechanics","Temperature and deformation into geometry and properties","Equilibrium and MHD into thermal and mechanical loads","Field interpolation between mismatched meshes"]],
+["h3","Loose versus tight coupling"],
+["p","Coupling can be loose, solvers exchange fields between steps, or tight, solvers iterate to a jointly consistent state each step. Loose coupling is cheaper and often sufficient when feedback is weak; tight coupling is needed when the physics interact strongly within a step. Kronos chooses per problem, because unnecessary tight coupling wastes compute and unnecessary loose coupling misses physics."],
+["p","Coupling across mismatched meshes and timescales is where the numerical difficulty lives. A heating field on the neutronics geometry must be conservatively interpolated onto the thermomechanical mesh, and fast and slow physics must be reconciled without violating conservation. Getting this wrong quietly corrupts results, so conservation and interpolation accuracy are checked as part of <a href=./verification-and-validation.html>validation</a>."],
+["p","Both machines need coupling, with different chains. The breeder couples breeding-era heating to structural life; the burner couples its low neutron load and end-loss physics to the direct-conversion train and magnet structure. The coupling framework is shared; the specific physics linked together defines each machine's multi-physics problem."]
+],
+"related":[["activation-and-damage-modeling","Activation and Damage"],["finite-element-discretization","Finite-Element Discretization"],["verification-and-validation","Verification and Validation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"uncertainty-quantification",
+"title":"Uncertainty Quantification",
+"cat":"l0-foundation",
+"lede":"Attaching honest error bars to every Kronos prediction by propagating input, data, and model uncertainty through the workloads.",
+"body":[
+["h2","A number without an error bar is incomplete"],
+["p","No simulation output is exact. A breeder TBR of 1.5 or a burner stability margin means little without knowing how uncertain it is. Uncertainty quantification (UQ) is the L0 discipline of attaching honest error bars to predictions by propagating the uncertainties in inputs, data, and models through to the outputs. It is what keeps Kronos results defensible."],
+["h3","Sources of uncertainty"],
+["p","Uncertainty enters from several places: statistical noise in Monte Carlo, uncertainty in nuclear <a href=./cross-section-data-pipeline.html>cross-section data</a>, uncertainty in plasma profiles and boundary conditions, and model-form error in surrogates and reduced models. UQ distinguishes these because they behave differently: statistical noise shrinks with more compute, while data and model uncertainty do not."],
+["ul",["Statistical noise from stochastic sampling","Nuclear data and cross-section uncertainty","Input and boundary-condition uncertainty","Model-form error in surrogates and closures"]],
+["h3","Propagation methods"],
+["p","Kronos propagates uncertainty by running ensembles: sampling the uncertain inputs, running the workload for each sample, and building a distribution over the output. This is why sweeps and replicas matter beyond exploration, they are also UQ. Where full ensembles are too costly, surrogates and sensitivity analysis estimate how strongly each input drives the output."],
+["p","Sensitivity analysis is a key product. It ranks which uncertainties matter, telling the design team where better data or tighter control would most reduce output uncertainty. For the breeder, it might show TBR is most sensitive to a particular cross-section; for the burner, that confinement is most sensitive to plug density. This turns UQ into design guidance."],
+["p","UQ also disciplines the twin. Every surrogate carries a validity domain and error estimate, so the real-time twin knows the confidence of its own predictions and can defer when uncertainty is high. Honest error bars, computed offline, are thus what let the fast layers act responsibly on foundation-derived knowledge for both machines."]
+],
+"related":[["cross-section-data-pipeline","Cross-Section Pipeline"],["surrogate-model-generation","Surrogate Generation"],["verification-and-validation","Verification and Validation"]],
+"seo_type":"TechArticle"
+},
+{
+"slug":"verification-and-validation",
+"title":"Verification and Validation of Simulation Codes",
+"cat":"l0-foundation",
+"lede":"The distinct disciplines of solving the equations right and solving the right equations, applied to every Kronos workload.",
+"body":[
+["h2","Two questions, not one"],
+["p","Before any simulation result is trusted, it must pass two separate tests. Verification asks whether the code solves the equations correctly. Validation asks whether those equations describe reality. They are different questions, and Kronos treats them as distinct disciplines, because a perfectly verified code can still model the wrong physics, and correct physics can still be coded wrong."],
+["h3","Verification"],
+["p","Verification checks the numerics. It compares code output against analytic solutions where they exist, confirms that error shrinks at the expected rate as the mesh or time step refines, and checks conservation of mass, energy, and charge. A neutronics code is verified against known benchmarks; a finite-element solver is verified against manufactured solutions with a known answer."],
+["ul",["Comparison against analytic and benchmark solutions","Convergence at the expected order under refinement","Conservation of mass, energy, momentum, charge","Code-to-code cross-checks between independent solvers"]],
+["h3","Validation"],
+["p","Validation checks the physics against experiment. Here Kronos faces a real constraint: the machines are not built, so there is no breeder or burner data to validate against directly until FOAK around 2030. Kronos therefore validates its codes against existing experiments from the wider field and against well-characterized reference cases, establishing credibility on known ground before applying the codes to its own designs."],
+["p","This limit is stated honestly. Until first tritium, Kronos's machine predictions are extrapolations from validated codes, not validated machine results, and no hardware net-gain is claimed before FOAK. Verification can be complete now; full machine validation cannot, and the architecture is built to fold real pulse data into validation the moment it exists."],
+["p","V and V close the loop on the whole foundation. They gate what results enter the archive as certified, what data trains twin models, and what surrogates are promoted to real time. Combined with <a href=./reproducibility-of-compute.html>reproducibility</a> and <a href=./uncertainty-quantification.html>UQ</a>, they are what let Kronos treat its simulations as a serious design basis for both machines rather than as illustrations."]
+],
+"related":[["reproducibility-of-compute","Reproducibility of Compute"],["uncertainty-quantification","Uncertainty Quantification"],["twin-refinement-loop","Twin Refinement Loop"]],
+"seo_type":"TechArticle"
+}
+]

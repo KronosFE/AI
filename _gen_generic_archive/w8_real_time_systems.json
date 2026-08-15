@@ -1,0 +1,923 @@
+[
+{
+  "slug": "hard-vs-soft-real-time",
+  "title": "Hard vs Soft Real-Time",
+  "cat": "real-time-systems",
+  "lede": "A real-time system is judged by whether it meets deadlines, not by raw speed; the cost of a missed deadline separates hard from soft.",
+  "body": [
+    ["h2", "Correctness Includes Time"],
+    ["p", "In a real-time system, a result computed too late is wrong even if the arithmetic is perfect. The defining property is not average throughput but the guarantee that responses arrive within a bounded time. This reframes performance engineering: a system that is fast on average but occasionally slow can be worse than one that is uniformly slower yet predictable."],
+    ["h3", "Hard Real-Time"],
+    ["p", "A hard deadline is one whose violation constitutes system failure. Missing it can cause damage, injury, or loss of a physical process. Flight control surfaces, engine ignition timing, and plasma position control are hard: the deadline is a contract with the physical world. Hard systems are designed so the worst case, not the typical case, still meets timing. They are analyzed with <a href=./worst-case-execution-time.html>worst-case execution time</a> and provable <a href=./rtos-scheduling-algorithms.html>schedules</a>."],
+    ["h3", "Soft and Firm Real-Time"],
+    ["p", "A soft deadline degrades value gracefully when missed. A late video frame lowers quality but does not break the system; the utility of a result decays after its deadline rather than falling to zero. A firm deadline is an intermediate case: a late result has zero value but causes no harm, so it is simply discarded."],
+    ["ul", ["Hard: missed deadline = failure (safety interlocks, motion control)", "Firm: late result is useless but harmless and dropped", "Soft: late result still has reduced value (streaming, telemetry displays)"]],
+    ["h3", "Design Consequences"],
+    ["p", "Classifying each deadline drives the whole architecture. Hard paths demand deterministic scheduling, bounded interrupt latency, and often static memory allocation to avoid unpredictable pauses. Soft paths can use best-effort operating systems and dynamic resource allocation. Many real systems are mixed-criticality: a single controller runs a hard inner loop alongside soft logging and user-interface tasks, isolated so the soft work can never steal timing from the hard work."],
+    ["p", "The engineering discipline is to state, for every task, what the deadline is and what happens when it is missed. That single question determines whether you need a formal timing proof or merely a reasonable average."]
+  ],
+  "related": [["determinism-in-real-time-systems", "Determinism"], ["worst-case-execution-time", "WCET"], ["timing-budgets", "Timing Budgets"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "determinism-in-real-time-systems",
+  "title": "Determinism in Real-Time Systems",
+  "cat": "real-time-systems",
+  "lede": "Determinism is the property that a system's timing behavior is bounded and repeatable, so its worst case can be known before it runs.",
+  "body": [
+    ["h2", "What Determinism Means"],
+    ["p", "A deterministic real-time system produces the same timing behavior every time it faces the same conditions, and that behavior has a provable upper bound. Determinism is not about being fast; it is about being predictable. A response that always completes in 900 microseconds is more useful for control than one that averages 300 but occasionally takes 5 milliseconds."],
+    ["h3", "Sources of Non-Determinism"],
+    ["p", "Modern general-purpose computing is built to optimize the average case, which introduces variability that hurts the worst case. Each mechanism below trades predictability for throughput:"],
+    ["ul", ["Cache hierarchies: a miss can be two orders of magnitude slower than a hit", "Branch prediction and speculative execution: mispredicts flush the pipeline", "Virtual memory and page faults: an unmapped page triggers slow I/O", "Dynamic frequency scaling: clock speed changes under thermal and power control", "Garbage collection and dynamic allocation: unpredictable pauses", "Shared buses and DMA contention: variable access latency"]],
+    ["h3", "Recovering Predictability"],
+    ["p", "Deterministic designs constrain or remove these mechanisms on critical paths. Techniques include locking data into cache or using scratchpad memory, disabling frequency scaling, pinning threads to dedicated cores, pre-faulting and locking memory pages, using static allocation, and moving the most time-critical work into <a href=./fpga-based-control.html>FPGA</a> logic where timing is fixed by hardware."],
+    ["h3", "Determinism Versus Speed"],
+    ["p", "A useful mental model: general-purpose CPUs shorten the average path at the cost of a long tail; real-time engineering shortens the tail even if it lengthens the average. The metric that matters is the maximum, characterized through measurement and static analysis together."],
+    ["p", "For a physical controller such as a plasma-position loop, determinism is what lets designers write a timing proof rather than hope. The controller must react within the same bound on every cycle, because the plant does not wait for a slow iteration."]
+  ],
+  "related": [["hard-vs-soft-real-time", "Hard vs Soft"], ["jitter-sources-and-mitigation", "Jitter"], ["worst-case-execution-time", "WCET"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "latency-fundamentals",
+  "title": "Latency Fundamentals",
+  "cat": "real-time-systems",
+  "lede": "Latency is the elapsed time from a stimulus to the completed response, and in control it must be measured end to end, not stage by stage.",
+  "body": [
+    ["h2", "Defining Latency"],
+    ["p", "Latency is the delay between an event and the system's response to it. In a control system the relevant figure is end-to-end latency: the total time from a physical change at a sensor to the corresponding change at an actuator. Optimizing one stage while ignoring the chain gives a misleading picture."],
+    ["h3", "The End-to-End Chain"],
+    ["p", "A typical control path accumulates delay at each stage. A realistic budget adds them:"],
+    ["ul", ["Sensor response and analog conditioning", "Sample-and-hold plus <a href=./analog-to-digital-conversion.html>ADC</a> conversion", "Data transfer over a bus or network", "Computation of the control law", "Digital-to-analog conversion or PWM update", "Actuator response and mechanical settling"]],
+    ["h3", "Latency Versus Throughput"],
+    ["p", "Latency and throughput are distinct and often traded against each other. Batching or pipelining raises throughput but adds latency, because work waits to be grouped. A control loop cares about latency: each sample must be acted on promptly. A logging system cares about throughput: it can buffer and write in bulk. Confusing the two leads to designs that move a lot of data yet respond sluggishly."],
+    ["h3", "Why Latency Bounds Control"],
+    ["p", "Feedback delay directly limits how aggressively a loop can act. Delay adds phase lag, which erodes <a href=./control-stability-and-phase-margin.html>stability margin</a> and caps the achievable bandwidth. A rough rule is that the loop delay should be a small fraction of the fastest time constant you intend to control. If the plant changes faster than the loop can observe and respond, no control gain can compensate."],
+    ["p", "For fast physical processes, minimizing and bounding latency is more important than minimizing its average. A predictable 200-microsecond path is preferable to one that is usually 50 microseconds but sometimes stalls, because the controller must be tuned for the worst case it can encounter."]
+  ],
+  "related": [["jitter-sources-and-mitigation", "Jitter"], ["control-loop-timing", "Control-Loop Timing"], ["timing-budgets", "Timing Budgets"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "jitter-sources-and-mitigation",
+  "title": "Jitter: Sources and Mitigation",
+  "cat": "real-time-systems",
+  "lede": "Jitter is the variation in timing between cycles; even when average latency is fine, jitter degrades control quality and complicates timing proofs.",
+  "body": [
+    ["h2", "What Jitter Is"],
+    ["p", "Jitter is the cycle-to-cycle variation in a timing quantity, most often the variation in latency or in the interval between periodic events. A loop that should run every 1000 microseconds but actually fires at intervals ranging from 950 to 1080 has 130 microseconds of period jitter. Jitter is characterized by its distribution: mean, standard deviation, and especially the worst-case excursion."],
+    ["h3", "Where Jitter Comes From"],
+    ["ul", ["Interrupt coalescing and variable interrupt latency", "Scheduler decisions and preemption by higher-priority tasks", "Cache and memory contention between cores", "Clock-source drift and resolution limits", "Bus arbitration and DMA bursts", "Software conditional paths of differing length"]],
+    ["h3", "Why Jitter Matters"],
+    ["p", "Sampling jitter corrupts data. If an <a href=./analog-to-digital-conversion.html>ADC</a> is supposed to sample uniformly but the instants wander, the reconstructed signal contains errors that look like added noise, worst for high-frequency content. Output jitter is equally damaging: if a control update or a PWM edge arrives at an uncertain time, the actuator sees an effectively noisy command. In control terms, jitter injects an uncertainty that behaves like disturbance and delay combined."],
+    ["h3", "Mitigation"],
+    ["p", "The first principle is to decouple timing from software wherever precision matters. Use a hardware timer to trigger sampling and output directly, so the sample instant does not depend on when the interrupt handler happens to run. Give the critical task the highest priority and a dedicated core. Pre-fault memory and lock caches. For the tightest requirements, move the timed operation into <a href=./fpga-based-control.html>FPGA</a> logic clocked by a stable oscillator, where jitter is measured in nanoseconds set by the clock, not by software."],
+    ["h3", "Measuring Jitter"],
+    ["p", "You cannot control what you do not measure. Instrument the actual event times with a high-resolution counter, record the interval histogram over long runs, and report the maximum, not just the standard deviation. A rare large excursion, not the typical spread, is what breaks a hard deadline."]
+  ],
+  "related": [["latency-fundamentals", "Latency"], ["determinism-in-real-time-systems", "Determinism"], ["time-synchronization", "Time Synchronization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "control-loop-timing",
+  "title": "Control-Loop Timing",
+  "cat": "real-time-systems",
+  "lede": "A control loop must sense, compute, and actuate within its period every cycle; the choice of period couples timing engineering to control theory.",
+  "body": [
+    ["h2", "The Loop as a Clocked Contract"],
+    ["p", "A digital control loop repeats a fixed sequence at a fixed rate: read sensors, compute the control law, and drive actuators. The loop period sets both the timing requirement for the software and the achievable dynamics of the controlled system. Choosing it well means balancing what the physics needs against what the computer can guarantee."],
+    ["h3", "Choosing the Period"],
+    ["p", "The period must be short enough to observe the plant's fastest relevant dynamics. A common guideline places the sampling rate at ten to thirty times the closed-loop bandwidth you intend to achieve. Sample too slowly and the controller is blind between updates; sample too fast and you spend computing budget and amplify sensor noise without benefit. The <a href=./sampling-and-nyquist.html>Nyquist</a> limit is a floor, not a target: you generally sample well above twice the highest frequency of interest."],
+    ["h3", "Sensor-to-Actuator Delay Within a Cycle"],
+    ["p", "Where in the period the computation happens matters. If you sample at the start of the period and output at the end, you add nearly a full period of delay. Many designs sample, compute quickly, and output as early as possible to minimize the delay from measurement to action, because that delay directly reduces <a href=./control-stability-and-phase-margin.html>phase margin</a>."],
+    ["h3", "Timing the Loop in Practice"],
+    ["ul", ["Trigger sampling from a hardware timer, not a software delay", "Keep the compute path bounded so it always fits inside the period", "Reserve headroom: never plan to use 100 percent of the period", "Detect and handle overruns explicitly rather than silently drifting"]],
+    ["h3", "Overruns"],
+    ["p", "An overrun occurs when a cycle's work does not finish before the next cycle should start. A robust loop detects this and responds by a defined policy: skip, hold the previous output, or trip a fault. Silent overruns cause the loop period to stretch unpredictably, which introduces both delay and jitter and can destabilize an otherwise sound controller. Timing budgets and worst-case analysis exist precisely to prove that overruns cannot occur under normal operation."]
+  ],
+  "related": [["timing-budgets", "Timing Budgets"], ["feedback-loop-design", "Feedback Loops"], ["sampling-and-nyquist", "Sampling"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "real-time-operating-systems",
+  "title": "Real-Time Operating Systems",
+  "cat": "real-time-systems",
+  "lede": "An RTOS provides bounded, predictable scheduling and services so that timing guarantees, not just average performance, can be proven.",
+  "body": [
+    ["h2", "What Makes an OS Real-Time"],
+    ["p", "A real-time operating system is not simply a fast operating system. Its defining features are bounded latencies for its own operations: a known worst-case interrupt latency, a known worst-case scheduling latency, and predictable behavior for locks, timers, and context switches. A general-purpose OS optimizes throughput and fairness and permits unbounded pauses; an RTOS sacrifices some average performance to guarantee upper bounds."],
+    ["h3", "Core Services"],
+    ["ul", ["Priority-based preemptive <a href=./rtos-scheduling-algorithms.html>scheduling</a> with a bounded number of priority levels", "Deterministic inter-task communication: queues, semaphores, mailboxes", "High-resolution timers driving periodic tasks", "Bounded interrupt-to-task handoff", "Mechanisms to bound <a href=./priority-inversion-and-inheritance.html>priority inversion</a>"]],
+    ["h3", "Kernel Design for Predictability"],
+    ["p", "RTOS kernels keep critical sections short and bounded so that the maximum time interrupts are disabled is small and known. They avoid algorithms whose cost depends on the number of tasks in an unbounded way; ready-queue operations are typically constant time. Memory is often statically allocated to remove the unpredictability of dynamic allocation. These choices make the worst case analyzable."],
+    ["h3", "The Real-Time Spectrum"],
+    ["p", "Options range from small dedicated microkernels running on microcontrollers, through real-time patches that give a general-purpose kernel bounded preemption latency, to partitioned hypervisors that run a hard real-time domain beside a general-purpose one. The right choice depends on how tight the deadlines are and how much other software must coexist."],
+    ["h3", "Using an RTOS Correctly"],
+    ["p", "An RTOS enables timing guarantees but does not create them. The engineer still assigns priorities according to a sound policy such as <a href=./rate-monotonic-scheduling.html>rate-monotonic</a> analysis, keeps the critical path free of blocking calls, avoids unbounded loops, and validates the assumed worst-case execution times. The operating system supplies bounded primitives; the application must be built so that the composed system provably meets its deadlines."]
+  ],
+  "related": [["rtos-scheduling-algorithms", "Scheduling"], ["priority-inversion-and-inheritance", "Priority Inversion"], ["context-switching", "Context Switching"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rtos-scheduling-algorithms",
+  "title": "RTOS Scheduling Algorithms",
+  "cat": "real-time-systems",
+  "lede": "Scheduling decides which task runs when; in real-time systems the algorithm must be analyzable so deadlines can be guaranteed in advance.",
+  "body": [
+    ["h2", "The Scheduling Problem"],
+    ["p", "A scheduler assigns the processor to ready tasks over time. In a real-time system the goal is not fairness or throughput but meeting every deadline. A good real-time scheduler comes with a schedulability test: a way to prove, before deployment, that a given task set will always meet its deadlines."],
+    ["h3", "Preemptive Priority Scheduling"],
+    ["p", "The dominant model is fixed-priority preemptive scheduling. Each task has a priority; the scheduler always runs the highest-priority ready task, preempting lower-priority work immediately. This gives low latency to important tasks. The two central questions are how to assign priorities and how to prove the resulting set is schedulable."],
+    ["h3", "Static Versus Dynamic Priority"],
+    ["ul", ["Static (fixed) priority: assigned once, as in <a href=./rate-monotonic-scheduling.html>rate-monotonic</a> scheduling; simple and predictable", "Dynamic priority: recomputed at runtime, as in <a href=./earliest-deadline-first.html>earliest-deadline-first</a>; higher utilization but more complex", "Time-triggered: a fixed table dictates exactly when each task runs; maximally deterministic, rigid to change"]],
+    ["h3", "Schedulability Analysis"],
+    ["p", "For fixed-priority systems, response-time analysis computes each task's worst-case completion time by accounting for its own execution plus interference from every higher-priority task that can preempt it. If every task's worst-case response is within its deadline, the set is schedulable. This analysis needs trustworthy <a href=./worst-case-execution-time.html>worst-case execution times</a> and knowledge of blocking from shared resources."],
+    ["h3", "Utilization and Overload"],
+    ["p", "No scheduler can meet all deadlines if the total demanded work exceeds capacity. Analysis bounds the safe utilization; beyond it, deadlines will be missed. A robust system plans for overload with defined policies, shedding or deferring lower-criticality work rather than failing unpredictably. The scheduler's value is that it makes the boundary between safe and unsafe operation calculable rather than a matter of testing luck."]
+  ],
+  "related": [["rate-monotonic-scheduling", "Rate Monotonic"], ["earliest-deadline-first", "EDF"], ["real-time-operating-systems", "RTOS"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rate-monotonic-scheduling",
+  "title": "Rate-Monotonic Scheduling",
+  "cat": "real-time-systems",
+  "lede": "Rate-monotonic scheduling assigns higher priority to faster tasks; it is optimal among fixed-priority policies and comes with a simple sufficiency test.",
+  "body": [
+    ["h2", "The Rule"],
+    ["p", "Rate-monotonic scheduling (RMS) is a fixed-priority policy for periodic tasks: the shorter a task's period, the higher its priority. A task that must run every millisecond outranks one that runs every ten milliseconds. The assignment is static, computed once from the periods, and never changes at runtime."],
+    ["h3", "Why It Is Optimal"],
+    ["p", "Among all fixed-priority assignments, RMS is optimal in the sense that if any fixed-priority assignment can schedule a given set of periodic tasks, then RMS can too. This makes it the default reasonable choice when priorities are static and deadlines equal periods."],
+    ["h3", "The Utilization Bound"],
+    ["p", "RMS has a famous sufficient test. For n independent periodic tasks with deadlines equal to their periods, the set is schedulable if total utilization U satisfies U <= n(2^(1/n) - 1). For one task the bound is 1.0; for two it is about 0.828; as n grows it approaches ln(2), roughly 0.693. If utilization is below the bound, deadlines are guaranteed."],
+    ["code", ["python", "def rms_bound(n):\n    return n * (2 ** (1.0 / n) - 1)\n\n# example: three tasks, utilizations 0.2, 0.3, 0.1\nU = 0.2 + 0.3 + 0.1        # = 0.6\nprint(U <= rms_bound(3))    # 0.6 <= 0.7797 -> True, schedulable"]],
+    ["h3", "The Bound Is Sufficient, Not Necessary"],
+    ["p", "The utilization bound is conservative. Many task sets above the bound are still schedulable; the bound just cannot promise it. For a precise answer, use response-time analysis, which accounts for the exact periods and execution times and can certify utilizations above the simple bound, up to 1.0 in favorable cases where periods are harmonic multiples of each other."],
+    ["h3", "Assumptions and Extensions"],
+    ["p", "Classic RMS assumes independent periodic tasks with no blocking. Real systems have shared resources, so it is paired with a resource protocol that bounds <a href=./priority-inversion-and-inheritance.html>priority inversion</a>. When deadlines are shorter than periods, deadline-monotonic priority assignment generalizes the rule while keeping the fixed-priority structure and its analyzability."]
+  ],
+  "related": [["rtos-scheduling-algorithms", "Scheduling"], ["earliest-deadline-first", "EDF"], ["worst-case-execution-time", "WCET"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "earliest-deadline-first",
+  "title": "Earliest-Deadline-First Scheduling",
+  "cat": "real-time-systems",
+  "lede": "EDF always runs the task with the nearest deadline; it achieves full processor utilization but at the cost of dynamic priorities and harder overload behavior.",
+  "body": [
+    ["h2", "The Rule"],
+    ["p", "Earliest-deadline-first (EDF) is a dynamic-priority scheduling policy: at every scheduling decision, the processor is given to the ready task whose absolute deadline is nearest. Priorities are not fixed; they change as deadlines approach and as new jobs arrive."],
+    ["h3", "Optimality and the Utilization Test"],
+    ["p", "EDF is optimal for preemptive single-processor scheduling: if any algorithm can schedule a set of independent periodic tasks so all deadlines are met, EDF can too. For tasks with deadlines equal to periods, the schedulability test is simply that total utilization U <= 1.0. This is far more generous than the <a href=./rate-monotonic-scheduling.html>rate-monotonic</a> bound of about 0.693, so EDF can use the processor fully."],
+    ["h3", "The Trade-Offs"],
+    ["ul", ["Higher achievable utilization: up to 100 percent for the simple case", "Dynamic priorities cost more runtime bookkeeping to track deadlines", "Behavior under overload is worse: a domino effect can cascade missed deadlines unpredictably", "Blocking and shared resources need deadline-aware protocols"]],
+    ["h3", "Overload Behavior"],
+    ["p", "The main practical concern with EDF is what happens when demand briefly exceeds capacity. Under fixed-priority scheduling, overload sacrifices the lowest-priority tasks first, which is predictable. Under EDF an overload can cause a task that will miss its deadline to still consume the processor, causing others to miss too, so failures cascade. Systems using EDF add admission control or overload-management logic to contain this."],
+    ["h3", "When to Choose EDF"],
+    ["p", "EDF suits systems where high utilization matters and the task set is well characterized, such as multimedia and some soft real-time workloads. For hard safety-critical control, fixed-priority scheduling is often preferred because its overload behavior is easier to reason about and certify, even though it leaves some capacity unused. The choice is between squeezing out utilization and having simple, provable degradation."]
+  ],
+  "related": [["rate-monotonic-scheduling", "Rate Monotonic"], ["rtos-scheduling-algorithms", "Scheduling"], ["hard-vs-soft-real-time", "Hard vs Soft"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "priority-inversion-and-inheritance",
+  "title": "Priority Inversion and Inheritance",
+  "cat": "real-time-systems",
+  "lede": "Priority inversion is when a high-priority task waits on a resource held by a low-priority one; inheritance protocols bound how long that wait can last.",
+  "body": [
+    ["h2", "The Problem"],
+    ["p", "Priority inversion occurs when a high-priority task is blocked because a lower-priority task holds a shared resource it needs. That alone is bounded and acceptable. The danger is unbounded priority inversion: a medium-priority task, unrelated to the resource, preempts the low-priority holder, so the holder cannot finish and release the lock, and the high-priority task waits indefinitely on the medium task's schedule."],
+    ["h3", "A Famous Failure"],
+    ["p", "The 1997 Mars Pathfinder mission suffered repeated resets in flight from exactly this pattern: a high-priority bus-management task blocked on a mutex held by a low-priority task, while medium-priority communication tasks kept the holder from running, tripping a watchdog. The fix was to enable priority inheritance on the mutex."],
+    ["h3", "Priority Inheritance"],
+    ["p", "Under the priority-inheritance protocol, when a high-priority task blocks on a resource, the task holding that resource temporarily inherits the higher priority. This lets the holder run, finish its critical section, and release the resource promptly. Once it releases, it returns to its base priority. Inheritance bounds the blocking to the length of the critical sections, not the schedules of unrelated tasks."],
+    ["h3", "Priority Ceiling"],
+    ["p", "The priority-ceiling protocol goes further: each resource is assigned a ceiling equal to the highest priority of any task that can use it, and a task can lock a resource only if its priority exceeds the ceilings of all currently locked resources. This prevents deadlock and limits each task to being blocked by at most one critical section, giving a tighter, more analyzable bound."],
+    ["h3", "Consequences for Analysis"],
+    ["p", "Blocking must be included in <a href=./rtos-scheduling-algorithms.html>schedulability analysis</a>. Response-time calculations add a blocking term for each task equal to the worst critical section it can be forced to wait on. Keeping critical sections short and using a bounding protocol are therefore both correctness requirements and inputs to the timing proof."]
+  ],
+  "related": [["rtos-scheduling-algorithms", "Scheduling"], ["real-time-operating-systems", "RTOS"], ["worst-case-execution-time", "WCET"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "worst-case-execution-time",
+  "title": "Worst-Case Execution Time",
+  "cat": "real-time-systems",
+  "lede": "WCET is the provable upper bound on how long a piece of code can take; every real-time timing proof rests on trustworthy WCET values.",
+  "body": [
+    ["h2", "Why the Worst Case"],
+    ["p", "Real-time guarantees depend on the maximum time code can take, not the average. Worst-case execution time (WCET) is the largest possible execution duration of a task over all inputs and all hardware states. Schedulability analysis feeds on WCET: if the number is wrong, the timing proof is wrong."],
+    ["h3", "Why It Is Hard"],
+    ["p", "On modern processors the same instruction sequence can vary enormously in duration depending on cache state, branch prediction history, pipeline occupancy, and memory contention. A loop that runs in one microsecond with warm caches might take ten with cold caches. WCET analysis must account for the pessimistic combination of these, which is difficult on hardware designed to optimize the average case."],
+    ["h3", "Approaches"],
+    ["ul", ["Measurement-based: run the code many times over stressful inputs and take the maximum, then add margin; simple but can miss the true worst case", "Static analysis: model the code paths and the hardware to derive a provable upper bound without running it; safe but can be pessimistic", "Hybrid: combine measured basic-block times with static path analysis"]],
+    ["h3", "The Pessimism Trade-Off"],
+    ["p", "A sound WCET bound must never underestimate, so it errs high. Too much pessimism wastes capacity by reserving time that is never used; too little risks an unsafe bound. Making the hardware more predictable, by disabling speculation, locking caches, or using simpler cores, tightens the achievable bound because there is less variability to account for."],
+    ["h3", "Practical Discipline"],
+    ["p", "Robust WCET work avoids constructs whose duration depends on data in unbounded ways: no unbounded loops, no recursion without a proven depth limit, no dynamic memory on the critical path, and no blocking calls of unknown duration. Code is written to have a small, analyzable set of paths. The resulting bound is combined with blocking and interference terms in <a href=./rtos-scheduling-algorithms.html>response-time analysis</a> to prove the whole system meets its deadlines."]
+  ],
+  "related": [["rate-monotonic-scheduling", "Rate Monotonic"], ["timing-budgets", "Timing Budgets"], ["determinism-in-real-time-systems", "Determinism"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "timing-budgets",
+  "title": "Timing Budgets",
+  "cat": "real-time-systems",
+  "lede": "A timing budget allocates a control period among its stages so that the sum, in the worst case, provably fits within the deadline with margin.",
+  "body": [
+    ["h2", "Budgeting Time Like a Resource"],
+    ["p", "A timing budget treats the available time in a control cycle as a fixed resource to be divided among the work that must happen. Just as a mass budget assigns kilograms to subsystems, a timing budget assigns microseconds to sensing, computation, communication, and actuation, and requires that the worst-case total stay inside the period."],
+    ["h3", "Building the Budget"],
+    ["p", "Start from the deadline and subtract each stage's worst-case contribution. For a loop running at a fixed period, a budget might look like this:"],
+    ["ul", ["Sampling and ADC conversion: worst-case bounded time", "Data transfer to the processor: bounded bus or network latency", "Control-law computation: <a href=./worst-case-execution-time.html>WCET</a> of the algorithm", "Output conversion and actuator command: bounded write time", "Reserve margin: unallocated headroom for growth and uncertainty"]],
+    ["h3", "Margin Is Not Optional"],
+    ["p", "A budget that plans to consume the entire period is fragile. Estimates have error, hardware behavior drifts, and future changes add work. Prudent designs reserve a substantial fraction of the period as unallocated margin, so that the system remains schedulable when reality exceeds the nominal estimates. The margin is the difference between a design that survives its first modification and one that does not."],
+    ["h3", "Interference Between Tasks"],
+    ["p", "On a shared processor, a task's budget must also account for preemption by higher-priority tasks and blocking on shared resources. The end-to-end budget therefore includes interference terms, not just the task's own work. This is where the budget connects to <a href=./rtos-scheduling-algorithms.html>schedulability analysis</a>: the budget is the human-readable expression of the same worst-case arithmetic the analysis formalizes."],
+    ["h3", "Using the Budget"],
+    ["p", "A living timing budget is checked against measurement. Instrument each stage, compare observed maxima against the allocated figures, and investigate any stage approaching its allotment. A budget that is written once and never verified provides false confidence; one that is continuously reconciled with measured worst cases is a genuine guarantee."]
+  ],
+  "related": [["worst-case-execution-time", "WCET"], ["control-loop-timing", "Control-Loop Timing"], ["latency-fundamentals", "Latency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "interrupt-handling-and-latency",
+  "title": "Interrupt Handling and Latency",
+  "cat": "real-time-systems",
+  "lede": "Interrupts let hardware demand prompt attention; interrupt latency, the delay before the response begins, is a key determinant of real-time responsiveness.",
+  "body": [
+    ["h2", "What Interrupts Do"],
+    ["p", "An interrupt is a hardware signal that diverts the processor from its current work to handle an event, such as a completed conversion, an arriving packet, or a timer tick. Interrupts let a system respond to events without polling, which saves the processor from spinning in wait loops and enables fast reaction."],
+    ["h3", "Interrupt Latency"],
+    ["p", "Interrupt latency is the time from the hardware asserting the interrupt to the first instruction of the handler executing. It has several contributors: the time the current instruction takes to reach an interruptible point, any interval during which interrupts are disabled, the time to save context and vector to the handler, and delays from higher-priority interrupts running first. In a real-time system the worst-case latency, not the typical, is what matters."],
+    ["h3", "Keeping Latency Bounded"],
+    ["ul", ["Minimize and bound the longest interrupt-disabled interval in all code", "Keep handlers short: do the minimum in the handler, defer the rest", "Assign interrupt priorities so critical sources are not delayed by trivial ones", "Avoid long non-preemptible critical sections in the kernel"]],
+    ["h3", "Top and Bottom Halves"],
+    ["p", "A common pattern splits interrupt work into two parts. The top half, the handler itself, does only the urgent, minimal work: acknowledge the hardware, capture a timestamp or sample, and signal a task. The bottom half, a scheduled task or deferred routine, does the heavier processing at normal priority. This keeps the time spent with interrupts disabled small, which lowers the worst-case latency seen by every interrupt source."],
+    ["h3", "Interrupts Versus Determinism"],
+    ["p", "Interrupts improve responsiveness but complicate <a href=./determinism-in-real-time-systems.html>determinism</a>, because an interrupt can preempt a task at an unpredictable moment and adds interference to its timing. For the most timing-critical periodic work, some designs prefer a purely time-triggered approach driven by a single timer interrupt, or move the operation into <a href=./fpga-based-control.html>hardware</a>, trading the flexibility of many interrupts for tighter predictability."]
+  ],
+  "related": [["context-switching", "Context Switching"], ["jitter-sources-and-mitigation", "Jitter"], ["real-time-operating-systems", "RTOS"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "context-switching",
+  "title": "Context Switching",
+  "cat": "real-time-systems",
+  "lede": "A context switch saves one task's processor state and restores another's; its cost and predictability directly affect real-time timing budgets.",
+  "body": [
+    ["h2", "Switching Between Tasks"],
+    ["p", "A context switch is the operation of saving the complete processor state of the currently running task and restoring that of another, so multiple tasks can share one processor. The saved state includes the register file, program counter, stack pointer, and status flags, and may include floating-point and vector registers. Switching happens when the scheduler preempts a task or when a task blocks."],
+    ["h3", "The Cost"],
+    ["p", "The direct cost is the time to save and restore registers, typically small and bounded. The larger and less predictable cost is indirect: after a switch, the new task often runs with cold caches and a flushed pipeline, so its early execution is slower until the working set is reloaded. This cache-related cost is variable and is one reason context switches complicate <a href=./worst-case-execution-time.html>worst-case</a> timing."],
+    ["h3", "Why It Matters for Real Time"],
+    ["p", "Every preemption in a schedule implies context-switch overhead. Schedulability analysis must include this overhead, usually by adding it to each task's execution time or accounting for it at each preemption point. Frequent switching among many tasks raises overhead and cache pressure, which is one argument for keeping the number of high-frequency tasks small."],
+    ["h3", "Reducing and Bounding Switch Cost"],
+    ["ul", ["Pin critical tasks to dedicated cores to avoid switching them out", "Lazily save floating-point state only when a task uses it", "Keep the number of preemption points and tasks modest on the critical path", "Use cache partitioning so a switch does not evict a critical task's data"]],
+    ["h3", "Threads Versus Processes"],
+    ["p", "Switching between threads that share an address space is cheaper than switching between processes, which additionally requires changing the memory-management context and can flush address-translation caches. Real-time designs often keep cooperating real-time work in one address space to minimize this cost, isolating only untrusted or non-critical components into separate protection domains where the added switch cost is acceptable."]
+  ],
+  "related": [["interrupt-handling-and-latency", "Interrupts"], ["real-time-operating-systems", "RTOS"], ["rtos-scheduling-algorithms", "Scheduling"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "fpga-based-control",
+  "title": "FPGA-Based Control",
+  "cat": "real-time-systems",
+  "lede": "FPGAs implement control logic as parallel hardware, giving nanosecond, jitter-free timing that software on a CPU cannot match for the fastest loops.",
+  "body": [
+    ["h2", "Logic Instead of Instructions"],
+    ["p", "A field-programmable gate array (FPGA) is a chip whose digital logic is configured after manufacture. Instead of executing instructions sequentially like a processor, an FPGA implements a control algorithm as a network of gates and registers that operate in parallel, clocked by a fixed oscillator. Timing is set by the hardware, not by software scheduling, so it is deterministic to the clock period."],
+    ["h3", "Why It Suits Fast Control"],
+    ["p", "For the fastest control loops, an FPGA offers latency measured in tens of nanoseconds and jitter set by the clock, orders of magnitude tighter than a CPU running an operating system. Because many operations run concurrently in hardware, a control law that would be a sequence of instructions on a CPU can be a single-cycle datapath on an FPGA. There is no cache, no scheduler, and no interrupt latency to bound.",
+    ""],
+    ["h3", "The Trade-Offs"],
+    ["ul", ["Deterministic, parallel, low-latency: excellent for inner loops and protection", "Harder to develop: hardware description languages and timing closure, not ordinary programming", "Less flexible: complex, evolving logic and floating-point math are costly in gates", "Reconfigurable but not at runtime like software"]],
+    ["h3", "The Common Architecture"],
+    ["p", "Real systems partition work by timescale. The FPGA handles the fastest, most safety-critical functions: fast digital signal processing, protection <a href=./interlocks-and-permissives.html>interlocks</a>, and the innermost feedback loop. A CPU handles slower supervisory control, setpoint generation, communication, and logging, where flexibility matters more than nanosecond timing. The two exchange data through a well-defined interface."],
+    ["h3", "Application to Fusion Control"],
+    ["p", "Fast plasma control is a natural fit. In a design like the Hyperion breeder, the innermost magnetic-control and protection functions require reaction far faster and more repeatably than a general-purpose computer can guarantee, so such logic is naturally implemented in FPGA hardware while higher-level scenario control runs on conventional computers. The machines are at the design and simulation stage; the architecture reflects standard practice for fast fusion-plasma control rather than an operating device."]
+  ],
+  "related": [["hardware-vs-software-control", "Hardware vs Software"], ["digital-signal-processing-basics", "DSP"], ["determinism-in-real-time-systems", "Determinism"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "hardware-vs-software-control",
+  "title": "Hardware vs Software Control",
+  "cat": "real-time-systems",
+  "lede": "The choice between implementing control in fixed hardware or in software trades determinism and speed against flexibility and complexity.",
+  "body": [
+    ["h2", "Two Ways to Build a Controller"],
+    ["p", "A control function can be realized as dedicated hardware logic or as software running on a processor. Hardware implementations, in FPGAs or ASICs, fix the behavior in circuitry. Software implementations, on microcontrollers or CPUs, express behavior as instructions. Both compute the same control law; they differ in timing, flexibility, and how their correctness is guaranteed."],
+    ["h3", "Where Hardware Wins"],
+    ["ul", ["Deterministic timing set by a clock, with nanosecond latency and negligible jitter", "True parallelism: many operations complete every clock cycle", "Independence from operating-system and scheduling effects", "Suitability for protection logic that must act faster than any software loop"]],
+    ["h3", "Where Software Wins"],
+    ["ul", ["Flexibility: changing behavior is editing code, not re-synthesizing logic", "Easier complex math, including floating point and iterative algorithms", "Richer development, debugging, and logging tooling", "Lower effort for supervisory logic, sequencing, and communication"]],
+    ["h3", "The Timescale Split"],
+    ["p", "The prevailing pattern is not to choose one but to place each function where its timescale demands. The fastest, simplest, most safety-critical functions go into <a href=./fpga-based-control.html>hardware</a>: inner feedback, fast filtering, and interlocks. Slower, more complex, and more frequently changed functions go into software: setpoint scheduling, optimization, operator interfaces. The interface between them must be defined so the software cannot delay the hardware's guaranteed timing."],
+    ["h3", "Verification Differences"],
+    ["p", "The two also differ in how they are validated. Hardware timing is proven by static timing analysis of the synthesized logic against the clock. Software timing is proven by <a href=./worst-case-execution-time.html>WCET</a> analysis and <a href=./rtos-scheduling-algorithms.html>schedulability</a> proofs. Safety-critical designs sometimes implement a function in both, using simple independent hardware as a backstop to more capable software, so that a software fault cannot defeat the last line of protection."]
+  ],
+  "related": [["fpga-based-control", "FPGA Control"], ["safety-instrumented-systems", "Safety Systems"], ["real-time-operating-systems", "RTOS"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "digital-signal-processing-basics",
+  "title": "Digital Signal Processing Basics",
+  "cat": "real-time-systems",
+  "lede": "DSP transforms sampled signals numerically to filter, measure, and extract information, and in real-time control it must complete within each sample period.",
+  "body": [
+    ["h2", "Signals as Numbers"],
+    ["p", "Digital signal processing (DSP) treats a signal as a sequence of numbers, produced by sampling a continuous quantity at regular intervals. Operations that were once done with analog circuits, such as filtering, mixing, and spectral analysis, become arithmetic on these sequences. The advantages are precision, repeatability, and flexibility: a filter is a set of coefficients, changed without rewiring."],
+    ["h3", "The Core Operations"],
+    ["ul", ["Filtering: emphasize or suppress frequency bands to remove noise or isolate signals", "Convolution: the fundamental operation behind linear filtering", "Fourier transform: decompose a signal into its frequency components", "Correlation: measure similarity, used in detection and timing"]],
+    ["h3", "FIR and IIR Filters"],
+    ["p", "Digital filters come in two families. A finite impulse response (FIR) filter computes each output as a weighted sum of recent inputs; it is always stable and can have exactly linear phase, at the cost of needing many taps for sharp responses. An infinite impulse response (IIR) filter also feeds back past outputs; it achieves sharp responses with few coefficients but can be unstable and has nonlinear phase. The choice depends on whether phase linearity or computational economy matters more."],
+    ["code", ["python", "# single-pole IIR low-pass filter, one sample step\n# y[n] = y[n-1] + alpha * (x[n] - y[n-1])\nalpha = 0.1          # smaller alpha = more smoothing\ny = 0.0\ndef step(x):\n    global y\n    y = y + alpha * (x - y)\n    return y"]],
+    ["h3", "Real-Time Constraints"],
+    ["p", "In control, DSP is not offline. Each new sample must be processed before the next arrives, so the algorithm's <a href=./worst-case-execution-time.html>worst-case</a> cost must fit within the sample period. This favors algorithms with bounded, data-independent cost, such as fixed-length FIR filters, over ones whose runtime varies. Fixed-point arithmetic is common for speed and determinism on hardware, though it requires care about scaling and overflow."],
+    ["h3", "Why It Precedes Control"],
+    ["p", "The quality of a control loop is limited by the quality of its measurements. DSP conditions raw sensor data, removing noise and interference and extracting the quantity of interest, before it reaches the control law. Poorly filtered measurements inject noise that the controller amplifies; good filtering, correctly bounded in time, is part of making the loop both accurate and stable."]
+  ],
+  "related": [["sampling-and-nyquist", "Sampling"], ["aliasing-and-anti-alias-filtering", "Aliasing"], ["fpga-based-control", "FPGA Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sampling-and-nyquist",
+  "title": "Sampling and the Nyquist Limit",
+  "cat": "real-time-systems",
+  "lede": "The Nyquist-Shannon theorem sets the minimum sampling rate to represent a signal without loss; violating it corrupts data irreversibly.",
+  "body": [
+    ["h2", "Turning Continuous into Discrete"],
+    ["p", "Sampling records a continuous signal at discrete instants, usually uniformly spaced. The sampling rate, in samples per second, determines what information survives. The central question of sampling theory is how fast you must sample to lose nothing about the signal you care about."],
+    ["h3", "The Nyquist-Shannon Theorem"],
+    ["p", "The sampling theorem states that a signal containing no frequencies above B can be reconstructed exactly from samples taken at a rate greater than 2B. That threshold, 2B, is the Nyquist rate; half the sampling rate is the Nyquist frequency. Any frequency content above the Nyquist frequency cannot be represented correctly and instead corrupts the samples through <a href=./aliasing-and-anti-alias-filtering.html>aliasing</a>."],
+    ["h3", "Why Twice"],
+    ["p", "A sinusoid needs at least two samples per cycle to capture both its frequency and phase; a single sample per cycle is ambiguous. Sampling below twice the highest frequency folds that high-frequency content down to lower apparent frequencies, and the fold is irreversible: once aliased, the true signal cannot be recovered from the samples. This is why the anti-alias filter must act before the sampler, not after."],
+    ["h3", "Rate in Practice"],
+    ["ul", ["The Nyquist rate is a theoretical minimum, not a design target", "Practical filters are not ideal, so oversampling gives filter roll-off room", "Control loops sample well above the Nyquist floor, often 10 to 30 times the closed-loop bandwidth", "Higher rates cost computation, storage, and bandwidth, so there is a balance"]],
+    ["h3", "Sampling for Control Versus Analysis"],
+    ["p", "Signal analysis chooses a rate to capture a frequency band of interest. Control chooses a rate primarily to observe the plant fast enough to act, which usually implies rates far above the Nyquist minimum for the bandwidth being controlled. In both cases, respecting the Nyquist limit is a precondition: no amount of clever processing recovers information that was aliased away at the moment of sampling."]
+  ],
+  "related": [["aliasing-and-anti-alias-filtering", "Aliasing"], ["quantization-and-adc-resolution", "Quantization"], ["control-loop-timing", "Control-Loop Timing"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "aliasing-and-anti-alias-filtering",
+  "title": "Aliasing and Anti-Alias Filtering",
+  "cat": "real-time-systems",
+  "lede": "Frequencies above half the sampling rate masquerade as lower ones; an analog filter before the sampler is the only way to prevent this corruption.",
+  "body": [
+    ["h2", "What Aliasing Is"],
+    ["p", "Aliasing is the false representation of a high-frequency signal as a lower frequency after sampling. When a signal contains content above the <a href=./sampling-and-nyquist.html>Nyquist</a> frequency, half the sampling rate, that content folds down and appears as a spurious low-frequency component indistinguishable from a genuine one. The classic visual analogy is a wagon wheel that appears to spin backward in film because its rotation is undersampled by the frame rate."],
+    ["h3", "Why It Is Irreversible"],
+    ["p", "Once a signal is aliased, the samples contain the false low frequency added to any true low-frequency content, with no way to separate them. Digital processing after the sampler cannot undo it, because the information distinguishing the true signal from its alias was destroyed at the instant of sampling. Prevention is the only remedy."],
+    ["h3", "The Anti-Alias Filter"],
+    ["p", "An anti-alias filter is an analog low-pass filter placed before the sampler. It attenuates frequencies above the Nyquist frequency so that little energy remains to fold down. Because real filters roll off gradually rather than cutting sharply, the sampling rate is usually set above the strict minimum, leaving a transition band in which the filter can attenuate before the Nyquist frequency is reached."],
+    ["ul", ["The filter must be analog and before the ADC, not digital and after", "Sharper cutoff needs higher filter order, adding phase distortion and cost", "Oversampling relaxes the filter's steepness requirement", "Any noise or interference above Nyquist must be removed, not just the signal band"]],
+    ["h3", "Interference Aliasing"],
+    ["p", "Aliasing threatens not only wanted high-frequency content but also unwanted interference. High-frequency noise, switching-supply ripple, and radio pickup all fold into the measurement band if unfiltered, appearing as noise a controller cannot distinguish from real signal. The anti-alias filter therefore protects data integrity against sources you may not have anticipated, which is why it is a standard, non-negotiable part of any data-acquisition front end."]
+  ],
+  "related": [["sampling-and-nyquist", "Sampling"], ["analog-to-digital-conversion", "ADC"], ["sensor-interfaces", "Sensor Interfaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "quantization-and-adc-resolution",
+  "title": "Quantization and ADC Resolution",
+  "cat": "real-time-systems",
+  "lede": "Converting an analog value to a finite number of levels introduces quantization error, and resolution in bits sets the floor on measurement precision.",
+  "body": [
+    ["h2", "From Continuous to Discrete Values"],
+    ["p", "Sampling discretizes a signal in time; quantization discretizes it in amplitude. An analog-to-digital converter maps a continuous voltage to one of a finite set of numeric codes. The number of codes is set by the resolution: an N-bit converter has 2^N levels. Quantization is where analog precision meets digital finiteness."],
+    ["h3", "Resolution and Step Size"],
+    ["p", "The smallest distinguishable change is one least significant bit (LSB), equal to the full-scale range divided by 2^N. A 12-bit converter over a 10-volt range has a step of about 2.4 millivolts; a 16-bit converter over the same range resolves about 0.15 millivolts. Adding a bit halves the step and adds about 6 dB of dynamic range."],
+    ["h3", "Quantization Error and Noise"],
+    ["p", "Rounding a continuous value to the nearest level introduces an error of up to half an LSB. For busy signals this error behaves like added noise with a roughly uniform distribution. The theoretical best signal-to-noise ratio of an ideal converter is about 6.02N + 1.76 dB, which is the ceiling that resolution places on measurement quality before real-world imperfections are considered."],
+    ["ul", ["Effective number of bits (ENOB) captures real performance below the ideal", "More bits help only if noise, reference stability, and linearity keep pace", "Oversampling and averaging can gain effective resolution for slow signals", "Dithering can linearize quantization of very small signals"]],
+    ["h3", "Choosing Resolution"],
+    ["p", "Resolution should match the measurement need, not be maximized blindly. If sensor noise already exceeds several LSBs, more converter bits add data without information. The useful resolution is bounded by the entire chain: sensor noise, analog conditioning, reference stability, and the converter's own linearity. Specifying an ADC means matching its effective resolution to the smallest change the control loop actually needs to detect, while respecting the sample-rate demands set by <a href=./sampling-and-nyquist.html>Nyquist</a>."]
+  ],
+  "related": [["analog-to-digital-conversion", "ADC"], ["sampling-and-nyquist", "Sampling"], ["data-acquisition-systems", "Data Acquisition"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "data-acquisition-systems",
+  "title": "Data Acquisition Systems",
+  "cat": "real-time-systems",
+  "lede": "A data acquisition system turns physical quantities into timestamped digital data, and its timing and integrity determine what control and analysis can achieve.",
+  "body": [
+    ["h2", "The Bridge from Physics to Data"],
+    ["p", "A data acquisition (DAQ) system captures physical quantities and delivers them as digital values a computer can use. It spans the chain from sensor to stored or streamed numbers: signal conditioning, filtering, conversion, timestamping, and transfer. The quality of everything downstream, from control loops to offline analysis, is capped by the fidelity and timing of this front end."],
+    ["h3", "The Signal Chain"],
+    ["ul", ["Sensor and transducer converting a physical quantity to an electrical signal", "Signal conditioning: amplification, isolation, and level shifting", "Anti-alias <a href=./aliasing-and-anti-alias-filtering.html>filtering</a> before sampling", "Analog-to-digital <a href=./analog-to-digital-conversion.html>conversion</a>", "Timestamping and buffering", "Transfer to the processing or storage system"]],
+    ["h3", "Timing and Synchronization"],
+    ["p", "For multi-channel measurements, when each channel is sampled relative to the others matters as much as the values. Simultaneous sampling uses one converter per channel or a sample-and-hold on each so all channels capture the same instant, which is essential when computing relationships between signals. Multiplexed systems share one converter and stagger channels in time, adding a known skew that must be accounted for. Precise <a href=./time-synchronization.html>time synchronization</a> across distributed units keeps a common timebase."],
+    ["h3", "Throughput and Buffering"],
+    ["p", "High channel counts and high sample rates produce large data streams. DAQ systems use direct memory access and buffering to move data without burdening the processor, and they must guarantee no samples are lost. Overflow of a buffer is a data-integrity failure, so buffer sizing and transfer bandwidth are part of the timing budget."],
+    ["h3", "Integrity and Provenance"],
+    ["p", "Trustworthy data carries its own metadata: calibration, timestamp source, channel configuration, and any gaps. In experimental and control contexts, such as fusion diagnostics, thousands of channels are acquired at once and later reconstructed into physical quantities, so every sample must be attributable to a known time and calibration. A DAQ system's job is not only to capture data but to capture it in a form whose accuracy and timing can be defended."]
+  ],
+  "related": [["sensor-interfaces", "Sensor Interfaces"], ["analog-to-digital-conversion", "ADC"], ["real-time-data-logging", "Data Logging"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sensor-interfaces",
+  "title": "Sensor Interfaces",
+  "cat": "real-time-systems",
+  "lede": "Sensors convert physical quantities into signals; the interface must condition, protect, and digitize them without corrupting the measurement.",
+  "body": [
+    ["h2", "Getting a Clean Measurement In"],
+    ["p", "A sensor interface is the circuitry and protocol that carry a sensor's output into the control system. The sensor produces a physical representation of a quantity, temperature, pressure, position, current, or magnetic field, and the interface must deliver that as an accurate digital value. Most measurement error is introduced not by the sensor but by a poorly designed interface."],
+    ["h3", "Signal Types"],
+    ["ul", ["Voltage or current outputs from analog sensors, needing conditioning and conversion", "Current loops (such as 4-20 mA), robust against wiring resistance and noise", "Digital buses (I2C, SPI, serial) from smart sensors that convert internally", "Frequency or pulse outputs, such as encoders and flow meters", "Differential signals that reject common-mode interference"]],
+    ["h3", "Conditioning"],
+    ["p", "Raw sensor signals are often small, noisy, or at inconvenient levels. Conditioning amplifies weak signals, shifts them into the converter's range, filters noise, and provides <a href=./aliasing-and-anti-alias-filtering.html>anti-alias</a> limiting. Instrumentation amplifiers reject common-mode noise on differential inputs; isolation barriers break ground loops and protect the electronics from high-voltage faults on the sensor side."],
+    ["h3", "Noise and Grounding"],
+    ["p", "In an electrically noisy environment, the interface's rejection of interference determines the usable resolution. Differential wiring, shielding, single-point grounding, and isolation all reduce the noise coupled into the measurement. A high-resolution converter is wasted if the analog front end lets in more noise than its least significant bits represent."],
+    ["h3", "Calibration and Diagnostics"],
+    ["p", "A sensor reading is only as trustworthy as its calibration. Interfaces should support offset and gain calibration and, where safety depends on the measurement, self-diagnostics such as range checks, rate-of-change limits, and detection of open or shorted sensors. A control or protection system that cannot tell a plausible reading from a failed sensor cannot be trusted; validity checking at the interface is the first line of defense, feeding <a href=./safety-instrumented-systems.html>safety logic</a> that must know when a measurement is not to be believed."]
+  ],
+  "related": [["actuator-interfaces", "Actuator Interfaces"], ["data-acquisition-systems", "Data Acquisition"], ["analog-to-digital-conversion", "ADC"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "actuator-interfaces",
+  "title": "Actuator Interfaces",
+  "cat": "real-time-systems",
+  "lede": "Actuators turn control commands into physical action; the interface must convert, amplify, and safely drive them while confirming what actually happened.",
+  "body": [
+    ["h2", "The Output Side of Control"],
+    ["p", "An actuator interface carries the controller's commands out to the devices that act on the physical world: motors, valves, heaters, power supplies, and magnet coils. It is the mirror of the sensor interface. The controller computes a desired action as a number; the interface converts that number into the electrical drive the actuator needs and does so with the timing the control loop assumes."],
+    ["h3", "Command Conversion"],
+    ["ul", ["Digital-to-analog <a href=./digital-to-analog-conversion.html>conversion</a> for analog drive levels", "Pulse-width modulation to control average power efficiently", "Digital protocols for smart drives and power converters", "Power stages that amplify low-level commands to actuator drive levels"]],
+    ["h3", "Timing of Output"],
+    ["p", "When a command reaches the actuator matters as much as its value. Output <a href=./jitter-sources-and-mitigation.html>jitter</a> makes the actuator see a noisy command even when the computed value is correct. As with sampling, the tightest designs latch the output from a hardware timer so the update instant is precise, rather than depending on when the software happens to write it. The delay from computation to physical action is part of the loop's total latency and directly affects stability."],
+    ["h3", "Feedback and Confirmation"],
+    ["p", "A robust actuator interface does not assume commands take effect. It reads back the actual state, position, current, or valve status, so the controller and safety logic know what physically happened. This closes the loop on the actuator itself and lets the system detect a stuck valve, a saturated drive, or a failed power stage rather than commanding blindly."],
+    ["h3", "Safe States and Limits"],
+    ["p", "Because actuators move energy and mass, their interfaces enforce limits: maximum drive, rate-of-change limits, and defined safe states on fault or loss of communication. A well-designed interface fails to a known safe condition, for example de-energizing a coil or closing a valve, rather than holding the last command or drifting. This behavior is coordinated with the system's <a href=./interlocks-and-permissives.html>interlocks</a> so that protection can override normal control and command a safe state directly."]
+  ],
+  "related": [["sensor-interfaces", "Sensor Interfaces"], ["digital-to-analog-conversion", "DAC"], ["interlocks-and-permissives", "Interlocks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "analog-to-digital-conversion",
+  "title": "Analog-to-Digital Conversion",
+  "cat": "real-time-systems",
+  "lede": "An ADC samples an analog signal and encodes it as a number; its architecture sets the trade-off between speed, resolution, and latency.",
+  "body": [
+    ["h2", "The Measurement Core"],
+    ["p", "An analog-to-digital converter (ADC) is the device that turns a voltage into a digital code. It combines two operations: sampling in time, usually via a sample-and-hold that freezes the input, and <a href=./quantization-and-adc-resolution.html>quantization</a> in amplitude, mapping the held voltage to one of a finite set of codes. Every digital measurement of a physical quantity passes through this step."],
+    ["h3", "Major Architectures"],
+    ["ul", ["Successive approximation (SAR): moderate speed, good resolution, low latency, one sample at a time", "Delta-sigma: very high resolution for slow signals, using oversampling and noise shaping, higher latency", "Pipelined: high sample rates at moderate resolution, with fixed pipeline latency", "Flash: very fast, lower resolution, used where speed dominates"]],
+    ["h3", "Speed, Resolution, Latency"],
+    ["p", "These architectures exist because no single design maximizes everything. Higher resolution generally costs speed or latency; higher speed costs resolution or power. A delta-sigma converter can reach many bits but only for signals far below its clock rate and with conversion latency from its filtering. A SAR converter gives a result quickly with low latency, which suits per-sample control loops. Matching the architecture to the loop's rate and precision needs is the core selection decision."],
+    ["h3", "Latency Matters for Control"],
+    ["p", "In a feedback loop, conversion latency is part of the sensor-to-actuator delay. A converter that averages heavily for resolution may add delay that erodes <a href=./control-stability-and-phase-margin.html>phase margin</a>. This is why control front ends often favor low-latency SAR converters over higher-resolution delta-sigma parts, accepting fewer bits in exchange for prompt data."],
+    ["h3", "Front-End Requirements"],
+    ["p", "An ADC only performs to specification with proper support: a stable, low-noise voltage reference sets absolute accuracy; an <a href=./aliasing-and-anti-alias-filtering.html>anti-alias filter</a> must precede it; and clean power and grounding preserve its effective resolution. The converter is one link; its accuracy is bounded by the weakest element of the surrounding analog design."]
+  ],
+  "related": [["quantization-and-adc-resolution", "Quantization"], ["aliasing-and-anti-alias-filtering", "Aliasing"], ["digital-to-analog-conversion", "DAC"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "digital-to-analog-conversion",
+  "title": "Digital-to-Analog Conversion",
+  "cat": "real-time-systems",
+  "lede": "A DAC turns a numeric command into a continuous voltage or current, forming the output stage that lets a digital controller act on the physical world.",
+  "body": [
+    ["h2", "From Number to Signal"],
+    ["p", "A digital-to-analog converter (DAC) is the reverse of an ADC: it maps a digital code to a proportional analog voltage or current. In a control system it is often the last electronic step before the power stage that drives an actuator. The DAC's resolution, speed, and glitch behavior determine how faithfully the controller's intent becomes a physical drive level."],
+    ["h3", "The Staircase Output and Reconstruction"],
+    ["p", "A DAC updated at the sample rate produces a staircase: it holds each value until the next update. This zero-order hold introduces a small delay of half a sample period on average and adds high-frequency images of the signal. A reconstruction filter, an analog low-pass after the DAC, smooths the staircase and removes the images, recovering a clean continuous signal for the actuator."],
+    ["h3", "Key Characteristics"],
+    ["ul", ["Resolution in bits, setting the smallest output step", "Settling time, how fast the output reaches a new value within tolerance", "Glitch energy, transient spikes when codes change, worst at major transitions", "Monotonicity, guaranteeing output never decreases as the code increases"]],
+    ["h3", "Why Update Timing Matters"],
+    ["p", "As with the input side, the instant the DAC updates should be precise. Timing the output from a hardware event, rather than whenever software writes the register, keeps output <a href=./jitter-sources-and-mitigation.html>jitter</a> low so the actuator sees a clean command. Monotonicity matters in feedback: a non-monotonic DAC can make a small commanded increase produce a decrease, which can destabilize a loop."],
+    ["h3", "Alternatives"],
+    ["p", "Not every actuator needs a linear DAC. Pulse-width modulation drives many loads efficiently by switching full-on and full-off and varying the duty cycle, letting the load's own inertia or an inductor average the result. This is common for motors, heaters, and switching supplies, where it avoids dissipating power in a linear stage. Whether a true DAC or PWM is used, the <a href=./actuator-interfaces.html>actuator interface</a> must convert the digital command into physical action with predictable timing and defined safe behavior on fault."]
+  ],
+  "related": [["analog-to-digital-conversion", "ADC"], ["actuator-interfaces", "Actuator Interfaces"], ["jitter-sources-and-mitigation", "Jitter"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "feedback-loop-design",
+  "title": "Feedback Loop Design",
+  "cat": "real-time-systems",
+  "lede": "Feedback compares a measurement to a target and drives the difference toward zero; good design balances responsiveness against stability and noise.",
+  "body": [
+    ["h2", "The Idea of Feedback"],
+    ["p", "A feedback loop continuously measures a controlled quantity, compares it to a desired setpoint, and adjusts an actuator to reduce the error. This closed loop lets a system reject disturbances and track targets without needing a perfect model of the plant. Feedback is the foundation of automatic control, from thermostats to plasma-position control."],
+    ["h3", "Open Versus Closed Loop"],
+    ["p", "Open-loop control commands the actuator from a model alone, without measuring the result; it is simple but cannot correct for disturbances or model error. Closed-loop control uses the measurement to correct itself, trading added complexity and the risk of instability for accuracy and disturbance rejection. Feedforward can be combined with feedback: a model predicts most of the needed action, and feedback trims the residual error."],
+    ["h3", "The Core Trade-Off"],
+    ["p", "Higher loop gain makes the system respond faster and reject disturbances more strongly, but too much gain, especially combined with delay, causes oscillation or instability. The art of loop design is maximizing responsiveness while keeping adequate <a href=./control-stability-and-phase-margin.html>stability margin</a>. Delay is the enemy of both goals, which is why <a href=./latency-fundamentals.html>latency</a> and <a href=./jitter-sources-and-mitigation.html>jitter</a> in the digital implementation directly limit achievable performance."],
+    ["ul", ["Bandwidth: how fast the loop can track and reject, limited by delay and sampling", "Stability margin: how much delay or gain error the loop tolerates before oscillating", "Steady-state error: residual offset, reduced by integral action", "Noise sensitivity: high gain amplifies measurement noise into the actuator"]],
+    ["h3", "From Continuous to Digital"],
+    ["p", "Classical control is formulated in continuous time, but a digital controller acts at discrete instants. The sample rate, computation delay, and hold behavior all modify the loop, so a design that is stable on paper must be verified in its <a href=./discrete-time-control.html>discrete-time</a> form. In safety-critical settings, the loop is designed with margin against the worst-case timing the real-time system can guarantee, not the typical timing, so that a slow cycle cannot tip a healthy loop into instability."]
+  ],
+  "related": [["pid-control", "PID Control"], ["control-stability-and-phase-margin", "Stability"], ["discrete-time-control", "Discrete-Time Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pid-control",
+  "title": "PID Control",
+  "cat": "real-time-systems",
+  "lede": "The PID controller combines proportional, integral, and derivative action; it is the most widely used feedback law and a template for real-time control code.",
+  "body": [
+    ["h2", "Three Terms"],
+    ["p", "A proportional-integral-derivative (PID) controller computes its output from three responses to the error between setpoint and measurement. The proportional term reacts to the present error, the integral term to the accumulated past error, and the derivative term to the predicted future trend. Their weighted sum is the control command. Despite its simplicity, PID handles a large fraction of real-world control tasks well."],
+    ["h3", "What Each Term Does"],
+    ["ul", ["Proportional: pushes harder the larger the error; alone, it leaves a steady offset", "Integral: accumulates error over time to eliminate steady-state offset, but adds lag and can overshoot", "Derivative: anticipates by reacting to the error's rate of change, adding damping but amplifying noise"]],
+    ["code", ["python", "# discrete PID step, fixed sample period dt\ndef pid_step(setpoint, meas, state, kp, ki, kd, dt):\n    err = setpoint - meas\n    state['integ'] += err * dt\n    deriv = (err - state['prev']) / dt\n    state['prev'] = err\n    return kp*err + ki*state['integ'] + kd*deriv"]],
+    ["h3", "Real-World Refinements"],
+    ["p", "Practical PID needs care beyond the textbook formula. Integral windup, where the accumulator grows while the actuator is saturated, must be limited by clamping or back-calculation. The derivative term is usually filtered because differentiating noisy measurements amplifies noise; it is often applied to the measurement rather than the error to avoid a spike when the setpoint changes. A fixed, jitter-free sample period matters because both the integral and derivative terms depend on dt."],
+    ["h3", "Tuning"],
+    ["p", "Tuning sets the three gains to balance speed, overshoot, and stability. Methods range from heuristic rules to model-based design. The gains interact: raising proportional gain speeds response but reduces damping; adding integral action removes offset but can destabilize; derivative adds damping but is limited by noise. Good tuning respects the loop's timing, because the effective delay of the digital implementation reduces the stability margin the gains can safely use."],
+    ["h3", "When PID Is Not Enough"],
+    ["p", "PID assumes a single input, single output, and relatively benign dynamics. Coupled multivariable systems, significant delays, or tight optimality requirements call for <a href=./state-space-control.html>state-space</a> or model-predictive methods. Even then, PID often survives as an inner loop, valued for its transparency and its ease of implementation in bounded real-time code."]
+  ],
+  "related": [["feedback-loop-design", "Feedback Loops"], ["control-stability-and-phase-margin", "Stability"], ["state-space-control", "State-Space Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "control-stability-and-phase-margin",
+  "title": "Control Stability and Phase Margin",
+  "cat": "real-time-systems",
+  "lede": "A feedback loop is stable only if it does not build up oscillations; phase and gain margins quantify how much delay or gain error it can survive.",
+  "body": [
+    ["h2", "The Central Concern"],
+    ["p", "Stability is the property that a feedback loop settles rather than oscillates or diverges. It is the first requirement of any controller; performance is meaningless if the loop is unstable. Instability arises when feedback that is meant to correct error instead reinforces it, which happens when the loop's delay and gain conspire to turn negative feedback into positive feedback at some frequency."],
+    ["h3", "Gain and Phase Around the Loop"],
+    ["p", "Consider a disturbance at some frequency traveling around the loop. If, at the frequency where the loop's total phase lag reaches 180 degrees, the loop gain is still above one, the returning signal reinforces the original and grows: the loop is unstable. Stability analysis examines the loop gain as a function of frequency to check this condition."],
+    ["h3", "Margins"],
+    ["ul", ["Gain margin: how much the loop gain can increase before instability, measured where phase is 180 degrees", "Phase margin: how much additional phase lag the loop tolerates at the frequency where gain is one", "Both are safety buffers against modeling error, gain drift, and added delay"]],
+    ["h3", "Delay Eats Margin"],
+    ["p", "Every source of delay adds phase lag that grows with frequency, directly consuming phase margin. Sensor-to-actuator <a href=./latency-fundamentals.html>latency</a>, computation time, and the hold at the output all contribute. This is the mechanism that connects real-time timing to control theory: a slower or more variable loop has less phase margin and can tolerate less gain, so it must be detuned. A design must keep margin against the worst-case, not typical, loop delay the system can produce."],
+    ["h3", "Designing for Robust Stability"],
+    ["p", "Robust designs leave generous margins because the real plant differs from the model, gains drift with temperature and wear, and timing has a worst case. A common practice targets a comfortable phase margin, often several tens of degrees, so that ordinary variation cannot push the loop into oscillation. In <a href=./safety-instrumented-systems.html>safety-critical</a> systems, adequate margin under all credible conditions is a requirement to be demonstrated, not a preference."]
+  ],
+  "related": [["feedback-loop-design", "Feedback Loops"], ["pid-control", "PID Control"], ["latency-fundamentals", "Latency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "discrete-time-control",
+  "title": "Discrete-Time Control",
+  "cat": "real-time-systems",
+  "lede": "Digital controllers act at sample instants, not continuously; discrete-time analysis captures the effects of sampling, hold, and computation delay.",
+  "body": [
+    ["h2", "Control at Sample Instants"],
+    ["p", "A digital controller sees the world only at sampling instants and changes its output only at update instants. Between samples it is blind and its output is held constant. Discrete-time control theory analyzes systems in this sampled form, which behaves differently from the continuous case and must be modeled to guarantee stability and performance."],
+    ["h3", "The Z-Domain"],
+    ["p", "Just as continuous systems are analyzed with the Laplace transform in the s-domain, discrete systems use the Z-transform in the z-domain. A sampled system is stable if all its poles lie inside the unit circle of the z-plane, the discrete analog of the left-half s-plane. Continuous designs are mapped to discrete equivalents through methods such as the bilinear transform, taking care that stability and frequency response are preserved."],
+    ["h3", "Effects of Sampling and Hold"],
+    ["ul", ["The zero-order hold adds an average delay of half a sample period", "Computation adds further delay from sample to output", "Sampling limits observable bandwidth to below the <a href=./sampling-and-nyquist.html>Nyquist</a> frequency", "Too slow a rate degrades performance a continuous design assumed"]],
+    ["h3", "Why a Stable Design Can Fail Digitally"],
+    ["p", "A controller designed in continuous time and then implemented digitally can behave worse or even become unstable if the sample rate is too low or the computation delay is large. The added phase lag from the hold and delay reduces <a href=./control-stability-and-phase-margin.html>phase margin</a>. This is why sample rate is a control-design parameter, not just an implementation detail, and why fast, low-jitter timing is worth the engineering effort."],
+    ["h3", "Practical Guidance"],
+    ["p", "Sample fast enough that the discretization effects are small, commonly many times the closed-loop bandwidth, and account explicitly for the computation delay by including it in the model. Verify stability in the discrete domain, not only the continuous approximation. Where the loop must be fast relative to what a sampled processor can guarantee, the design moves toward <a href=./fpga-based-control.html>hardware</a>, whose effective sample rate can be far higher and whose timing is deterministic."]
+  ],
+  "related": [["feedback-loop-design", "Feedback Loops"], ["sampling-and-nyquist", "Sampling"], ["state-space-control", "State-Space Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "state-space-control",
+  "title": "State-Space Control",
+  "cat": "real-time-systems",
+  "lede": "State-space methods describe a system by its internal state vector, enabling systematic control of coupled, multivariable dynamics beyond single-loop PID.",
+  "body": [
+    ["h2", "Describing a System by Its State"],
+    ["p", "State-space control represents a dynamic system by a vector of state variables that captures everything needed to predict its future given the inputs. The dynamics are written as matrix equations: the state's rate of change depends on the current state and inputs, and the outputs depend on the state and inputs. This compact form handles systems with many coupled inputs and outputs that single-loop methods cannot address cleanly."],
+    ["h3", "The Standard Form"],
+    ["p", "A linear system is written with four matrices relating state, input, and output. The A matrix describes how the state evolves on its own, B how inputs drive it, C how outputs are read from the state, and D any direct feedthrough. Analysis of A reveals stability and natural modes; controllability and observability tests, computed from these matrices, determine whether the system can be steered and whether its state can be inferred from measurements."],
+    ["h3", "State Feedback and Estimation"],
+    ["ul", ["State feedback: command the input from the full state to place the closed-loop dynamics where desired", "Observers and Kalman filters: estimate unmeasured states from available sensors", "Optimal control (LQR): choose feedback gains to minimize a weighted cost of error and effort", "Model-predictive control: optimize commands over a horizon subject to constraints"]],
+    ["h3", "Why It Suits Complex Plants"],
+    ["p", "When variables interact strongly, adjusting one loop disturbs others, and independent PID loops fight each other. State-space design accounts for the coupling directly, producing coordinated commands. It also handles constraints and optimality explicitly through model-predictive control, at the cost of more computation per cycle, which the <a href=./timing-budgets.html>timing budget</a> must accommodate."],
+    ["h3", "Application to Plasma Control"],
+    ["p", "Controlling a magnetically confined plasma is inherently multivariable: coil currents, plasma position, shape, and current interact. Advanced tokamak control, of the kind relevant to the Hyperion breeder at the design and simulation stage, uses state-space and model-based methods so that many actuators and diagnostics are coordinated rather than tuned as isolated loops. The estimator reconstructs quantities that cannot be measured directly, and the controller commands all coils together to hold the desired equilibrium."]
+  ],
+  "related": [["feedback-loop-design", "Feedback Loops"], ["discrete-time-control", "Discrete-Time Control"], ["sensor-fusion-in-control", "Sensor Fusion"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "safety-instrumented-systems",
+  "title": "Safety-Instrumented Systems",
+  "cat": "real-time-systems",
+  "lede": "A safety-instrumented system is an independent layer that detects dangerous conditions and forces the process to a safe state, separate from normal control.",
+  "body": [
+    ["h2", "A Layer Apart from Control"],
+    ["p", "A safety-instrumented system (SIS) is a dedicated system whose sole job is to bring a process to a safe state when a hazardous condition is detected. It is deliberately independent of the normal control system, because a controller that can cause a hazard cannot be trusted to also protect against it. The SIS watches for defined dangerous conditions and acts through its own sensors, logic, and actuators."],
+    ["h3", "The Safety Function"],
+    ["p", "Each protective action is defined as a safety function: a specific hazardous condition, the way it is detected, and the action that mitigates it. For example, if a measured quantity exceeds a safe limit, the SIS de-energizes a power supply and puts actuators into their safe state. Safety functions are specified precisely, including the time within which they must act, because a protective action that is too slow does not protect."],
+    ["h3", "Independence and Diversity"],
+    ["ul", ["Separate sensors, logic solver, and final elements from the control system", "Simple, well-understood logic that is easier to verify than complex control", "Diverse technology where a common fault could defeat identical channels", "De-energize-to-trip design so loss of power drives the safe state"]],
+    ["h3", "Fail-Safe Design"],
+    ["p", "A well-designed safety system fails toward safety. Where possible, the safe state corresponds to the absence of energy or signal, so that a broken wire, lost power, or failed component causes the protective action rather than defeating it. This principle, de-energize to trip, means that many failure modes automatically produce the safe outcome instead of a dangerous one."],
+    ["h3", "Verification and Layers"],
+    ["p", "Safety systems are verified against a required integrity, expressed as a <a href=./sil-safety-integrity-levels.html>safety integrity level</a>, and are one of several protection layers. They complement, rather than replace, inherently safe design, alarms, and physical protection. In a facility such as a fusion plant, still at the design and simulation stage, the safety-instrumented layer and hardwired <a href=./interlocks-and-permissives.html>interlocks</a> are engineered to act independently of the plasma-control computers so that a control fault cannot disable protection."]
+  ],
+  "related": [["interlocks-and-permissives", "Interlocks"], ["sil-safety-integrity-levels", "SIL"], ["redundancy-architectures", "Redundancy"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "interlocks-and-permissives",
+  "title": "Interlocks and Permissives",
+  "cat": "real-time-systems",
+  "lede": "Interlocks block dangerous actions and permissives allow safe ones; together they enforce that a system operates only within its safe envelope.",
+  "body": [
+    ["h2", "Enforcing Safe Sequences"],
+    ["p", "An interlock is logic that prevents an action unless conditions make it safe, or that forces an action when a condition becomes unsafe. A permissive is the complementary idea: a set of conditions that must all be satisfied before an operation is allowed to proceed. Together they ensure equipment cannot be operated in a hazardous sequence or outside its safe envelope."],
+    ["h3", "Examples of the Logic"],
+    ["ul", ["A high-voltage supply cannot energize unless access doors are closed and grounded", "A valve cannot open unless downstream pressure is within limits", "A magnet cannot ramp unless cooling and quench protection are confirmed active", "Loss of any required permissive trips the operation to a safe state"]],
+    ["h3", "Hardwired Versus Software Interlocks"],
+    ["p", "Interlocks exist at more than one layer. The most critical are often hardwired: implemented in relays or simple <a href=./fpga-based-control.html>logic</a> that acts independently of any computer, so a software fault or crash cannot defeat them. Software interlocks add flexibility and richer conditions but are considered a lower-integrity layer. Defense in depth uses both, with the hardwired layer as the last line that no software error can override."],
+    ["h3", "Permissive Chains"],
+    ["p", "A permissive chain gathers many conditions into a single go or no-go signal. Every condition must be true for the operation to be enabled, and the loss of any one removes the permissive. Designing the chain to be fail-safe, so that a lost signal or lost power removes the permissive rather than granting it, ensures that faults in the interlock system itself do not enable an unsafe action."],
+    ["h3", "Role in the Safety Architecture"],
+    ["p", "Interlocks and permissives are the enforcement mechanism of the broader <a href=./safety-instrumented-systems.html>safety-instrumented system</a>. They translate the safety analysis, which conditions are dangerous and what must be prevented, into logic that acts automatically and independently of operator judgment and normal control. In complex facilities they are documented as an explicit matrix of conditions and actions so that every protective response can be traced, tested, and verified."]
+  ],
+  "related": [["safety-instrumented-systems", "Safety Systems"], ["sil-safety-integrity-levels", "SIL"], ["watchdog-timers", "Watchdog Timers"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sil-safety-integrity-levels",
+  "title": "Safety Integrity Levels",
+  "cat": "real-time-systems",
+  "lede": "SILs grade how reliably a safety function must perform, turning a hazard's severity into a measurable target for the protective system's design.",
+  "body": [
+    ["h2", "Grading Protection"],
+    ["p", "A safety integrity level (SIL) is a discrete measure of how dependable a safety function must be. Defined in functional-safety standards, SILs run from 1, the least demanding, to 4, the most demanding. The level is not chosen arbitrarily: it follows from how severe the hazard is and how likely it is to occur without protection. A more dangerous, more likely hazard requires a higher-integrity safety function."],
+    ["h3", "What the Level Specifies"],
+    ["p", "A SIL corresponds to a target range for the probability that the safety function fails to act when needed. Higher SILs demand lower failure probability, which in turn drives design choices: more <a href=./redundancy-architectures.html>redundancy</a>, better self-diagnostics, diverse channels, and more rigorous verification. The level therefore connects a qualitative hazard assessment to quantitative reliability requirements the engineering must meet."],
+    ["ul", ["SIL is assigned per safety function, not to a whole plant", "Higher SIL means lower tolerable probability of failure on demand", "Achieving a SIL constrains architecture, diagnostics, and testing intervals", "Verification uses failure-rate data and proof-test schedules"]],
+    ["h3", "Achieving a Target Level"],
+    ["p", "Meeting a SIL is a system property, combining the reliability of sensors, the logic solver, and the final elements. Redundant channels reduce the chance that a single failure defeats the function; diagnostic coverage catches dangerous failures before they matter; and periodic proof testing verifies that undetected failures have not accumulated. The overall probability of failure on demand is calculated and compared against the target for the assigned level."],
+    ["h3", "Beyond the Number"],
+    ["p", "A SIL is a useful discipline, but a number alone does not make a system safe. The hazard analysis that assigns the level must be correct, the safety function must be specified completely including its response time, and the implementation must be independent enough that common-cause failures do not defeat the redundancy the calculation assumes. For a facility at the design stage, SIL targets guide the architecture of <a href=./safety-instrumented-systems.html>protection systems</a> and the degree of <a href=./fault-tolerance-and-failover.html>fault tolerance</a> each function needs."]
+  ],
+  "related": [["safety-instrumented-systems", "Safety Systems"], ["redundancy-architectures", "Redundancy"], ["fault-tolerance-and-failover", "Fault Tolerance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "redundancy-architectures",
+  "title": "Redundancy Architectures",
+  "cat": "real-time-systems",
+  "lede": "Redundancy uses multiple channels so a single failure does not defeat a function; the architecture chosen trades availability against safe-fault detection.",
+  "body": [
+    ["h2", "More Than One Way to Be Right"],
+    ["p", "Redundancy provides more than one means of performing a function so that the failure of any one does not cause the whole to fail. It is the primary tool for achieving high reliability and high <a href=./sil-safety-integrity-levels.html>safety integrity</a>. The specific arrangement, how many channels there are and how their outputs are combined, determines what kinds of failure the system survives."],
+    ["h3", "Common Voting Architectures"],
+    ["ul", ["1oo1: one channel, no redundancy; a single failure defeats the function", "1oo2: two channels, either can act; tolerant of one dangerous failure but prone to spurious trips", "2oo2: both must agree to act; avoids spurious trips but a single failure can prevent action", "2oo3: triple modular redundancy with majority vote; tolerates one failure while resisting spurious trips"]],
+    ["h3", "The Availability-Versus-Safety Trade"],
+    ["p", "Architectures differ in which failure they favor. A 1oo2 arrangement trips if either channel calls for it, maximizing the chance of protecting against a real hazard but also increasing nuisance trips. A 2oo2 arrangement acts only if both agree, minimizing spurious trips but risking a missed real hazard. Triple-redundant 2oo3 voting balances both: the majority carries the decision, so one failed channel neither causes a false trip nor prevents a true one."],
+    ["h3", "Common-Cause Failure"],
+    ["p", "Redundancy only helps against independent failures. If all channels share a weakness, a common design flaw, a shared power supply, the same environmental stress, one event can fail them together and the redundancy is illusory. Guarding against common-cause failure uses diversity: different designs, different technologies, physical and electrical separation, so that no single cause can take down all channels."],
+    ["h3", "Redundancy in Practice"],
+    ["p", "The right architecture depends on whether the function is protective, where missing a real demand is the danger, or availability-critical, where spurious action is costly. Safety functions often favor architectures that ensure the protective action happens; continuous control favors architectures that avoid unnecessary shutdowns. Complex facilities mix both, applying redundancy where an analysis shows it is needed and pairing it with <a href=./fault-tolerance-and-failover.html>fault-tolerant</a> failover so operation continues through single faults."]
+  ],
+  "related": [["fault-tolerance-and-failover", "Fault Tolerance"], ["sil-safety-integrity-levels", "SIL"], ["safety-instrumented-systems", "Safety Systems"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "fault-tolerance-and-failover",
+  "title": "Fault Tolerance and Failover",
+  "cat": "real-time-systems",
+  "lede": "A fault-tolerant system keeps functioning despite component failures by detecting faults and switching to healthy resources without violating timing.",
+  "body": [
+    ["h2", "Continuing Through Failure"],
+    ["p", "Fault tolerance is the ability to keep delivering correct service in the presence of faults. Rather than assuming components never fail, a fault-tolerant design assumes they will and arranges for the system to detect the failure and continue, either seamlessly or with graceful degradation. In real-time systems this must happen within timing constraints: a failover that takes too long is itself a failure."],
+    ["h3", "Detect, Isolate, Recover"],
+    ["p", "Fault handling proceeds in stages. First the fault must be detected, through self-tests, comparison of redundant channels, watchdogs, or out-of-range checks. Then it must be isolated so the faulty component does not corrupt the rest. Finally the system recovers, by switching to a standby, reconfiguring, or degrading to a reduced but safe mode. Each stage has a time bound, and the sum must fit within what the controlled process can tolerate."],
+    ["h3", "Failover Styles"],
+    ["ul", ["Hot standby: a backup runs in parallel and takes over instantly on failure", "Warm standby: a backup is ready but must synchronize state before taking over", "Cold standby: a backup must start up, giving the slowest failover", "Graceful degradation: shed non-essential functions to preserve critical ones"]],
+    ["h3", "State and Consistency"],
+    ["p", "The hard part of failover is state. A backup that takes over must have, or quickly acquire, a consistent picture of the process so it does not command a discontinuity. Hot-standby designs keep the backup continuously updated so it can assume control within one or two control cycles. This tight synchronization is what makes failover fast enough for a fast control loop, where losing many cycles would be as dangerous as the original fault."],
+    ["h3", "Fail-Safe as a Fallback"],
+    ["p", "Not every function can be made to continue, and not every fault has a safe way to proceed. When continuation is impossible or unsafe, the correct behavior is to fall back to a defined <a href=./safety-instrumented-systems.html>safe state</a> rather than to guess. A robust architecture combines <a href=./redundancy-architectures.html>redundancy</a> for functions that must continue with fail-safe behavior for faults beyond what the redundancy can handle, so the system either keeps running correctly or stops safely, never runs incorrectly."]
+  ],
+  "related": [["redundancy-architectures", "Redundancy"], ["watchdog-timers", "Watchdog Timers"], ["safety-instrumented-systems", "Safety Systems"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "watchdog-timers",
+  "title": "Watchdog Timers",
+  "cat": "real-time-systems",
+  "lede": "A watchdog timer resets or safes a system when software stops servicing it, catching hangs and deadlocks that other checks would miss.",
+  "body": [
+    ["h2", "A Guard Against Silence"],
+    ["p", "A watchdog timer is an independent countdown that software must periodically reset to keep from expiring. If the software hangs, deadlocks, or enters an infinite loop and fails to reset the watchdog in time, the timer expires and forces a corrective action, typically a reset or a transition to a safe state. It catches the failure mode where software simply stops making progress and produces no error to report."],
+    ["h3", "How It Works"],
+    ["p", "The watchdog is a hardware counter, ideally driven by its own clock and independent of the processor it guards. In normal operation the software kicks, or services, the watchdog at intervals shorter than its timeout, signaling that it is alive and running. If a kick is missed, the watchdog assumes the software has failed and takes over. Because it is independent, it works even when the main software is completely stuck."],
+    ["h3", "Doing It Right"],
+    ["ul", ["Kick from a place that proves real progress, not from a dumb periodic interrupt", "Use a windowed watchdog that also faults if kicked too early, catching runaway loops", "Keep the watchdog on an independent clock so a stopped main clock still trips it", "Drive the fault action to a defined safe state, not just a blind reset"]],
+    ["h3", "The Naive-Kick Pitfall"],
+    ["p", "A watchdog is only as good as the condition under which it is kicked. If the kick comes from a simple timer interrupt that keeps firing even when the main application has died, the watchdog is satisfied while the system is actually broken. The kick should be gated on evidence that the real work is happening, for example that every critical task has completed its cycle, so the watchdog reflects genuine health rather than mere clock activity."],
+    ["h3", "Place in the Safety Design"],
+    ["p", "Watchdogs are a cheap, independent layer that complements <a href=./redundancy-architectures.html>redundancy</a> and <a href=./interlocks-and-permissives.html>interlocks</a>. They cannot catch every fault, a system computing wrong answers quickly will still kick happily, but they reliably catch hangs and total stalls that would otherwise leave actuators frozen at their last command. Combined with a fail-safe reaction, they ensure that a stuck controller becomes a safe controller rather than a silently dangerous one."]
+  ],
+  "related": [["fault-tolerance-and-failover", "Fault Tolerance"], ["safety-instrumented-systems", "Safety Systems"], ["interlocks-and-permissives", "Interlocks"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "edge-compute-in-control",
+  "title": "Edge Compute in Control",
+  "cat": "real-time-systems",
+  "lede": "Placing computation near sensors and actuators cuts latency and keeps control loops running independent of network and cloud availability.",
+  "body": [
+    ["h2", "Computing Where the Action Is"],
+    ["p", "Edge compute means performing processing close to where data is produced and used, rather than sending it to a distant server. In control systems this is not a novelty but a necessity: the tightest feedback loops must run next to the sensors and actuators they command, because the round trip to a remote computer would add latency and uncertainty a fast loop cannot tolerate."],
+    ["h3", "Why the Edge for Control"],
+    ["ul", ["Lower latency: no network round trip in the critical path", "Determinism: local timing is not subject to network congestion or outages", "Autonomy: the loop keeps running if the link to central systems drops", "Data reduction: raw high-rate data is processed locally, only summaries sent onward"]],
+    ["h3", "The Control Hierarchy"],
+    ["p", "Modern control distributes work by timescale and criticality. The fastest, most critical loops run at the edge, often in <a href=./fpga-based-control.html>FPGA</a> or dedicated processors beside the plant. Slower supervisory control runs on nearby computers. Non-real-time analysis, optimization, and long-term storage run on larger centralized or cloud systems. Each layer operates on the timescale it can guarantee, and higher layers never sit in the fast loop's critical path."],
+    ["h3", "Edge Versus Cloud"],
+    ["p", "The cloud offers scale for training models, running heavy analysis, and coordinating across a fleet, but it cannot offer bounded low latency over a general network. The pattern is to train and analyze centrally and execute at the edge: a model or a set of parameters is developed with abundant compute, then deployed to run deterministically near the process. This keeps the real-time guarantees local while still benefiting from large-scale computation offline."],
+    ["h3", "Application in a Plant"],
+    ["p", "In a facility such as a fusion plant at the design and simulation stage, fast plasma or plug control runs on edge hardware colocated with the machine, safety <a href=./interlocks-and-permissives.html>interlocks</a> run in independent local logic, and the results and diagnostics stream to central systems for monitoring, scenario planning, and analysis. The edge handles what must be fast and autonomous; the center handles what benefits from scale and can tolerate latency."]
+  ],
+  "related": [["fpga-based-control", "FPGA Control"], ["deterministic-networking", "Deterministic Networking"], ["latency-fundamentals", "Latency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "deterministic-networking",
+  "title": "Deterministic Networking",
+  "cat": "real-time-systems",
+  "lede": "When control spans multiple nodes, the network must deliver messages with bounded latency and jitter, which ordinary best-effort networking cannot guarantee.",
+  "body": [
+    ["h2", "The Network in the Loop"],
+    ["p", "Distributed control puts a network between sensors, controllers, and actuators. When a control message must arrive within a deadline, the network becomes part of the timing budget, and ordinary networking is not designed for this. Standard Ethernet and general IP networks optimize average throughput and tolerate variable delay, dropped packets, and retransmission, all of which are unacceptable in a hard real-time path."],
+    ["h3", "Why Best-Effort Fails"],
+    ["ul", ["Queuing delay varies with traffic load, producing unbounded latency", "Collisions and congestion cause retransmission and unpredictable timing", "No guarantee that a message arrives before its deadline", "Jitter from variable buffering corrupts periodic control timing"]],
+    ["h3", "Deterministic Approaches"],
+    ["p", "Deterministic networking replaces best-effort behavior with bounded guarantees. Time-triggered protocols schedule every message into fixed time slots, so transmissions never collide and each message's arrival time is known in advance. Time-Sensitive Networking extends standard Ethernet with time-aware scheduling, traffic shaping, and reserved bandwidth for critical streams, letting real-time and ordinary traffic share a network while protecting the critical traffic's timing."],
+    ["h3", "The Role of Time"],
+    ["p", "Deterministic scheduling requires that all nodes share a common, precise sense of time, so a time slot means the same instant everywhere. This is why <a href=./time-synchronization.html>time synchronization</a> is a companion technology: protocols distribute a common clock to sub-microsecond accuracy so that scheduled transmissions and coordinated actions align across the network. Without synchronized clocks, a time-triggered schedule cannot be enforced."],
+    ["h3", "Design Consequences"],
+    ["p", "A deterministic network is engineered, not merely connected. Traffic is characterized in advance, bandwidth is reserved, schedules are computed offline, and the worst-case delivery time of each critical message becomes a known number in the <a href=./timing-budgets.html>timing budget</a>. For a distributed control system spanning many cabinets or a large machine, this discipline is what allows the same worst-case reasoning used within one computer to extend across the wires connecting many of them."]
+  ],
+  "related": [["time-synchronization", "Time Synchronization"], ["edge-compute-in-control", "Edge Compute"], ["timing-budgets", "Timing Budgets"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "time-synchronization",
+  "title": "Time Synchronization",
+  "cat": "real-time-systems",
+  "lede": "Distributed real-time systems need a shared, precise clock so events can be ordered, timestamped, and coordinated across independent nodes.",
+  "body": [
+    ["h2", "One Time Across Many Clocks"],
+    ["p", "Every node in a distributed system has its own clock, and no two run at exactly the same rate. Left alone they drift apart, so timestamps from different nodes cannot be compared and coordinated actions cannot be scheduled. Time synchronization disciplines these independent clocks to a common reference, so the whole system agrees on what time it is to a known accuracy."],
+    ["h3", "Why Precision Matters"],
+    ["ul", ["Correlating measurements taken by different acquisition units", "Ordering events to reconstruct what happened and when", "Scheduling coordinated actions across nodes at the same instant", "Enforcing time-slotted <a href=./deterministic-networking.html>deterministic network</a> schedules"]],
+    ["h3", "Protocols and Accuracy"],
+    ["p", "Different needs call for different protocols. Network Time Protocol synchronizes to within milliseconds, adequate for logging and coarse coordination. The Precision Time Protocol achieves sub-microsecond accuracy by timestamping messages in hardware and correcting for network delay, which suits control and high-rate data acquisition. Dedicated hardware timing distribution, sometimes with a shared reference oscillator or GPS-disciplined clock, reaches nanosecond levels for the most demanding measurements."],
+    ["h3", "How Synchronization Works"],
+    ["p", "Synchronization protocols exchange timestamped messages between a reference and its followers, measure the round-trip delay, and estimate the offset and drift of each local clock. Followers then steer their clocks, adjusting both the current value and the rate, to track the reference smoothly rather than jumping, since a discontinuous clock would disrupt timing calculations. Hardware timestamping at the network interface removes the software-induced variability that limits accuracy."],
+    ["h3", "Consequences for Real-Time Design"],
+    ["p", "A shared timebase turns a collection of independent nodes into a coherent system. It lets <a href=./data-acquisition-systems.html>data acquisition</a> across many channels be reconstructed on one timeline, lets <a href=./jitter-sources-and-mitigation.html>jitter</a> be measured against a common reference, and lets deterministic networking enforce its schedules. In a large instrument with thousands of channels spread across many cabinets, precise synchronization is what allows a physical event to be reconstructed accurately from data captured by units that never directly talk to each other."]
+  ],
+  "related": [["deterministic-networking", "Deterministic Networking"], ["data-acquisition-systems", "Data Acquisition"], ["jitter-sources-and-mitigation", "Jitter"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "real-time-data-logging",
+  "title": "Real-Time Data Logging",
+  "cat": "real-time-systems",
+  "lede": "Logging must capture high-rate control and diagnostic data without disturbing the real-time loop it observes, preserving both timing and integrity.",
+  "body": [
+    ["h2", "Recording Without Interfering"],
+    ["p", "Real-time data logging captures the stream of measurements, commands, and events a control system produces, for later analysis, debugging, and validation. Its central challenge is that logging must not steal timing from the control it observes. A logging operation that blocks the control loop, or that shares a resource unpredictably, can turn a well-behaved system into one that misses deadlines."],
+    ["h3", "Decoupling from the Critical Path"],
+    ["p", "The standard technique is to separate the fast producer from the slow consumer with a buffer. The control loop writes samples into a lock-free or double-buffered region in bounded, minimal time, and a lower-priority task or a direct-memory-access engine moves the data to storage in the background. The critical path only ever does a fast, deterministic write; the heavy, variable work of formatting and storing happens where it cannot delay control."],
+    ["h3", "Requirements"],
+    ["ul", ["Bounded, minimal cost on the control loop for each logged sample", "No loss: buffers sized so transient stalls in storage do not drop data", "Accurate timestamps tied to the synchronized <a href=./time-synchronization.html>timebase</a>", "Metadata for provenance: calibration, configuration, and any gaps"]],
+    ["h3", "Handling High Rates"],
+    ["p", "Fast control and rich diagnostics generate large data volumes. Logging systems handle this with efficient binary formats, compression done off the critical path, and storage bandwidth sized to the sustained rate. When storage cannot keep up indefinitely, ring buffers keep the most recent history, and triggered capture saves a full-rate window around events of interest while logging summaries continuously. This keeps the most valuable data at full fidelity without requiring unlimited bandwidth."],
+    ["h3", "Why It Matters"],
+    ["p", "Logged data is how a system's real behavior is understood and its timing verified. Measured <a href=./jitter-sources-and-mitigation.html>jitter</a>, actual worst-case loop times, and the sequence of events before a fault all come from logs. For an experimental facility such as a fusion machine at the design and simulation stage, faithful high-rate logging is also the record from which physical events are reconstructed and against which models are validated, so its accuracy and completeness are as important as the control it accompanies."]
+  ],
+  "related": [["data-acquisition-systems", "Data Acquisition"], ["time-synchronization", "Time Synchronization"], ["timing-budgets", "Timing Budgets"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sensor-fusion-in-control",
+  "title": "Sensor Fusion in Control",
+  "cat": "real-time-systems",
+  "lede": "Combining multiple imperfect sensors yields an estimate more accurate and robust than any single one, and lets control proceed when a sensor fails.",
+  "body": [
+    ["h2", "Many Sensors, One Estimate"],
+    ["p", "Sensor fusion combines readings from several sensors, often of different types, into a single estimate of the quantity of interest. No real sensor is perfect: each has noise, bias, limited range, and failure modes. Fusion exploits their independence so that the combined estimate is more accurate, more robust, and available even when individual sensors disagree or drop out."],
+    ["h3", "Why Fuse"],
+    ["ul", ["Noise reduction: independent errors partly cancel when combined", "Complementary strengths: one sensor covers what another misses", "Redundancy: the estimate survives the loss of any single sensor", "Observing the unmeasurable: infer states no single sensor reads directly"]],
+    ["h3", "The Estimation Framework"],
+    ["p", "The workhorse of sensor fusion is the recursive estimator, most famously the Kalman filter. It maintains a model of the system's state and its uncertainty, predicts the state forward using a dynamic model, and then corrects the prediction with each new measurement, weighting model and measurement by their relative confidence. The result is an optimal estimate for linear systems with well-characterized noise, and variants extend it to nonlinear cases. This connects fusion to <a href=./state-space-control.html>state-space control</a>, where the estimated state feeds the control law."],
+    ["h3", "Weighting and Validation"],
+    ["p", "Good fusion weights each sensor by how much it should be trusted, and that trust is not static. A sensor drifting out of range, changing too fast to be physical, or disagreeing with the others should have its influence reduced or be rejected. Validating each input before fusing it prevents one faulty sensor from corrupting the combined estimate, which is essential when the estimate drives control or safety decisions."],
+    ["h3", "Application to Plasma Diagnostics"],
+    ["p", "Controlling a fusion plasma depends on reconstructing quantities, position, shape, and stored energy, that no single diagnostic measures directly. Many diagnostics, magnetic sensors, interferometry, and others, are fused through a model-based estimator to produce the state the controller acts on. In a design like the Hyperion breeder, at the design and simulation stage, this fused estimate is what the multivariable controller uses, and its robustness to a failed diagnostic is part of making the control loop dependable."]
+  ],
+  "related": [["state-space-control", "State-Space Control"], ["sensor-interfaces", "Sensor Interfaces"], ["fault-tolerance-and-failover", "Fault Tolerance"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "plasma-control-systems",
+  "title": "Plasma Control Systems",
+  "cat": "real-time-systems",
+  "lede": "Confining a fusion plasma requires fast, multivariable real-time control coordinating many magnets and diagnostics within microsecond timing budgets.",
+  "body": [
+    ["h2", "Control at the Heart of Confinement"],
+    ["p", "A magnetically confined plasma is not a passive fuel; it is a dynamic, unstable medium that must be actively held in place, shaped, and stabilized moment to moment. The plasma control system is the real-time system responsible for this: it reads diagnostics, estimates the plasma state, and commands the magnet power supplies to keep the plasma where the physics requires. Without fast control the plasma drifts, deforms, or terminates."],
+    ["h3", "What Must Be Controlled"],
+    ["ul", ["Position: keeping the plasma centered and off the walls", "Shape: maintaining the intended cross-section, including negative triangularity", "Current and profiles: sustaining the plasma current and its distribution", "Stability: suppressing instabilities before they grow"]],
+    ["h3", "A Multivariable, Fast Problem"],
+    ["p", "Plasma control is inherently multivariable: the coils, plasma position, shape, and current all interact, so independent single loops fight each other. It uses <a href=./state-space-control.html>state-space</a> and model-based methods that command all actuators together from an estimated state produced by <a href=./sensor-fusion-in-control.html>fusing</a> many diagnostics. Some instabilities evolve fast enough that the control loop must react within microseconds, which places the innermost loops in <a href=./fpga-based-control.html>FPGA</a> hardware while slower scenario control runs on conventional computers."],
+    ["h3", "Timing and Protection"],
+    ["p", "The control hierarchy spans timescales: fast stabilization at the edge, supervisory scenario control above it, and independent <a href=./safety-instrumented-systems.html>safety</a> and <a href=./interlocks-and-permissives.html>interlock</a> systems that protect the machine regardless of what the control computers do. Magnet protection, such as quench detection on high-field superconducting coils, must act faster and more reliably than any normal control loop, so it lives in dedicated logic."],
+    ["h3", "The Hyperion Context"],
+    ["p", "The Hyperion breeder is a D-T spherical tokamak design operating at high field, with a negative-triangularity plasma shape, that is at the design and simulation stage rather than built. Its control architecture follows the practice described here: fast multivariable magnetic control implemented near the machine, a fused state estimate driving coordinated coil commands, and independent protection systems layered beneath. No hardware net-gain claim is made ahead of a first-of-a-kind device; the control design is developed and validated in simulation as part of preparing the machine."]
+  ],
+  "related": [["state-space-control", "State-Space Control"], ["fpga-based-control", "FPGA Control"], ["sensor-fusion-in-control", "Sensor Fusion"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "polling-vs-interrupt-driven-io",
+  "title": "Polling vs Interrupt-Driven I/O",
+  "cat": "real-time-systems",
+  "lede": "Software can wait for an event by repeatedly checking or by being interrupted; each has distinct latency, overhead, and determinism characteristics.",
+  "body": [
+    ["h2", "Two Ways to Wait"],
+    ["p", "When software must respond to an external event, it can either poll, repeatedly reading a status until the event appears, or use interrupts, letting the hardware signal the processor when the event occurs. The choice affects latency, processor efficiency, and how predictable the timing is, and the right answer depends on the event's rate and urgency."],
+    ["h3", "Polling"],
+    ["p", "Polling loops read a status flag over and over. Its advantages are simplicity and highly predictable timing: if the loop is tight and dedicated, the response latency is the polling interval, with very little jitter. Its cost is that the processor is busy checking even when nothing happens, wasting cycles, and its responsiveness is capped by how often it can poll while doing its other work."],
+    ["h3", "Interrupt-Driven I/O"],
+    ["p", "Interrupts let the processor do other work until the event arrives, then divert immediately to handle it. This is efficient for infrequent events and gives fast response without constant checking. The cost is <a href=./interrupt-handling-and-latency.html>interrupt latency</a> and its variability, plus the complexity of concurrency: an interrupt can preempt other work at unpredictable moments, complicating <a href=./worst-case-execution-time.html>worst-case</a> analysis."],
+    ["ul", ["Polling: predictable, simple, wastes cycles, good for very high-rate or dedicated loops", "Interrupts: efficient, responsive, add jitter and concurrency complexity", "Hybrid: interrupt to wake, then poll a burst of data before sleeping again"]],
+    ["h3", "Choosing Between Them"],
+    ["p", "High-rate, continuous data often favors polling or a hybrid: at very high rates the overhead of an interrupt per item exceeds the cost of a tight polling loop. Infrequent or bursty events favor interrupts, freeing the processor between events. A common hybrid uses an interrupt to signal that data is available, then polls to drain a batch, amortizing interrupt overhead while staying responsive."],
+    ["h3", "Determinism Trade-Off"],
+    ["p", "For the most timing-critical work, a dedicated polling loop on its own core can be more deterministic than an interrupt, because it removes the variable interrupt-entry latency and the risk of preemption. This is one reason some real-time designs dedicate a core to busy-poll a critical input, accepting the wasted cycles in exchange for tight, jitter-free response, while using interrupts for everything less demanding."]
+  ],
+  "related": [["interrupt-handling-and-latency", "Interrupts"], ["determinism-in-real-time-systems", "Determinism"], ["latency-fundamentals", "Latency"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "memory-locking-and-cache-control",
+  "title": "Memory Locking and Cache Control",
+  "cat": "real-time-systems",
+  "lede": "Page faults and cache misses cause unpredictable delays; locking memory and controlling cache behavior are standard techniques for real-time determinism.",
+  "body": [
+    ["h2", "Memory as a Source of Jitter"],
+    ["p", "On systems with virtual memory and caches, memory access time is not constant. A page that has been swapped out triggers a slow disk access; a cache miss costs far more than a hit. These mechanisms improve average performance but introduce large, unpredictable delays that undermine <a href=./determinism-in-real-time-systems.html>determinism</a>. Controlling memory behavior is therefore a routine part of real-time engineering."],
+    ["h3", "Locking Memory"],
+    ["p", "Real-time programs lock their critical pages into physical memory so the operating system cannot swap them out. Locking prevents page faults on the critical path, where a fault could add milliseconds to a loop that must finish in microseconds. Programs also pre-fault their memory at startup, touching every page so the mapping is established before real-time operation begins, and use static or pre-allocated memory to avoid allocation during the loop."],
+    ["ul", ["Lock critical pages resident to prevent swapping and page faults", "Pre-fault memory at startup so no first-touch fault occurs later", "Avoid dynamic allocation on the critical path; pre-allocate pools", "Touch and warm data structures before the timed section runs"]],
+    ["h3", "Cache Control"],
+    ["p", "Caches speed the average case but a miss is costly and hard to predict. Techniques to tame this include locking critical code and data into cache so it cannot be evicted, partitioning the cache so a low-priority task cannot evict a high-priority task's working set, and using dedicated scratchpad memory whose access time is fixed. On multicore systems, isolating a critical task to a core reduces contention for shared cache levels."],
+    ["h3", "The Underlying Principle"],
+    ["p", "Each of these techniques trades some average performance for a tighter worst case. Locked memory cannot be reclaimed for other uses; a partitioned cache gives each task less room. Real-time engineering accepts these costs because the metric that matters is the maximum, not the mean. By removing the sources of large memory-related delays, the code's <a href=./worst-case-execution-time.html>worst-case execution time</a> becomes both smaller and, more importantly, provable, which is what the timing analysis requires."]
+  ],
+  "related": [["worst-case-execution-time", "WCET"], ["determinism-in-real-time-systems", "Determinism"], ["context-switching", "Context Switching"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "clock-domains-and-timing-references",
+  "title": "Clock Domains and Timing References",
+  "cat": "real-time-systems",
+  "lede": "Every digital system runs on clocks; their stability, and safe crossing between independent clock domains, underpin correct real-time timing.",
+  "body": [
+    ["h2", "Clocks Set the Beat"],
+    ["p", "Digital systems are paced by clocks: periodic signals that step logic forward. The quality of these clocks, their frequency accuracy, stability, and low <a href=./jitter-sources-and-mitigation.html>jitter</a>, sets the precision of everything timed by them, from sampling instants to network schedules. A real-time system is only as good as the timing references it is built on."],
+    ["h3", "Clock Quality"],
+    ["ul", ["Accuracy: how close the frequency is to nominal, set by the reference source", "Stability: how the frequency drifts with temperature, aging, and supply", "Phase noise and jitter: short-term variation in edge timing", "Resolution: the smallest time interval the clock can distinguish"]],
+    ["h3", "Reference Sources"],
+    ["p", "Timing references range from ordinary crystal oscillators, adequate for most digital work, to temperature-compensated and oven-controlled crystals for better stability, to atomic references and GPS-disciplined oscillators for absolute accuracy. High-precision <a href=./data-acquisition-systems.html>data acquisition</a> and <a href=./deterministic-networking.html>deterministic networking</a> often distribute a single high-quality reference to all units so that every sample and every scheduled action shares one stable timebase."],
+    ["h3", "Clock Domain Crossing"],
+    ["p", "Large systems contain multiple clock domains, regions clocked by different, unsynchronized sources. Passing a signal from one domain to another is a known hazard: sampling a signal that changes near a clock edge can produce metastability, where a flip-flop settles to an undefined value. Safe crossing uses synchronizers, multi-stage flip-flops for single bits, and handshake or first-in-first-out structures for multi-bit data, to move information between domains without corruption."],
+    ["h3", "Why It Matters for Control"],
+    ["p", "Clock choices ripple through the whole real-time design. A jittery sampling clock corrupts data as surely as a poor anti-alias filter; an inaccurate clock makes a nominal loop period drift; unsynchronized domains make timestamps from different units incomparable. In an <a href=./fpga-based-control.html>FPGA</a>-based controller, timing determinism is guaranteed relative to the clock, so a stable, well-characterized reference is what turns the hardware's structural determinism into real, trustworthy timing accuracy."]
+  ],
+  "related": [["jitter-sources-and-mitigation", "Jitter"], ["time-synchronization", "Time Synchronization"], ["fpga-based-control", "FPGA Control"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mixed-criticality-systems",
+  "title": "Mixed-Criticality Systems",
+  "cat": "real-time-systems",
+  "lede": "When tasks of different importance share one platform, the architecture must ensure low-criticality work can never compromise high-criticality timing.",
+  "body": [
+    ["h2", "One Platform, Many Criticalities"],
+    ["p", "A mixed-criticality system runs tasks of differing importance and safety significance on shared hardware. A single controller might run a hard safety-critical loop alongside soft logging, diagnostics, and user-interface tasks. Consolidating them saves hardware and complexity, but it creates a hazard: less critical work must never be able to steal the timing or resources the critical work depends on."],
+    ["h3", "The Isolation Requirement"],
+    ["p", "The central design goal is isolation, both in time and in space. Temporal isolation ensures a low-criticality task overrunning or misbehaving cannot delay a high-criticality task past its deadline. Spatial isolation ensures a fault in one task, a memory corruption or crash, cannot damage another. Without both, certifying the critical functions would require analyzing every non-critical task to the same rigor, defeating the purpose of consolidation."],
+    ["h3", "Mechanisms"],
+    ["ul", ["Partitioning: fixed time slices and memory regions per criticality level, enforced by the platform", "Priority and budget enforcement: a task cannot exceed its allotted processor time", "Core dedication: pin critical tasks to their own cores away from noisy neighbors", "Hypervisors: run separate domains with hardware-enforced separation"]],
+    ["h3", "Time and Space Partitioning"],
+    ["p", "A common approach, used in safety-critical avionics, is a partitioned architecture where each partition receives a guaranteed window of processor time and a protected region of memory, enforced by the operating system or a hypervisor. Within its window a partition runs freely; outside it, it cannot execute, so it cannot interfere with others. This makes the timing of a critical partition independent of the behavior of the rest."],
+    ["h3", "Why It Matters"],
+    ["p", "Mixed-criticality design lets a facility run its protection, control, and monitoring on shared, well-isolated infrastructure while keeping the highest-integrity functions provably independent. The critical <a href=./safety-instrumented-systems.html>safety</a> and control loops keep their guarantees regardless of how the diagnostic, logging, and interface software behaves, and each layer can be verified to the rigor its criticality demands rather than the highest common denominator."]
+  ],
+  "related": [["safety-instrumented-systems", "Safety Systems"], ["rtos-scheduling-algorithms", "Scheduling"], ["hard-vs-soft-real-time", "Hard vs Soft"]],
+  "seo_type": "TechArticle"
+}
+]

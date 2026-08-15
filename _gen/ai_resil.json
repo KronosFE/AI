@@ -1,0 +1,2554 @@
+[
+ {
+  "slug": "resiliency-overview",
+  "title": "Resiliency and Operations: Overview",
+  "cat": "resiliency",
+  "lede": "How the Kronos AI stack keeps the breeder (Hyperion) and burner (Aegis / MetroVolt) running safely when components, sensors, or models fail.",
+  "body": [
+   [
+    "h2",
+    "What resiliency means here"
+   ],
+   [
+    "p",
+    "Resiliency is the property that lets a plant survive faults without violating a safety limit and without losing more availability than necessary. In the Kronos stack it is not a single module but a discipline that cuts across control (L1), the digital twin (L3), diagnostics, and fleet coordination (L7). This category documents the timing model that bounds how fast the stack must react, the operating narratives that describe a shot and a campaign, the failure-mode analysis that enumerates what can go wrong, the failover and graceful-degradation logic that keeps power flowing, and the availability model that turns all of this into a number."
+   ],
+   [
+    "p",
+    "Two very different machines share the framework. The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field (8 T on-axis), negative triangularity delta -0.30, tritium breeding ratio treated as a design lever across 1.1/1.5/1.8, producing a ~4 kg/yr tritium class output, ~1.97 kg/yr helium-3, and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, 5.44% neutron fraction and direct energy conversion. A tokamak lives shot-to-shot; a mirror aims at continuous export. Their resiliency problems are therefore different in kind, not just degree."
+   ],
+   [
+    "h3",
+    "The honest availability gate"
+   ],
+   [
+    "p",
+    "The central design-and-simulation finding for the burner is that modelled availability sits at roughly 0.86-0.995, while a hyperscale Tier III data-center target is 0.99982. That is a 30-100x shortfall in tolerable downtime. We state this plainly across the category: a single MetroVolt unit is not a sole Tier-III source today. It informs redundancy, spares, and fleet strategy rather than being hidden. See <a href=./availability-gate-and-model.html>The Availability Gate</a>."
+   ],
+   [
+    "h3",
+    "Honest framing"
+   ],
+   [
+    "p",
+    "These machines are design and simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind (FOAK) first tritium targeted ~2030; NOAK and BOAK follow. No hardware net-gain is claimed before FOAK. Every resiliency claim here is exercised against the digital twin and fault-injection simulation, with a defined path to instrumented validation once units exist."
+   ]
+  ],
+  "related": [
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ],
+   [
+    "end-to-end-timing-model",
+    "End-to-End Timing Model"
+   ],
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "availability-gate-and-model",
+  "title": "The Availability Gate",
+  "cat": "resiliency",
+  "lede": "The honest availability finding: modelled ~0.86-0.995 against a Tier III target of 0.99982 - a 30-100x downtime shortfall stated as a physics-and-operations fact.",
+  "body": [
+   [
+    "h2",
+    "Definition"
+   ],
+   [
+    "p",
+    "Availability A is the long-run fraction of wall-clock time a unit delivers rated service. For a repairable unit with mean time between failures MTBF and mean time to repair MTTR, the steady-state estimate is A = MTBF / (MTBF + MTTR). Downtime fraction is U = 1 - A. The whole point of the gate is that hyperscale Tier III uptime (0.99982) corresponds to about 95 minutes of downtime per year, whereas our modelled burner range corresponds to hours-to-weeks per year."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Downtime per year for an availability figure\nHOURS_PER_YEAR = 8766.0\nfor A in (0.86, 0.95, 0.99, 0.995, 0.99982):\n    U = 1.0 - A\n    down_h = U * HOURS_PER_YEAR\n    print(f\"A={A:<8} downtime={down_h:8.2f} h/yr ({down_h*60:8.1f} min/yr)\")\n# A=0.86     -> 1227.24 h/yr\n# A=0.995    ->   43.83 h/yr\n# A=0.99982  ->    1.58 h/yr  (Tier III target)"
+    ]
+   ],
+   [
+    "h3",
+    "Why the gate is real"
+   ],
+   [
+    "p",
+    "The burner availability range 0.86-0.995 is a modelled envelope, not a marketing floor. It aggregates plug-coil duty limits, cryogenic and RF subsystem reliability, and maintenance access. Against 0.99982 the shortfall in tolerable downtime is 30x at the optimistic end and roughly 100x at the pessimistic end. This is one of the four canonical burner gates and it is not translated into any economic statement here - it is a downtime fact."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Claim",
+      "Honest?"
+     ],
+     [
+      [
+       "Single MetroVolt unit is a sole Tier-III source",
+       "0"
+      ],
+      [
+       "Fleet + storage + grid tie can approach Tier-III at facility level",
+       "1"
+      ],
+      [
+       "The gap is 30-100x in downtime today",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "How we close the gap on paper"
+   ],
+   [
+    "ul",
+    [
+     "N+1 and N+2 unit redundancy at the facility level rather than a single machine",
+     "Graceful degradation to partial power instead of trip (see <a href=./graceful-degradation-modes.html>Graceful Degradation</a>)",
+     "Predictive maintenance to convert unplanned outages into scheduled ones",
+     "Fleet model propagation so each new unit inherits reliability learning"
+    ]
+   ],
+   [
+    "p",
+    "The model, its inputs, and its Monte-Carlo treatment are documented in <a href=./availability-modeling-monte-carlo.html>Availability Modeling</a>. The gate stays visible in every one of those pages."
+   ]
+  ],
+  "related": [
+   [
+    "resiliency-overview",
+    "Resiliency Overview"
+   ],
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "graceful-degradation-modes",
+    "Graceful Degradation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "end-to-end-timing-model",
+  "title": "End-to-End Timing Model",
+  "cat": "resiliency",
+  "lede": "The nested timescales the stack must respect, from sub-millisecond plasma control to multi-year campaigns, and how each loop is budgeted.",
+  "body": [
+   [
+    "h2",
+    "Timescales are nested"
+   ],
+   [
+    "p",
+    "Fusion plants are governed by physics that spans more than twelve orders of magnitude in time. Resiliency requires that each control loop closes fast enough for the phenomenon it governs, and that slower loops never block faster ones. The stack is organized as a hierarchy of loops, each with a deadline and a fallback if the deadline is missed."
+   ],
+   [
+    "matrix",
+    [
+     "Loop x (deadline, phenomenon)",
+     [
+      [
+       "Magnet quench detect/protect",
+       "~1-10 ms",
+       "coil normal-zone growth"
+      ],
+      [
+       "Plasma vertical/shape control",
+       "~0.1-1 ms",
+       "MHD, vertical displacement"
+      ],
+      [
+       "Disruption prediction/mitigation",
+       "~1-30 ms",
+       "precursor to termination"
+      ],
+      [
+       "Actuator command (heating, fueling)",
+       "~1-10 ms",
+       "kinetic profile steering"
+      ],
+      [
+       "Twin state estimate",
+       "~10-100 ms",
+       "reconstruct plasma state"
+      ],
+      [
+       "Supervisory sequencing",
+       "~0.1-1 s",
+       "shot phase transitions"
+      ],
+      [
+       "Predictive maintenance",
+       "hours-days",
+       "degradation trends"
+      ],
+      [
+       "Campaign / duty scheduling",
+       "days-years",
+       "fleet availability"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "The budget principle"
+   ],
+   [
+    "p",
+    "A loop's latency budget is the sum of sensing, transport, inference, decision, and actuation. The rule is that the worst-case path (WCET) plus jitter must be less than the phenomenon's characteristic time with margin. For the breeder, vertical stability of an elongated, negative-triangularity plasma is the tightest hard-real-time constraint; for the burner, plug-field and RF stability dominate."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def loop_ok(sense_ms, xport_ms, infer_ms, act_ms, jitter_ms, deadline_ms, margin=2.0):\n    wcet = sense_ms + xport_ms + infer_ms + act_ms + jitter_ms\n    return wcet, wcet * margin <= deadline_ms\n\n# vertical control example (must beat ~1 ms with 2x margin)\nprint(loop_ok(0.05, 0.05, 0.20, 0.10, 0.05, deadline_ms=1.0))\n# (0.45, True)  -> 0.45 ms wcet, 0.90 ms with margin < 1 ms"
+    ]
+   ],
+   [
+    "p",
+    "Fast loops run on deterministic hardware (FPGA / real-time control nodes); slow loops run on the twin and fleet layers. A missed slow-loop deadline degrades optimization quality; a missed fast-loop deadline triggers a protective action. See <a href=./control-loop-latency-budget.html>Control Loop Latency Budget</a> and <a href=./magnet-quench-detection-and-protection.html>Quench Detection</a>."
+   ]
+  ],
+  "related": [
+   [
+    "control-loop-latency-budget",
+    "Control Loop Latency Budget"
+   ],
+   [
+    "operating-narrative-cold-start",
+    "Cold-Start Narrative"
+   ],
+   [
+    "disruption-prediction-and-mitigation",
+    "Disruption Prediction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-loop-latency-budget",
+  "title": "Control Loop Latency Budget",
+  "cat": "resiliency",
+  "lede": "Decomposing the real-time path into sense, transport, infer, decide, actuate - and the fallback taken when any stage overruns.",
+  "body": [
+   [
+    "h2",
+    "The five stages"
+   ],
+   [
+    "p",
+    "Every hard-real-time decision on either machine traverses the same five stages. Budgeting means assigning each stage a worst-case execution time and proving the sum plus jitter clears the deadline. The stages are: sense (diagnostic acquisition and digitization), transport (deterministic fabric to the control node), infer (state estimate or surrogate model evaluation), decide (controller law), and actuate (power electronics response)."
+   ],
+   [
+    "ul",
+    [
+     "Sense: magnetic probes, interferometry, thermocouples sampled at fixed rate",
+     "Transport: time-triggered fabric with bounded latency, not best-effort Ethernet",
+     "Infer: reduced-order model or distilled network with fixed operation count",
+     "Decide: MPC or PID law with a hard iteration cap",
+     "Actuate: coil power supply / gyrotron / gas valve slew"
+    ]
+   ],
+   [
+    "h3",
+    "Determinism over average speed"
+   ],
+   [
+    "p",
+    "Resiliency demands bounded worst case, not fast average. A model that is quick 99% of the time but occasionally stalls is unusable in a 1 ms loop. We therefore forbid dynamic memory allocation, unbounded loops, and non-deterministic branches in the fast path, and we pin the inference model to a fixed-operation form."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Overrun guard: if inference exceeds its slice, fall back to the last-good\n# controller law rather than block the actuation deadline.\ndef fast_step(state, budget_us):\n    t0 = now_us()\n    try:\n        u = surrogate_infer(state, deadline_us=t0 + budget_us)\n    except DeadlineExceeded:\n        u = last_good_law(state)      # deterministic PID fallback\n        flag('infer_overrun')\n    actuate(u)\n    return u"
+    ]
+   ],
+   [
+    "h3",
+    "Jitter and margin"
+   ],
+   [
+    "p",
+    "Jitter (variation in loop period) is as dangerous as latency. We size a 2x margin between worst-case path and deadline so that a single slow cycle does not cascade. Persistent overruns are logged for <a href=./incident-replay-and-postmortem.html>postmortem</a> and can trigger a controlled derate. The full timing hierarchy is in <a href=./end-to-end-timing-model.html>the timing model</a>."
+   ],
+   [
+    "p",
+    "On the breeder the tightest budget is vertical-position control of the elongated delta -0.30 plasma; on the burner it is plug-field regulation near the 26.49 T operating point where the coil is already stressed 3-3.9x at the design bore, so the actuation authority is deliberately conservative."
+   ]
+  ],
+  "related": [
+   [
+    "end-to-end-timing-model",
+    "End-to-End Timing Model"
+   ],
+   [
+    "watchdog-and-heartbeat",
+    "Watchdog and Heartbeat"
+   ],
+   [
+    "fmea-burner-plug-coil",
+    "Plug-Coil FMEA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "operating-narrative-cold-start",
+  "title": "Operating Narrative: Cold Start",
+  "cat": "resiliency",
+  "lede": "A plain sequence from a fully cold machine to first plasma, and every point where the stack can hold, abort, or safe the plant.",
+  "body": [
+   [
+    "h2",
+    "From cold iron to first plasma"
+   ],
+   [
+    "p",
+    "A cold start is the highest-risk routine operation because nearly every subsystem transitions state at once. The stack sequences it as a guarded state machine: each phase has entry conditions, an abort path, and a timeout. Nothing advances until the twin confirms the prior phase converged. This narrative applies to the breeder (Hyperion); the burner variant is in <a href=./burner-continuous-operation-narrative.html>the burner narrative</a>."
+   ],
+   [
+    "h3",
+    "Ordered phases"
+   ],
+   [
+    "ul",
+    [
+     "Vacuum and bake: pump to base pressure, confirm leak rate within budget",
+     "Cryogenic cooldown: superconducting magnets to operating temperature, watched by quench diagnostics",
+     "Magnet energization: ramp toward 16.84 T peak field (8 T on-axis) with continuous normal-zone monitoring",
+     "Gas fueling and breakdown: admit deuterium, apply loop voltage, initiate breakdown",
+     "Current ramp: drive plasma current toward 9.86 MA while holding vertical stability at delta -0.30",
+     "Flat-top: establish the target scenario and hand over to shot control"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "PHASES = ['vacuum','cooldown','energize','breakdown','ramp','flattop']\ndef cold_start(twin):\n    for ph in PHASES:\n        enter(ph)\n        if not twin.converged(ph, timeout=phase_timeout[ph]):\n            return safe_abort(ph)      # hold in last safe state\n    return 'flattop_ok'"
+    ]
+   ],
+   [
+    "h3",
+    "Where it can stop"
+   ],
+   [
+    "p",
+    "At any phase the twin can raise a hold (recoverable pause), an abort (retreat to the prior safe state), or a safe (drive the whole plant to a defined low-energy configuration). Magnet energization is the most consequential gate: a normal-zone signature during the ramp triggers a protective discharge rather than a retry. See <a href=./magnet-quench-detection-and-protection.html>Quench Detection</a> and <a href=./controlled-shutdown-and-safe-states.html>Safe States</a>."
+   ],
+   [
+    "p",
+    "Because Hyperion is a design-and-simulation study before FOAK ~2030, cold-start is exercised entirely against the digital twin with injected faults at each phase boundary, building the guard logic that will run on hardware."
+   ]
+  ],
+  "related": [
+   [
+    "shot-lifecycle-breeder",
+    "Breeder Shot Lifecycle"
+   ],
+   [
+    "state-machine-plant-modes",
+    "Plant State Machine"
+   ],
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shot-lifecycle-breeder",
+  "title": "Breeder Shot Lifecycle",
+  "cat": "resiliency",
+  "lede": "One tokamak shot from arming to post-shot analysis, and the control decisions the stack makes in each window.",
+  "body": [
+   [
+    "h2",
+    "A shot is a bounded experiment"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) operates in discrete shots even at commercial intent, because a spherical tokamak drives current inductively and thermally cycles the plasma-facing components. Each shot is a bounded window with an arm, a ramp, a flat-top, a ramp-down, and a recovery. The stack treats the flat-top as the productive phase where the Q_sci 3.424 / 88.7 MW scenario is held and 14 MeV neutrons drive the breeding blanket."
+   ],
+   [
+    "matrix",
+    [
+     "Phase x (duration class, dominant risk)",
+     [
+      [
+       "Arm",
+       "seconds",
+       "interlock readiness"
+      ],
+      [
+       "Breakdown",
+       "ms-s",
+       "failed ionization"
+      ],
+      [
+       "Ramp-up",
+       "seconds",
+       "vertical instability at delta -0.30"
+      ],
+      [
+       "Flat-top",
+       "seconds-long",
+       "disruption, impurity accumulation"
+      ],
+      [
+       "Ramp-down",
+       "seconds",
+       "current-quench, halo currents"
+      ],
+      [
+       "Recovery",
+       "seconds-min",
+       "wall conditioning, data capture"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Flat-top control"
+   ],
+   [
+    "p",
+    "During flat-top the controller holds current near 9.86 MA, regulates shape and vertical position, manages fueling and heating to the target profile, and watches for disruption precursors. The tritium breeding ratio - treated as a design lever across 1.1/1.5/1.8 - is a slow accounting quantity computed shot-over-shot from neutron diagnostics, not a fast loop."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def flattop_supervise(state, twin):\n    if twin.disruption_risk(state) > THRESH:\n        return mitigate()               # see disruption page\n    if twin.vertical_margin(state) < VMIN:\n        boost_vertical_gain()\n    log_neutron_yield(state)             # feeds TBR accounting 1.1/1.5/1.8\n    return 'nominal'"
+    ]
+   ],
+   [
+    "h3",
+    "Ramp-down and recovery"
+   ],
+   [
+    "p",
+    "Controlled ramp-down avoids a current-quench by bleeding current within actuator limits and managing halo currents into the structure. Recovery captures the full shot record for the twin to reconcile prediction against measurement, feeding <a href=./predictive-maintenance-overview.html>predictive maintenance</a> and <a href=./incident-replay-and-postmortem.html>postmortem</a>. Many shots chained together form a campaign; see <a href=./campaign-lifecycle-and-duty-cycle.html>Campaign Lifecycle</a>."
+   ]
+  ],
+  "related": [
+   [
+    "campaign-lifecycle-and-duty-cycle",
+    "Campaign Lifecycle"
+   ],
+   [
+    "disruption-prediction-and-mitigation",
+    "Disruption Prediction"
+   ],
+   [
+    "operating-narrative-cold-start",
+    "Cold-Start Narrative"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "campaign-lifecycle-and-duty-cycle",
+  "title": "Campaign Lifecycle and Duty Cycle",
+  "cat": "resiliency",
+  "lede": "How individual shots accumulate into a campaign, and how duty cycle sets the ceiling on breeder availability and tritium output.",
+  "body": [
+   [
+    "h2",
+    "From shots to a campaign"
+   ],
+   [
+    "p",
+    "A campaign is a planned series of shots run against fixed hardware between maintenance openings. Availability at campaign scale is bounded by duty cycle: the ratio of productive flat-top time to the full arm-to-recovery period, multiplied by the fraction of calendar time the machine is in-campaign rather than in maintenance. For the breeder this directly sets annual tritium output toward the ~4 kg/yr class and helium-3 toward ~1.97 kg/yr."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def campaign_availability(flattop_s, cycle_s, shots_per_day, up_days, cal_days):\n    duty = flattop_s / cycle_s                 # in-shot productive fraction\n    daily_prod_s = duty * cycle_s * shots_per_day\n    seconds_per_day = 86400.0\n    in_shot_frac = daily_prod_s / seconds_per_day\n    calendar_frac = up_days / cal_days         # campaign vs maintenance\n    return in_shot_frac * calendar_frac"
+    ]
+   ],
+   [
+    "h3",
+    "What limits duty cycle"
+   ],
+   [
+    "ul",
+    [
+     "Thermal recovery of plasma-facing components between shots",
+     "Coil recooling and current-supply recharge windows",
+     "Vacuum and wall reconditioning after high-power shots",
+     "Diagnostic and data-capture overhead in recovery",
+     "Scheduled inspection openings that end a campaign"
+    ]
+   ],
+   [
+    "h3",
+    "Duty cycle vs availability"
+   ],
+   [
+    "p",
+    "Duty cycle and availability are related but distinct. A machine can be highly available (rarely broken) yet low duty cycle (much time spent recovering between shots). The predictive-maintenance layer works to convert unplanned campaign-ending faults into scheduled openings, protecting both. See <a href=./predictive-maintenance-overview.html>Predictive Maintenance</a> and <a href=./availability-modeling-monte-carlo.html>Availability Modeling</a>."
+   ],
+   [
+    "p",
+    "At fleet scale the FOAK-NOAK-BOAK breeder sequence (from ~2030) is expected to raise duty cycle as each unit inherits validated recovery procedures. Pre-FOAK, campaign models run against the twin to size the recovery budget honestly rather than optimistically."
+   ]
+  ],
+  "related": [
+   [
+    "shot-lifecycle-breeder",
+    "Breeder Shot Lifecycle"
+   ],
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "fleet-availability-and-model-propagation",
+    "Fleet Availability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-continuous-operation-narrative",
+  "title": "Burner Continuous-Operation Narrative",
+  "cat": "resiliency",
+  "lede": "The burner (Aegis / MetroVolt) aims at steady export, so its operating story is about holding a regime, not chaining shots - under four honest gates.",
+  "body": [
+   [
+    "h2",
+    "Steady state, not shots"
+   ],
+   [
+    "p",
+    "A tandem-mirror burner has no inductive current drive to cycle, so the intended operating narrative is continuous: reach the plug regime, hold it, and export firm power through direct energy conversion. The design point is a 26.49 T plug, 17 T throat, and 5.44% neutron fraction. Continuous operation is what a MetroVolt data-center customer or an Aegis fixed defense installation would need. The honest gates make that continuity the hardest problem, not the plasma physics alone."
+   ],
+   [
+    "h3",
+    "The four gates bound the narrative"
+   ],
+   [
+    "ul",
+    [
+     "Plug coil is overstressed ~3-3.9x at the design bore, so the plug cannot be run as specified without a coil redesign - infeasible today",
+     "The plug operating regime is 166-830x beyond any existing device, so it is un-post-dictable: models cannot yet be validated against data",
+     "He-3 fuel demand is ~400x domestic supply per commercial unit, so continuous fueling is gated on a supply that does not exist at terrestrial scale (why breeder-bred and lunar He-3 matter)",
+     "Availability models sit at 0.86-0.995 vs a Tier III target of 0.99982, a 30-100x downtime shortfall"
+    ]
+   ],
+   [
+    "p",
+    "None of these is an economic statement; all four are physics-and-operations facts. The continuous narrative is therefore a target the design must earn, exercised in simulation, not a claim about a built machine."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def burner_hold(state, twin):\n    if twin.plug_stress_ratio(state) > 1.0:      # design bore already 3-3.9x\n        return derate('plug_stress')\n    if not twin.fuel_available(state):           # He-3 supply gate\n        return derate('fuel')\n    if twin.confidence(state) < CONF_MIN:        # 166-830x regime -> low conf\n        return 'hold_conservative'\n    return 'export'"
+    ]
+   ],
+   [
+    "h3",
+    "Why continuity still drives the design"
+   ],
+   [
+    "p",
+    "Even un-validated, the continuous target shapes redundancy and degradation logic: a burner that must hold a regime cannot recover between shots, so it leans harder on <a href=./graceful-degradation-modes.html>graceful degradation</a> and fleet <a href=./failover-architecture.html>failover</a> to meet the availability gate. The breeder-bred tritium and helium-3 close the fuel gate over time."
+   ]
+  ],
+  "related": [
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ],
+   [
+    "fmea-burner-plug-coil",
+    "Plug-Coil FMEA"
+   ],
+   [
+    "degraded-mode-power-scheduling",
+    "Degraded-Mode Power"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "state-machine-plant-modes",
+  "title": "Plant State Machine",
+  "cat": "resiliency",
+  "lede": "The explicit plant-wide states and the guarded transitions between them - the backbone that makes every other resiliency behavior legible.",
+  "body": [
+   [
+    "h2",
+    "One authoritative state"
+   ],
+   [
+    "p",
+    "Resiliency starts with a single, authoritative plant state. Ambiguity about what mode the machine is in is itself a failure mode. The stack defines a finite set of plant modes with guarded transitions; only one supervisor may command a transition, and every transition has explicit entry conditions and a defined fallback. Both machines share the same skeleton with machine-specific guards."
+   ],
+   [
+    "matrix",
+    [
+     "Mode x (energy, admits)",
+     [
+      [
+       "OFFLINE",
+       "cold",
+       "maintenance access"
+      ],
+      [
+       "STANDBY",
+       "cryo ready",
+       "arm requests"
+      ],
+      [
+       "ARMED",
+       "fields up",
+       "start sequence"
+      ],
+      [
+       "OPERATE",
+       "plasma",
+       "control loops"
+      ],
+      [
+       "DERATE",
+       "reduced",
+       "partial service"
+      ],
+      [
+       "SAFING",
+       "draining",
+       "protective actions"
+      ],
+      [
+       "FAULT",
+       "latched",
+       "operator review"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Guarded transitions"
+   ],
+   [
+    "p",
+    "A transition fires only when its guard evaluates true against the twin state. Illegal transitions are refused, not attempted. The most important edges are the ones toward lower energy: OPERATE to DERATE, DERATE to SAFING, and any mode to FAULT, which are always reachable and take priority over productive commands."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "EDGES = {\n  ('STANDBY','ARMED'): guard_interlocks_ready,\n  ('ARMED','OPERATE'): guard_scenario_converged,\n  ('OPERATE','DERATE'): guard_degradation_detected,\n  ('DERATE','SAFING'): guard_limit_approaching,\n  ('*','FAULT'): guard_protective_trip,   # always available\n}\ndef step(cur, req, twin):\n    g = EDGES.get((cur, req)) or EDGES.get(('*', req))\n    return req if (g and g(twin)) else cur"
+    ]
+   ],
+   [
+    "h3",
+    "Why it aids resiliency"
+   ],
+   [
+    "p",
+    "A well-defined state machine makes failover, degradation, and safing composable: each is just a set of edges. It also makes <a href=./incident-replay-and-postmortem.html>postmortem</a> exact, because the state trace is unambiguous. The safe-ward edges are detailed in <a href=./controlled-shutdown-and-safe-states.html>Safe States</a> and the degraded edges in <a href=./graceful-degradation-modes.html>Graceful Degradation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ],
+   [
+    "graceful-degradation-modes",
+    "Graceful Degradation"
+   ],
+   [
+    "failover-architecture",
+    "Failover Architecture"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fmea-methodology",
+  "title": "FMEA Methodology",
+  "cat": "resiliency",
+  "lede": "How Kronos enumerates failure modes, scores them, and turns the ranking into detection, mitigation, and maintenance requirements.",
+  "body": [
+   [
+    "h2",
+    "Failure Mode and Effects Analysis"
+   ],
+   [
+    "p",
+    "FMEA is the disciplined enumeration of how each component can fail, what effect each failure has, how likely it is, and how detectable it is. The output is a ranked list of risks that drives where sensors, redundancy, and maintenance effort go. Kronos runs FMEA per subsystem and rolls the results up to the plant level for both machines."
+   ],
+   [
+    "h3",
+    "Scoring"
+   ],
+   [
+    "p",
+    "Each failure mode gets three 1-10 scores: severity S (effect if it occurs), occurrence O (likelihood), and detection D (how hard it is to catch before it matters - higher is worse). The Risk Priority Number is RPN = S x O x D. Modes are addressed in RPN order until residual risk is acceptable."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "from dataclasses import dataclass\n@dataclass\nclass Mode:\n    name: str; S: int; O: int; D: int\n    @property\n    def rpn(self): return self.S * self.O * self.D\n\nmodes = [\n  Mode('magnet quench', 10, 3, 4),\n  Mode('diagnostic dropout', 6, 5, 3),\n  Mode('plug coil overstress', 10, 8, 5),   # burner, gate-driven O and D\n]\nfor m in sorted(modes, key=lambda x: -x.rpn):\n    print(m.name, m.rpn)"
+    ]
+   ],
+   [
+    "h3",
+    "From RPN to requirements"
+   ],
+   [
+    "ul",
+    [
+     "High S: add protective interlock and safe-state path",
+     "High O: add redundancy or reduce duty on the component",
+     "High D: add or fuse diagnostics so the mode is observable early",
+     "High RPN overall: all three, plus a predictive-maintenance model"
+    ]
+   ],
+   [
+    "p",
+    "Detection score D is where the AI stack earns its place: sensor fusion and anomaly detection lower D by making latent faults observable. The subsystem FMEAs - <a href=./fmea-breeder-magnets.html>magnets</a>, <a href=./fmea-burner-plug-coil.html>plug coil</a>, <a href=./fmea-tritium-plant.html>tritium plant</a>, and <a href=./fmea-diagnostics-and-sensors.html>diagnostics</a> - apply this method with honest scores, including the burner gates."
+   ]
+  ],
+  "related": [
+   [
+    "fmea-breeder-magnets",
+    "Breeder Magnet FMEA"
+   ],
+   [
+    "fmea-burner-plug-coil",
+    "Plug-Coil FMEA"
+   ],
+   [
+    "fault-detection-and-isolation",
+    "Fault Detection and Isolation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fmea-breeder-magnets",
+  "title": "Breeder Magnet FMEA",
+  "cat": "resiliency",
+  "lede": "Failure modes of the Hyperion superconducting magnet set at 16.84 T peak field, and the detection and protection each demands.",
+  "body": [
+   [
+    "h2",
+    "Why magnets dominate"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) stores large magnetic energy in its superconducting coil set to reach 16.84 T peak field (8 T on-axis) and confine a 9.86 MA plasma. Because that energy must go somewhere on any fault, magnet failure modes carry the highest severity in the breeder FMEA. The negative-triangularity delta -0.30 shape also puts specific structural loads on the shaping coils."
+   ],
+   [
+    "matrix",
+    [
+     "Mode x (S, primary detection)",
+     [
+      [
+       "Quench (normal-zone growth)",
+       "10",
+       "voltage / co-wound taps"
+      ],
+      [
+       "Cryogen loss / warming",
+       "9",
+       "temperature, flow"
+      ],
+      [
+       "Inter-turn short",
+       "9",
+       "voltage imbalance"
+      ],
+      [
+       "Structural fatigue",
+       "8",
+       "strain gauges, acoustic"
+      ],
+      [
+       "Current-lead fault",
+       "7",
+       "lead voltage, thermal"
+      ],
+      [
+       "Power-supply glitch",
+       "6",
+       "supply telemetry"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Quench is the anchor mode"
+   ],
+   [
+    "p",
+    "A quench - a spreading normal (resistive) zone - can deposit stored energy locally and damage the coil if not caught within milliseconds. It is high severity, moderate occurrence, and moderately hard to detect early, giving it a high RPN. The response is a fast protective discharge; the dedicated logic is in <a href=./magnet-quench-detection-and-protection.html>Quench Detection and Protection</a>."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Co-wound tap detection: voltage not explained by inductance -> resistive\ndef quench_signature(V_meas, L, dIdt, R_lead, I, thresh):\n    V_ind = L * dIdt + R_lead * I\n    V_res = V_meas - V_ind          # resistive component\n    return V_res > thresh           # true -> initiate protective discharge"
+    ]
+   ],
+   [
+    "h3",
+    "Fatigue and the twin"
+   ],
+   [
+    "p",
+    "Slower modes - structural fatigue, gradual cryogen degradation - are tracked by the twin as remaining-useful-life estimates so they become scheduled maintenance rather than campaign-ending faults. See <a href=./remaining-useful-life-estimation.html>Remaining Useful Life</a>. Pre-FOAK these scores come from simulation and coil test data, not an operating reactor, and are stated as such."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-quench-detection-and-protection",
+    "Quench Detection"
+   ],
+   [
+    "remaining-useful-life-estimation",
+    "Remaining Useful Life"
+   ],
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fmea-burner-plug-coil",
+  "title": "Plug-Coil FMEA",
+  "cat": "resiliency",
+  "lede": "The burner's 26.49 T plug coil is overstressed 3-3.9x at the design bore - the dominant, gate-defining failure mode, stated without softening.",
+  "body": [
+   [
+    "h2",
+    "The gate is the FMEA"
+   ],
+   [
+    "p",
+    "For the burner (Aegis / MetroVolt), the plug coil that must produce 26.49 T at the mirror throat's 17 T companion field is the single most important failure-mode entry, because the honest gate says the coil is overstressed ~3-3.9x at the design bore. That is not a low-probability tail; it is a statement that the coil as specified is infeasible without redesign. We score it accordingly and do not soften it."
+   ],
+   [
+    "matrix",
+    [
+     "Factor x value (plug coil)",
+     [
+      [
+       "Severity S",
+       "10 (loss of confinement)"
+      ],
+      [
+       "Occurrence O",
+       "8 (3-3.9x overstress at design bore)"
+      ],
+      [
+       "Detection D",
+       "5 (regime 166-830x beyond data)"
+      ],
+      [
+       "Status",
+       "infeasible as specified today"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Why detection is hard here"
+   ],
+   [
+    "p",
+    "Detection score is elevated because the plug operating regime is 166-830x beyond any existing device, so there is no validated data to post-dict against. A structural or thermal precursor that would be obvious in a characterized coil may be un-modelable in an un-characterized regime. This compounds the stress gate: the mode is both likely and hard to see coming."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# The design-bore stress ratio is > 1 by construction (3-3.9x).\n# FMEA records it honestly rather than assuming a redesign that does not exist.\nstress_ratio_range = (3.0, 3.9)     # x allowable at design bore\nregime_extrapolation = (166, 830)   # x beyond any device -> D high\nassert stress_ratio_range[0] > 1.0  # infeasible as specified"
+    ]
+   ],
+   [
+    "h3",
+    "What the stack does about it"
+   ],
+   [
+    "ul",
+    [
+     "Treats the plug as the limiting component in every burner availability model",
+     "Runs conservative-hold logic that derates before approaching the design bore",
+     "Flags plug telemetry as low-confidence because the regime is un-post-dictable",
+     "Documents coil redesign as the required path, not an assumed one"
+    ]
+   ],
+   [
+    "p",
+    "The plug-coil gate is one of four burner gates; the others are the He-3 supply (~400x), the regime extrapolation, and the availability gap (0.86-0.995 vs 0.99982). See <a href=./availability-gate-and-model.html>the availability gate</a> and <a href=./burner-continuous-operation-narrative.html>the burner narrative</a>."
+   ]
+  ],
+  "related": [
+   [
+    "burner-continuous-operation-narrative",
+    "Burner Narrative"
+   ],
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ],
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fmea-tritium-plant",
+  "title": "Tritium Plant FMEA",
+  "cat": "resiliency",
+  "lede": "Failure modes of breeding, extraction, and accountancy for the ~4 kg/yr tritium class and ~1.97 kg/yr helium-3 outputs.",
+  "body": [
+   [
+    "h2",
+    "The fuel cycle is a plant"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is valued for its products: a ~4 kg/yr tritium class output, ~1.97 kg/yr helium-3, and 14 MeV neutrons. That makes the breeding blanket, tritium extraction, and isotope accountancy a plant in their own right, with their own failure modes. The tritium breeding ratio is a design lever across 1.1/1.5/1.8, so the fuel-cycle FMEA is sensitive to which point is chosen."
+   ],
+   [
+    "matrix",
+    [
+     "Mode x (S, effect)",
+     [
+      [
+       "Blanket coolant fault",
+       "9",
+       "breeding loss, thermal"
+      ],
+      [
+       "Extraction inefficiency",
+       "7",
+       "tritium inventory drift"
+      ],
+      [
+       "Containment permeation",
+       "9",
+       "inventory loss, safety"
+      ],
+      [
+       "Accountancy sensor drift",
+       "6",
+       "mass-balance error"
+      ],
+      [
+       "Lithium supply interruption",
+       "6",
+       "breeding feedstock"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Accountancy is safety-critical"
+   ],
+   [
+    "p",
+    "Tritium is regulated as byproduct material, so mass-balance accountancy is both an operational and a compliance function. An undetected accountancy drift is high-detection-difficulty because it is silent - it does not trip anything - which raises its RPN even at moderate severity. Sensor fusion across neutron yield, extraction flow, and inventory closes the balance."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def mass_balance(bred, extracted, inventory_delta, tol):\n    # bred - extracted should equal change in held inventory within tolerance\n    residual = bred - extracted - inventory_delta\n    return abs(residual) <= tol, residual   # flag if out of balance"
+    ]
+   ],
+   [
+    "h3",
+    "TBR lever and resiliency"
+   ],
+   [
+    "p",
+    "Choosing a higher TBR (toward 1.8) buys margin against breeding-chain faults but stresses the blanket; a lower TBR (1.1) is leaner but less fault-tolerant. Resiliency treats the lever as an input to the availability model, not a fixed number. Slow-degradation modes feed <a href=./predictive-maintenance-overview.html>predictive maintenance</a>. Pre-FOAK the scores derive from blanket simulation, not an operating fuel cycle."
+   ]
+  ],
+  "related": [
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ],
+   [
+    "sensor-fusion-for-health",
+    "Sensor Fusion for Health"
+   ],
+   [
+    "predictive-maintenance-overview",
+    "Predictive Maintenance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fmea-diagnostics-and-sensors",
+  "title": "Diagnostics and Sensor FMEA",
+  "cat": "resiliency",
+  "lede": "When the instruments that watch the plasma fail, the control stack can be blinded - so sensors get their own failure analysis.",
+  "body": [
+   [
+    "h2",
+    "The blindness problem"
+   ],
+   [
+    "p",
+    "Every control and protection loop depends on diagnostics: magnetic probes, interferometers, bolometers, thermocouples, neutron detectors. A sensor failure is doubly dangerous because it can be silent and because it can make a fault elsewhere invisible. Diagnostics therefore get their own FMEA, focused on detectability of the sensor fault itself."
+   ],
+   [
+    "ul",
+    [
+     "Dropout: sensor stops reporting - relatively easy to detect (missing heartbeat)",
+     "Bias / drift: sensor reports plausibly wrong values - hard to detect",
+     "Saturation: sensor pinned at range limit during a transient",
+     "Latency spike: data arrives too late for its loop deadline",
+     "Common-mode: shared power or fabric fails many sensors at once"
+    ]
+   ],
+   [
+    "h3",
+    "Drift is the worst"
+   ],
+   [
+    "p",
+    "A slowly drifting sensor is the highest-detection-difficulty mode: values stay in-range and plausible while diverging from truth. The defense is redundancy and cross-checking - comparing a measurement against an independent sensor and against the twin's prediction. Disagreement beyond tolerance flags the sensor, not the plant."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def sensor_trust(meas, redundant, twin_pred, tol_r, tol_m):\n    disagree_r = abs(meas - redundant) > tol_r\n    disagree_m = abs(meas - twin_pred) > tol_m\n    if disagree_r and disagree_m:\n        return 'suspect'     # this sensor likely wrong\n    if disagree_r ^ disagree_m:\n        return 'watch'\n    return 'trusted'"
+    ]
+   ],
+   [
+    "h3",
+    "Graceful blindness"
+   ],
+   [
+    "p",
+    "When a sensor is declared suspect, the twin supplies a virtual measurement so control degrades gracefully rather than tripping. This is the core of <a href=./sensor-fusion-for-health.html>sensor fusion</a> and <a href=./graceful-degradation-modes.html>graceful degradation</a>. Common-mode failures of the sensing fabric are treated as a plant fault, not a sensor fault, and route to <a href=./failover-architecture.html>failover</a>."
+   ]
+  ],
+  "related": [
+   [
+    "sensor-fusion-for-health",
+    "Sensor Fusion for Health"
+   ],
+   [
+    "fault-detection-and-isolation",
+    "Fault Detection and Isolation"
+   ],
+   [
+    "anomaly-detection-telemetry",
+    "Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fault-detection-and-isolation",
+  "title": "Fault Detection and Isolation",
+  "cat": "resiliency",
+  "lede": "Detecting that something is wrong, then locating which component - the FDI layer that every mitigation depends on.",
+  "body": [
+   [
+    "h2",
+    "Detect, then isolate"
+   ],
+   [
+    "p",
+    "Fault Detection and Isolation (FDI) answers two questions in order: is the plant behaving abnormally, and if so, which component is responsible. Detection without isolation triggers blunt safing; isolation lets the stack take a targeted, minimal action. FDI runs continuously against both machines and feeds the state machine's degraded and safing edges."
+   ],
+   [
+    "h3",
+    "Residual-based detection"
+   ],
+   [
+    "p",
+    "The core technique is the residual: the difference between a measured signal and the twin's prediction of it. Under nominal operation residuals are small and noise-like. A structured pattern of residuals across signals is a fault signature. Isolation matches that pattern against a fault dictionary built from the FMEA."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\ndef fdi(meas, pred, cov_inv, signatures, chi2_thresh):\n    r = meas - pred                      # residual vector\n    score = float(r @ cov_inv @ r)       # normalized magnitude\n    if score < chi2_thresh:\n        return ('nominal', None)\n    # isolate: nearest fault signature by direction\n    best = max(signatures, key=lambda s: r @ s.direction / (np.linalg.norm(r)+1e-9))\n    return ('fault', best.name)"
+    ]
+   ],
+   [
+    "h3",
+    "Isolation matrix"
+   ],
+   [
+    "p",
+    "A fault-signature matrix maps which residuals light up for which component fault. A column that is unique isolates cleanly; overlapping columns need more sensors or the twin to break the tie."
+   ],
+   [
+    "matrix",
+    [
+     "residual\\fault (col=fault)",
+     [
+      [
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "0",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Once isolated, the fault routes to the smallest sufficient response: a sensor fault to virtual-sensor substitution, an actuator fault to <a href=./failover-architecture.html>failover</a>, a plasma-physics precursor to <a href=./disruption-prediction-and-mitigation.html>disruption mitigation</a>. Ambiguous isolation defaults conservatively toward <a href=./graceful-degradation-modes.html>degradation</a> or safing."
+   ]
+  ],
+  "related": [
+   [
+    "failover-architecture",
+    "Failover Architecture"
+   ],
+   [
+    "anomaly-detection-telemetry",
+    "Anomaly Detection"
+   ],
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "failover-architecture",
+  "title": "Failover Architecture",
+  "cat": "resiliency",
+  "lede": "How control authority moves off a failed node, actuator, or model without losing the plant - redundancy that acts within a loop deadline.",
+  "body": [
+   [
+    "h2",
+    "Redundancy that switches in time"
+   ],
+   [
+    "p",
+    "Failover is redundancy plus a fast, safe switch. Having a spare is not enough; the stack must detect the primary's failure and transfer authority before the controlled phenomenon runs away. In hard-real-time loops this switch must itself complete inside the loop deadline, so the standby is kept hot and synchronized."
+   ],
+   [
+    "h3",
+    "Three redundancy styles"
+   ],
+   [
+    "ul",
+    [
+     "Hot standby: shadow node runs in lockstep, takes over on heartbeat loss (fastest)",
+     "Warm standby: standby has recent state, needs brief catch-up (cheaper)",
+     "Analytical redundancy: no spare hardware; the twin supplies the missing signal or a fallback law substitutes"
+    ]
+   ],
+   [
+    "p",
+    "Fast protection loops use hot standby control nodes. Sensors use analytical redundancy through the twin. Actuators use whichever backup exists - a second gyrotron, a redundant valve - and degrade if none does."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "class FailoverPair:\n    def __init__(self, primary, standby, hb_timeout_ms):\n        self.p, self.s, self.to = primary, standby, hb_timeout_ms\n    def step(self, state):\n        if self.p.heartbeat_age_ms() > self.to or self.p.faulted():\n            self.s.promote(self.p.last_state())   # hot handover\n            self.p, self.s = self.s, self.p\n            flag('failover')\n        return self.p.control(state)"
+    ]
+   ],
+   [
+    "h3",
+    "Failover is not free"
+   ],
+   [
+    "p",
+    "Every failover consumes a redundancy budget; a second failure in the same channel forces degradation or safing. The stack tracks remaining redundancy as a first-class state so operators and the availability model know the true margin. For the burner, where the plug is already the limiting component, most failover is analytical and conservative because there is no spare 26.49 T plug. See <a href=./graceful-degradation-modes.html>Graceful Degradation</a> and <a href=./redundancy-and-voting.html>Redundancy and Voting</a>."
+   ]
+  ],
+  "related": [
+   [
+    "redundancy-and-voting",
+    "Redundancy and Voting"
+   ],
+   [
+    "graceful-degradation-modes",
+    "Graceful Degradation"
+   ],
+   [
+    "watchdog-and-heartbeat",
+    "Watchdog and Heartbeat"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "graceful-degradation-modes",
+  "title": "Graceful Degradation",
+  "cat": "resiliency",
+  "lede": "When full service is impossible, deliver reduced service safely instead of tripping - the primary lever against the availability gate.",
+  "body": [
+   [
+    "h2",
+    "Partial beats off"
+   ],
+   [
+    "p",
+    "A trip converts any fault into full downtime; graceful degradation converts many faults into reduced-but-continued service. Because the burner faces a 0.86-0.995 availability envelope against a 0.99982 Tier III target, degradation is the single most important resiliency lever: every fault kept out of the trip column protects the number. The principle is to shed capability in a defined order while staying inside every safety limit."
+   ],
+   [
+    "h3",
+    "Degradation ladder"
+   ],
+   [
+    "matrix",
+    [
+     "Rung x (trigger, service)",
+     [
+      [
+       "Nominal",
+       "all healthy",
+       "100% rated"
+      ],
+      [
+       "Derate-1",
+       "one actuator lost",
+       "reduced power"
+      ],
+      [
+       "Derate-2",
+       "diagnostic degraded",
+       "conservative setpoints"
+      ],
+      [
+       "Derate-3",
+       "cooling margin low",
+       "thermal-limited output"
+      ],
+      [
+       "Hold",
+       "limit approaching",
+       "no export, plasma held"
+      ],
+      [
+       "Safe",
+       "limit reached",
+       "controlled shutdown"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Each rung is a defined operating point with its own control law and limits, not an ad-hoc reaction. The controller descends one rung at a time when a trigger fires and climbs back when the twin confirms the condition cleared."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "LADDER = ['nominal','derate1','derate2','derate3','hold','safe']\ndef degrade(cur, twin):\n    i = LADDER.index(cur)\n    if twin.limit_reached():   return 'safe'\n    if twin.limit_near():      return 'hold'\n    tgt = twin.recommended_rung()          # 0..len-1\n    step = 1 if tgt > i else (-1 if tgt < i and twin.recovered() else 0)\n    return LADDER[max(0, min(len(LADDER)-1, i+step))]"
+    ]
+   ],
+   [
+    "h3",
+    "Machine-specific ladders"
+   ],
+   [
+    "p",
+    "The breeder can often drop to a lower-current, lower-power shot rather than aborting a campaign. The burner, holding a continuous regime near the stressed 26.49 T plug, degrades by backing off toward a lower-confidence conservative hold rather than pushing the coil. Degradation ties directly to <a href=./degraded-mode-power-scheduling.html>degraded-mode power scheduling</a> and never overrides <a href=./controlled-shutdown-and-safe-states.html>safe-state</a> logic."
+   ]
+  ],
+  "related": [
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ],
+   [
+    "degraded-mode-power-scheduling",
+    "Degraded-Mode Power"
+   ],
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "controlled-shutdown-and-safe-states",
+  "title": "Controlled Shutdown and Safe States",
+  "cat": "resiliency",
+  "lede": "The always-available path to a defined low-energy configuration - the floor beneath every other resiliency behavior.",
+  "body": [
+   [
+    "h2",
+    "A defined place to fall"
+   ],
+   [
+    "p",
+    "Every resilient plant needs a safe state: a defined, low-energy configuration the machine can always reach, from any mode, within a bounded time, regardless of what failed. Degradation and failover try to keep serving; safing gives up service to protect the machine and people. It is the priority edge in the <a href=./state-machine-plant-modes.html>state machine</a>."
+   ],
+   [
+    "h3",
+    "What safe means per machine"
+   ],
+   [
+    "ul",
+    [
+     "Breeder: terminate the plasma in a controlled ramp-down or, if necessary, a mitigated shutdown that limits disruption loads on the 16.84 T coils and structure",
+     "Breeder magnets: protective discharge that dumps stored energy into external resistors rather than the cold mass",
+     "Burner: collapse the plug regime and drain field on the stressed 26.49 T coil in a controlled sequence",
+     "Both: place fueling, heating, and current-drive actuators in their fail-safe positions"
+    ]
+   ],
+   [
+    "h3",
+    "Controlled vs emergency"
+   ],
+   [
+    "p",
+    "A controlled shutdown is planned and gentle; an emergency safing is fast and accepts higher component wear to protect against a worse outcome. The stack always prefers controlled but guarantees emergency is reachable even if the supervisory layer is lost - the fast protection hardware can force it independently."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def safe(state, cause):\n    if fast_protection_required(cause):\n        emergency_discharge()           # hardware-level, supervisor-independent\n        return 'FAULT'\n    controlled_rampdown(state)          # gentle, preferred\n    park_actuators_failsafe()\n    return 'SAFING'"
+    ]
+   ],
+   [
+    "h3",
+    "Independence is the point"
+   ],
+   [
+    "p",
+    "The safe path must not depend on the same resources that might have failed. Quench protection, for example, is wired to act without waiting on the supervisory network. Reaching and holding a safe state is the acceptance criterion for every fault-injection drill; see <a href=./resiliency-verification-and-drills.html>Verification and Drills</a> and <a href=./magnet-quench-detection-and-protection.html>Quench Protection</a>."
+   ]
+  ],
+  "related": [
+   [
+    "state-machine-plant-modes",
+    "Plant State Machine"
+   ],
+   [
+    "magnet-quench-detection-and-protection",
+    "Quench Protection"
+   ],
+   [
+    "resiliency-verification-and-drills",
+    "Verification and Drills"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-prediction-and-mitigation",
+  "title": "Disruption Prediction and Mitigation",
+  "cat": "resiliency",
+  "lede": "The breeder's fast-loop resiliency problem: predict a tokamak disruption early enough to soften it, at delta -0.30 and 9.86 MA.",
+  "body": [
+   [
+    "h2",
+    "The tokamak-specific hazard"
+   ],
+   [
+    "p",
+    "A disruption is a sudden loss of plasma confinement that dumps thermal and magnetic energy into the machine on a millisecond scale. For the breeder (Hyperion) at 9.86 MA and negative triangularity delta -0.30, an unmitigated disruption imposes large electromagnetic and thermal loads and can generate runaway electrons. Prediction and mitigation is therefore the breeder's tightest fast-loop resiliency task."
+   ],
+   [
+    "h3",
+    "Predict early, act decisively"
+   ],
+   [
+    "p",
+    "Prediction uses a model trained on precursor signatures - magnetics, radiated power, mode activity - to estimate disruption probability with enough lead time to act. The value is lead time, not just accuracy: a correct warning 1 ms before is useless, 30 ms before allows mitigation. The model runs inside the fast-loop budget as a bounded-operation evaluation."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def disruption_step(features, model, warn_ms_needed):\n    p, ttd_ms = model.predict(features)   # prob, est time-to-disruption\n    if p > P_HIGH and ttd_ms < warn_ms_needed:\n        return trigger_mitigation()       # massive gas / shattered pellet\n    if p > P_WATCH:\n        return derate_scenario()          # back off toward safer point\n    return 'nominal'"
+    ]
+   ],
+   [
+    "h3",
+    "Mitigation choices"
+   ],
+   [
+    "ul",
+    [
+     "Preemptive soft stop: ramp the scenario down before the disruption develops",
+     "Impurity injection: radiate the thermal energy uniformly to protect the wall",
+     "Runaway avoidance: manage the current quench to suppress runaway electron beams"
+    ]
+   ],
+   [
+    "h3",
+    "Honest limits"
+   ],
+   [
+    "p",
+    "Pre-FOAK there is no Hyperion disruption dataset, so the predictor is trained on spherical-tokamak physics and simulation and cross-machine data, with calibrated uncertainty. It is explicitly a design-and-simulation capability; its false-alarm and missed-detection rates are reported as modelled, not measured. It feeds the <a href=./shot-lifecycle-breeder.html>shot lifecycle</a> and defers to <a href=./controlled-shutdown-and-safe-states.html>safe states</a> when uncertain."
+   ]
+  ],
+  "related": [
+   [
+    "shot-lifecycle-breeder",
+    "Breeder Shot Lifecycle"
+   ],
+   [
+    "anomaly-detection-telemetry",
+    "Anomaly Detection"
+   ],
+   [
+    "control-loop-latency-budget",
+    "Latency Budget"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "redundancy-and-voting",
+  "title": "Redundancy and Voting",
+  "cat": "resiliency",
+  "lede": "How multiple channels combine into one trustworthy decision, and why more channels is not always safer.",
+  "body": [
+   [
+    "h2",
+    "Voting over channels"
+   ],
+   [
+    "p",
+    "Redundant channels only help if a policy combines them safely. The classic scheme is triple modular redundancy with majority voting: three channels compute the same decision and the majority wins, tolerating any single fault. For protection functions the policy is often asymmetric - any channel may trip, but consensus is needed to continue - so a stuck-safe channel cannot block protection."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Ch A",
+      "Ch B",
+      "Ch C",
+      "Trip?"
+     ],
+     [
+      [
+       "0",
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "1"
+      ],
+      [
+       "0",
+       "1",
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The table shows a fail-safe (1-out-of-3 to trip) protection vote: a single channel asserting trip is honored, which prevents a silent channel from masking a real fault. Control decisions instead use 2-out-of-3 majority so one noisy channel cannot cause spurious action."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def vote(channels, mode):\n    n = sum(channels)\n    if mode == 'protection':   # fail-safe: any asserts -> act\n        return n >= 1\n    if mode == 'control':      # majority\n        return n > len(channels) / 2\n    raise ValueError(mode)"
+    ]
+   ],
+   [
+    "h3",
+    "More is not free"
+   ],
+   [
+    "p",
+    "Adding channels raises the odds that at least one is broken at any moment, so maintenance load grows and common-mode failure (shared power, shared fabric, shared design flaw) can defeat all channels at once. Good redundancy diversifies: different sensor principles, independent power, separate routing. Common-mode risk is called out explicitly in the <a href=./fmea-diagnostics-and-sensors.html>diagnostics FMEA</a>."
+   ],
+   [
+    "p",
+    "Voting is the decision layer above <a href=./failover-architecture.html>failover</a>; failover switches which hardware runs, voting decides what the switched-together set concludes. Both feed the availability model as improvements to effective MTBF."
+   ]
+  ],
+  "related": [
+   [
+    "failover-architecture",
+    "Failover Architecture"
+   ],
+   [
+    "fmea-diagnostics-and-sensors",
+    "Diagnostics FMEA"
+   ],
+   [
+    "watchdog-and-heartbeat",
+    "Watchdog and Heartbeat"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "watchdog-and-heartbeat",
+  "title": "Watchdog and Heartbeat",
+  "cat": "resiliency",
+  "lede": "The liveness layer that detects a silent, hung, or dead component and forces a safe action before the plant notices.",
+  "body": [
+   [
+    "h2",
+    "Detecting silence"
+   ],
+   [
+    "p",
+    "The most treacherous fault is silence: a node that stops computing without saying so. Watchdogs and heartbeats make silence detectable. A heartbeat is a periodic I-am-alive message; a watchdog is a timer that forces a defined action if it is not petted in time. Together they bound how long a dead component can go unnoticed."
+   ],
+   [
+    "h3",
+    "Heartbeat budget"
+   ],
+   [
+    "p",
+    "The heartbeat interval and the watchdog timeout are chosen relative to the loop the component serves. A fast protection node must be declared dead within a few loop periods; a slow analytics node can tolerate seconds. The timeout must be shorter than the time for the un-controlled phenomenon to become dangerous."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "class Watchdog:\n    def __init__(self, timeout_ms, on_timeout):\n        self.to, self.cb, self.last = timeout_ms, on_timeout, now_ms()\n    def pet(self): self.last = now_ms()\n    def check(self):\n        if now_ms() - self.last > self.to:\n            self.cb()          # force failover or safe action\n            return False\n        return True"
+    ]
+   ],
+   [
+    "h3",
+    "Layered watchdogs"
+   ],
+   [
+    "ul",
+    [
+     "Hardware watchdog on each real-time node forces a safe output on hang",
+     "Supervisory watchdog tracks node heartbeats and initiates failover",
+     "Plant watchdog confirms the supervisor itself is alive",
+     "Independent protection hardware acts even if all software is lost"
+    ]
+   ],
+   [
+    "p",
+    "The bottom layer must not depend on software or the network, so that a total control-plane failure still leaves the machine able to reach a <a href=./controlled-shutdown-and-safe-states.html>safe state</a>. Heartbeat loss is the trigger for hot <a href=./failover-architecture.html>failover</a>, and persistent watchdog trips are captured for <a href=./incident-replay-and-postmortem.html>postmortem</a>."
+   ]
+  ],
+  "related": [
+   [
+    "failover-architecture",
+    "Failover Architecture"
+   ],
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ],
+   [
+    "control-loop-latency-budget",
+    "Latency Budget"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "predictive-maintenance-overview",
+  "title": "Predictive Maintenance",
+  "cat": "resiliency",
+  "lede": "Turning telemetry into scheduled maintenance so faults are fixed on plan, not on failure - the strategic lever on availability.",
+  "body": [
+   [
+    "h2",
+    "From reactive to predictive"
+   ],
+   [
+    "p",
+    "Maintenance can be reactive (fix on failure), preventive (fix on a fixed schedule), or predictive (fix when telemetry says a component is heading toward failure). Predictive maintenance is the highest-leverage resiliency strategy because it converts unplanned outages - which hit availability hardest - into planned openings scheduled between campaigns. This is central to defending the 0.86-0.995 envelope."
+   ],
+   [
+    "h3",
+    "The pipeline"
+   ],
+   [
+    "ul",
+    [
+     "Acquire: continuous telemetry from magnets, cooling, RF, vacuum, diagnostics",
+     "Feature: extract health indicators (trend, spectral content, residual growth)",
+     "Estimate: remaining-useful-life models per component",
+     "Schedule: place maintenance in the next opening before predicted failure",
+     "Verify: reconcile prediction against what teardown actually finds"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def maintenance_decision(rul_hours, next_opening_hours, safety_margin=1.5):\n    # act at the opening only if RUL comfortably clears the following opening\n    if rul_hours < next_opening_hours * safety_margin:\n        return 'service_at_next_opening'\n    return 'continue_monitor'"
+    ]
+   ],
+   [
+    "h3",
+    "Why it moves the number"
+   ],
+   [
+    "p",
+    "Availability A = MTBF / (MTBF + MTTR). Predictive maintenance raises effective MTBF (fewer surprise failures) and lowers effective MTTR (parts and crew staged before the opening). Both push A upward. It cannot close the full 30-100x gap to Tier III alone, but combined with redundancy and fleet learning it is the largest single controllable lever."
+   ],
+   [
+    "p",
+    "The sub-capabilities are <a href=./remaining-useful-life-estimation.html>remaining-useful-life estimation</a>, <a href=./anomaly-detection-telemetry.html>anomaly detection</a>, and component-specific health models like <a href=./first-wall-and-divertor-health.html>first-wall health</a>. Pre-FOAK these models are trained on simulation and component-test data and are labelled as such."
+   ]
+  ],
+  "related": [
+   [
+    "remaining-useful-life-estimation",
+    "Remaining Useful Life"
+   ],
+   [
+    "anomaly-detection-telemetry",
+    "Anomaly Detection"
+   ],
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "remaining-useful-life-estimation",
+  "title": "Remaining Useful Life Estimation",
+  "cat": "resiliency",
+  "lede": "Estimating how long a component will keep working, with honest uncertainty, so maintenance lands before failure not after.",
+  "body": [
+   [
+    "h2",
+    "RUL as a distribution"
+   ],
+   [
+    "p",
+    "Remaining useful life (RUL) is the time a component can keep operating before it crosses a failure threshold. The right output is not a single number but a distribution, because acting on a point estimate that is optimistically wrong causes exactly the unplanned failure predictive maintenance exists to avoid. Decisions use a conservative lower quantile of the RUL distribution."
+   ],
+   [
+    "h3",
+    "Two model families"
+   ],
+   [
+    "ul",
+    [
+     "Physics-of-failure: a degradation model (fatigue, creep, irradiation damage) integrated forward from measured stressors",
+     "Data-driven: a learned model mapping health features to time-to-threshold from run-to-failure examples",
+     "Hybrid: a physics model whose parameters are updated online from telemetry - preferred pre-FOAK where run-to-failure data is scarce"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\ndef rul_quantile(health, rate_samples, threshold, q=0.1):\n    # Monte-Carlo forward: many plausible degradation rates -> RUL samples\n    remaining = (threshold - health) / np.maximum(rate_samples, 1e-9)\n    return float(np.quantile(remaining, q))   # conservative lower bound\n\n# schedule against the 10th-percentile RUL, not the mean"
+    ]
+   ],
+   [
+    "h3",
+    "Honest uncertainty"
+   ],
+   [
+    "p",
+    "For the breeder magnets and first wall, and especially for any burner component in the 166-830x extrapolated plug regime, the degradation models are poorly constrained by data. We propagate that ignorance into wide RUL distributions and act on the conservative tail rather than pretending to precision. A wide, honest interval is more useful than a narrow, wrong one."
+   ],
+   [
+    "p",
+    "RUL estimates drive the <a href=./predictive-maintenance-overview.html>maintenance schedule</a> and feed <a href=./mtbf-mttr-and-spares.html>spares planning</a>. Every estimate is reconciled against teardown findings so the models improve across the FOAK-NOAK-BOAK sequence and propagate through the <a href=./fleet-availability-and-model-propagation.html>fleet</a>."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-maintenance-overview",
+    "Predictive Maintenance"
+   ],
+   [
+    "mtbf-mttr-and-spares",
+    "MTBF, MTTR and Spares"
+   ],
+   [
+    "first-wall-and-divertor-health",
+    "First-Wall Health"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-detection-telemetry",
+  "title": "Anomaly Detection from Telemetry",
+  "cat": "resiliency",
+  "lede": "Catching the fault you did not enumerate - unsupervised detection of behavior the plant has never shown before.",
+  "body": [
+   [
+    "h2",
+    "Beyond the fault dictionary"
+   ],
+   [
+    "p",
+    "FMEA and FDI catch the faults you anticipated. Anomaly detection catches the ones you did not. It learns the manifold of normal plant behavior from telemetry and flags departures from it, without needing a labeled example of each fault. On machines operating in un-characterized regimes - the burner especially - this is essential, because the fault dictionary is necessarily incomplete."
+   ],
+   [
+    "h3",
+    "Reconstruction-residual method"
+   ],
+   [
+    "p",
+    "A common approach trains a model to reconstruct normal telemetry; on anomalous data it reconstructs poorly, and the reconstruction error is the anomaly score. A threshold on the score, calibrated to a false-alarm budget, raises a flag that routes to human review or conservative derate rather than an immediate trip."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def anomaly_score(x, model):\n    x_hat = model.reconstruct(x)\n    return float(((x - x_hat) ** 2).mean())\n\ndef triage(score, warn, alarm):\n    if score > alarm: return 'derate_and_review'\n    if score > warn:  return 'flag_for_operator'\n    return 'nominal'"
+    ]
+   ],
+   [
+    "h3",
+    "Discipline required"
+   ],
+   [
+    "ul",
+    [
+     "Calibrate thresholds to an explicit false-alarm budget - nuisance trips destroy availability",
+     "Separate novelty (a new but safe operating point) from a genuine fault",
+     "Never let an unsupervised flag directly command a hard trip; route it through review or graceful derate",
+     "Feed confirmed anomalies back to extend the FMEA fault dictionary"
+    ]
+   ],
+   [
+    "p",
+    "Because the burner plug regime is 166-830x beyond any device, anomaly detection there is operating far outside its training support; its outputs are treated as low-confidence and always defer to the honest <a href=./fmea-burner-plug-coil.html>plug gate</a>. Confirmed anomalies feed <a href=./fault-detection-and-isolation.html>FDI</a> and <a href=./incident-replay-and-postmortem.html>postmortem</a>."
+   ]
+  ],
+  "related": [
+   [
+    "fault-detection-and-isolation",
+    "Fault Detection and Isolation"
+   ],
+   [
+    "predictive-maintenance-overview",
+    "Predictive Maintenance"
+   ],
+   [
+    "sensor-fusion-for-health",
+    "Sensor Fusion for Health"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "magnet-quench-detection-and-protection",
+  "title": "Quench Detection and Protection",
+  "cat": "resiliency",
+  "lede": "The millisecond loop that catches a spreading normal zone in the superconducting coils and dumps stored energy safely.",
+  "body": [
+   [
+    "h2",
+    "Why quench is special"
+   ],
+   [
+    "p",
+    "In a superconducting magnet a quench is the transition of part of the winding to a resistive (normal) state. If the normal zone spreads faster than protection acts, the coil's own stored energy heats that spot and can damage it. For the breeder at 16.84 T peak field this is the highest-severity fast fault; for the burner the stressed 26.49 T plug makes it more acute still. Detection must happen in milliseconds and protection must be independent of the supervisory network."
+   ],
+   [
+    "h3",
+    "Detection"
+   ],
+   [
+    "p",
+    "The signature is a resistive voltage that cannot be explained by inductance. Co-wound voltage taps and bridge arrangements subtract the inductive component so the resistive residual stands out. The AI contribution is discriminating a true quench from noise, ramp transients, and sensor artifacts fast enough to avoid both false dumps and missed quenches."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def quench_detect(taps, L, dIdt, R_lead, I, thresh_V, persist_ms, dt_ms):\n    V_res = taps.total() - (L * dIdt + R_lead * I)\n    if V_res > thresh_V:\n        quench_detect.count += dt_ms\n    else:\n        quench_detect.count = 0\n    return quench_detect.count >= persist_ms   # require brief persistence\nquench_detect.count = 0"
+    ]
+   ],
+   [
+    "h3",
+    "Protection"
+   ],
+   [
+    "ul",
+    [
+     "Fire the dump: open the circuit and steer stored energy into external dump resistors",
+     "Spread the heat: heaters or coupling drive the whole coil normal so energy deposits uniformly, not at one spot",
+     "Confirm safe: verify current decay follows the protected profile"
+    ]
+   ],
+   [
+    "p",
+    "The protection path is hard-wired and supervisor-independent so it acts even if the control plane is down - this is why quench protection anchors the <a href=./controlled-shutdown-and-safe-states.html>safe-state</a> guarantee. Slow precursors to quench (cooling-margin erosion) are tracked as <a href=./remaining-useful-life-estimation.html>RUL</a> so many quenches become scheduled interventions instead."
+   ]
+  ],
+  "related": [
+   [
+    "fmea-breeder-magnets",
+    "Breeder Magnet FMEA"
+   ],
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ],
+   [
+    "remaining-useful-life-estimation",
+    "Remaining Useful Life"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "first-wall-and-divertor-health",
+  "title": "First-Wall and Divertor Health",
+  "cat": "resiliency",
+  "lede": "Tracking erosion, deposition, and thermal fatigue of the plasma-facing components that set how long a campaign can run.",
+  "body": [
+   [
+    "h2",
+    "The components that touch the plasma"
+   ],
+   [
+    "p",
+    "The first wall and divertor absorb heat and particle flux from the plasma and, in the breeder, the 14 MeV neutron load. Their gradual degradation - erosion, redeposition, thermal fatigue, neutron-induced changes - sets a hard ceiling on how long a campaign can run before an inspection opening. Tracking their health turns that ceiling from a surprise into a schedule."
+   ],
+   [
+    "h3",
+    "Health indicators"
+   ],
+   [
+    "ul",
+    [
+     "Surface temperature maps from IR thermography during shots",
+     "Erosion and deposition inferred from spectroscopy and periodic metrology",
+     "Thermal-fatigue cycle counting weighted by local heat flux",
+     "Neutron-fluence accumulation as a damage proxy for the breeder"
+    ]
+   ],
+   [
+    "p",
+    "These indicators feed a per-tile RUL model. Because heat flux is uneven - the divertor strike point and the negative-triangularity delta -0.30 scrape-off geometry concentrate load - the model is spatial, tracking the worst tiles rather than an average."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def tile_damage(heat_flux_map, dt, fatigue_exp=4.0):\n    # accumulate weighted thermal-fatigue damage per tile (Coffin-Manson-like)\n    return (heat_flux_map ** fatigue_exp) * dt   # elementwise, worst tile drives RUL"
+    ]
+   ],
+   [
+    "h3",
+    "Feeding the schedule"
+   ],
+   [
+    "p",
+    "The worst-tile RUL sets the campaign length; predictive maintenance places wall or divertor service in the opening before that tile is predicted to fail. For the burner the neutron fraction is lower (5.44%) so neutron damage is less dominant, but plug-adjacent thermal loading is un-characterized in the 166-830x regime and is therefore tracked conservatively. All estimates are reconciled against teardown and propagated across the <a href=./fleet-availability-and-model-propagation.html>fleet</a>."
+   ]
+  ],
+  "related": [
+   [
+    "remaining-useful-life-estimation",
+    "Remaining Useful Life"
+   ],
+   [
+    "predictive-maintenance-overview",
+    "Predictive Maintenance"
+   ],
+   [
+    "campaign-lifecycle-and-duty-cycle",
+    "Campaign Lifecycle"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "availability-modeling-monte-carlo",
+  "title": "Availability Modeling (Monte Carlo)",
+  "cat": "resiliency",
+  "lede": "Simulating component failures and repairs to produce the honest 0.86-0.995 availability envelope against the 0.99982 Tier III target.",
+  "body": [
+   [
+    "h2",
+    "Why simulate"
+   ],
+   [
+    "p",
+    "Closed-form availability formulas assume simple structures; real plants have redundancy, degradation, shared repair crews, and correlated failures. Monte-Carlo simulation samples component failure and repair times over many synthetic years and measures the fraction of time the plant meets rated service. This is how the honest 0.86-0.995 burner envelope is produced - and why it is a range, not a point."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\ndef sim_availability(comps, years, n, rng=np.random.default_rng(0)):\n    up = 0.0\n    for _ in range(n):\n        t, alive_frac = 0.0, 0.0\n        # comps: list of (mtbf_h, mttr_h, redundant_bool)\n        # (structure logic omitted for brevity; evaluates plant-up per interval)\n        alive_frac = plant_up_fraction(comps, years, rng)\n        up += alive_frac\n    return up / n\n# sweeping input assumptions yields the 0.86-0.995 envelope"
+    ]
+   ],
+   [
+    "h3",
+    "Inputs and their honesty"
+   ],
+   [
+    "ul",
+    [
+     "Component MTBF/MTTR - many are estimated pre-FOAK, hence a range not a point",
+     "Redundancy structure - N+1/N+2 at unit and fleet level",
+     "Degradation coupling - predictive maintenance shifts failures to planned openings",
+     "Correlated / common-mode events - modelled explicitly, not assumed away"
+    ]
+   ],
+   [
+    "h3",
+    "Reading the result against the gate"
+   ],
+   [
+    "p",
+    "The output distribution spans 0.86-0.995. Placed against the Tier III target of 0.99982, that is a downtime shortfall of 30x (optimistic) to 100x (pessimistic). The model does not hide the gap; it quantifies it and shows which inputs move it most. Economic consequences are out of scope here by rule - this is a downtime model, full stop."
+   ],
+   [
+    "p",
+    "The structural methods behind the simulation are <a href=./reliability-block-diagrams.html>reliability block diagrams</a> and <a href=./markov-availability-models.html>Markov models</a>; the input estimates come from <a href=./mtbf-mttr-and-spares.html>MTBF/MTTR and spares</a>. Fleet-level aggregation is in <a href=./fleet-availability-and-model-propagation.html>Fleet Availability</a>."
+   ]
+  ],
+  "related": [
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ],
+   [
+    "reliability-block-diagrams",
+    "Reliability Block Diagrams"
+   ],
+   [
+    "markov-availability-models",
+    "Markov Models"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reliability-block-diagrams",
+  "title": "Reliability Block Diagrams",
+  "cat": "resiliency",
+  "lede": "Composing component reliabilities into a plant-level figure through series and parallel structure - the skeleton of the availability model.",
+  "body": [
+   [
+    "h2",
+    "Structure sets reliability"
+   ],
+   [
+    "p",
+    "A reliability block diagram (RBD) expresses how component reliabilities combine into system reliability by their logical structure. Components in series all must work; components in parallel provide redundancy. The RBD is the skeleton the Monte-Carlo simulation walks and the fastest way to see where a single point of failure hides."
+   ],
+   [
+    "h3",
+    "Series and parallel"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "from functools import reduce\ndef series(rs):    return reduce(lambda a, b: a * b, rs, 1.0)\ndef parallel(rs):  return 1.0 - reduce(lambda a, b: a * (1 - b), rs, 1.0)\n\n# breeder magnet supply, no redundancy (series) vs redundant sensors (parallel)\nprint(series([0.99, 0.995, 0.98]))          # all must hold\nprint(parallel([0.9, 0.9, 0.9]))            # any one suffices"
+    ]
+   ],
+   [
+    "p",
+    "Series structure multiplies reliabilities, so a long series chain is fragile - each added component drags the product down. Parallel structure multiplies unreliabilities, so redundancy sharply reduces the chance all paths fail together, as long as failures are independent."
+   ],
+   [
+    "h3",
+    "Single points of failure"
+   ],
+   [
+    "matrix",
+    [
+     "Subsystem x (structure, SPOF?)",
+     [
+      [
+       "Plug coil (burner)",
+       "series",
+       "yes - no spare 26.49 T coil"
+      ],
+      [
+       "Magnet quench protection",
+       "parallel",
+       "no - redundant channels"
+      ],
+      [
+       "Vacuum pumping",
+       "parallel N+1",
+       "no"
+      ],
+      [
+       "Cryoplant",
+       "series w/ backup",
+       "reduced"
+      ],
+      [
+       "Central supervisor",
+       "hot standby",
+       "no"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Where it points the work"
+   ],
+   [
+    "p",
+    "Any component in a series path with no parallel alternative is a single point of failure; the RBD makes these visible so they get either redundancy or intensified predictive maintenance. For the burner the plug coil is an inherent series SPOF - there is no spare - which is one reason the honest availability envelope cannot reach Tier III at single-unit scale. Independence assumptions are stress-tested in the <a href=./markov-availability-models.html>Markov models</a> and <a href=./availability-modeling-monte-carlo.html>Monte-Carlo</a>."
+   ]
+  ],
+  "related": [
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "markov-availability-models",
+    "Markov Models"
+   ],
+   [
+    "fmea-burner-plug-coil",
+    "Plug-Coil FMEA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "markov-availability-models",
+  "title": "Markov Availability Models",
+  "cat": "resiliency",
+  "lede": "State-based reliability modeling that captures degraded modes and repair dynamics an RBD cannot, including graceful-degradation rungs.",
+  "body": [
+   [
+    "h2",
+    "When structure is not enough"
+   ],
+   [
+    "p",
+    "Reliability block diagrams assume components are simply up or down. Real plants have in-between states: degraded operation, awaiting-repair, in-repair, redundancy-exhausted. Markov models represent these as states with transition rates (failures and repairs), letting us compute the long-run fraction of time in each - including the degraded-but-serving states that graceful degradation creates."
+   ],
+   [
+    "h3",
+    "A minimal model"
+   ],
+   [
+    "p",
+    "Consider a unit with states UP, DERATE, DOWN. Failures move it down the ladder at rates driven by MTBF; repairs move it back up at rates driven by MTTR. The stationary distribution gives availability as time in UP plus a partial credit for time in DERATE."
+   ],
+   [
+    "matrix",
+    [
+     "rate matrix Q (from x to)",
+     [
+      [
+       "-",
+       "lam_ud",
+       "lam_uD"
+      ],
+      [
+       "mu_du",
+       "-",
+       "lam_dD"
+      ],
+      [
+       "mu_Du",
+       "mu_Dd",
+       "-"
+      ]
+     ]
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\ndef stationary(Q):\n    # solve pi Q = 0, sum(pi)=1  (Q rows sum to zero)\n    n = Q.shape[0]\n    A = np.vstack([Q.T, np.ones(n)])\n    b = np.zeros(n + 1); b[-1] = 1.0\n    pi, *_ = np.linalg.lstsq(A, b, rcond=None)\n    return pi\n\ndef availability(pi, credit=(1.0, 0.5, 0.0)):\n    return float(sum(p * c for p, c in zip(pi, credit)))  # DERATE gets 0.5"
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters for the gate"
+   ],
+   [
+    "p",
+    "Because graceful degradation keeps the plant partly serving, a pure up/down model understates true availability while a naive model can overstate it. The Markov model credits derated service honestly, which is essential when arguing how close a fleet gets to the 0.99982 Tier III target. It still cannot make a single stressed-plug burner reach that target; it shows exactly how far short and why."
+   ],
+   [
+    "p",
+    "These transition rates come from <a href=./mtbf-mttr-and-spares.html>MTBF/MTTR</a> and the derate rungs from <a href=./graceful-degradation-modes.html>graceful degradation</a>; the results feed the plant <a href=./availability-modeling-monte-carlo.html>Monte-Carlo</a> and <a href=./fleet-availability-and-model-propagation.html>fleet model</a>."
+   ]
+  ],
+  "related": [
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "graceful-degradation-modes",
+    "Graceful Degradation"
+   ],
+   [
+    "mtbf-mttr-and-spares",
+    "MTBF, MTTR and Spares"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mtbf-mttr-and-spares",
+  "title": "MTBF, MTTR and Spares",
+  "cat": "resiliency",
+  "lede": "The reliability and repair statistics that feed every availability model, and how spares provisioning cuts effective repair time.",
+  "body": [
+   [
+    "h2",
+    "The two numbers behind availability"
+   ],
+   [
+    "p",
+    "Availability rests on two statistics per component: mean time between failures (MTBF, how often it breaks) and mean time to repair (MTTR, how long to fix). A = MTBF / (MTBF + MTTR). Raising MTBF and lowering MTTR are the only two ways to raise availability, and every resiliency technique acts through one of them."
+   ],
+   [
+    "h3",
+    "Estimating them honestly"
+   ],
+   [
+    "p",
+    "Pre-FOAK, MTBF for many fusion-specific components has no operating history, so it is estimated from component tests, physics-of-failure models, and analog systems, with wide uncertainty. MTTR depends on access, tooling, and spares. We report both as ranges, which is a primary reason the plant availability comes out as the 0.86-0.995 envelope rather than a single figure."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def effective_mttr(diagnose_h, procure_h, repair_h, verify_h, spare_on_hand):\n    # a staged spare removes procurement lead time from the repair path\n    procure = 0.0 if spare_on_hand else procure_h\n    return diagnose_h + procure + repair_h + verify_h\n\ndef availability(mtbf_h, mttr_h):\n    return mtbf_h / (mtbf_h + mttr_h)"
+    ]
+   ],
+   [
+    "h3",
+    "Spares are MTTR insurance"
+   ],
+   [
+    "ul",
+    [
+     "A staged spare removes procurement lead time - often the largest MTTR term",
+     "Predictive maintenance lets spares be pre-positioned before the failure",
+     "Long-lead items (large coils) dominate spares strategy; some very large items are impractical to spare and are managed by redundancy instead",
+     "Fleet-shared spares pools raise effective coverage across units"
+    ]
+   ],
+   [
+    "p",
+    "For the burner plug coil there is effectively no spare-swap MTTR because a 26.49 T coil is not a shelf item; this is why the plug is treated as a redundancy-and-derate problem, not a spares problem. Spares strategy is an input to <a href=./availability-modeling-monte-carlo.html>availability modeling</a> and scales at the <a href=./fleet-availability-and-model-propagation.html>fleet</a> level. This page quantifies only time, never economics, by rule."
+   ]
+  ],
+  "related": [
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "predictive-maintenance-overview",
+    "Predictive Maintenance"
+   ],
+   [
+    "fleet-availability-and-model-propagation",
+    "Fleet Availability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fleet-availability-and-model-propagation",
+  "title": "Fleet Availability and Model Propagation",
+  "cat": "resiliency",
+  "lede": "How multiple units and shared learning lift facility-level availability toward - though not to single-unit Tier III - the honest target.",
+  "body": [
+   [
+    "h2",
+    "The fleet is the resiliency unit"
+   ],
+   [
+    "p",
+    "A single machine cannot reach Tier III uptime; a coordinated fleet can approach the target at the facility level through redundancy across units. The breeder follows a FOAK-NOAK-BOAK sequence from ~2030, and burner housings (Aegis / MetroVolt) are intended to deploy as multiple units. Fleet resiliency has two engines: N+k unit redundancy and cross-unit model propagation."
+   ],
+   [
+    "h3",
+    "N+k across units"
+   ],
+   [
+    "p",
+    "If one unit's availability is A_unit, a facility that needs k units running out of n installed tolerates n-k simultaneous outages. The facility availability rises well above A_unit, in exchange for installed redundancy. This is how a MetroVolt facility could approach a firm-power obligation despite each unit sitting in the 0.86-0.995 envelope - but the honest statement remains that no single unit is a sole Tier-III source."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "from math import comb\ndef k_of_n(A_unit, n, k):\n    # prob at least k of n units are up (independent)\n    return sum(comb(n, i) * A_unit**i * (1-A_unit)**(n-i) for i in range(k, n+1))\n\nprint(k_of_n(0.95, n=4, k=3))   # facility-level uplift over a single 0.95 unit"
+    ]
+   ],
+   [
+    "h3",
+    "Model propagation"
+   ],
+   [
+    "p",
+    "Each unit generates operating data that refines RUL models, disruption predictors, and anomaly detectors. Validated models propagate to the rest of the fleet so unit N+1 starts with unit N's learned reliability rather than from scratch. This is why each NOAK/BOAK breeder is expected to be more available than the FOAK, and why fleet MTBF estimates improve over calendar time."
+   ],
+   [
+    "p",
+    "Propagation is governed: a model is promoted across the fleet only after validation on its origin unit, never silently. Independence of unit failures is checked - shared fuel supply, shared grid tie, or a common design flaw can correlate outages and erode the k-of-n benefit. See <a href=./availability-gate-and-model.html>the availability gate</a> and <a href=./availability-modeling-monte-carlo.html>availability modeling</a>."
+   ]
+  ],
+  "related": [
+   [
+    "availability-gate-and-model",
+    "The Availability Gate"
+   ],
+   [
+    "availability-modeling-monte-carlo",
+    "Availability Modeling"
+   ],
+   [
+    "campaign-lifecycle-and-duty-cycle",
+    "Campaign Lifecycle"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "degraded-mode-power-scheduling",
+  "title": "Degraded-Mode Power Scheduling",
+  "cat": "resiliency",
+  "lede": "For the burner, deciding what power to promise when a unit is derated - honest firm-power commitments under the availability gate.",
+  "body": [
+   [
+    "h2",
+    "Promising only what you can hold"
+   ],
+   [
+    "p",
+    "A firm-power customer - a MetroVolt data center, an Aegis fixed defense installation - needs a commitment the plant can keep. Degraded-mode power scheduling decides, given the current health of every unit, how much firm power to promise so that a further single fault does not break the commitment. It is graceful degradation expressed as a dispatch policy, and it is bounded by the honest availability gate."
+   ],
+   [
+    "h3",
+    "Firm vs available"
+   ],
+   [
+    "p",
+    "Available power is what the fleet can produce right now; firm power is what it can guarantee through the next credible fault. The scheduler commits firm power below available power by a reserve margin sized to the worst single-unit loss, so a failover event causes a reserve draw, not a shortfall."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def firm_power(unit_caps, reserve_units=1):\n    # firm = total capacity minus the largest 'reserve_units' contributors\n    caps = sorted(unit_caps, reverse=True)\n    return sum(caps) - sum(caps[:reserve_units])\n\n# with a stressed plug, a unit's cap is its DERATE point, not its design point\nprint(firm_power([80, 80, 80, 80], reserve_units=1))  # 240 firm from 320 available"
+    ]
+   ],
+   [
+    "h3",
+    "The plug shapes the schedule"
+   ],
+   [
+    "ul",
+    [
+     "Each burner unit's committed cap is its conservative derate point, because the 26.49 T plug is stressed 3-3.9x at the design bore",
+     "The regime is 166-830x beyond data, so headroom is held back as low-confidence margin",
+     "He-3 fuel availability (~400x supply gap) is a scheduling constraint, not just a design one",
+     "Facility firm power leans on N+k units, never a single machine, per the 0.99982 gate"
+    ]
+   ],
+   [
+    "p",
+    "The scheduler never promises past the availability envelope; if health degrades, the firm commitment steps down transparently rather than being missed. It draws unit health from <a href=./predictive-maintenance-overview.html>predictive maintenance</a> and reserve sizing from <a href=./fleet-availability-and-model-propagation.html>fleet availability</a>. Nothing here is expressed in economic terms - only megawatts and time."
+   ]
+  ],
+  "related": [
+   [
+    "graceful-degradation-modes",
+    "Graceful Degradation"
+   ],
+   [
+    "fleet-availability-and-model-propagation",
+    "Fleet Availability"
+   ],
+   [
+    "burner-continuous-operation-narrative",
+    "Burner Narrative"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sensor-fusion-for-health",
+  "title": "Sensor Fusion for Health",
+  "cat": "resiliency",
+  "lede": "Combining many imperfect measurements and the twin's prediction into one trustworthy health estimate, robust to any single sensor failing.",
+  "body": [
+   [
+    "h2",
+    "One estimate from many sources"
+   ],
+   [
+    "p",
+    "No single diagnostic is fully trustworthy: each has noise, bias, blind spots, and its own failure modes. Sensor fusion combines redundant and complementary measurements with the digital twin's model prediction into a single best estimate of plant health, weighted by how much each source can be trusted right now. It is what lets control degrade gracefully when a sensor fails rather than trip."
+   ],
+   [
+    "h3",
+    "Weighted fusion"
+   ],
+   [
+    "p",
+    "The standard tool is a Bayesian filter that weights each measurement by its inverse variance and blends it with the model forecast. A sensor flagged as suspect by the <a href=./fmea-diagnostics-and-sensors.html>diagnostics FMEA</a> gets its weight driven toward zero, so the estimate leans on the remaining sensors and the twin - a virtual measurement."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def fuse(measurements, variances, prior_mean, prior_var):\n    # Bayesian precision-weighted fusion (scalar form)\n    prec = 1.0 / prior_var\n    num = prior_mean / prior_var\n    for z, v in zip(measurements, variances):\n        if v is None:      # sensor declared suspect -> ignore\n            continue\n        prec += 1.0 / v\n        num += z / v\n    return num / prec, 1.0 / prec    # fused mean, fused variance"
+    ]
+   ],
+   [
+    "h3",
+    "Trust is dynamic"
+   ],
+   [
+    "p",
+    "Each sensor's variance is not fixed; it grows when the sensor disagrees with its peers and the twin, shrinks when it agrees. This makes the fusion self-healing: a drifting sensor is progressively down-weighted before it corrupts the estimate. The fused health estimate feeds <a href=./fault-detection-and-isolation.html>FDI</a>, <a href=./remaining-useful-life-estimation.html>RUL</a>, and control."
+   ],
+   [
+    "p",
+    "For the burner plug, where the 166-830x regime means the twin's own prediction is low-confidence, fusion widens the fused variance honestly rather than reporting false certainty - the resulting wide interval correctly drives conservative operation."
+   ]
+  ],
+  "related": [
+   [
+    "fmea-diagnostics-and-sensors",
+    "Diagnostics FMEA"
+   ],
+   [
+    "fault-detection-and-isolation",
+    "Fault Detection and Isolation"
+   ],
+   [
+    "remaining-useful-life-estimation",
+    "Remaining Useful Life"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "incident-replay-and-postmortem",
+  "title": "Incident Replay and Postmortem",
+  "cat": "resiliency",
+  "lede": "Turning every fault into a reproducible record and a durable lesson - the loop that makes the stack more resilient over time.",
+  "body": [
+   [
+    "h2",
+    "Every fault is data"
+   ],
+   [
+    "p",
+    "Resiliency is not static; the stack must get better after every incident. That requires an exact, time-aligned record of what the plant sensed, what the twin predicted, what the controller decided, and what actually happened. Incident replay reconstructs the event; postmortem extracts the lesson and feeds it back into FMEA, models, and drills."
+   ],
+   [
+    "h3",
+    "Deterministic replay"
+   ],
+   [
+    "p",
+    "Because the fast loops are deterministic, the same inputs replayed through the same controller produce the same outputs. Capturing every input at full rate lets engineers re-run the incident offline, test whether a proposed fix would have caught it, and validate the fix before it touches hardware. The unambiguous <a href=./state-machine-plant-modes.html>state trace</a> makes the timeline exact."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def replay(record, controller):\n    outputs = []\n    for frame in record.frames:            # time-ordered captured inputs\n        u = controller.step(frame.state)   # deterministic re-execution\n        outputs.append((frame.t, u))\n    return outputs   # compare against record.actual to localize the fault"
+    ]
+   ],
+   [
+    "h3",
+    "The postmortem loop"
+   ],
+   [
+    "ul",
+    [
+     "Reconstruct the timeline from the state trace and telemetry",
+     "Localize root cause with replay and <a href=./fault-detection-and-isolation.html>FDI</a> signatures",
+     "Update the FMEA if the mode was un-enumerated or mis-scored",
+     "Add or retrain a detector so the mode is caught earlier next time",
+     "Add a fault-injection case to the <a href=./resiliency-verification-and-drills.html>drill</a> suite"
+    ]
+   ],
+   [
+    "p",
+    "Postmortems are blameless and evidence-driven; the output is a change to the system, not to the operator. Lessons validated on one unit propagate across the <a href=./fleet-availability-and-model-propagation.html>fleet</a>. Pre-FOAK, incidents are simulated fault injections against the twin, which builds the replay and postmortem discipline before any hardware exists."
+   ]
+  ],
+  "related": [
+   [
+    "resiliency-verification-and-drills",
+    "Verification and Drills"
+   ],
+   [
+    "fault-detection-and-isolation",
+    "Fault Detection and Isolation"
+   ],
+   [
+    "fleet-availability-and-model-propagation",
+    "Fleet Availability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "resiliency-verification-and-drills",
+  "title": "Resiliency Verification and Drills",
+  "cat": "resiliency",
+  "lede": "Proving the resiliency stack works by injecting faults in simulation and demanding a safe outcome every time - before hardware exists.",
+  "body": [
+   [
+    "h2",
+    "Claims must be tested"
+   ],
+   [
+    "p",
+    "A resiliency design is only as good as its evidence. Fault-injection testing deliberately triggers each enumerated failure mode - in the digital twin pre-FOAK, on hardware later - and checks that the stack detects it, responds correctly, and reaches a safe or degraded state within the required time. A mode that has never been drilled is an unproven claim, not a capability."
+   ],
+   [
+    "h3",
+    "The drill matrix"
+   ],
+   [
+    "p",
+    "Every FMEA entry maps to at least one drill. The drill specifies the injected fault, the expected detection latency, the required response, and the acceptance criterion. Coverage is measured as the fraction of FMEA modes with a passing drill; the goal is complete coverage of high-RPN modes."
+   ],
+   [
+    "matrix",
+    [
+     "Drill x (inject, accept)",
+     [
+      [
+       "Quench",
+       "normal-zone voltage",
+       "dump within ms, coil safe"
+      ],
+      [
+       "Sensor drift",
+       "biased signal",
+       "fused estimate stays true"
+      ],
+      [
+       "Node hang",
+       "stop heartbeat",
+       "failover within deadline"
+      ],
+      [
+       "Disruption",
+       "precursor pattern",
+       "mitigation triggers, loads bounded"
+      ],
+      [
+       "Plug overstress",
+       "approach design bore",
+       "derate before limit"
+      ]
+     ]
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def run_drill(twin, inject, expect):\n    twin.reset(); twin.inject(inject)\n    result = twin.run_until_settled()\n    return {\n      'detected_ms': result.detect_latency_ms <= expect.max_detect_ms,\n      'response':    result.action == expect.action,\n      'safe':        result.final_state in expect.safe_states,\n    }"
+    ]
+   ],
+   [
+    "h3",
+    "Honest verification pre-FOAK"
+   ],
+   [
+    "p",
+    "Because Hyperion and the burner are design-and-simulation studies before FOAK ~2030, all drills today run against the twin with modelled physics. We report drill results as simulation coverage, distinguishing modes validated against real component-test data from those resting on models alone - and the burner plug-regime drills carry the 166-830x extrapolation caveat explicitly. As hardware arrives, the same drill suite migrates to commissioning tests, and results from each unit feed the <a href=./fleet-availability-and-model-propagation.html>fleet</a> and every <a href=./incident-replay-and-postmortem.html>postmortem</a>."
+   ]
+  ],
+  "related": [
+   [
+    "incident-replay-and-postmortem",
+    "Incident Replay"
+   ],
+   [
+    "fmea-methodology",
+    "FMEA Methodology"
+   ],
+   [
+    "controlled-shutdown-and-safe-states",
+    "Safe States"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

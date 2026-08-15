@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Detecting Sub-Threshold Magnet-Quench Precursors · Kronos Fusion Energy"><meta property="og:description" content="Kronos&#x27;s anomaly ensemble catches the earliest signs of a REBCO magnet quench, below the threshold that would trip protection, so the twin can act before a trip is forced."><meta property="og:url" content="https://kronosfusionenergy.com/ai/anomaly-quench-precursors.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -422,7 +422,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <p>The anomaly ensemble works in the region below that hard threshold, where a quench is still only a precursor: a slowly rising local temperature, a small resistive voltage developing across a pancake, a REBCO strain-gauge signature of a hot spot, or a co-moving pattern across neighboring gauges that no single-channel alarm would catch. Detecting this early gives the twin and operators time to ramp down gently rather than take a forced dump.</p>
 <ul><li>Inputs: REBCO strain gauges, section voltages, cryo temperatures, current</li><li>Signatures: localized voltage rise, strain hot-spot, cooling-margin erosion</li><li>Lead time: seconds to tens of seconds before a hard threshold would trip</li><li>Action: advisory ramp-down request to MPC, never a substitute for the failsafe</li></ul>
 <p>The ensemble output is a precursor probability with a localization (which magnet section). It is advisory: it asks MPC to move toward a safer operating point and alerts operators, but the hardware failsafe remains the authority for an actual quench. The design principle is strict layering, AI buys lead time, hardware guarantees safety.</p>
-<p>Because pre-FOAK there is no quench data from the real magnets, the ensemble is trained on high-fidelity quench simulations and REBCO test-coil data, then recalibrated once the machines operate. Its false-positive rate is tuned so advisory ramp-downs are rare enough to be actionable.</p><div class="related"><h3>Related</h3><a href="./anomaly-detection-ensembles.html">Anomaly Ensembles &rarr;</a><a href="./rebco-strain-anomaly.html">REBCO Strain Anomaly Detection &rarr;</a><a href="./anomaly-precursor-lead-time.html">Precursor Lead Time &rarr;</a></div></main></div><div class="kfe-embed">
+<p>Because pre-FOAK there is no quench data from the real magnets, the ensemble is trained on high-fidelity quench simulations and REBCO test-coil data, then recalibrated once the machines operate. Its false-positive rate is tuned so advisory ramp-downs are rare enough to be actionable.</p><div class="related"><h3>Related</h3><a href="./anomaly-detection-ensembles.html">Anomaly Ensembles &rarr;</a><a href="./rebco-strain-anomaly.html">REBCO Strain Anomaly Detection &rarr;</a><a href="./anomaly-precursor-lead-time.html">Precursor Lead Time &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

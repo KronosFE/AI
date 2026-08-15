@@ -1,0 +1,3665 @@
+[
+ {
+  "slug": "l2-data-fabric-overview",
+  "title": "L2 Data Fabric Overview",
+  "cat": "l2-data-fabric",
+  "lede": "The Data Fabric turns raw analog plasma telemetry into pristine, governed, AI-ready features for both machines, with lineage from feedthrough to feature store.",
+  "body": [
+   [
+    "h2",
+    "What L2 is for"
+   ],
+   [
+    "p",
+    "Layer 2 sits between the microsecond control plane (<a href=./l2-to-l1-boundary.html>L1</a>) and the twin-and-AI layer (<a href=./ai-ready-features.html>L3</a>). Its single job is to convert the physical reality of a fusion shot into trustworthy numbers: it acquires 60+ analog channels, validates them, normalizes them into physics coordinates, engineers features, retains them at full fidelity, and serves them with provenance. Everything downstream — GNN imputation, PINN equilibria, anomaly ensembles, MPC — is only as good as this fabric."
+   ],
+   [
+    "p",
+    "The fabric is machine-agnostic by design. The same acquisition, validation, and governance layer runs for the breeder (Hyperion), a D-T spherical tokamak whose signals describe equilibrium, the negative-triangularity shape (delta -0.30) and disruption precursors, and for the burner, a D-3He tandem-mirror generator whose signals describe end-plug density, the ambipolar potential, and the direct-energy-conversion train."
+   ],
+   [
+    "h3",
+    "The five stages"
+   ],
+   [
+    "ul",
+    [
+     "Acquire: 60+ analog ports through cryo-rated vacuum feedthroughs at sub-microsecond sampling.",
+     "Validate: high-frequency noise filtering, dead-sensor masking, calibration and drift correction.",
+     "Normalize: raw channels mapped into flux/field coordinates common to the twin.",
+     "Engineer: instantaneous Q, core pressure map, magnet strain deltas, quench precursors.",
+     "Retain and serve: petabyte archive, low-latency feature store, RAG-ready vector database, strict lineage."
+    ]
+   ],
+   [
+    "h3",
+    "Design constraints"
+   ],
+   [
+    "p",
+    "The fabric must be lossless where physics demands it (raw Mirnov and Thomson traces feed disruption forensics), lossy only where information theory permits, and always auditable. Every feature carries the identity of the channels, the calibration, and the transform that produced it, so any twin prediction can be traced to the exact bytes it rested on. These are design and simulation targets: construction of the breeder begins Q2 2027, with first-of-a-kind tritium near 2030."
+   ],
+   [
+    "p",
+    "This section documents the fabric end to end: the sensor front end, the acquisition chain, validation, normalization, feature engineering, the diagnostics constellation, storage, retrieval, and the governance and information theory that hold it together."
+   ]
+  ],
+  "related": [
+   [
+    "sixty-port-analog-telemetry",
+    "The 60+ Port Pipeline"
+   ],
+   [
+    "diagnostics-constellation-overview",
+    "Diagnostics Constellation"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sixty-port-analog-telemetry",
+  "title": "The 60+ Port Analog Telemetry Pipeline",
+  "cat": "l2-data-fabric",
+  "lede": "More than sixty analog telemetry ports carry raw plasma and machine state out of the vessel into the acquisition chain, sampled below the microsecond.",
+  "body": [
+   [
+    "h2",
+    "The port budget"
+   ],
+   [
+    "p",
+    "Both machines expose 60+ analog telemetry ports. A port is a physical, calibrated path from a sensor inside or on the machine, through a cryo-rated vacuum feedthrough, into a conditioning front end and a synchronized digitizer. The count is dominated by distributed arrays: Mirnov coil sets, multi-chord interferometry and Thomson scattering, flux-loop rings, REBCO strain gauges bonded across the high-field magnet set, ECE radiometer channels, fast-ion trackers, and neutron-flux monitors."
+   ],
+   [
+    "h3",
+    "Analog first, deliberately"
+   ],
+   [
+    "p",
+    "Signals leave the machine as analog voltages or currents because the physics is analog and the fastest transients — a Mirnov spike that precedes a disruption, a plug-density collapse in the mirror — cannot wait for in-vessel digitization. Analog transport preserves bandwidth to the digitizer, where a single disciplined clock timestamps every channel. This keeps cross-channel phase intact, which is what equilibrium reconstruction and MHD mode analysis depend on."
+   ],
+   [
+    "h3",
+    "Breeder versus burner port mix"
+   ],
+   [
+    "ul",
+    [
+     "Breeder (Hyperion): heavy on magnetics (Mirnov, flux loops) and REBCO strain because equilibrium at delta -0.30 and disruption avoidance are the hard control problems at 9.86 MA and 16.84 T peak field.",
+     "Burner: heavy on end-plug and central-cell density diagnostics, potential probes for the ambipolar well, and the DEC train's grid and collector telemetry, plus 5.44%-neutron-fraction flux monitors."
+    ]
+   ],
+   [
+    "h3",
+    "From port to feature"
+   ],
+   [
+    "p",
+    "Each port's stream is validated, spatially normalized, and folded into features. The pipeline is engineered so that adding or losing a port degrades gracefully: a graph model over the sensor topology can impute a dropped channel (see <a href=./dead-sensor-masking.html>dead-sensor masking</a>) rather than stall the loop. The port list, its calibrations, and its wiring are versioned in the <a href=./document-schema-registry.html>schema registry</a> so the fabric always knows exactly what is connected."
+   ],
+   [
+    "p",
+    "The pipeline is a design specification validated in simulation; the physical ports are engineered for the FOAK machine whose construction begins Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "cryo-vacuum-feedthroughs",
+    "Cryo Vacuum Feedthroughs"
+   ],
+   [
+    "sub-microsecond-sampling",
+    "Sub-Microsecond Sampling"
+   ],
+   [
+    "diagnostics-constellation-overview",
+    "Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cryo-vacuum-feedthroughs",
+  "title": "Cryo-Rated Vacuum Feedthroughs",
+  "cat": "l2-data-fabric",
+  "lede": "Every analog channel crosses the vacuum and cryogenic boundary through a hermetic, cryo-rated feedthrough that must preserve signal integrity without leaking heat or vacuum.",
+  "body": [
+   [
+    "h2",
+    "The boundary problem"
+   ],
+   [
+    "p",
+    "A fusion machine is a high-vacuum, partly cryogenic pressure vessel. Telemetry must cross that wall without breaking vacuum, without conducting a heat load into the cryostat that feeds the high-field REBCO magnets, and without corrupting the signal. The feedthrough is the component that does this — a hermetic seal carrying a conductor from the cold, evacuated interior to the warm, atmospheric acquisition side."
+   ],
+   [
+    "h3",
+    "What 'cryo-rated' demands"
+   ],
+   [
+    "ul",
+    [
+     "Hermeticity to ultra-high vacuum, verified by helium leak rate, maintained across thermal cycling.",
+     "Low thermal conductance so the feedthrough is not a heat leak into the magnet cryostat.",
+     "Controlled impedance so fast Mirnov and ECE signals arrive with bandwidth and phase intact.",
+     "Radiation tolerance against the 14 MeV neutron field in the breeder and the 5.44%-fraction neutron flux in the burner."
+    ]
+   ],
+   [
+    "h3",
+    "Signal integrity across the wall"
+   ],
+   [
+    "p",
+    "Differential wiring and careful shielding cross the feedthrough to reject common-mode pickup from the megampere-class currents nearby (9.86 MA plasma current in the breeder). The feedthrough's parasitic capacitance and inductance are characterized and stored as part of each channel's calibration, so the acquisition chain can de-embed them. Without this, a 16.84 T machine's electromagnetic environment would swamp low-level diagnostic signals."
+   ],
+   [
+    "h3",
+    "Thermal budget coupling"
+   ],
+   [
+    "p",
+    "Because the feedthrough touches the cryogenic system that also drives the ICE-PISTON magnet preload cycle, its heat leak is accounted in the same thermal budget the twin tracks. Strain and temperature telemetry from the feedthrough region feeds structural-health monitoring, closing the loop between the data path and the machine it measures."
+   ],
+   [
+    "p",
+    "Feedthrough specifications are engineering design targets for the machines whose construction begins Q2 2027; the numbers here are canonical design values, not measurements from a built device."
+   ]
+  ],
+  "related": [
+   [
+    "sixty-port-analog-telemetry",
+    "The 60+ Port Pipeline"
+   ],
+   [
+    "signal-conditioning-front-end",
+    "Signal Conditioning Front End"
+   ],
+   [
+    "vessel-shm-telemetry",
+    "Vessel & SHM Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sub-microsecond-sampling",
+  "title": "Sub-Microsecond Sampling",
+  "cat": "l2-data-fabric",
+  "lede": "The acquisition chain digitizes every analog channel below the microsecond, fast enough to resolve the transients that precede disruptions and plug collapse.",
+  "body": [
+   [
+    "h2",
+    "Why sub-microsecond"
+   ],
+   [
+    "p",
+    "The control-relevant physics of both machines has structure below the microsecond. Mirnov coils see MHD modes whose rotation and growth are resolved only when the sampler is faster than the mode. In the burner, the ambipolar potential and end-plug density can move on comparably short timescales. Sampling below the microsecond is what lets the <a href=./anomaly-precursor-features.html>precursor features</a> exist at all; a slow sampler simply cannot represent a fast quench precursor."
+   ],
+   [
+    "h3",
+    "The Nyquist floor"
+   ],
+   [
+    "p",
+    "For a diagnostic with meaningful spectral content up to f_max, faithful reconstruction requires a sample rate above 2*f_max (see <a href=./sampling-theory-nyquist.html>Nyquist and aliasing</a>). The fabric sets each channel's rate from its physics bandwidth, not a single global clock rate, then anti-alias filters the front end to that rate. Magnetics and ECE run fastest; slower thermal and strain channels are sampled proportionately."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-channel rate from physics bandwidth, then guard\ndef sample_rate(f_max_hz, guard=2.5):\n    # guard > 2 (Nyquist) to leave anti-alias transition band\n    return guard * f_max_hz\n\n# a fast Mirnov channel with 500 kHz content\nfs = sample_rate(500e3)   # 1.25 MHz  -> ~0.8 us per sample\nassert 1/fs < 1e-6        # sub-microsecond"
+    ]
+   ],
+   [
+    "h3",
+    "One clock, many channels"
+   ],
+   [
+    "p",
+    "All digitizers share a disciplined clock so that cross-channel phase is preserved to the sample. Equilibrium reconstruction and mode analysis are multi-channel inferences; a per-channel timing skew would masquerade as a real plasma asymmetry. Timestamps are distributed by a precision time protocol and audited (see <a href=./timestamping-ptp.html>precision timestamping</a>)."
+   ],
+   [
+    "h3",
+    "Sub-microsecond, not the control deadline"
+   ],
+   [
+    "p",
+    "Sampling below a microsecond is distinct from the L1 control deadline. L2 acquires and validates at these rates and streams engineered features toward the sub-10 microsecond control boundary; the hard real-time actuation and the autonomous failsafe live in L1. L2's obligation is that the numbers crossing that boundary are already clean, phase-coherent, and normalized."
+   ]
+  ],
+  "related": [
+   [
+    "sampling-theory-nyquist",
+    "Nyquist & Aliasing"
+   ],
+   [
+    "timestamping-ptp",
+    "Precision Timestamping"
+   ],
+   [
+    "adc-quantization-dynamic-range",
+    "ADC Quantization & Range"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "signal-conditioning-front-end",
+  "title": "Signal Conditioning Front End",
+  "cat": "l2-data-fabric",
+  "lede": "Before digitization, each channel passes an analog front end that amplifies, buffers, and band-limits the signal to match its diagnostic and the sampler.",
+  "body": [
+   [
+    "h2",
+    "Between sensor and ADC"
+   ],
+   [
+    "p",
+    "The front end is the analog stage sitting after the cryo feedthrough and before the digitizer. It sets the gain so a low-level diagnostic uses the ADC's full range, buffers high-impedance sources so cable and feedthrough capacitance do not load them, and applies the anti-alias filter that guards the sampling rate. In a 16.84 T machine drawing 9.86 MA, it is also the first line of common-mode rejection."
+   ],
+   [
+    "h3",
+    "Gain, offset, and range"
+   ],
+   [
+    "p",
+    "Each diagnostic has a very different natural amplitude: a flux loop integrates to volts, a Mirnov coil delivers fast millivolt transients, a REBCO strain gauge shifts by microstrain. The front end scales each so the digitizer's dynamic range is well used (see <a href=./adc-quantization-dynamic-range.html>quantization and range</a>). Gain and offset are stored per channel in the calibration record and de-embedded downstream."
+   ],
+   [
+    "h3",
+    "Anti-alias filtering"
+   ],
+   [
+    "ul",
+    [
+     "A low-pass filter set below the Nyquist frequency of the chosen sample rate keeps out-of-band energy from folding into the signal.",
+     "The filter's phase response is characterized so the fabric can correct group delay across channels.",
+     "Filter cutoffs are versioned with the channel so a later analysis knows exactly what band was preserved."
+    ]
+   ],
+   [
+    "h3",
+    "Noise rejection at the source"
+   ],
+   [
+    "p",
+    "Differential amplification rejects the common-mode pickup radiated by the machine's currents and the ICE-PISTON preload transients. Shielding and grounding discipline start here because noise not rejected in the analog domain cannot be fully recovered later — <a href=./hf-noise-filtering.html>digital HF filtering</a> cleans what remains but cannot undo saturation or aliasing."
+   ],
+   [
+    "p",
+    "The front-end topology is a design specification for both the breeder (Hyperion) and the burner; the machines are simulation and engineering studies until FOAK construction begins Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "hf-noise-filtering",
+    "High-Frequency Noise Filtering"
+   ],
+   [
+    "adc-quantization-dynamic-range",
+    "ADC Quantization & Range"
+   ],
+   [
+    "cryo-vacuum-feedthroughs",
+    "Cryo Vacuum Feedthroughs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "adc-quantization-dynamic-range",
+  "title": "ADC Quantization & Dynamic Range",
+  "cat": "l2-data-fabric",
+  "lede": "Digitization trades continuous voltage for discrete counts; the fabric sizes bit depth and range so quantization noise never limits a physics inference.",
+  "body": [
+   [
+    "h2",
+    "Quantization as noise"
+   ],
+   [
+    "p",
+    "An N-bit converter over a full-scale range V_fs has a least-significant step q = V_fs / 2^N. Ideal quantization adds noise of standard deviation q/sqrt(12), giving a ceiling on signal-to-noise. The fabric chooses N and V_fs per channel so this ceiling sits well above the sensor's own noise, ensuring the ADC is never the limiting element in a diagnostic."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef quant_snr_db(N):\n    # ideal SNR of an N-bit converter, full-scale sine\n    return 6.02*N + 1.76\n\ndef lsb(v_fs, N):\n    return v_fs / (2**N)\n\nprint(round(quant_snr_db(16),1), 'dB')   # 98.1 dB\nprint(lsb(10.0, 16))                      # ~153 uV per count"
+    ]
+   ],
+   [
+    "h3",
+    "Dynamic range budget"
+   ],
+   [
+    "p",
+    "Dynamic range is the span between the smallest resolvable change and the largest un-clipped excursion. A Mirnov channel must resolve a small precursor oscillation yet survive a large disruption transient without saturating. The <a href=./signal-conditioning-front-end.html>front end</a> sets gain so both live inside the converter's range; the calibration record ties counts back to physical units."
+   ],
+   [
+    "h3",
+    "Effective bits, not nameplate bits"
+   ],
+   [
+    "ul",
+    [
+     "The usable resolution (ENOB) is lower than nameplate bits once front-end and clock jitter are included.",
+     "Sub-microsecond sampling makes clock jitter a real term in the noise budget, linking timing quality to amplitude resolution.",
+     "The fabric tracks per-channel effective resolution as a data-quality attribute (see <a href=./data-quality-scoring.html>data-quality scoring</a>)."
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters for the twin"
+   ],
+   [
+    "p",
+    "Equilibrium and pressure-map inversions amplify input noise. If quantization noise entered at the ADC, it would propagate into the core pressure map and the instantaneous Q estimate. Sizing the converter correctly keeps the twin's inputs honest for both the breeder's magnetics and the burner's potential and density diagnostics."
+   ]
+  ],
+  "related": [
+   [
+    "sub-microsecond-sampling",
+    "Sub-Microsecond Sampling"
+   ],
+   [
+    "signal-conditioning-front-end",
+    "Signal Conditioning Front End"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "signal-validation-overview",
+  "title": "Signal Validation Overview",
+  "cat": "l2-data-fabric",
+  "lede": "Validation is the gate that decides which samples are trustworthy, cleaning noise, masking dead sensors, and flagging drift before any feature is computed.",
+  "body": [
+   [
+    "h2",
+    "Trust before transform"
+   ],
+   [
+    "p",
+    "No feature is computed from a raw sample until validation has passed judgment on it. Validation runs per channel and across channels: it rejects out-of-band noise, detects and masks dead or saturated sensors, checks calibration and drift, and cross-validates redundant diagnostics against each other. A wrong sample that reaches the twin is worse than a missing one, because the twin will act on it."
+   ],
+   [
+    "h3",
+    "The validation stages"
+   ],
+   [
+    "ul",
+    [
+     "High-frequency noise filtering to remove pickup and out-of-band energy (see <a href=./hf-noise-filtering.html>HF filtering</a>).",
+     "Dead-sensor masking to exclude channels that have failed, saturated, or gone silent (see <a href=./dead-sensor-masking.html>masking</a>).",
+     "Range and rate-of-change checks against physically possible bounds for each machine.",
+     "Cross-channel consistency: redundant magnetics, multi-chord interferometry, and neutron monitors must agree."
+    ]
+   ],
+   [
+    "h3",
+    "A validation verdict per sample"
+   ],
+   [
+    "truth",
+    [
+     [
+      "In-band",
+      "Sensor live",
+      "Verdict"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "use"
+      ],
+      [
+       "1",
+       "0",
+       "mask/impute"
+      ],
+      [
+       "0",
+       "1",
+       "filter then use"
+      ],
+      [
+       "0",
+       "0",
+       "reject"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Graceful degradation"
+   ],
+   [
+    "p",
+    "When a channel is masked, the fabric does not stall. The sensor-topology graph model imputes the missing value from neighbors (see <a href=./dead-sensor-masking.html>dead-sensor masking</a>), and the data-quality score attached to the feature records that it was imputed. This keeps the control loop fed while telling downstream models exactly how much to trust the number."
+   ],
+   [
+    "p",
+    "Validation logic is common to the breeder (Hyperion) and the burner; only the physical bounds differ — 9.86 MA and 16.84 T on one machine, the 26.49 T plug and ambipolar potential on the other."
+   ]
+  ],
+  "related": [
+   [
+    "hf-noise-filtering",
+    "High-Frequency Noise Filtering"
+   ],
+   [
+    "dead-sensor-masking",
+    "Dead-Sensor Masking"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hf-noise-filtering",
+  "title": "High-Frequency Noise Filtering",
+  "cat": "l2-data-fabric",
+  "lede": "Digital filtering removes out-of-band pickup and electromagnetic noise from each channel while preserving the fast physics the control loop needs.",
+  "body": [
+   [
+    "h2",
+    "Noise in a high-field machine"
+   ],
+   [
+    "p",
+    "The electromagnetic environment of a 16.84 T machine carrying 9.86 MA is hostile. Switching transients, the ICE-PISTON preload cycle, and coupling between the megampere plasma current and low-level diagnostics all inject noise. Analog rejection at the <a href=./signal-conditioning-front-end.html>front end</a> handles most common-mode pickup; digital filtering after sampling removes what remains without discarding real signal."
+   ],
+   [
+    "h3",
+    "Filter design against physics bandwidth"
+   ],
+   [
+    "p",
+    "Each channel has a known physics bandwidth. The filter is designed to pass that band and reject above it: a linear-phase FIR where group-delay flatness matters (magnetics used for phase-sensitive mode analysis), an IIR where latency must be minimal. Cutoffs are stored with the channel so any later analysis knows the exact band retained."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\n# simple linear-phase FIR low-pass (windowed sinc)\ndef fir_lowpass(fc, fs, ntaps=129):\n    n = np.arange(ntaps) - (ntaps-1)/2\n    h = np.sinc(2*fc/fs * n) * np.hamming(ntaps)\n    return h / h.sum()\n\n# preserve 500 kHz Mirnov content at 2 MHz sampling\nh = fir_lowpass(500e3, 2e6)"
+    ]
+   ],
+   [
+    "h3",
+    "What filtering must not do"
+   ],
+   [
+    "ul",
+    [
+     "It must not remove a real precursor: filters are set from physics, not from a desire for smooth traces.",
+     "It must not distort phase where phase carries information (Mirnov mode rotation, ECE localization).",
+     "It must not hide a dead sensor: silence is a validation event, not a signal to be smoothed away."
+    ]
+   ],
+   [
+    "h3",
+    "Coupled to validation"
+   ],
+   [
+    "p",
+    "Filtering is one stage of <a href=./signal-validation-overview.html>validation</a>. A channel that needs aggressive filtering to look sane is flagged for drift or fault; the data-quality score reflects the filtering effort applied. Both machines share the filtering framework, tuned per diagnostic and per machine bandwidth."
+   ]
+  ],
+  "related": [
+   [
+    "signal-validation-overview",
+    "Signal Validation Overview"
+   ],
+   [
+    "signal-conditioning-front-end",
+    "Signal Conditioning Front End"
+   ],
+   [
+    "dead-sensor-masking",
+    "Dead-Sensor Masking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dead-sensor-masking",
+  "title": "Dead-Sensor Masking & Imputation",
+  "cat": "l2-data-fabric",
+  "lede": "A failed, saturated, or silent channel is masked and its value imputed from the sensor-topology graph, so the loop degrades gracefully instead of ingesting garbage.",
+  "body": [
+   [
+    "h2",
+    "Detecting a dead channel"
+   ],
+   [
+    "p",
+    "A channel can fail many ways: an open feedthrough, a saturated front end, a stuck ADC code, or a slow drift into nonsense. Masking detects these by watching for flatlines, rail-pinned values, impossible rates of change, and disagreement with redundant neighbors. Once flagged, the sample is excluded from every downstream feature rather than silently averaged in."
+   ],
+   [
+    "h3",
+    "The masking decision"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Live",
+      "In-range",
+      "Agrees w/ neighbors",
+      "Action"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "use"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "flag, cross-check"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "mask"
+      ],
+      [
+       "0",
+       "0",
+       "0",
+       "mask + impute"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Imputation over the sensor graph"
+   ],
+   [
+    "p",
+    "Diagnostics are not independent points; they sit at known positions with known physical coupling. The fabric represents them as a graph and lets a graph neural network (an L3 model) impute a masked channel from its neighbors — a flux loop from adjacent loops, an interferometry chord from its neighbors. The imputed value carries a lowered <a href=./data-quality-scoring.html>quality score</a> so the twin trusts it less."
+   ],
+   [
+    "h3",
+    "Why not just interpolate"
+   ],
+   [
+    "ul",
+    [
+     "Linear interpolation ignores the physics coupling the graph model has learned; it fails where gradients are steep (the breeder's negative-triangularity edge, the burner's plug).",
+     "The graph model preserves cross-channel structure, so an imputed magnetics value is still consistent with equilibrium reconstruction.",
+     "Every imputation is logged in lineage: the twin can always see which inputs were real and which were reconstructed."
+    ]
+   ],
+   [
+    "h3",
+    "Machine-specific bounds"
+   ],
+   [
+    "p",
+    "The physical bounds that define 'in-range' differ by machine: magnetics consistent with 9.86 MA and 16.84 T for the breeder, potential and density bounds for the burner's ambipolar well. The masking logic is shared; the thresholds are per-machine and versioned in the registry."
+   ]
+  ],
+  "related": [
+   [
+    "signal-validation-overview",
+    "Signal Validation Overview"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ],
+   [
+    "diagnostics-constellation-overview",
+    "Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "calibration-drift-tracking",
+  "title": "Calibration & Drift Tracking",
+  "cat": "l2-data-fabric",
+  "lede": "Every channel carries a live calibration; the fabric watches for slow drift and corrects or flags it before it biases a feature.",
+  "body": [
+   [
+    "h2",
+    "Calibration is data"
+   ],
+   [
+    "p",
+    "A raw ADC count means nothing without the calibration that maps it to physical units: gain, offset, feedthrough parasitics, filter delay, and sensor sensitivity. The fabric stores this per channel and applies it as the first step of normalization. Because the calibration is versioned, any archived shot can be re-reduced with the exact calibration in force when it was taken."
+   ],
+   [
+    "h3",
+    "Sources of drift"
+   ],
+   [
+    "ul",
+    [
+     "Thermal drift in front-end gain and offset as the cryostat and hall temperatures move.",
+     "Neutron-induced changes in sensitivity, from 14 MeV neutrons in the breeder and the 5.44%-fraction flux in the burner.",
+     "Mechanical relaxation of bonded sensors such as REBCO strain gauges over load cycles.",
+     "Baseline wander in integrated diagnostics like flux loops."
+    ]
+   ],
+   [
+    "h3",
+    "Detecting drift"
+   ],
+   [
+    "p",
+    "Drift is detected against references and against redundancy: a channel that steadily disagrees more with its neighbors, or whose baseline walks between shots, is flagged. Where an in-situ reference exists, the fabric corrects continuously; where it does not, it flags the channel for the next calibration and lowers its quality score in the meantime."
+   ],
+   [
+    "h3",
+    "Correcting without erasing history"
+   ],
+   [
+    "p",
+    "A correction never overwrites raw data. The archive keeps raw counts; corrections live as calibration versions applied at read time. This preserves forensic value — a disruption in the breeder or a plug collapse in the burner can be re-examined with either the original or a later, better calibration — and keeps lineage exact."
+   ],
+   [
+    "p",
+    "Calibration and drift models are design specifications for machines under construction from Q2 2027; the drift sources listed are the physically expected ones for the FOAK devices."
+   ]
+  ],
+  "related": [
+   [
+    "signal-validation-overview",
+    "Signal Validation Overview"
+   ],
+   [
+    "rebco-strain-gauges",
+    "REBCO Strain Gauges"
+   ],
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "spatial-normalization",
+  "title": "Spatial Normalization",
+  "cat": "l2-data-fabric",
+  "lede": "Raw channels live at physical sensor positions; normalization maps them into the flux and field coordinates the twin reasons in, common across both machines.",
+  "body": [
+   [
+    "h2",
+    "From sensor space to physics space"
+   ],
+   [
+    "p",
+    "A Mirnov coil reports at its poloidal angle; an interferometry chord reports a line integral along its path; a strain gauge reports at a magnet location. The twin does not reason in sensor indices — it reasons in flux coordinates for the breeder and in axial-and-radial mirror coordinates for the burner. Spatial normalization is the transform that carries each raw channel into that shared frame."
+   ],
+   [
+    "h3",
+    "Breeder: flux coordinates"
+   ],
+   [
+    "p",
+    "For the breeder (Hyperion), a spherical tokamak with R0 1.2 m, aspect ratio 2.5, and negative triangularity delta -0.30, normalization maps magnetics and profiles onto normalized flux (psi_N). This makes a core pressure sample comparable across shots regardless of small equilibrium shifts, and it is the natural frame for the PINN that solves Grad-Shafranov (see <a href=./breeder-equilibrium-telemetry.html>equilibrium telemetry</a>)."
+   ],
+   [
+    "h3",
+    "Burner: mirror coordinates"
+   ],
+   [
+    "p",
+    "For the burner, the tandem mirror, normalization uses axial position along the field line and radius from the axis, so end-plug density and the ambipolar potential are expressed where the confinement physics happens — at the 26.49 T plugs and the 17 T throats. This lets the same feature definition describe the plug on either end symmetrically."
+   ],
+   [
+    "h3",
+    "Line integrals and inversions"
+   ],
+   [
+    "ul",
+    [
+     "Chord-integrated diagnostics (interferometry) are inverted to local quantities using the reconstructed geometry.",
+     "Positions are corrected for thermal and magnetic motion of the structure, tracked by structural-health monitoring.",
+     "Normalized coordinates are versioned so an archived feature can always be placed back in physical space."
+    ]
+   ],
+   [
+    "p",
+    "A single normalization layer serving both machines is what lets the same feature-engineering and twin code run on either device with only a coordinate module swapped."
+   ]
+  ],
+  "related": [
+   [
+    "spatial-normalization-flux-coordinates",
+    "Flux-Coordinate Normalization"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "breeder-equilibrium-telemetry",
+    "Breeder Equilibrium Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "spatial-normalization-flux-coordinates",
+  "title": "Flux-Coordinate Normalization",
+  "cat": "l2-data-fabric",
+  "lede": "Mapping breeder diagnostics onto normalized poloidal flux makes profiles shot-invariant and gives the equilibrium PINN its natural coordinate.",
+  "body": [
+   [
+    "h2",
+    "Normalized flux as the ruler"
+   ],
+   [
+    "p",
+    "In the breeder (Hyperion), the confinement geometry is set by nested flux surfaces. Normalized poloidal flux psi_N runs from 0 on the magnetic axis to 1 at the last closed flux surface. Expressing every profile diagnostic against psi_N — rather than against machine radius — removes the ambiguity introduced when the plasma shifts, breathes, or changes its negative-triangularity shape (delta -0.30)."
+   ],
+   [
+    "h3",
+    "Why the shape makes this hard"
+   ],
+   [
+    "p",
+    "Negative triangularity pulls the outboard edge inward, and at aspect ratio 2.5 the flux surfaces are strongly shaped. A naive radial mapping would misplace edge diagnostics badly. The normalization uses the reconstructed equilibrium to place each sample on the correct surface, so an edge pressure sample lands at the right psi_N even as the boundary moves shot to shot."
+   ],
+   [
+    "h3",
+    "Coupled to the equilibrium solver"
+   ],
+   [
+    "p",
+    "Flux-coordinate normalization and equilibrium reconstruction are mutually dependent: the mapping needs the equilibrium, and the equilibrium fit uses normalized magnetics. The fabric provides a fast, calibrated first mapping from magnetics; the L3 PINN that solves Grad-Shafranov then refines it. The fabric records which equilibrium version produced a given normalization."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# place a profile sample on a flux surface\ndef to_psi_n(R, Z, equilibrium):\n    psi   = equilibrium.psi(R, Z)          # interpolated flux\n    psi_n = (psi - equilibrium.psi_axis) / (\n             equilibrium.psi_lcfs - equilibrium.psi_axis)\n    return max(0.0, min(1.0, psi_n))"
+    ]
+   ],
+   [
+    "h3",
+    "Payoff"
+   ],
+   [
+    "ul",
+    [
+     "Profiles become comparable across shots, enabling clean feature stores and training sets.",
+     "The core pressure map and instantaneous Q are computed in the frame the physics lives in.",
+     "Edge diagnostics for the ELM-free negative-triangularity regime are correctly localized."
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "spatial-normalization",
+    "Spatial Normalization"
+   ],
+   [
+    "breeder-equilibrium-telemetry",
+    "Breeder Equilibrium Telemetry"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "feature-engineering-overview",
+  "title": "Feature Engineering Overview",
+  "cat": "l2-data-fabric",
+  "lede": "Validated, normalized channels are combined into physics-meaningful features — instantaneous Q, core pressure map, magnet strain deltas — that the AI layer consumes.",
+  "body": [
+   [
+    "h2",
+    "From clean signals to meaning"
+   ],
+   [
+    "p",
+    "Feature engineering is where the fabric stops reporting sensors and starts reporting physics. It fuses validated, normalized channels into quantities the twin and the copilots reason with: the instantaneous fusion gain, the core pressure map, magnet strain deltas, quench precursors, and machine-specific features like end-plug density for the burner. Each feature is a defined, versioned transform, not an ad hoc script."
+   ],
+   [
+    "h3",
+    "Principles"
+   ],
+   [
+    "ul",
+    [
+     "Physics-grounded: every feature has a definition tied to a measurable quantity, not a black-box statistic.",
+     "Multi-modal: features fuse several diagnostics so a single dead channel cannot corrupt them.",
+     "Traceable: each feature records the channels, calibration, and normalization it used.",
+     "Quality-tagged: a feature carries the minimum data-quality score of its inputs (see <a href=./data-quality-scoring.html>scoring</a>)."
+    ]
+   ],
+   [
+    "h3",
+    "The headline features"
+   ],
+   [
+    "ul",
+    [
+     "Instantaneous Q: fusion power over input power, computed live (see <a href=./instantaneous-q-value.html>instantaneous Q</a>). Design point Q_sci 3.424 at 88.7 MW for the breeder.",
+     "Core pressure map: the 2-D pressure distribution in flux coordinates (see <a href=./core-pressure-map.html>pressure map</a>).",
+     "Magnet strain deltas: change in REBCO strain against the preload baseline (see <a href=./magnet-strain-deltas.html>strain deltas</a>).",
+     "Quench and disruption precursors: sub-threshold signatures for the anomaly ensembles."
+    ]
+   ],
+   [
+    "h3",
+    "Online and offline parity"
+   ],
+   [
+    "p",
+    "A feature must compute identically in the low-latency online path feeding control and in the offline batch path that builds training sets. The fabric enforces this parity (see <a href=./feature-store-online-offline.html>online/offline parity</a>) so a model trained on archived features behaves the same when fed live ones. Feature definitions are shared across the breeder and the burner, with machine-specific inputs bound at configuration time."
+   ]
+  ],
+  "related": [
+   [
+    "instantaneous-q-value",
+    "Instantaneous Q-Value"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "magnet-strain-deltas",
+    "Magnet Strain Deltas"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "instantaneous-q-value",
+  "title": "Instantaneous Q-Value",
+  "cat": "l2-data-fabric",
+  "lede": "A live estimate of fusion gain fuses neutron flux, input-power, and profile telemetry into the ratio the whole program is judged on.",
+  "body": [
+   [
+    "h2",
+    "The definition"
+   ],
+   [
+    "p",
+    "The scientific gain Q_sci is fusion power divided by the external heating power coupled to the plasma. The breeder's design point is Q_sci 3.424 at 88.7 MW of fusion power. Computing an instantaneous estimate of this ratio during a shot turns a headline design number into a live control and diagnostic feature."
+   ],
+   [
+    "h3",
+    "Fusing the inputs"
+   ],
+   [
+    "p",
+    "Fusion power is inferred primarily from calibrated neutron flux (14 MeV for the breeder's D-T reactions), cross-checked against the reconstructed pressure and temperature profiles. Input power is the sum of the coupled heating systems, measured on their own telemetry. The feature fuses these, propagating each input's uncertainty into a confidence band on Q."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def instantaneous_q(p_fusion_w, p_input_w, eps=1.0):\n    # p_fusion from calibrated neutron flux + profile cross-check\n    # p_input from coupled heating telemetry\n    if p_input_w <= eps:\n        return None            # undefined during ramp; mask\n    return p_fusion_w / p_input_w\n\n# design point sanity check\nassert abs(instantaneous_q(88.7e6, 88.7e6/3.424) - 3.424) < 1e-2"
+    ]
+   ],
+   [
+    "h3",
+    "Burner form"
+   ],
+   [
+    "p",
+    "For the burner, the D-3He tandem-mirror generator, the operationally meaningful gain also accounts for direct energy conversion in the DEC train and the low 5.44% neutron fraction. The feature is defined per machine so 'instantaneous Q' means the physically correct ratio on each, while sharing the same interface to the twin."
+   ],
+   [
+    "h3",
+    "Honest by construction"
+   ],
+   [
+    "ul",
+    [
+     "When input power is near zero during ramp, Q is undefined and the feature is masked, never faked.",
+     "The estimate is a diagnostic feature computed in simulation and, for FOAK, from first tritium near 2030 — not a claim of hardware net gain before then.",
+     "Its confidence band reflects neutron-calibration and profile uncertainty, so downstream models weight it correctly."
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "neutron-flux-diagnostics",
+    "Neutron Flux Diagnostics"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "dec-train-telemetry",
+    "DEC Train Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "core-pressure-map",
+  "title": "Core Pressure Map",
+  "cat": "l2-data-fabric",
+  "lede": "The 2-D plasma pressure distribution, reconstructed in flux coordinates from Thomson scattering, interferometry, and magnetics, is the fabric's richest engineered feature.",
+  "body": [
+   [
+    "h2",
+    "What the map is"
+   ],
+   [
+    "p",
+    "The core pressure map is the plasma pressure p = n*(T_e+T_i) resolved across the cross-section, expressed in normalized flux coordinates. It is the feature that ties together density, temperature, and equilibrium, and it is what the twin's Power and MHD modules consume to judge stability and performance in the breeder (Hyperion)."
+   ],
+   [
+    "h3",
+    "The diagnostics that build it"
+   ],
+   [
+    "ul",
+    [
+     "Thomson scattering provides local electron temperature and density at multiple radii.",
+     "Interferometry provides line-integrated density, inverted against the reconstructed geometry.",
+     "Magnetics and the equilibrium PINN provide the flux surfaces the profile is mapped onto.",
+     "Ion temperature enters from fast-ion and spectroscopic diagnostics where available."
+    ]
+   ],
+   [
+    "h3",
+    "Reconstruction, not interpolation"
+   ],
+   [
+    "p",
+    "The map is a constrained inversion: profiles must be consistent with the equilibrium (pressure is a flux function to leading order) and with all measuring diagnostics simultaneously. This is why <a href=./spatial-normalization-flux-coordinates.html>flux-coordinate normalization</a> comes first. The result is a field that respects physics, so gradients at the negative-triangularity edge (delta -0.30) are physically placed rather than smeared."
+   ],
+   [
+    "h3",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "Pressure gradient drives both performance and instability. The map feeds the instantaneous Q estimate, the MHD stability check that watches for pressure-driven modes, and the control that maintains the ELM-free negative-triangularity regime. A dropped Thomson channel is imputed over the sensor graph so the map stays continuous, with the imputed region carrying a reduced quality score."
+   ],
+   [
+    "p",
+    "The pressure-map pipeline is validated in simulation and is a design specification for the FOAK machine whose construction begins Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "thomson-scattering",
+    "Thomson Scattering"
+   ],
+   [
+    "interferometry",
+    "Interferometry"
+   ],
+   [
+    "instantaneous-q-value",
+    "Instantaneous Q-Value"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "magnet-strain-deltas",
+  "title": "Magnet Strain Deltas",
+  "cat": "l2-data-fabric",
+  "lede": "The change in REBCO magnet strain against the ICE-PISTON preload baseline is a first-class feature guarding the highest-field components of both machines.",
+  "body": [
+   [
+    "h2",
+    "Strain as a health feature"
+   ],
+   [
+    "p",
+    "The high-field REBCO magnets carry enormous electromagnetic loads — 16.84 T peak in the breeder, 26.49 T at the burner's plugs. Strain gauges bonded across the winding pack and structure report deformation; the engineered feature is the delta of that strain against the baseline set by the ICE-PISTON cryogenic preload cycle. A delta outside its envelope is an early warning of a mechanical or electromagnetic anomaly."
+   ],
+   [
+    "h3",
+    "Baseline from the preload cycle"
+   ],
+   [
+    "p",
+    "The ICE-PISTON preload establishes a known mechanical state before operation. The fabric records that state as the strain baseline. During a shot, the delta isolates the operational load from the static preload, so the feature responds to what the plasma and field are doing, not to the fixed clamp."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def strain_delta(strain_now, preload_baseline):\n    # microstrain change attributable to operation\n    return strain_now - preload_baseline\n\ndef within_envelope(delta, lo, hi):\n    return lo <= delta <= hi   # per-gauge limits from structural model"
+    ]
+   ],
+   [
+    "h3",
+    "From feature to failsafe"
+   ],
+   [
+    "ul",
+    [
+     "A strain delta trending toward its limit is a quench precursor candidate for the anomaly ensembles.",
+     "A hard limit breach is exactly the kind of event the L1 autonomous hardware failsafe can act on without AI in the loop.",
+     "Strain deltas feed the twin's Thermomechanics module and the structural-health monitoring of the CrMoNbV vessel and carbon-fiber cocoon."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines, same feature"
+   ],
+   [
+    "p",
+    "Whether guarding the breeder's central column and toroidal set or the burner's 26.49 T plug coils, the strain-delta feature is defined identically; only the per-gauge envelopes, drawn from each machine's structural model, differ. These envelopes are versioned in the schema registry."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-strain-gauges",
+    "REBCO Strain Gauges"
+   ],
+   [
+    "ice-piston-preload-telemetry",
+    "ICE-Piston Preload Telemetry"
+   ],
+   [
+    "vessel-shm-telemetry",
+    "Vessel & SHM Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-precursor-features",
+  "title": "Quench & Disruption Precursor Features",
+  "cat": "l2-data-fabric",
+  "lede": "Sub-threshold signatures engineered from magnetics, strain, and profile telemetry give the anomaly ensembles a head start on quench and disruption.",
+  "body": [
+   [
+    "h2",
+    "Seeing trouble early"
+   ],
+   [
+    "p",
+    "A quench in a REBCO magnet or a disruption in the breeder plasma is preceded by faint, sub-threshold structure in the telemetry: a growing Mirnov mode, a locking magnetic island, a strain delta drifting, a pressure profile peaking toward a stability limit. The fabric engineers these into explicit precursor features so the L3 anomaly ensembles operate on physics-shaped inputs rather than raw traces."
+   ],
+   [
+    "h3",
+    "Breeder precursors"
+   ],
+   [
+    "ul",
+    [
+     "Mode amplitude and rotation frequency from the Mirnov array, tracking MHD growth and locking.",
+     "Pressure-gradient proximity to stability limits from the core pressure map.",
+     "Edge behavior specific to the negative-triangularity ELM-free regime.",
+     "n=1 locked-mode indicators that presage disruption at 9.86 MA."
+    ]
+   ],
+   [
+    "h3",
+    "Burner precursors"
+   ],
+   [
+    "ul",
+    [
+     "End-plug density falling toward the confinement threshold.",
+     "Ambipolar potential dropping, weakening the mirror's electrostatic plugging.",
+     "Strain deltas at the 26.49 T plug coils approaching envelope."
+    ]
+   ],
+   [
+    "h3",
+    "Why engineer, not just learn"
+   ],
+   [
+    "p",
+    "The anomaly ensembles could in principle learn from raw data, but physics-grounded precursor features make them faster, more sample-efficient, and interpretable. When an ensemble fires, an operator can see which precursor drove it. The features also give the twin's predictive shadow (running 50-100 ms ahead) something concrete to forecast."
+   ],
+   [
+    "p",
+    "These are the features that make the sub-10 microsecond control boundary meaningful: the fabric surfaces the precursor early enough that L1 actuation, or the autonomous failsafe, can respond. Everything here is validated in simulation for machines whose FOAK operation is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "signal-validation-overview",
+    "Signal Validation Overview"
+   ],
+   [
+    "magnet-strain-deltas",
+    "Magnet Strain Deltas"
+   ],
+   [
+    "mirnov-coils",
+    "Mirnov Coils"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostics-constellation-overview",
+  "title": "The Diagnostics Constellation",
+  "cat": "l2-data-fabric",
+  "lede": "Eight diagnostic families — from Thomson scattering to neutron flux — form the constellation the Data Fabric fuses into a single coherent picture of each machine.",
+  "body": [
+   [
+    "h2",
+    "One constellation, many eyes"
+   ],
+   [
+    "p",
+    "No single diagnostic sees a fusion plasma completely. The fabric fuses a constellation of complementary diagnostics, each strong where others are weak, into one coherent state estimate. The redundancy is deliberate: it enables cross-validation, dead-sensor imputation, and honest uncertainty. The families are Thomson scattering, interferometry, Mirnov coils, flux loops, REBCO strain gauges, ECE, fast-ion trackers, and neutron flux."
+   ],
+   [
+    "h3",
+    "What each family contributes"
+   ],
+   [
+    "ul",
+    [
+     "Thomson scattering: local electron temperature and density.",
+     "Interferometry: line-integrated density, fast and robust.",
+     "Mirnov coils: fast magnetic fluctuations, MHD modes, precursors.",
+     "Flux loops: slow, absolute magnetic flux for equilibrium.",
+     "REBCO strain gauges: magnet mechanical state.",
+     "ECE: electron temperature profile and fluctuations.",
+     "Fast-ion trackers: energetic-ion behavior and losses.",
+     "Neutron flux: the direct fusion-rate monitor."
+    ]
+   ],
+   [
+    "h3",
+    "Fusion, not a list"
+   ],
+   [
+    "p",
+    "The constellation's power is in fusion. Density from interferometry and Thomson constrain each other; magnetics from Mirnov and flux loops feed one equilibrium; neutron flux anchors the instantaneous Q. The fabric's multi-modal fusion (see <a href=./signal-fusion-multimodal.html>sensor fusion</a>) is what makes the whole exceed any part."
+   ],
+   [
+    "h3",
+    "Tuned per machine"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) leans on magnetics and profiles for equilibrium and disruption; the burner leans on density, potential, and DEC-train diagnostics for the plug and ambipolar physics. The same constellation framework serves both, with the mix set by each machine's control problems."
+   ]
+  ],
+  "related": [
+   [
+    "thomson-scattering",
+    "Thomson Scattering"
+   ],
+   [
+    "signal-fusion-multimodal",
+    "Multi-Modal Sensor Fusion"
+   ],
+   [
+    "neutron-flux-diagnostics",
+    "Neutron Flux Diagnostics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "thomson-scattering",
+  "title": "Thomson Scattering",
+  "cat": "l2-data-fabric",
+  "lede": "Laser Thomson scattering gives the fabric local electron temperature and density along a line of sight, the backbone of the core pressure map.",
+  "body": [
+   [
+    "h2",
+    "The measurement"
+   ],
+   [
+    "p",
+    "A high-power laser pulse scatters off plasma electrons; the scattered light's spectral broadening gives the local electron temperature and its intensity gives the local electron density. Because it is spatially localized at each collection volume, Thomson scattering provides true profiles rather than line integrals — the anchor for the breeder's core pressure map."
+   ],
+   [
+    "h3",
+    "Into the fabric"
+   ],
+   [
+    "ul",
+    [
+     "Each spatial channel is validated and calibrated independently, then placed on normalized flux via the reconstructed equilibrium.",
+     "Density from Thomson cross-checks the line-integrated <a href=./interferometry.html>interferometry</a>, and disagreement triggers a validation flag.",
+     "Dropped channels are imputed over the sensor-topology graph so the profile stays continuous.",
+     "Temperature and density feed the pressure map, the instantaneous Q cross-check, and training sets in the feature store."
+    ]
+   ],
+   [
+    "h3",
+    "Sampling and timing"
+   ],
+   [
+    "p",
+    "Thomson is pulsed at the laser repetition rate rather than continuously, so its samples are timestamped precisely and interpolated in the twin between pulses using the faster ECE and interferometry channels. Precision timestamping (see <a href=./timestamping-ptp.html>PTP timestamping</a>) keeps its samples phase-aligned with the continuous diagnostics."
+   ],
+   [
+    "h3",
+    "Role on each machine"
+   ],
+   [
+    "p",
+    "On the breeder, Thomson defines the temperature and density profiles that set performance and stability near the negative-triangularity edge. On the burner, localized density and temperature measurements in the central cell and near the plugs help characterize the confinement the ambipolar potential provides. The calibration and channel map are versioned per machine in the registry."
+   ]
+  ],
+  "related": [
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "interferometry",
+    "Interferometry"
+   ],
+   [
+    "electron-cyclotron-emission",
+    "Electron Cyclotron Emission"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interferometry",
+  "title": "Interferometry",
+  "cat": "l2-data-fabric",
+  "lede": "Interferometry measures line-integrated electron density fast and robustly, the fabric's most dependable density diagnostic across multiple chords.",
+  "body": [
+   [
+    "h2",
+    "Phase carries density"
+   ],
+   [
+    "p",
+    "A probing beam through the plasma accumulates phase proportional to the line-integrated electron density along its chord. Measuring that phase gives a fast, robust density signal that rarely fails, which is why interferometry is a workhorse of the constellation. Multiple chords at different impact parameters constrain the density profile when inverted against the geometry."
+   ],
+   [
+    "h3",
+    "From chords to local density"
+   ],
+   [
+    "p",
+    "Each chord is a line integral; recovering local density is an inversion that uses the reconstructed flux surfaces. The fabric performs this in the <a href=./spatial-normalization.html>normalization</a> stage, cross-checking the result against localized <a href=./thomson-scattering.html>Thomson</a> density. Agreement between the two independent methods is a core validation check."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\n# invert multi-chord line integrals to a flux-surface density profile\ndef invert_density(chord_integrals, geometry_matrix, reg=1e-3):\n    A = geometry_matrix               # maps profile -> chord integrals\n    # regularized least squares (Tikhonov) for a smooth profile\n    AtA = A.T @ A + reg*np.eye(A.shape[1])\n    return np.linalg.solve(AtA, A.T @ chord_integrals)"
+    ]
+   ],
+   [
+    "h3",
+    "Fast enough for control"
+   ],
+   [
+    "ul",
+    [
+     "Continuous and low-latency, interferometry fills the gaps between pulsed Thomson samples.",
+     "Robust against the electromagnetic noise of a 16.84 T machine, since phase is measured optically.",
+     "A fringe-jump fault is caught by validation as an impossible density step and masked."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder, interferometry constrains the density profile feeding the pressure map. On the burner, chords through the central cell and end plugs track the density that the ambipolar potential must confine — end-plug density being one of the burner's central control problems. Chord geometry is versioned per machine."
+   ]
+  ],
+  "related": [
+   [
+    "thomson-scattering",
+    "Thomson Scattering"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "burner-telemetry-plug",
+    "Burner Plug Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mirnov-coils",
+  "title": "Mirnov Coils",
+  "cat": "l2-data-fabric",
+  "lede": "Fast magnetic pickup coils resolve MHD fluctuations and mode structure, the fabric's earliest window on instability and disruption.",
+  "body": [
+   [
+    "h2",
+    "Fast magnetics"
+   ],
+   [
+    "p",
+    "Mirnov coils are small pickup coils that measure the time derivative of the local magnetic field. Distributed poloidally and toroidally, they resolve the spatial structure and rotation of MHD modes. Their bandwidth is high, which is why the acquisition chain samples them below the microsecond — the fastest disruption precursors live here."
+   ],
+   [
+    "h3",
+    "Mode analysis"
+   ],
+   [
+    "ul",
+    [
+     "Toroidal and poloidal mode numbers (n, m) are extracted from the phase relationship across the array.",
+     "Mode amplitude and rotation frequency become <a href=./anomaly-precursor-features.html>precursor features</a>.",
+     "A slowing, growing n=1 mode is the classic locked-mode disruption warning at 9.86 MA.",
+     "Phase coherence across coils depends on the single disciplined acquisition clock."
+    ]
+   ],
+   [
+    "h3",
+    "Why phase must be exact"
+   ],
+   [
+    "p",
+    "Mode analysis is entirely a phase inference across coils. A per-channel timing skew of even a fraction of a sample would appear as a spurious mode. This is the sharpest reason the fabric enforces one clock and precise timestamping — the Mirnov array is the most timing-sensitive diagnostic in the constellation."
+   ],
+   [
+    "h3",
+    "Burner analogue"
+   ],
+   [
+    "p",
+    "The burner is a tandem mirror, not a tokamak, but fast magnetics still watch for instabilities of the confined plasma and interchange behavior near the high-field plugs. The coil layout differs, but the fabric's mode-extraction and precursor-feature machinery is shared. Coil positions and calibrations are versioned per machine, and integrated slow flux comes from the complementary <a href=./flux-loops.html>flux loops</a>."
+   ]
+  ],
+  "related": [
+   [
+    "flux-loops",
+    "Flux Loops"
+   ],
+   [
+    "anomaly-precursor-features",
+    "Precursor Features"
+   ],
+   [
+    "sub-microsecond-sampling",
+    "Sub-Microsecond Sampling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "flux-loops",
+  "title": "Flux Loops",
+  "cat": "l2-data-fabric",
+  "lede": "Flux loops integrate the magnetic flux threading a closed path, giving the fabric the slow, absolute magnetics that anchor equilibrium reconstruction.",
+  "body": [
+   [
+    "h2",
+    "Slow and absolute"
+   ],
+   [
+    "p",
+    "A flux loop is a conductor around a closed path; the voltage across it integrates to the magnetic flux enclosed. Where Mirnov coils give fast fluctuations, flux loops give the slow, absolute magnetic state. Together they span the frequency range the fabric needs: loops for equilibrium, coils for stability."
+   ],
+   [
+    "h3",
+    "Feeding equilibrium"
+   ],
+   [
+    "p",
+    "Equilibrium reconstruction — solving Grad-Shafranov for the breeder's flux surfaces — is constrained by the magnetics. Flux loops and pickup coils supply the boundary and internal magnetic measurements the PINN fits. The quality of the negative-triangularity shape estimate (delta -0.30) rests directly on well-calibrated loop signals."
+   ],
+   [
+    "h3",
+    "The integrator drift problem"
+   ],
+   [
+    "ul",
+    [
+     "Integrating a voltage accumulates any offset into baseline drift over a long shot.",
+     "The fabric tracks and corrects this baseline via <a href=./calibration-drift-tracking.html>drift tracking</a> and cross-checks against redundant loops.",
+     "A loop whose baseline walks beyond bounds is flagged and its contribution down-weighted in the fit."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder, flux loops anchor the equilibrium and the shape control that keeps the plasma ELM-free. On the burner, magnetic-flux measurements characterize the axial field profile between the 26.49 T plugs and 17 T throats. The loop geometry is versioned per machine, and their signals are normalized into the shared coordinate frame before use."
+   ]
+  ],
+  "related": [
+   [
+    "mirnov-coils",
+    "Mirnov Coils"
+   ],
+   [
+    "breeder-equilibrium-telemetry",
+    "Breeder Equilibrium Telemetry"
+   ],
+   [
+    "calibration-drift-tracking",
+    "Calibration & Drift Tracking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-strain-gauges",
+  "title": "REBCO Strain Gauges",
+  "cat": "l2-data-fabric",
+  "lede": "Strain gauges bonded across the high-field REBCO magnets report the mechanical state of the most stressed components in either machine.",
+  "body": [
+   [
+    "h2",
+    "Watching the magnets"
+   ],
+   [
+    "p",
+    "REBCO high-temperature-superconductor magnets carry the fields that define both machines — 16.84 T peak in the breeder, 26.49 T at the burner's plugs — and with those fields come immense Lorentz loads. Strain gauges bonded across the winding pack and its structure measure the resulting deformation, the raw input to the magnet-strain-delta feature and to structural-health monitoring."
+   ],
+   [
+    "h3",
+    "Sensitivity and environment"
+   ],
+   [
+    "ul",
+    [
+     "Gauges resolve microstrain, so front-end gain and drift correction are critical.",
+     "They operate cold, in high field, under neutron flux, so their sensitivity is drift-tracked continuously.",
+     "Bonded sensors relax mechanically over load cycles, a drift the fabric models explicitly.",
+     "Signals cross the boundary through cryo-rated feedthroughs characterized for parasitics."
+    ]
+   ],
+   [
+    "h3",
+    "Baseline and delta"
+   ],
+   [
+    "p",
+    "The gauge's absolute reading includes the static ICE-PISTON preload. The fabric subtracts the preload baseline to yield the operational <a href=./magnet-strain-deltas.html>strain delta</a>, the quantity the twin and failsafe act on. A delta trending toward its structural envelope is a quench-and-mechanical precursor."
+   ],
+   [
+    "h3",
+    "Into safety"
+   ],
+   [
+    "p",
+    "Because a magnet's mechanical and electromagnetic health is safety-critical, strain telemetry is one of the inputs the L1 autonomous hardware failsafe can act on directly — dumping a quench with zero AI dependency if a hard limit is crossed. The fabric's job is to deliver strain that is clean, calibrated, and timestamped so both the twin and the failsafe see the truth. Envelopes are versioned per machine in the registry."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-strain-deltas",
+    "Magnet Strain Deltas"
+   ],
+   [
+    "ice-piston-preload-telemetry",
+    "ICE-Piston Preload Telemetry"
+   ],
+   [
+    "calibration-drift-tracking",
+    "Calibration & Drift Tracking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "electron-cyclotron-emission",
+  "title": "Electron Cyclotron Emission",
+  "cat": "l2-data-fabric",
+  "lede": "ECE radiometry measures the electron temperature profile and its fluctuations from the plasma's own cyclotron emission, fast and spatially resolved.",
+  "body": [
+   [
+    "h2",
+    "Temperature from emission"
+   ],
+   [
+    "p",
+    "Electrons gyrating in the magnetic field emit at the cyclotron frequency and its harmonics. Because that frequency depends on the local field strength, a radiometer tuned across frequencies maps emission to position, and the emission intensity gives the local electron temperature. ECE thus delivers a fast, spatially resolved temperature profile continuously between pulsed Thomson measurements."
+   ],
+   [
+    "h3",
+    "Field-to-position mapping"
+   ],
+   [
+    "p",
+    "The frequency-to-position mapping depends directly on the field profile, which in the breeder runs to 16.84 T peak (8 T on-axis). The fabric applies the reconstructed field to place each ECE channel, then normalizes into flux coordinates. This coupling means an ECE channel's localization is only as good as the equilibrium it rests on, tracked in lineage."
+   ],
+   [
+    "h3",
+    "Into features"
+   ],
+   [
+    "ul",
+    [
+     "ECE temperature complements Thomson in the core pressure map, adding time resolution.",
+     "ECE fluctuations reveal MHD and transport structure, feeding precursor features.",
+     "Cross-checking ECE against Thomson temperature is a standing validation test.",
+     "A channel whose emission goes optically thin is flagged rather than trusted blindly."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder, ECE gives the fast temperature profile the pressure map and stability analysis need. On the burner, cyclotron-based temperature measurements characterize the central-cell electrons whose confinement the ambipolar potential governs. Channel-to-frequency calibration is versioned per machine."
+   ]
+  ],
+  "related": [
+   [
+    "thomson-scattering",
+    "Thomson Scattering"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ],
+   [
+    "spatial-normalization",
+    "Spatial Normalization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fast-ion-trackers",
+  "title": "Fast-Ion Trackers",
+  "cat": "l2-data-fabric",
+  "lede": "Fast-ion diagnostics track the energetic ions that carry fusion and heating power, essential for the burner's D-3He physics and the breeder's heating.",
+  "body": [
+   [
+    "h2",
+    "The energetic population"
+   ],
+   [
+    "p",
+    "Fusion and auxiliary heating create a population of energetic ions well above the thermal bulk. Their confinement, slowing-down, and losses shape performance and can drive instabilities. Fast-ion trackers — neutral-particle and loss diagnostics among them — measure this population, giving the fabric a window the bulk diagnostics miss."
+   ],
+   [
+    "h3",
+    "Why it matters more for the burner"
+   ],
+   [
+    "p",
+    "The burner runs D-3He, whose fusion power is carried largely by charged products rather than neutrons (neutron fraction just 5.44%). The energetic-ion population and its confinement in the tandem mirror are therefore central to the machine's operation and to the direct energy conversion that follows. Fast-ion telemetry is a primary, not auxiliary, diagnostic here."
+   ],
+   [
+    "h3",
+    "Into the fabric"
+   ],
+   [
+    "ul",
+    [
+     "Fast-ion loss signals become precursor features for confinement degradation.",
+     "Energetic-ion pressure enters the total pressure the MHD stability check uses.",
+     "Losses to the wall couple to structural-health and thermal telemetry.",
+     "Signals feed the twin modules that model the DEC train's incoming particle flux."
+    ]
+   ],
+   [
+    "h3",
+    "Breeder role"
+   ],
+   [
+    "p",
+    "On the breeder, fast-ion trackers monitor the heating-ion population and any fast-ion-driven modes that could degrade confinement at 9.86 MA. The diagnostic family and its feature interfaces are shared across machines; the deployment weight and specific instruments differ, reflecting how much each machine's physics lives in the energetic population. Configurations are versioned per machine."
+   ]
+  ],
+  "related": [
+   [
+    "neutron-flux-diagnostics",
+    "Neutron Flux Diagnostics"
+   ],
+   [
+    "dec-train-telemetry",
+    "DEC Train Telemetry"
+   ],
+   [
+    "burner-telemetry-plug",
+    "Burner Plug Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutron-flux-diagnostics",
+  "title": "Neutron Flux Diagnostics",
+  "cat": "l2-data-fabric",
+  "lede": "Calibrated neutron monitors give the fabric a direct measure of fusion rate — 14 MeV for the breeder, a low 5.44% fraction for the burner.",
+  "body": [
+   [
+    "h2",
+    "The direct fusion monitor"
+   ],
+   [
+    "p",
+    "Neutron flux is the most direct measure of fusion reaction rate. The breeder's D-T reactions produce 14 MeV neutrons in proportion to fusion power, making calibrated neutron flux the anchor of the instantaneous Q estimate. The burner's D-3He burn is low-neutron — a 5.44% neutron fraction — so its neutron monitors serve a different, complementary role."
+   ],
+   [
+    "h3",
+    "Breeder: fusion power and breeding"
+   ],
+   [
+    "ul",
+    [
+     "Neutron flux anchors the instantaneous Q feature (design point Q_sci 3.424 at 88.7 MW).",
+     "Spatial neutron mapping informs the tritium breeding blanket, where the breeding ratio is treated as a design lever across 1.1/1.5/1.8.",
+     "The 14 MeV field also drives sensor drift and materials effects the fabric tracks.",
+     "Neutron and profile-based power estimates cross-check each other."
+    ]
+   ],
+   [
+    "h3",
+    "Burner: low-neutron by design"
+   ],
+   [
+    "p",
+    "D-3He is low-neutron, not aneutronic; the residual 5.44% neutron fraction is monitored for machine protection, activation management, and as an independent fusion-rate cross-check. Because the fraction is small, the burner leans more on charged-particle and DEC-train diagnostics for its power accounting."
+   ],
+   [
+    "h3",
+    "Calibration is everything"
+   ],
+   [
+    "p",
+    "A neutron flux number is only as trustworthy as its absolute calibration and its drift model, since it directly sets a headline feature. The fabric maintains that calibration per detector, cross-checks against redundant monitors and profile-derived power, and records the calibration version in lineage. These are design and simulation specifications; the breeder's first tritium is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "instantaneous-q-value",
+    "Instantaneous Q-Value"
+   ],
+   [
+    "neutron-fluence-mapping",
+    "Neutron Fluence Mapping"
+   ],
+   [
+    "fuel-cycle-isotope-telemetry",
+    "Fuel-Cycle Isotope Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutron-fluence-mapping",
+  "title": "Neutron Fluence Mapping",
+  "cat": "l2-data-fabric",
+  "lede": "Spatially resolved neutron fluence tracks where 14 MeV neutrons deposit, feeding tritium-breeding accounting and materials-life monitoring in the breeder.",
+  "body": [
+   [
+    "h2",
+    "Where the neutrons go"
+   ],
+   [
+    "p",
+    "The breeder's value rests on capturing 14 MeV neutrons in a blanket that breeds tritium. Neutron fluence mapping resolves the spatial and time-integrated neutron field, so the fabric can account for breeding, monitor activation, and track cumulative dose to materials and sensors. It turns a scalar flux into a spatial feature."
+   ],
+   [
+    "h3",
+    "Feeding the breeding account"
+   ],
+   [
+    "p",
+    "The tritium breeding ratio is treated as a design lever across 1.1/1.5/1.8. Closing the fuel cycle depends on knowing how many neutrons reach the breeding blanket and where. Fluence mapping, combined with isotope telemetry, gives the real-time picture the fuel-cycle balancing needs (see <a href=./fuel-cycle-isotope-telemetry.html>isotope telemetry</a>), targeting the roughly 4 kg/yr tritium class the design aims for."
+   ],
+   [
+    "h3",
+    "Materials and sensor life"
+   ],
+   [
+    "ul",
+    [
+     "Cumulative fluence sets the expected drift and end-of-life of neutron-exposed sensors.",
+     "Fluence hotspots inform structural-health monitoring of the CrMoNbV vessel.",
+     "Time-integrated maps are retained in the archive for lifetime accounting.",
+     "Helium and hydrogen generation in structures correlate with local fluence."
+    ]
+   ],
+   [
+    "h3",
+    "Reconstruction"
+   ],
+   [
+    "p",
+    "Like density, the fluence field is reconstructed from a finite set of monitors against the machine geometry — a constrained inversion, not raw interpolation. The offline multi-physics Monte Carlo transport models on L0 provide the response functions the reconstruction uses. Results are normalized into machine coordinates and versioned. This is a design and simulation capability for the FOAK breeder whose construction begins Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "neutron-flux-diagnostics",
+    "Neutron Flux Diagnostics"
+   ],
+   [
+    "fuel-cycle-isotope-telemetry",
+    "Fuel-Cycle Isotope Telemetry"
+   ],
+   [
+    "vessel-shm-telemetry",
+    "Vessel & SHM Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "signal-fusion-multimodal",
+  "title": "Multi-Modal Sensor Fusion",
+  "cat": "l2-data-fabric",
+  "lede": "The fabric fuses complementary diagnostics into a single state estimate, so the whole constellation constrains one coherent picture with honest uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Why fuse"
+   ],
+   [
+    "p",
+    "Each diagnostic family is strong in one regime and blind in another. Interferometry is fast but line-integrated; Thomson is local but pulsed; Mirnov is fast but only magnetic; flux loops are absolute but slow. Fusing them yields a state estimate better than any single sensor and, crucially, an uncertainty on that estimate the twin can weight."
+   ],
+   [
+    "h3",
+    "A Bayesian frame"
+   ],
+   [
+    "p",
+    "Fusion is naturally Bayesian: each diagnostic contributes a likelihood over the plasma state given its measurement, and the fabric combines them with the physics prior encoded by the equilibrium. The result is a posterior estimate with covariance. In fast paths, this is approximated by a calibrated weighted combination whose weights come from each channel's quality score and known variance."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# inverse-variance fusion of two density estimates\ndef fuse(x1, var1, x2, var2):\n    w1, w2 = 1/var1, 1/var2\n    x = (w1*x1 + w2*x2) / (w1 + w2)\n    var = 1.0 / (w1 + w2)          # fused uncertainty\n    return x, var\n\n# Thomson (local, noisier) with interferometry (robust)\nfuse(1.02e20, 4e37, 1.00e20, 1e37)"
+    ]
+   ],
+   [
+    "h3",
+    "Robustness"
+   ],
+   [
+    "ul",
+    [
+     "A dead channel drops out of the fusion cleanly, its weight going to zero.",
+     "Disagreement between modalities raises the fused uncertainty and triggers validation.",
+     "Imputed values enter with reduced weight, reflecting their lower quality score."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "The fusion framework is machine-agnostic: it combines whatever diagnostics a machine carries into the coordinate frame the twin uses. For the breeder it centers on equilibrium and profiles; for the burner on density, potential, and DEC-train state. The physics priors differ; the fusion machinery is shared."
+   ]
+  ],
+  "related": [
+   [
+    "diagnostics-constellation-overview",
+    "Diagnostics Constellation"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "breeder-equilibrium-telemetry",
+  "title": "Breeder Equilibrium Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "The telemetry that constrains the breeder's magnetic equilibrium — magnetics, profiles, shape — is the fabric's most safety-relevant feature set.",
+  "body": [
+   [
+    "h2",
+    "Equilibrium is the breeder's control problem"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a spherical tokamak, R0 1.2 m, aspect ratio 2.5, running a negative-triangularity shape (delta -0.30) at 9.86 MA and 16.84 T peak field. Its central control problems are maintaining that equilibrium, holding the ELM-free negative-triangularity shape, and avoiding disruptions. The equilibrium telemetry set is the data that makes those problems tractable."
+   ],
+   [
+    "h3",
+    "What constrains the equilibrium"
+   ],
+   [
+    "ul",
+    [
+     "Flux loops: absolute boundary and internal flux.",
+     "Mirnov coils: fast magnetics and mode structure.",
+     "Core pressure map: the pressure that shapes the equilibrium.",
+     "Coil-current telemetry: the fields the operator commands."
+    ]
+   ],
+   [
+    "h3",
+    "From telemetry to Grad-Shafranov"
+   ],
+   [
+    "p",
+    "The magnetics and pressure constrain the Grad-Shafranov equation, whose solution is the equilibrium. The fabric provides a fast calibrated first fit; the L3 PINN refines it, solving the equilibrium natively (see <a href=./spatial-normalization-flux-coordinates.html>flux-coordinate normalization</a>). Because equilibrium underlies nearly every other feature, its telemetry is validated and cross-checked with extra rigor."
+   ],
+   [
+    "h3",
+    "Shape and disruption"
+   ],
+   [
+    "p",
+    "The negative-triangularity shape is what gives the ELM-free edge, so shape telemetry is control-critical. Disruption avoidance depends on the precursor features drawn from this same set — a locked mode in the Mirnov array, a pressure profile nearing a limit. The equilibrium telemetry is thus simultaneously the performance and the safety feed. Everything here is a design and simulation specification for the machine whose FOAK first tritium is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "spatial-normalization-flux-coordinates",
+    "Flux-Coordinate Normalization"
+   ],
+   [
+    "flux-loops",
+    "Flux Loops"
+   ],
+   [
+    "anomaly-precursor-features",
+    "Precursor Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-telemetry-plug",
+  "title": "Burner Plug & Potential Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "The burner's control problems live in the end plugs — density and ambipolar potential — and this telemetry set is where the fabric watches them.",
+  "body": [
+   [
+    "h2",
+    "The tandem mirror's crux"
+   ],
+   [
+    "p",
+    "The burner is a D-3He tandem-mirror generator. It confines plasma in a central cell between two high-field end plugs (26.49 T plug field, 17 T throat) that create an electrostatic ambipolar potential to plug particle loss along the field. Its control problems are the end-plug density and that ambipolar potential — if either weakens, confinement degrades. This telemetry set watches both."
+   ],
+   [
+    "h3",
+    "End-plug density"
+   ],
+   [
+    "ul",
+    [
+     "Interferometry chords and localized density diagnostics at each plug track the plug density directly.",
+     "A plug density falling toward threshold is a primary precursor feature.",
+     "The two plugs are monitored symmetrically so an asymmetry is caught early.",
+     "Density telemetry couples to the fueling and heating actuation on L1."
+    ]
+   ],
+   [
+    "h3",
+    "Ambipolar potential"
+   ],
+   [
+    "p",
+    "The ambipolar potential is the electrostatic barrier that plugs the mirror. Potential telemetry — from probes and inferred from the plasma state — is engineered into a feature the twin and copilots track. A dropping potential warns of confinement collapse and is one of the burner's key precursor signatures."
+   ],
+   [
+    "h3",
+    "Into the DEC train"
+   ],
+   [
+    "p",
+    "What escapes the mirror along the field flows into the direct energy conversion train, so the plug and potential telemetry directly inform the DEC feed (see <a href=./dec-train-telemetry.html>DEC train telemetry</a>). The fabric treats plug density, ambipolar potential, and DEC input as a coupled set. These are design and simulation specifications; the machines are not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "dec-train-telemetry",
+    "DEC Train Telemetry"
+   ],
+   [
+    "interferometry",
+    "Interferometry"
+   ],
+   [
+    "fast-ion-trackers",
+    "Fast-Ion Trackers"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-train-telemetry",
+  "title": "DEC Train Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "The multi-modal direct-energy-conversion train — TWDEC, ultra-high-field MHD, thermionics — is instrumented so the fabric tracks conversion of escaping particles.",
+  "body": [
+   [
+    "h2",
+    "Converting particles, not steam"
+   ],
+   [
+    "p",
+    "The burner's direct energy conversion (DEC) train captures the kinetic energy of charged particles escaping the tandem mirror and converts it electrically without a thermal cycle. It is multi-modal: a traveling-wave direct energy converter (TWDEC), an ultra-high-field MHD stage, and thermionic conversion. Each stage is instrumented, and the fabric fuses their telemetry into conversion-state features."
+   ],
+   [
+    "h3",
+    "What is measured"
+   ],
+   [
+    "ul",
+    [
+     "Incoming particle flux and energy spectrum from the mirror exit.",
+     "Grid, collector, and electrode telemetry across the TWDEC stage.",
+     "Field and current telemetry in the ultra-high-field MHD stage.",
+     "Emitter and collector state in the thermionic stage."
+    ]
+   ],
+   [
+    "h3",
+    "Conversion features"
+   ],
+   [
+    "p",
+    "From these the fabric engineers the operational conversion features the copilots use for grid-sync and dispatch — expressed as physical quantities, never economic ones. The features describe how well the train is capturing the escaping flux and how the stages are sharing the load, so the operations copilot can schedule and synchronize output."
+   ],
+   [
+    "h3",
+    "Coupled upstream"
+   ],
+   [
+    "p",
+    "The DEC feed is set by what escapes the mirror, so DEC telemetry is analyzed together with <a href=./burner-telemetry-plug.html>plug and potential telemetry</a>. A change in end-plug confinement shows up as a change in the DEC input spectrum. Because D-3He is low-neutron (5.44% fraction), most of the burner's energy passes through this train, making its instrumentation central. All of this is a design and simulation specification for a machine not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "burner-telemetry-plug",
+    "Burner Plug Telemetry"
+   ],
+   [
+    "fast-ion-trackers",
+    "Fast-Ion Trackers"
+   ],
+   [
+    "feature-engineering-overview",
+    "Feature Engineering"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fuel-cycle-isotope-telemetry",
+  "title": "Fuel-Cycle Isotope Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "Real-time isotope accounting tracks tritium, deuterium, and helium-3 through the fuel cycle so the fabric can balance breeding against burn.",
+  "body": [
+   [
+    "h2",
+    "Accounting for atoms"
+   ],
+   [
+    "p",
+    "Both machines run on isotopes that must be measured, not assumed. The breeder consumes deuterium and tritium and breeds tritium in its blanket; the burner runs deuterium and helium-3. The fabric ingests telemetry from the fuel cycle — injection, exhaust, processing, and storage — to keep a live isotope balance."
+   ],
+   [
+    "h3",
+    "Breeder balance"
+   ],
+   [
+    "ul",
+    [
+     "Tritium bred in the blanket, inferred with <a href=./neutron-fluence-mapping.html>neutron fluence mapping</a> and measured in processing.",
+     "Tritium consumed in the burn, from fusion rate via neutron flux.",
+     "The breeding ratio treated as a design lever across 1.1/1.5/1.8, driving toward the ~4 kg/yr tritium class.",
+     "Helium-3 produced from tritium decay, on the order of ~1.97 kg/yr."
+    ]
+   ],
+   [
+    "h3",
+    "Burner balance"
+   ],
+   [
+    "p",
+    "The burner's helium-3 supply is a strategic input, so its consumption is tracked closely against the deuterium feed. The fabric's isotope telemetry lets the operations copilot schedule fueling against available inventory — an operational, never economic, calculation."
+   ],
+   [
+    "h3",
+    "Closing the loop in real time"
+   ],
+   [
+    "p",
+    "Isotope balancing is a control feature, not just accounting: the fueling and blanket-processing systems act on it. The fabric fuses processing-plant telemetry with in-vessel diagnostics so the balance reflects both what the plasma is doing and what the plant has recovered. Lineage records every input to the balance. These are design and simulation specifications for machines whose FOAK breeder first tritium is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "neutron-fluence-mapping",
+    "Neutron Fluence Mapping"
+   ],
+   [
+    "neutron-flux-diagnostics",
+    "Neutron Flux Diagnostics"
+   ],
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "divertor-expander-telemetry",
+  "title": "Divertor & Expander Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "The divertor and expander handle the exhaust heat and particles of both machines; their telemetry guards the components that meet the plasma edge.",
+  "body": [
+   [
+    "h2",
+    "The exhaust boundary"
+   ],
+   [
+    "p",
+    "Fusion machines must shed enormous power at the plasma edge. In the breeder, a divertor receives the scrape-off-layer power and particles; in the burner, an expander opens the field lines beyond the mirror so exhausted plasma spreads before it reaches surfaces and the DEC train. Both are heavily instrumented because they operate at the edge of material limits."
+   ],
+   [
+    "h3",
+    "What is measured"
+   ],
+   [
+    "ul",
+    [
+     "Surface and near-surface temperatures across the divertor targets or expander surfaces.",
+     "Particle and heat flux to the plasma-facing components.",
+     "Coolant flow, inlet/outlet temperature, and thermal balance.",
+     "Erosion and impurity signatures that feed back into core impurity accounting."
+    ]
+   ],
+   [
+    "h3",
+    "Breeder specifics"
+   ],
+   [
+    "p",
+    "The negative-triangularity, ELM-free regime is chosen partly to make the divertor's job tractable by avoiding large edge-localized-mode heat bursts. Divertor telemetry confirms the regime is holding: a rise in transient heat flux is a signal the ELM-free edge is degrading, a precursor the fabric surfaces."
+   ],
+   [
+    "h3",
+    "Burner specifics"
+   ],
+   [
+    "p",
+    "The expander conditions the flow feeding the DEC train, so its telemetry couples to <a href=./dec-train-telemetry.html>DEC train telemetry</a>: the spread and energy of the exhaust set what the converter receives. Thermal and flux telemetry from these components feeds the twin's Thermomechanics module and the structural-health monitoring that protects them. All specifications here are design and simulation targets for machines under construction from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "dec-train-telemetry",
+    "DEC Train Telemetry"
+   ],
+   [
+    "vessel-shm-telemetry",
+    "Vessel & SHM Telemetry"
+   ],
+   [
+    "core-pressure-map",
+    "Core Pressure Map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vessel-shm-telemetry",
+  "title": "Vessel & Structural-Health Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "Strain, temperature, and vibration telemetry across the CrMoNbV vessel and carbon-fiber cocoon feed continuous structural-health monitoring.",
+  "body": [
+   [
+    "h2",
+    "Watching the structure"
+   ],
+   [
+    "p",
+    "The machines are built around a CrMoNbV vessel wrapped in a carbon-fiber cocoon that carries mechanical loads. Structural-health monitoring (SHM) instruments this structure with strain gauges, thermocouples, and vibration sensors, and the fabric turns their telemetry into features that track the mechanical state over a shot and over the machine's life."
+   ],
+   [
+    "h3",
+    "What SHM watches"
+   ],
+   [
+    "ul",
+    [
+     "Strain distribution across the vessel and cocoon against modeled load envelopes.",
+     "Temperature gradients that drive thermal stress.",
+     "Vibration signatures that reveal loosening, cracking, or resonance.",
+     "Cumulative neutron fluence effects on material properties (breeder 14 MeV field)."
+    ]
+   ],
+   [
+    "h3",
+    "From telemetry to lifetime"
+   ],
+   [
+    "p",
+    "SHM is both real-time and cumulative. In real time it feeds precursor features and, at hard limits, the L1 autonomous failsafe. Cumulatively, it tracks fatigue and neutron-induced degradation retained in the archive, so the twin's Thermomechanics module and the maintenance copilot can reason about remaining life — an operational assessment, never an economic one."
+   ],
+   [
+    "h3",
+    "Coupled to magnets and thermal"
+   ],
+   [
+    "p",
+    "Vessel strain is not independent of the magnets: the ICE-PISTON preload and the electromagnetic loads at 16.84 T (breeder) or 26.49 T (burner plugs) transmit into the structure. The fabric analyzes vessel SHM together with <a href=./magnet-strain-deltas.html>magnet strain deltas</a> and divertor thermal telemetry to form one mechanical picture. These are design and simulation specifications for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-strain-deltas",
+    "Magnet Strain Deltas"
+   ],
+   [
+    "ice-piston-preload-telemetry",
+    "ICE-Piston Preload Telemetry"
+   ],
+   [
+    "divertor-expander-telemetry",
+    "Divertor & Expander Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ice-piston-preload-telemetry",
+  "title": "ICE-Piston Preload Telemetry",
+  "cat": "l2-data-fabric",
+  "lede": "The cryogenic ICE-PISTON preload cycle sets the magnets' mechanical baseline; its telemetry defines the reference every strain feature is measured against.",
+  "body": [
+   [
+    "h2",
+    "Preload as reference"
+   ],
+   [
+    "p",
+    "Before the magnets carry field, the ICE-PISTON cryogenic preload cycle establishes a controlled mechanical clamp on the winding pack and structure. This preload is what lets the REBCO magnets withstand the Lorentz loads at 16.84 T in the breeder and 26.49 T at the burner's plugs. Its telemetry defines the mechanical baseline against which every operational strain is measured."
+   ],
+   [
+    "h3",
+    "What the cycle reports"
+   ],
+   [
+    "ul",
+    [
+     "Cryogenic temperatures through the preload sequence.",
+     "Preload force or displacement as the piston sets the clamp.",
+     "Resulting baseline strain across the magnet gauges.",
+     "Cryostat thermal state, coupled to feedthrough heat leak."
+    ]
+   ],
+   [
+    "h3",
+    "Setting the strain baseline"
+   ],
+   [
+    "p",
+    "When the preload completes, the fabric captures the strain state as the baseline for the <a href=./magnet-strain-deltas.html>strain-delta feature</a>. This is why the delta isolates operational load: the static preload has already been subtracted. A preload that lands off-nominal changes the baseline, which the fabric records so later deltas remain meaningful."
+   ],
+   [
+    "h3",
+    "A safety-relevant precondition"
+   ],
+   [
+    "p",
+    "Because magnet mechanical integrity depends on correct preload, the preload telemetry is a go/no-go precondition, checked before high-field operation. It also enters the thermal budget the twin tracks, since the same cryogenic system cools the magnets and touches the diagnostic feedthroughs. The preload cycle is an engineering design specification for the FOAK machines under construction from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-strain-deltas",
+    "Magnet Strain Deltas"
+   ],
+   [
+    "rebco-strain-gauges",
+    "REBCO Strain Gauges"
+   ],
+   [
+    "vessel-shm-telemetry",
+    "Vessel & SHM Telemetry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "petabyte-telemetry-archive",
+  "title": "The Petabyte Telemetry Archive",
+  "cat": "l2-data-fabric",
+  "lede": "A petabyte-scale archive retains raw and reduced telemetry at high fidelity, so any shot on either machine can be re-examined byte-for-byte.",
+  "body": [
+   [
+    "h2",
+    "Retain everything that matters"
+   ],
+   [
+    "p",
+    "Sub-microsecond sampling across 60+ ports generates telemetry at a rate that accumulates to petabytes. The archive retains it at high fidelity — raw counts where forensics demand it, reduced features everywhere — so no shot is lost to summarization. A disruption in the breeder or a plug collapse in the burner can be reconstructed exactly, years later."
+   ],
+   [
+    "h3",
+    "Tiered retention"
+   ],
+   [
+    "ul",
+    [
+     "Hot tier: recent shots at full raw fidelity for fast forensic access.",
+     "Warm tier: reduced features and validated channels for training and analysis.",
+     "Cold tier: compressed long-term retention for lifetime and regulatory records.",
+     "Raw is never overwritten by corrections; calibrations apply at read time."
+    ]
+   ],
+   [
+    "h3",
+    "Why raw fidelity is non-negotiable"
+   ],
+   [
+    "p",
+    "Corrections and calibrations improve over time. Keeping raw counts means an archived shot can be re-reduced with a better calibration or a new feature definition — the training data for the twin gets better without new experiments. Lossless <a href=./data-compression-lossless.html>compression</a> shrinks storage without discarding information; lossy reduction is applied only where <a href=./information-theory-pipeline.html>information theory</a> shows nothing is lost."
+   ],
+   [
+    "h3",
+    "Indexed for retrieval"
+   ],
+   [
+    "p",
+    "The archive is indexed by shot, machine, time, and physics regime, and cross-linked to the <a href=./shot-database.html>shot database</a> and the <a href=./rag-vector-database.html>vector database</a> so a human or a copilot can find the right shot by description, not just by ID. Every record carries full lineage. The archive serves both machines under one schema, versioned in the registry."
+   ]
+  ],
+  "related": [
+   [
+    "time-series-retention",
+    "High-Fidelity Time-Series Retention"
+   ],
+   [
+    "data-compression-lossless",
+    "Lossless Compression"
+   ],
+   [
+    "shot-database",
+    "Shot Database"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "time-series-retention",
+  "title": "High-Fidelity Time-Series Retention",
+  "cat": "l2-data-fabric",
+  "lede": "Telemetry is stored as fully time-resolved series, not downsampled summaries, so the fast physics survives into the archive intact.",
+  "body": [
+   [
+    "h2",
+    "Keep the fast structure"
+   ],
+   [
+    "p",
+    "A summary statistic — a per-shot average or peak — throws away exactly the fast structure the machines are controlled on. High-fidelity retention stores the full time series at acquisition resolution for the diagnostics where it matters, so a Mirnov trace archived today still shows the mode rotation, and a strain trace still shows the transient."
+   ],
+   [
+    "h3",
+    "What full fidelity buys"
+   ],
+   [
+    "ul",
+    [
+     "Re-derivation of any feature from raw series with improved definitions.",
+     "Forensic reconstruction of disruptions and quenches at native resolution.",
+     "Training sets that expose models to real fast dynamics, not smoothed averages.",
+     "Verification that a live feature matches its offline re-computation (parity)."
+    ]
+   ],
+   [
+    "h3",
+    "Storage strategy"
+   ],
+   [
+    "p",
+    "Full-resolution retention across 60+ channels is expensive in bytes, so the fabric applies lossless <a href=./data-compression-lossless.html>compression</a> and columnar time-series layout tuned for range queries. Where a channel's <a href=./information-theory-pipeline.html>information content</a> genuinely supports downsampling — a slow thermal channel — a lower rate is stored, but the decision is explicit and recorded, never a silent default."
+   ],
+   [
+    "h3",
+    "Serving the series"
+   ],
+   [
+    "p",
+    "Retained series are served to offline batch analysis on L0 for retraining and multi-physics comparison, and windows are surfaced to the twin and copilots for context. The retention layer feeds the <a href=./feature-store-online-offline.html>feature store</a> so a feature computed live and one computed from the archive are provably identical. Retention policy is versioned per machine and applies equally to breeder and burner."
+   ]
+  ],
+  "related": [
+   [
+    "petabyte-telemetry-archive",
+    "Petabyte Archive"
+   ],
+   [
+    "data-compression-lossless",
+    "Lossless Compression"
+   ],
+   [
+    "feature-store-online-offline",
+    "Online/Offline Parity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-compression-lossless",
+  "title": "Lossless & Bounded-Loss Compression",
+  "cat": "l2-data-fabric",
+  "lede": "Compression shrinks the archive without discarding physics, using lossless coding where forensics demand it and bounded-loss only where theory permits.",
+  "body": [
+   [
+    "h2",
+    "Compress without lying"
+   ],
+   [
+    "p",
+    "Petabyte-scale telemetry must be compressed, but the fabric will not silently discard information a future analysis might need. It uses lossless compression for raw forensic channels and bounded-loss compression only where the discarded content is provably below the noise floor, with the bound recorded so any consumer knows the guarantee."
+   ],
+   [
+    "h3",
+    "Lossless where it counts"
+   ],
+   [
+    "ul",
+    [
+     "Raw Mirnov, Thomson, and strain traces are stored losslessly for disruption and quench forensics.",
+     "Delta and predictive coding exploit the temporal smoothness of most channels.",
+     "Entropy coding packs the residuals near their information-theoretic limit.",
+     "Reconstruction is bit-exact, so re-reduction yields identical features."
+    ]
+   ],
+   [
+    "h3",
+    "Bounded loss where safe"
+   ],
+   [
+    "p",
+    "Some channels carry content well above their physics bandwidth or below their noise floor. There, the fabric may quantize to a bound tied to the sensor's own noise, discarding only what was never information. The bound is chosen from the channel's <a href=./information-theory-pipeline.html>information budget</a> and stored in metadata, so bounded-loss is auditable, not arbitrary."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def bounded_quant(x, noise_sigma, k=0.25):\n    # step below the sensor noise: discards no real information\n    step = k * noise_sigma\n    import math\n    return round(x/step)*step, step   # value, and the recorded bound"
+    ]
+   ],
+   [
+    "h3",
+    "Auditable by design"
+   ],
+   [
+    "p",
+    "Every stored series records whether it is lossless or bounded-loss and, if bounded, the exact bound. This keeps the archive trustworthy for both machines: a breeder disruption or a burner plug event is always available at the fidelity its physics requires, and lineage shows precisely what compression was applied."
+   ]
+  ],
+  "related": [
+   [
+    "time-series-retention",
+    "High-Fidelity Time-Series Retention"
+   ],
+   [
+    "information-theory-pipeline",
+    "Information Theory of the Pipeline"
+   ],
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "low-latency-feature-store",
+  "title": "The Low-Latency Feature Store",
+  "cat": "l2-data-fabric",
+  "lede": "A feature store serves engineered features to control, the twin, and the copilots at low latency, guaranteeing the same values online and offline.",
+  "body": [
+   [
+    "h2",
+    "One source of features"
+   ],
+   [
+    "p",
+    "The feature store is the fabric's serving layer: the single place that engineered features — instantaneous Q, core pressure map, strain deltas, plug density — are read from, whether by the low-latency online path feeding control or the offline batch path building training sets. Making it the one source is what guarantees a model sees the same feature in training and in operation."
+   ],
+   [
+    "h3",
+    "Online and offline"
+   ],
+   [
+    "ul",
+    [
+     "Online: features computed and served fast enough to feed the twin's predictive shadow and the sub-10 microsecond control boundary.",
+     "Offline: the same feature definitions applied to archived series for retraining.",
+     "Parity is enforced by construction (see <a href=./feature-store-online-offline.html>online/offline parity</a>).",
+     "Every feature is served with its data-quality score and lineage handle."
+    ]
+   ],
+   [
+    "h3",
+    "Latency budget"
+   ],
+   [
+    "p",
+    "The store must serve within the loop's timing budget. It keeps recent features in memory, indexed by machine, channel set, and time, and precomputes the reductions that the twin requests repeatedly. Features that require heavy inversion (the pressure map) are computed once and shared, not recomputed per consumer."
+   ],
+   [
+    "h3",
+    "Consumers"
+   ],
+   [
+    "p",
+    "The twin's Power, Neutronics, Thermomechanics, and MHD modules read from the store; the anomaly ensembles read precursor features from it; the copilots read operational features for dispatch and scheduling. Because it is the shared read path for both the breeder and the burner, the store enforces the schema and quality contracts uniformly. Its design is validated in simulation for machines whose FOAK operation is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "feature-store-online-offline",
+    "Online/Offline Parity"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ],
+   [
+    "feature-engineering-overview",
+    "Feature Engineering"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "feature-store-online-offline",
+  "title": "Online/Offline Feature Parity",
+  "cat": "l2-data-fabric",
+  "lede": "A feature must compute identically live and from the archive; the fabric enforces this parity so models behave the same in training and operation.",
+  "body": [
+   [
+    "h2",
+    "The parity contract"
+   ],
+   [
+    "p",
+    "A model trained on archived features will only behave correctly in operation if the live features are identical in definition to the archived ones. Training-serving skew — a subtle difference between the offline and online computation of the same feature — is a classic failure that would be intolerable in a control loop. The fabric eliminates it by defining each feature once and running that one definition in both paths."
+   ],
+   [
+    "h3",
+    "How parity is enforced"
+   ],
+   [
+    "ul",
+    [
+     "A single versioned feature definition is the source for both online and offline computation.",
+     "Continuous parity tests re-compute live features from the archive and assert equality within a recorded tolerance.",
+     "Feature versions are pinned to model versions so a model always sees the features it was trained on.",
+     "Any divergence raises an alert and blocks promotion of the feature version."
+    ]
+   ],
+   [
+    "h3",
+    "Tolerance, not luck"
+   ],
+   [
+    "p",
+    "Bit-exact parity is the goal for deterministic features; where floating-point or hardware differences make that impossible, the fabric records a tolerance and tests against it (a two-tier parity: exact where possible, bounded elsewhere). This mirrors the program's broader reproducibility discipline."
+   ],
+   [
+    "h3",
+    "Why it matters here"
+   ],
+   [
+    "p",
+    "The twin's predictive shadow and the anomaly ensembles are trained offline and then act online. If the instantaneous Q or a quench precursor computed live differed from the training-time version, the twin's forecast would silently drift. Parity is what lets a model trained on breeder or burner archive data be trusted when it acts on the live machine. This is a design and MLOps discipline for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "low-latency-feature-store",
+    "Low-Latency Feature Store"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ],
+   [
+    "data-lineage",
+    "Data Lineage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ai-ready-features",
+  "title": "AI-Ready Structured Features",
+  "cat": "l2-data-fabric",
+  "lede": "The fabric's output is a pristine, structured, quality-tagged feature set — the clean interface every L3 model and copilot is built on.",
+  "body": [
+   [
+    "h2",
+    "The clean interface"
+   ],
+   [
+    "p",
+    "Everything the AI layer does rests on the features the fabric produces. 'AI-ready' means each feature is validated, normalized into physics coordinates, defined by a versioned transform, tagged with a data-quality score, and carrying full lineage. The models never touch raw sensor voltages; they consume this pristine, structured interface."
+   ],
+   [
+    "h3",
+    "What makes a feature AI-ready"
+   ],
+   [
+    "ul",
+    [
+     "Physically meaningful and consistently defined across shots and machines.",
+     "Normalized so a value means the same thing regardless of small equilibrium shifts.",
+     "Quality-tagged, so a model can down-weight imputed or noisy inputs.",
+     "Versioned and lineage-linked, so training and operation stay reproducible.",
+     "Available with online/offline parity from the feature store."
+    ]
+   ],
+   [
+    "h3",
+    "Feeding the twin and copilots"
+   ],
+   [
+    "p",
+    "The KRONOS-CTRL twin's modules consume features to run their 50-100 ms predictive shadow; the GNNs consume the sensor-topology features to impute dropped channels; the PINNs consume magnetics and profiles to solve equilibria; the anomaly ensembles consume precursor features; the MPC agents consume the state estimate to plan safe actuation. All of it reads the same clean feature set."
+   ],
+   [
+    "h3",
+    "Structure enables retrieval"
+   ],
+   [
+    "p",
+    "Because features are structured and consistently described, they can also be embedded and indexed for retrieval (see <a href=./vector-embeddings-diagnostics.html>diagnostic embeddings</a>), letting a copilot pull the most similar past shots into context. Pristine structure is what makes both the numerical models and the retrieval layer possible. The features serve the breeder and the burner alike and are a design specification for machines whose FOAK is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "feature-engineering-overview",
+    "Feature Engineering"
+   ],
+   [
+    "low-latency-feature-store",
+    "Low-Latency Feature Store"
+   ],
+   [
+    "vector-embeddings-diagnostics",
+    "Diagnostic Embeddings"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rag-vector-database",
+  "title": "The RAG-Ready Vector Database",
+  "cat": "l2-data-fabric",
+  "lede": "A vector database indexes embeddings of shots, diagnostics, and documents so copilots retrieve the most relevant context by meaning, not keyword.",
+  "body": [
+   [
+    "h2",
+    "Retrieval by meaning"
+   ],
+   [
+    "p",
+    "The copilots reason over a large corpus: past shots, diagnostic traces, engineering documents, procedures, and the schema registry. A vector database stores embeddings of these items so a query is answered by semantic similarity — the copilot retrieves the shots and documents closest in meaning, then reasons over them. This is the retrieval half of retrieval-augmented generation."
+   ],
+   [
+    "h3",
+    "What is embedded"
+   ],
+   [
+    "ul",
+    [
+     "Diagnostic and shot summaries, so 'find shots with a growing n=1 mode near a density limit' returns the right ones.",
+     "Engineering and procedure documents, for the operations and maintenance copilots.",
+     "Schema and registry entries, so a copilot can ground itself in the current channel and feature definitions.",
+     "Machine-scoped: breeder and burner corpora are indexed and queryable separately or together."
+    ]
+   ],
+   [
+    "h3",
+    "How retrieval works"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\ndef top_k(query_vec, index, k=5):\n    # cosine similarity retrieval over normalized embeddings\n    sims = index @ (query_vec/np.linalg.norm(query_vec))\n    return np.argsort(-sims)[:k]"
+    ]
+   ],
+   [
+    "h3",
+    "Grounded and governed"
+   ],
+   [
+    "p",
+    "Retrieval keeps the copilots grounded in the plant's real data rather than free-associating. Every retrieved item carries its lineage, so a copilot's answer can be traced to the exact shots and documents it rested on — essential for a safety-relevant system. The vector database is built from the same governed corpus as the archive and registry (see <a href=./document-schema-registry.html>document & schema registry</a>), and it is a design specification for the AI stack serving both machines."
+   ]
+  ],
+  "related": [
+   [
+    "vector-embeddings-diagnostics",
+    "Diagnostic Embeddings"
+   ],
+   [
+    "document-schema-registry",
+    "Document & Schema Registry"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vector-embeddings-diagnostics",
+  "title": "Diagnostic & Shot Embeddings",
+  "cat": "l2-data-fabric",
+  "lede": "Embedding shots and diagnostic windows into vectors lets the fabric find physically similar situations by nearest-neighbor search.",
+  "body": [
+   [
+    "h2",
+    "Turning shots into vectors"
+   ],
+   [
+    "p",
+    "An embedding maps a shot, or a window of diagnostic telemetry, into a fixed-length vector such that physically similar situations land close together. This lets the fabric answer 'what past shots looked like this one?' by nearest-neighbor search — invaluable when a copilot or operator faces an unfamiliar state on the breeder or the burner."
+   ],
+   [
+    "h3",
+    "What the embedding captures"
+   ],
+   [
+    "ul",
+    [
+     "The shape of key features over a window: mode activity, pressure profile, strain deltas.",
+     "Regime membership: ELM-free negative-triangularity for the breeder, plug-and-potential state for the burner.",
+     "Precursor signatures, so shots that preceded a disruption cluster together.",
+     "Machine and configuration context, so retrieval respects which machine it is."
+    ]
+   ],
+   [
+    "h3",
+    "How the vectors are made"
+   ],
+   [
+    "p",
+    "Embeddings are produced by models trained on the archive to preserve physical similarity — a shot with a locking mode embeds near other locking-mode shots. Because they are built from the same AI-ready features, they inherit their quality tags and lineage. The vectors are stored in the <a href=./rag-vector-database.html>vector database</a> for retrieval."
+   ],
+   [
+    "h3",
+    "Uses"
+   ],
+   [
+    "p",
+    "Nearest-neighbor retrieval over shot embeddings supports the anomaly workflow (has this precursor pattern ended badly before?), the copilots (pull similar past operations into context), and MLOps (find drift by watching new shots drift away from known clusters, see <a href=./data-quality-scoring.html>quality</a>). The embedding approach is machine-agnostic and is a design specification for the stack serving machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "rag-vector-database",
+    "RAG Vector Database"
+   ],
+   [
+    "anomaly-precursor-features",
+    "Precursor Features"
+   ],
+   [
+    "ai-ready-features",
+    "AI-Ready Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "document-schema-registry",
+  "title": "Document & Schema Registry",
+  "cat": "l2-data-fabric",
+  "lede": "A registry holds the authoritative definitions of every channel, feature, and document, so the whole fabric agrees on what each number means.",
+  "body": [
+   [
+    "h2",
+    "The single source of definitions"
+   ],
+   [
+    "p",
+    "A fabric with 60+ channels, dozens of engineered features, and two machines needs one authoritative place that says what each thing is: the channel's sensor, calibration, and units; the feature's definition and version; the document's provenance. The registry is that place, and every stage of the fabric reads from it so definitions never fork."
+   ],
+   [
+    "h3",
+    "What the registry holds"
+   ],
+   [
+    "ul",
+    [
+     "Channel definitions: sensor type, position, feedthrough, calibration, sample rate, filter cutoffs.",
+     "Feature definitions: the exact transform, its inputs, and its version.",
+     "Schema versions for archive, feature store, and vector database records.",
+     "Document provenance for the corpus the copilots retrieve over.",
+     "Per-machine bounds and envelopes for validation and safety."
+    ]
+   ],
+   [
+    "h3",
+    "Versioned, not mutable"
+   ],
+   [
+    "p",
+    "Definitions change as the machines and models mature, so the registry is versioned rather than mutable. An archived shot references the schema versions in force when it was taken; a model references the feature versions it trained on. This is what makes re-reduction and reproducibility possible across the life of both the breeder and the burner."
+   ],
+   [
+    "h3",
+    "Grounding the copilots"
+   ],
+   [
+    "p",
+    "The registry is also part of the retrieval corpus: a copilot grounds its answers in current channel and feature definitions by retrieving from the registry, so it never reasons over a stale schema. Together with <a href=./metadata-governance.html>metadata governance</a> and <a href=./data-lineage.html>lineage</a>, the registry is the backbone of the fabric's trustworthiness. It is a design specification for the stack of machines under construction from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ],
+   [
+    "data-lineage",
+    "Data Lineage"
+   ],
+   [
+    "rag-vector-database",
+    "RAG Vector Database"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "metadata-governance",
+  "title": "Metadata Governance",
+  "cat": "l2-data-fabric",
+  "lede": "Strict governance ensures every datum carries correct, complete metadata — machine, channel, calibration, quality, version — so nothing is orphaned.",
+  "body": [
+   [
+    "h2",
+    "No datum without metadata"
+   ],
+   [
+    "p",
+    "A raw number with no context is dangerous in a control system: it could be from the wrong machine, an uncalibrated channel, or a dead sensor. Metadata governance is the policy and enforcement that no datum enters the fabric without complete, correct metadata: which machine, which channel, which calibration version, which quality score, which schema version."
+   ],
+   [
+    "h3",
+    "The required metadata"
+   ],
+   [
+    "ul",
+    [
+     "Machine and configuration: breeder (Hyperion) or burner, and the shot configuration.",
+     "Channel identity and its registry version, tying the value to a calibrated sensor.",
+     "Timestamp and clock domain, so cross-channel phase is defined.",
+     "Data-quality score and validation verdict.",
+     "Feature version and lineage handle for anything engineered."
+    ]
+   ],
+   [
+    "h3",
+    "Enforcement, not convention"
+   ],
+   [
+    "p",
+    "Governance is enforced at ingest: a record missing required metadata is rejected or quarantined, never accepted by default. This is stricter than typical data engineering because the consumers are safety-relevant — a twin acting on a mislabeled channel could mis-actuate a 9.86 MA plasma or a 26.49 T plug."
+   ],
+   [
+    "h3",
+    "Governance enables everything else"
+   ],
+   [
+    "p",
+    "Lineage, reproducibility, retrieval, and the IT/OT audit trail all rest on complete metadata. Governance is what lets the fabric answer, for any prediction the twin ever made, exactly which bytes and definitions it rested on (see <a href=./data-lineage.html>data lineage</a>). It applies uniformly to both machines and is a design and operational discipline for a stack whose FOAK machine begins construction Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "data-lineage",
+    "Data Lineage"
+   ],
+   [
+    "document-schema-registry",
+    "Document & Schema Registry"
+   ],
+   [
+    "provenance-audit-trail",
+    "Provenance Audit Trail"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-lineage",
+  "title": "Data Lineage",
+  "cat": "l2-data-fabric",
+  "lede": "Lineage records the full ancestry of every feature — which channels, calibrations, and transforms produced it — so any twin decision can be traced to raw bytes.",
+  "body": [
+   [
+    "h2",
+    "From decision back to bytes"
+   ],
+   [
+    "p",
+    "When the twin forecasts a disruption or the failsafe context is questioned, the answer must be traceable: exactly which samples, calibrations, imputations, and feature versions produced the number that drove the decision. Lineage is the record of that ancestry, maintained for every engineered value in the fabric."
+   ],
+   [
+    "h3",
+    "What lineage captures"
+   ],
+   [
+    "ul",
+    [
+     "The raw channels and samples that fed a feature.",
+     "The calibration and drift-correction versions applied.",
+     "Any imputation of dead channels and the graph model version used.",
+     "The feature definition version and normalization coordinate frame.",
+     "The downstream models and decisions that consumed the feature."
+    ]
+   ],
+   [
+    "h3",
+    "A directed graph"
+   ],
+   [
+    "p",
+    "Lineage is naturally a directed acyclic graph from raw samples up through validation, normalization, feature engineering, and into model inputs. The fabric stores this graph so any node can be traced up to its consumers or down to its raw sources. Combined with the immutable raw archive, this means any past feature can be recomputed and verified."
+   ],
+   [
+    "h3",
+    "Why a fusion program needs it"
+   ],
+   [
+    "p",
+    "Lineage is what turns the twin from a black box into an auditable instrument. It supports forensic analysis of a breeder disruption or a burner plug event, MLOps investigation of model drift, and the decision-audit requirements of a safety-relevant control system (see <a href=./provenance-audit-trail.html>provenance audit trail</a>). It is enforced by <a href=./metadata-governance.html>metadata governance</a> and applies to both machines. This is a design and operational discipline for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ],
+   [
+    "provenance-audit-trail",
+    "Provenance Audit Trail"
+   ],
+   [
+    "feature-store-online-offline",
+    "Online/Offline Parity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "provenance-audit-trail",
+  "title": "Provenance Audit Trail",
+  "cat": "l2-data-fabric",
+  "lede": "An append-only audit trail records every decision the AI stack informed and the data behind it, giving the fabric a defensible history.",
+  "body": [
+   [
+    "h2",
+    "An immutable record"
+   ],
+   [
+    "p",
+    "A safety-relevant control system must be able to reconstruct, after the fact, what it knew and why it acted. The provenance audit trail is an append-only record linking each decision the AI stack informed — a twin forecast, an anomaly alert, an MPC actuation recommendation, a human override — to the exact features, lineage, and model versions behind it."
+   ],
+   [
+    "h3",
+    "What is recorded"
+   ],
+   [
+    "ul",
+    [
+     "The decision or recommendation and its timestamp.",
+     "The feature values and their lineage at decision time.",
+     "The model versions that produced the recommendation.",
+     "The human-in-the-loop action, if any, and who took it.",
+     "The machine and configuration context."
+    ]
+   ],
+   [
+    "h3",
+    "Append-only and tamper-evident"
+   ],
+   [
+    "p",
+    "The trail is append-only and tamper-evident, so a record cannot be altered after an event without leaving a trace. This is the data-side complement to the security layer's zero-trust and unidirectional-diode design: the fabric can prove not only what happened but that the record of it is intact."
+   ],
+   [
+    "h3",
+    "Uses of the trail"
+   ],
+   [
+    "p",
+    "The audit trail supports forensic reconstruction of any event on the breeder or the burner, regulatory and safety review, and MLOps post-mortems that ask whether a model behaved as trained. It rests on <a href=./data-lineage.html>lineage</a> and <a href=./metadata-governance.html>governance</a>, and it is the reason the fabric can stand behind every number the twin ever acted on. It is a design and operational discipline for machines whose FOAK operation is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "data-lineage",
+    "Data Lineage"
+   ],
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ],
+   [
+    "shot-database",
+    "Shot Database"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shot-database",
+  "title": "The Shot Database",
+  "cat": "l2-data-fabric",
+  "lede": "A structured database records every shot's configuration, outcome, and links to its telemetry, the human-and-machine index into the archive.",
+  "body": [
+   [
+    "h2",
+    "Every shot, indexed"
+   ],
+   [
+    "p",
+    "Beyond the raw telemetry archive, the fabric keeps a structured shot database: one record per shot capturing its configuration, key outcomes, regime, events, and pointers into the archive, feature store, and vector database. It is how a person or a copilot finds the right shot without sifting petabytes of raw series."
+   ],
+   [
+    "h3",
+    "What a shot record holds"
+   ],
+   [
+    "ul",
+    [
+     "Machine and configuration: breeder or burner, target parameters, actuator settings.",
+     "Outcome features: peak instantaneous Q, achieved profiles, whether a disruption or plug event occurred.",
+     "Event log: precursors that fired, overrides, failsafe actions.",
+     "Links: to raw telemetry, engineered features, and the shot's embedding."
+    ]
+   ],
+   [
+    "h3",
+    "Querying by physics"
+   ],
+   [
+    "p",
+    "Because records are structured, the database answers physics questions directly: shots at a given breeder shape and current, shots where the burner's plug density crossed a threshold, shots that preceded a disruption. For fuzzier queries it hands off to the <a href=./vector-embeddings-diagnostics.html>embedding search</a>, which finds physically similar shots by nearest neighbor."
+   ],
+   [
+    "h3",
+    "The organizing spine"
+   ],
+   [
+    "p",
+    "The shot database is the spine that ties the fabric together: the archive holds the bytes, the feature store serves the features, the vector database enables semantic search, and the shot database is the index that connects them with governance and lineage attached. It serves both machines under one schema and is a design specification for the stack of machines under construction from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "petabyte-telemetry-archive",
+    "Petabyte Archive"
+   ],
+   [
+    "vector-embeddings-diagnostics",
+    "Diagnostic Embeddings"
+   ],
+   [
+    "provenance-audit-trail",
+    "Provenance Audit Trail"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-quality-scoring",
+  "title": "Data-Quality Scoring",
+  "cat": "l2-data-fabric",
+  "lede": "Every sample and feature carries a quality score summarizing noise, validation, imputation, and drift, so downstream models weight it correctly.",
+  "body": [
+   [
+    "h2",
+    "Quality as a first-class number"
+   ],
+   [
+    "p",
+    "Not all data is equally trustworthy, and the fabric refuses to hide that. Every sample and every engineered feature carries a data-quality score that summarizes how much to trust it: was it in-band, was the sensor live, was it imputed, how noisy is the channel, how much drift correction was applied. Models and the twin weight inputs by this score."
+   ],
+   [
+    "h3",
+    "What the score combines"
+   ],
+   [
+    "ul",
+    [
+     "Validation verdict: used, filtered, imputed, or rejected.",
+     "Signal-to-noise against the channel's known noise floor and ADC resolution.",
+     "Imputation flag and the confidence of the graph model that filled it.",
+     "Drift-correction magnitude since the last calibration.",
+     "Cross-channel agreement with redundant diagnostics."
+    ]
+   ],
+   [
+    "h3",
+    "Propagation through features"
+   ],
+   [
+    "p",
+    "A feature's quality is bounded by its worst essential input: an instantaneous Q built on a drifting neutron calibration inherits that uncertainty; a pressure map with imputed Thomson channels carries a reduced score in the affected region. The fabric propagates quality through the feature graph so the number that reaches the twin is honest about itself."
+   ],
+   [
+    "h3",
+    "Acting on quality"
+   ],
+   [
+    "p",
+    "Quality scores let the sensor fusion down-weight bad channels, let the anomaly ensembles avoid firing on artifacts, and let MLOps detect drift as a population-level fall in quality. The score is stored with the feature and recorded in lineage. It is computed identically for the breeder and the burner and is a design specification for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "signal-validation-overview",
+    "Signal Validation Overview"
+   ],
+   [
+    "signal-fusion-multimodal",
+    "Multi-Modal Sensor Fusion"
+   ],
+   [
+    "calibration-drift-tracking",
+    "Calibration & Drift Tracking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "timestamping-ptp",
+  "title": "Precision Timestamping",
+  "cat": "l2-data-fabric",
+  "lede": "A disciplined precision-time protocol gives every channel a common, sub-sample-accurate clock, without which multi-channel physics inference is meaningless.",
+  "body": [
+   [
+    "h2",
+    "One clock for the constellation"
+   ],
+   [
+    "p",
+    "Equilibrium reconstruction, mode analysis, and sensor fusion are all multi-channel inferences. They are valid only if every channel's samples share a common time reference to better than a sample. Precision timestamping distributes a disciplined clock — a precision time protocol synchronizing all digitizers — so cross-channel phase is exact."
+   ],
+   [
+    "h3",
+    "Why sub-sample matters"
+   ],
+   [
+    "ul",
+    [
+     "Mirnov mode analysis is pure phase inference: a fraction-of-a-sample skew fakes a mode.",
+     "Fused density from Thomson and interferometry must align in time to cross-check.",
+     "The twin's predictive shadow, running 50-100 ms ahead, needs a coherent state snapshot.",
+     "Pulsed diagnostics (Thomson) must be placed exactly relative to continuous ones."
+    ]
+   ],
+   [
+    "h3",
+    "Discipline and holdover"
+   ],
+   [
+    "p",
+    "The protocol continuously disciplines each digitizer's local oscillator to the master, correcting drift. If the master reference is lost, digitizers hold over on their disciplined oscillators for a bounded time, and the fabric flags the reduced timing confidence in the data-quality score rather than pretending nothing changed."
+   ],
+   [
+    "h3",
+    "Coupling to the control boundary"
+   ],
+   [
+    "p",
+    "Precise time is also what lets the fabric hand a coherent, well-stamped state to L1 at the sub-10 microsecond boundary, and what makes the synchronized gates and the audit trail meaningful — an event's time is trustworthy. Timestamping applies identically to the breeder and the burner and is a design specification for machines whose FOAK is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "sub-microsecond-sampling",
+    "Sub-Microsecond Sampling"
+   ],
+   [
+    "mirnov-coils",
+    "Mirnov Coils"
+   ],
+   [
+    "telemetry-timing-synchronization",
+    "Timing Synchronization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "telemetry-timing-synchronization",
+  "title": "Timing Synchronization Across Ports",
+  "cat": "l2-data-fabric",
+  "lede": "Beyond a shared clock, the fabric aligns for cable, filter, and feedthrough delays so all 60+ ports report on a truly common timeline.",
+  "body": [
+   [
+    "h2",
+    "Same clock is not enough"
+   ],
+   [
+    "p",
+    "A common clock timestamps when a sample was digitized, but the physics event happened earlier, delayed by the sensor, the cryo feedthrough, the cable, the front-end filter, and the ADC. Different ports have different delays. Timing synchronization measures and removes these per-channel latencies so the 60+ ports report physics events on one true timeline."
+   ],
+   [
+    "h3",
+    "Sources of per-channel delay"
+   ],
+   [
+    "ul",
+    [
+     "Cable and feedthrough propagation delay, characterized per port.",
+     "Anti-alias and digital filter group delay, known from the filter design.",
+     "Pulsed-diagnostic timing (Thomson laser fire relative to the clock).",
+     "Sensor response time for slower thermal and strain channels."
+    ]
+   ],
+   [
+    "h3",
+    "De-embedding delay"
+   ],
+   [
+    "p",
+    "Each delay is measured during commissioning and stored in the channel's registry entry, then de-embedded so the timestamp reflects the physics event, not the digitization instant. Filter group delay in particular is corrected using the known filter response, restoring phase for the magnetics that mode analysis depends on."
+   ],
+   [
+    "h3",
+    "Why it is load-bearing"
+   ],
+   [
+    "p",
+    "Uncorrected relative delays would corrupt every multi-channel inference: equilibrium fits, mode numbers, fused profiles. In a 16.84 T breeder or a 26.49 T-plug burner, where the interesting physics is fast, tens of nanoseconds of uncorrected skew matter. Synchronization builds on <a href=./timestamping-ptp.html>precision timestamping</a> and the per-channel calibrations in the registry, and it is a design specification for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "timestamping-ptp",
+    "Precision Timestamping"
+   ],
+   [
+    "signal-conditioning-front-end",
+    "Signal Conditioning Front End"
+   ],
+   [
+    "document-schema-registry",
+    "Document & Schema Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "telemetry-schema-versioning",
+  "title": "Telemetry Schema Versioning",
+  "cat": "l2-data-fabric",
+  "lede": "Channel and feature schemas evolve as the machines mature; versioning ties every archived datum to the exact definitions in force when it was taken.",
+  "body": [
+   [
+    "h2",
+    "Definitions change; history must not"
+   ],
+   [
+    "p",
+    "Over the life of the breeder and the burner, channels are added, calibrations improve, and feature definitions are refined. If schemas simply mutated, old data would become uninterpretable and reproducibility would collapse. Schema versioning fixes this: every archived record references the schema version in force at acquisition, and old versions are never deleted."
+   ],
+   [
+    "h3",
+    "What is versioned"
+   ],
+   [
+    "ul",
+    [
+     "Channel schemas: the set of ports, their sensors, positions, and calibrations.",
+     "Feature schemas: the definition and inputs of each engineered feature.",
+     "Storage schemas: the layout of archive, feature-store, and vector records.",
+     "Validation and bound schemas: the per-machine limits used to judge data."
+    ]
+   ],
+   [
+    "h3",
+    "Reading old data correctly"
+   ],
+   [
+    "p",
+    "When an old shot is re-reduced, the fabric loads the schema version it was taken under, so the raw counts are interpreted with the right calibration and the features are recomputed with the right definitions — or, deliberately, with a newer definition, with both the old and new versions recorded. This is what makes the archive a durable scientific asset."
+   ],
+   [
+    "h3",
+    "Compatibility discipline"
+   ],
+   [
+    "p",
+    "Schema changes follow compatibility rules: additive changes are safe; breaking changes create a new major version and a migration is recorded. Model versions pin the feature schema versions they were trained on, tying <a href=./feature-store-online-offline.html>online/offline parity</a> to explicit versions. Versioning is enforced through the <a href=./document-schema-registry.html>registry</a> and applies to both machines. It is a design and operational discipline for machines under construction from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "document-schema-registry",
+    "Document & Schema Registry"
+   ],
+   [
+    "feature-store-online-offline",
+    "Online/Offline Parity"
+   ],
+   [
+    "metadata-governance",
+    "Metadata Governance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "edge-preprocessing",
+  "title": "Edge Preprocessing",
+  "cat": "l2-data-fabric",
+  "lede": "Some validation and feature extraction runs at the edge, near the machine, to cut latency and volume before telemetry travels to the archive and twin.",
+  "body": [
+   [
+    "h2",
+    "Compute at the source"
+   ],
+   [
+    "p",
+    "Not all processing can afford a round trip to the data center. The fabric runs a first pass of validation and feature extraction at the edge, on hardware close to the machine, so the fastest features are ready inside the control loop's budget and the data volume shipped upstream is reduced. This mirrors the edge-to-cloud latency gradient of the wider architecture."
+   ],
+   [
+    "h3",
+    "What runs at the edge"
+   ],
+   [
+    "ul",
+    [
+     "Anti-alias handling, HF filtering, and first-pass range and dead-sensor checks.",
+     "Fast features the loop needs immediately: strain deltas, mode amplitudes, plug density.",
+     "Compression before uplink, to fit the link's bandwidth.",
+     "Timestamp de-embedding, so upstream data arrives already time-aligned."
+    ]
+   ],
+   [
+    "h3",
+    "Edge versus cloud split"
+   ],
+   [
+    "p",
+    "The split is set by latency and information needs. Features required within the sub-10 microsecond control neighborhood are computed at the edge; heavy inversions like the full core pressure map and the offline multi-physics Monte Carlo run in the data center on L0. The <a href=./feature-store-online-offline.html>parity contract</a> guarantees a feature computed at the edge matches the same feature recomputed from the archive."
+   ],
+   [
+    "h3",
+    "Consistency and governance"
+   ],
+   [
+    "p",
+    "Edge preprocessing uses the same versioned feature and calibration definitions from the registry as the cloud path, so there is one definition, two execution sites. Every edge-computed value carries its lineage and quality score upstream. Edge nodes serve both the breeder and the burner and are a design specification for machines whose FOAK operation is expected near 2030."
+   ]
+  ],
+  "related": [
+   [
+    "telemetry-backpressure-flow-control",
+    "Backpressure & Flow Control"
+   ],
+   [
+    "feature-store-online-offline",
+    "Online/Offline Parity"
+   ],
+   [
+    "cross-machine-data-fabric",
+    "Cross-Machine Data Fabric"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "telemetry-backpressure-flow-control",
+  "title": "Backpressure & Flow Control",
+  "cat": "l2-data-fabric",
+  "lede": "The fabric manages telemetry flow so a burst never drops safety-critical data, prioritizing channels and applying backpressure to the rest.",
+  "body": [
+   [
+    "h2",
+    "When data outruns the pipe"
+   ],
+   [
+    "p",
+    "Sub-microsecond sampling across 60+ ports can, in a burst, generate data faster than a link or store can absorb. The fabric handles this deterministically: it prioritizes safety-critical and control-critical channels, buffers within bounds, and applies backpressure to lower-priority flows rather than dropping data at random."
+   ],
+   [
+    "h3",
+    "Priority tiers"
+   ],
+   [
+    "ul",
+    [
+     "Tier 0: safety and control features that feed L1 and the failsafe context - never dropped.",
+     "Tier 1: diagnostics the twin's predictive shadow needs live.",
+     "Tier 2: full-fidelity raw series for the archive, buffered and shipped as bandwidth allows.",
+     "Tier 3: bulk documents and non-time-critical records."
+    ]
+   ],
+   [
+    "h3",
+    "Backpressure, not loss"
+   ],
+   [
+    "p",
+    "When a downstream stage saturates, the fabric signals upstream to slow or buffer lower tiers, keeping the critical path clear. Because the archive tolerates a bounded delay, Tier 2 data can queue at the edge and drain later without loss, while Tier 0 flows unobstructed. What cannot be buffered within bounds is recorded as a gap in lineage, never silently lost."
+   ],
+   [
+    "h3",
+    "Determinism matters"
+   ],
+   [
+    "p",
+    "In a control system, unpredictable data loss is a hazard. Flow control is designed so that under any load the critical telemetry keeps its timing guarantees, which is what lets the sub-10 microsecond boundary and the twin's shadow stay valid during exactly the disruptive events when data rates spike. It serves both machines and is a design specification for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "edge-preprocessing",
+    "Edge Preprocessing"
+   ],
+   [
+    "petabyte-telemetry-archive",
+    "Petabyte Archive"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cross-machine-data-fabric",
+  "title": "Cross-Machine Data Fabric",
+  "cat": "l2-data-fabric",
+  "lede": "One fabric serves both machines under a shared schema, so features, models, and lineage transfer between the breeder and the burner.",
+  "body": [
+   [
+    "h2",
+    "One fabric, two machines"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) and the burner are different devices — a spherical tokamak and a tandem mirror — but they share one Data Fabric. The acquisition chain, validation, normalization, feature framework, archive, feature store, vector database, and governance are common; only the coordinate module, the diagnostic mix, and the per-machine bounds differ. This is deliberate."
+   ],
+   [
+    "h3",
+    "What is shared"
+   ],
+   [
+    "ul",
+    [
+     "The 60+ port acquisition and sub-microsecond sampling chain.",
+     "Validation, dead-sensor imputation, and quality scoring.",
+     "Feature definitions with machine-specific inputs bound at configuration.",
+     "Archive, feature store, vector database, registry, and lineage."
+    ]
+   ],
+   [
+    "h3",
+    "What differs"
+   ],
+   [
+    "ul",
+    [
+     "Coordinate frame: flux coordinates for the breeder, mirror coordinates for the burner.",
+     "Diagnostic weighting: magnetics-and-profiles versus density-potential-and-DEC.",
+     "Physical bounds: 9.86 MA / 16.84 T versus 26.49 T plug / 17 T throat.",
+     "Control problems: equilibrium and disruption versus plug density and ambipolar potential."
+    ]
+   ],
+   [
+    "h3",
+    "Why unify"
+   ],
+   [
+    "p",
+    "A shared fabric means tooling, models, and operational knowledge transfer between machines, and lineage and governance are enforced once. A quality-scoring or imputation improvement helps both. It also lets the copilots and vector database reason across machines when that is useful, while keeping machine-scoped queries clean. The unified fabric is a design specification for the program whose breeder construction begins Q2 2027 and whose burner follows as a design and simulation study."
+   ]
+  ],
+  "related": [
+   [
+    "l2-data-fabric-overview",
+    "L2 Overview"
+   ],
+   [
+    "spatial-normalization",
+    "Spatial Normalization"
+   ],
+   [
+    "document-schema-registry",
+    "Document & Schema Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "information-theory-pipeline",
+  "title": "Information Theory of the Pipeline",
+  "cat": "l2-data-fabric",
+  "lede": "Information theory sets the fabric's limits: how fast to sample, how much to compress, and how much a diagnostic actually tells you.",
+  "body": [
+   [
+    "h2",
+    "The pipeline as an information channel"
+   ],
+   [
+    "p",
+    "The fabric can be read as an information channel from plasma state to feature. Information theory bounds what it can do: the sampling theorem sets the minimum rate, channel capacity bounds the bits a noisy diagnostic can convey, and entropy sets the floor for lossless compression. Designing the fabric is, in part, budgeting information."
+   ],
+   [
+    "h3",
+    "Capacity and noise"
+   ],
+   [
+    "p",
+    "A diagnostic channel with bandwidth B and signal-to-noise ratio S/N has a capacity C = B*log2(1+S/N) bits per second. This is why the fabric fights noise at the front end and sizes the ADC so quantization is not the limit: every decibel of S/N is capacity that would otherwise be lost, and no downstream cleverness can recover information the channel never carried."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef capacity_bps(bandwidth_hz, snr_linear):\n    # Shannon-Hartley capacity of a diagnostic channel\n    return bandwidth_hz * math.log2(1 + snr_linear)\n\n# a 500 kHz magnetics channel at 40 dB SNR\ncapacity_bps(500e3, 10**(40/10))   # ~6.6 Mbit/s"
+    ]
+   ],
+   [
+    "h3",
+    "Compression floor"
+   ],
+   [
+    "p",
+    "The entropy of a channel's samples sets the smallest lossless representation. The fabric's <a href=./data-compression-lossless.html>lossless coding</a> approaches this floor; bounded-loss compression is only applied where the discarded content is below the noise floor and therefore carries no information. This makes compression decisions principled rather than arbitrary."
+   ],
+   [
+    "h3",
+    "Choosing what to measure"
+   ],
+   [
+    "p",
+    "Information theory also guides which diagnostics add value: a channel that is highly redundant with others adds little information for its cost (see <a href=./mutual-information-sensor-selection.html>mutual-information selection</a>). Applied across the breeder and burner constellations, this keeps the fabric information-rich and waste-poor. It is an analysis discipline for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "mutual-information-sensor-selection",
+    "Mutual-Information Sensor Selection"
+   ],
+   [
+    "entropy-budget-diagnostics",
+    "Entropy Budget per Diagnostic"
+   ],
+   [
+    "data-compression-lossless",
+    "Lossless Compression"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "entropy-budget-diagnostics",
+  "title": "Entropy Budget per Diagnostic",
+  "cat": "l2-data-fabric",
+  "lede": "The fabric tracks how many bits of real information each diagnostic contributes, so sampling, storage, and trust are matched to content.",
+  "body": [
+   [
+    "h2",
+    "Bits, not bytes"
+   ],
+   [
+    "p",
+    "Two channels can produce the same number of bytes yet carry very different amounts of information: a slow, quiet thermocouple and a fast, structured Mirnov coil. The fabric tracks an entropy budget — the real information content per diagnostic — and matches sampling rate, retention fidelity, and compression to it, so effort follows information."
+   ],
+   [
+    "h3",
+    "Estimating information content"
+   ],
+   [
+    "ul",
+    [
+     "Entropy of the sample distribution bounds the lossless storage a channel needs.",
+     "Effective bandwidth times log of signal-to-noise bounds its rate of information.",
+     "Redundancy with other channels discounts a channel's unique contribution.",
+     "Regime dependence: a channel can be information-rich during a disruption and quiet otherwise."
+    ]
+   ],
+   [
+    "h3",
+    "Matching effort to content"
+   ],
+   [
+    "p",
+    "A high-entropy channel earns full-rate sampling and lossless retention; a low-entropy channel can be sampled slower and compressed harder without losing physics. Because the budget is regime-dependent, the fabric can retain more during interesting windows (a breeder disruption, a burner plug event) and less during quiet flat-tops, all recorded explicitly."
+   ],
+   [
+    "h3",
+    "Feeding governance and quality"
+   ],
+   [
+    "p",
+    "The entropy budget informs the data-quality score (a channel delivering far below its expected information is suspect) and the compression policy (bounded-loss only below the noise floor). It is the quantitative backbone of the <a href=./information-theory-pipeline.html>pipeline's information theory</a>, applied per diagnostic across both machines. It is an analysis discipline for a stack whose FOAK machine begins construction Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "information-theory-pipeline",
+    "Information Theory of the Pipeline"
+   ],
+   [
+    "mutual-information-sensor-selection",
+    "Mutual-Information Sensor Selection"
+   ],
+   [
+    "data-quality-scoring",
+    "Data-Quality Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mutual-information-sensor-selection",
+  "title": "Mutual-Information Sensor Selection",
+  "cat": "l2-data-fabric",
+  "lede": "Mutual information ranks how much each diagnostic tells the fabric about the plasma state, guiding redundancy, fusion weights, and constellation design.",
+  "body": [
+   [
+    "h2",
+    "How much does a sensor tell you"
+   ],
+   [
+    "p",
+    "Mutual information measures how much knowing a diagnostic reduces uncertainty about the quantity you care about — the equilibrium, the pressure map, the plug density. The fabric uses it to rank diagnostics, set fusion weights, size redundancy, and understand which parts of the constellation carry the state estimate."
+   ],
+   [
+    "h3",
+    "The quantity"
+   ],
+   [
+    "p",
+    "For a target state variable X and a diagnostic Y, the mutual information I(X;Y) = H(X) - H(X|Y) is the reduction in entropy of X from observing Y. A diagnostic with high I(X;Y) for a given target is worth its place; one whose information is already supplied by others is redundant — useful for cross-checking and imputation, but not for new content."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef mutual_information(p_xy, p_x, p_y):\n    mi = 0.0\n    for (x,y),pxy in p_xy.items():\n        if pxy>0:\n            mi += pxy*math.log2(pxy/(p_x[x]*p_y[y]))\n    return mi   # bits that Y reveals about X"
+    ]
+   ],
+   [
+    "h3",
+    "Uses across the fabric"
+   ],
+   [
+    "ul",
+    [
+     "Fusion weights: diagnostics with higher mutual information about a target weigh more.",
+     "Redundancy design: keep enough overlap that imputation can cover a dropped channel.",
+     "Precursor selection: choose features with high mutual information about disruption or plug collapse.",
+     "Constellation design: understand which diagnostics are load-bearing for each machine's control problems."
+    ]
+   ],
+   [
+    "h3",
+    "Per machine"
+   ],
+   [
+    "p",
+    "The rankings differ by machine and target: magnetics carry high mutual information about the breeder's equilibrium; density and potential diagnostics carry it about the burner's plug and ambipolar state. The method is shared, the answers machine-specific. It is an analysis discipline underpinning the fabric's design for machines not yet built."
+   ]
+  ],
+  "related": [
+   [
+    "information-theory-pipeline",
+    "Information Theory of the Pipeline"
+   ],
+   [
+    "entropy-budget-diagnostics",
+    "Entropy Budget per Diagnostic"
+   ],
+   [
+    "signal-fusion-multimodal",
+    "Multi-Modal Sensor Fusion"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

@@ -1,0 +1,2998 @@
+[
+ {
+  "slug": "mcts-fundamentals",
+  "title": "Monte Carlo Tree Search",
+  "cat": "reinforcement-learning",
+  "lede": "MCTS builds an asymmetric search tree by repeated simulation, focusing effort on the most promising moves.",
+  "body": [
+   [
+    "h2",
+    "The four phases"
+   ],
+   [
+    "p",
+    "Monte Carlo Tree Search (MCTS) grows a search tree one node at a time. Each iteration runs four steps: <b>selection</b>, <b>expansion</b>, <b>simulation</b> (rollout), and <b>backpropagation</b>. Over many iterations the tree deepens toward high-value regions of the state space while leaving weak lines shallow."
+   ],
+   [
+    "h3",
+    "Selection with UCT"
+   ],
+   [
+    "p",
+    "From the root the algorithm descends by picking children that maximize the Upper Confidence bound for Trees (UCT): Q(s,a) + c * sqrt( ln N(s) / N(s,a) ). The first term favors moves with high average return; the second favors moves tried few times. The constant c trades exploitation against exploration."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\n\ndef uct(child, parent_visits, c=1.41):\n    if child.n == 0:\n        return float('inf')  # force at least one visit\n    exploit = child.total / child.n\n    explore = c * math.sqrt(math.log(parent_visits) / child.n)\n    return exploit + explore"
+    ]
+   ],
+   [
+    "h3",
+    "Expansion and rollout"
+   ],
+   [
+    "p",
+    "When selection reaches a node with untried actions, one child is added. A rollout then plays to a terminal state using a fast default policy (often random). The rollout return is an unbiased but high-variance estimate of the new node's value."
+   ],
+   [
+    "h3",
+    "Backpropagation"
+   ],
+   [
+    "p",
+    "The rollout result is added to the visit count and value sum of every node along the path back to the root. Averages sharpen as visits accumulate, so UCT gradually concentrates simulations on the best line. After the budget is spent, the move with the highest visit count (not highest value) is usually played, because visit count is the more stable statistic."
+   ],
+   [
+    "h2",
+    "Why it works"
+   ],
+   [
+    "p",
+    "MCTS is anytime, requires only a generative model of the environment, and needs no handcrafted evaluation function when rollouts are used. Its asymmetric growth is what lets it scale to games such as Go where the branching factor defeats full-width search."
+   ]
+  ],
+  "related": [
+   [
+    "alphazero-and-mcts",
+    "AlphaZero"
+   ],
+   [
+    "muzero",
+    "MuZero"
+   ],
+   [
+    "self-play-rl",
+    "Self-Play"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "alphazero-and-mcts",
+  "title": "AlphaZero",
+  "cat": "reinforcement-learning",
+  "lede": "AlphaZero replaces MCTS rollouts with a learned network and trains purely by self-play from the rules alone.",
+  "body": [
+   [
+    "h2",
+    "One network, two heads"
+   ],
+   [
+    "p",
+    "AlphaZero uses a single deep network f(s) = (p, v): a policy head p over actions and a scalar value head v estimating the game outcome from state s. This network replaces the random rollouts of classic MCTS. There is no human data and no handcrafted features beyond the raw board."
+   ],
+   [
+    "h3",
+    "PUCT search"
+   ],
+   [
+    "p",
+    "Search selects actions by a variant of UCT called PUCT: it adds the network's prior p(s,a) as a multiplier on the exploration term, so the network steers where the tree grows. Each simulation descends to a leaf, evaluates it once with v (no rollout), and backpropagates that value. A few hundred simulations per move produce a refined visit-count distribution."
+   ],
+   [
+    "h3",
+    "Policy improvement by search"
+   ],
+   [
+    "p",
+    "The visit counts from search form an improved policy pi that is stronger than the raw network policy p. This is the key idea: MCTS acts as a policy-improvement operator. Training then regresses the network toward that improved target."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# AlphaZero loss for one position\n# targets: pi (search visit distribution), z (game outcome)\n# preds:   p  (policy head),            v (value head)\nloss = (z - v)**2 - (pi * log(p)).sum() + c * l2_weights"
+    ]
+   ],
+   [
+    "h2",
+    "The self-play loop"
+   ],
+   [
+    "ul",
+    [
+     "Generate games by self-play, using MCTS+network to choose moves",
+     "Store (state, search policy pi, final outcome z) for every position",
+     "Train the network to match pi and z",
+     "Repeat with the improved network"
+    ]
+   ],
+   [
+    "p",
+    "The same algorithm mastered Go, chess, and shogi with no game-specific tuning beyond input and output shapes. AlphaZero shows that search and learning reinforce each other: search generates better targets, and the better network makes each search sharper."
+   ]
+  ],
+  "related": [
+   [
+    "mcts-fundamentals",
+    "MCTS"
+   ],
+   [
+    "muzero",
+    "MuZero"
+   ],
+   [
+    "self-play-rl",
+    "Self-Play"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "muzero",
+  "title": "MuZero",
+  "cat": "reinforcement-learning",
+  "lede": "MuZero plans with a learned model of dynamics in a latent space, so it needs no access to the true game rules.",
+  "body": [
+   [
+    "h2",
+    "Planning without the rules"
+   ],
+   [
+    "p",
+    "AlphaZero requires a perfect simulator to run search. MuZero removes that requirement by learning its own model. It plans in an abstract latent space and never predicts the raw next observation, only the quantities needed for planning: reward, value, and policy."
+   ],
+   [
+    "h3",
+    "Three learned functions"
+   ],
+   [
+    "ul",
+    [
+     "<b>Representation</b> h: observation -> latent state s0",
+     "<b>Dynamics</b> g: (s_k, a_k) -> (s_{k+1}, r_{k+1})",
+     "<b>Prediction</b> f: s_k -> (policy p_k, value v_k)"
+    ]
+   ],
+   [
+    "p",
+    "MCTS runs entirely on these functions. From the encoded root state, the dynamics function unrolls hypothetical action sequences and the prediction function evaluates each latent node, exactly as AlphaZero's network would on real states."
+   ],
+   [
+    "h3",
+    "Training signal"
+   ],
+   [
+    "p",
+    "The model is unrolled several steps and trained so that its predicted rewards match observed rewards, its values match n-step bootstrapped returns, and its policies match the MCTS visit counts. Crucially the latent state is never asked to reconstruct the observation; it only has to be sufficient for predicting these three targets. This makes the learned model value-equivalent rather than a faithful simulator."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# MuZero unroll (schematic)\ns = h(obs)\nfor a in trajectory_actions:\n    p, v = f(s)          # prediction\n    s, r = g(s, a)       # dynamics\n    # losses on p vs MCTS pi, v vs return, r vs observed reward"
+    ]
+   ],
+   [
+    "h2",
+    "Why it matters"
+   ],
+   [
+    "p",
+    "MuZero reached AlphaZero-level play in board games while also mastering Atari from pixels, a domain with unknown dynamics and per-step rewards. It unifies model-based planning and model-free value learning: the model exists solely to serve planning, so it can ignore visually complex but decision-irrelevant detail."
+   ]
+  ],
+  "related": [
+   [
+    "alphazero-and-mcts",
+    "AlphaZero"
+   ],
+   [
+    "world-models-rl",
+    "World Models"
+   ],
+   [
+    "model-based-rl-dyna",
+    "Model-Based RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "world-models-rl",
+  "title": "World Models",
+  "cat": "reinforcement-learning",
+  "lede": "A world model learns to predict how an environment evolves, letting an agent train and plan inside its own simulation.",
+  "body": [
+   [
+    "h2",
+    "Learning to imagine"
+   ],
+   [
+    "p",
+    "A world model is a learned generative model of environment dynamics: given the current state and an action it predicts the next state and reward. An agent equipped with one can generate synthetic experience, evaluate plans, and reduce how much real interaction it needs."
+   ],
+   [
+    "h3",
+    "A common architecture"
+   ],
+   [
+    "p",
+    "The classic design has three parts: a <b>vision</b> module (often a variational autoencoder) that compresses observations into a latent code z; a <b>memory</b> module (a recurrent network, sometimes with a mixture-density output) that predicts the next latent given the action; and a small <b>controller</b> that maps the latent state to actions. Because the controller sees a compact latent, it can be tiny and trained cheaply, even by evolution strategies."
+   ],
+   [
+    "h3",
+    "Training in a dream"
+   ],
+   [
+    "p",
+    "Once the model is accurate enough, the controller can be optimized entirely on rollouts generated by the model itself, sometimes called training inside a dream. Policies learned this way must then be validated on the real environment, because model errors compound over long horizons."
+   ],
+   [
+    "ul",
+    [
+     "Sample efficiency: real interactions are reused to fit the model, then reused again as imagined rollouts",
+     "Planning: the model supports lookahead search without touching the real system",
+     "Representation: the latent is a useful state abstraction for the policy"
+    ]
+   ],
+   [
+    "h2",
+    "The compounding-error problem"
+   ],
+   [
+    "p",
+    "World models are only as good as their predictions. Small one-step errors accumulate over an imagined trajectory, so a policy can exploit the model's fantasies and fail in reality. Modern systems limit imagined horizons, quantify model uncertainty, and interleave real data to keep the model honest. Latent-space recurrent models such as those behind MuZero and the Dreamer family are direct descendants of this idea."
+   ]
+  ],
+  "related": [
+   [
+    "muzero",
+    "MuZero"
+   ],
+   [
+    "model-based-rl-dyna",
+    "Dyna"
+   ],
+   [
+    "pets-probabilistic-ensembles",
+    "PETS"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-based-rl-dyna",
+  "title": "Model-Based RL and Dyna",
+  "cat": "reinforcement-learning",
+  "lede": "Dyna blends real experience with simulated experience from a learned model to accelerate value learning.",
+  "body": [
+   [
+    "h2",
+    "Model-free vs model-based"
+   ],
+   [
+    "p",
+    "Model-free methods learn a value function or policy directly from experience and discard the transitions. Model-based methods also learn a model of the transition and reward functions, then use that model to plan or to generate extra training data. Model-based RL is typically far more sample efficient, at the cost of model bias."
+   ],
+   [
+    "h3",
+    "The Dyna architecture"
+   ],
+   [
+    "p",
+    "Dyna-Q, introduced by Sutton, is the canonical bridge. Every real step does two things: it updates the value function directly (a model-free Q-learning step) and it updates a learned model of the world. Then, between real steps, the agent runs several planning updates using transitions sampled from the model."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Dyna-Q core loop\nfor step in episodes:\n    s, a = current_state, policy(current_state)\n    s2, r = env.step(a)\n    Q[s,a] += alpha * (r + gamma*max(Q[s2]) - Q[s,a])   # direct RL\n    model[s,a] = (s2, r)                                  # learn model\n    for _ in range(n_planning):                           # planning\n        sp, ap = random_seen_pair(model)\n        s2p, rp = model[sp, ap]\n        Q[sp,ap] += alpha*(rp + gamma*max(Q[s2p]) - Q[sp,ap])"
+    ]
+   ],
+   [
+    "h3",
+    "Why planning helps"
+   ],
+   [
+    "p",
+    "Each real transition is expensive to obtain but cheap to replay through the model. The planning updates propagate reward information backward through the state space much faster than real interaction alone. Prioritized sweeping improves this further by scheduling planning updates where the value change is largest."
+   ],
+   [
+    "h2",
+    "Limits and remedies"
+   ],
+   [
+    "p",
+    "Dyna works cleanly when the model is accurate. In stochastic or non-stationary worlds a wrong model injects bias, so real experience must keep correcting it. Modern model-based methods extend the idea with neural dynamics models, ensembles for uncertainty, and short model rollouts branched off real states to bound error accumulation."
+   ]
+  ],
+  "related": [
+   [
+    "world-models-rl",
+    "World Models"
+   ],
+   [
+    "pets-probabilistic-ensembles",
+    "PETS"
+   ],
+   [
+    "muzero",
+    "MuZero"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pets-probabilistic-ensembles",
+  "title": "PETS: Probabilistic Ensembles with Trajectory Sampling",
+  "cat": "reinforcement-learning",
+  "lede": "PETS captures model uncertainty with an ensemble of probabilistic networks and plans with sampling-based model-predictive control.",
+  "body": [
+   [
+    "h2",
+    "Two kinds of uncertainty"
+   ],
+   [
+    "p",
+    "PETS distinguishes <b>aleatoric</b> uncertainty (inherent environment noise) from <b>epistemic</b> uncertainty (limited data). Handling both is what lets a model-based method match the asymptotic performance of model-free methods while using far fewer samples."
+   ],
+   [
+    "h3",
+    "Probabilistic ensemble"
+   ],
+   [
+    "p",
+    "Each network outputs a distribution over the next state, typically a Gaussian with predicted mean and variance, capturing aleatoric noise. An ensemble of such networks, each trained on a bootstrap of the data, captures epistemic uncertainty through disagreement between members."
+   ],
+   [
+    "h3",
+    "Trajectory sampling"
+   ],
+   [
+    "p",
+    "To evaluate a candidate action sequence, PETS propagates many particle trajectories through the ensemble. Each particle is assigned to a bootstrap model, and at each step the next state is drawn from that model's predicted Gaussian. Averaging returns over particles yields a robust estimate that respects both uncertainty types."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# PETS planning = MPC via CEM over action sequences\nfor iteration in range(cem_iters):\n    seqs = sample_action_sequences(mean, std, N)\n    returns = [eval_with_particles(ensemble, seq) for seq in seqs]\n    elites = top_k(seqs, returns)\n    mean, std = fit_gaussian(elites)\nexecute(mean[0])   # first action only, then replan"
+    ]
+   ],
+   [
+    "h2",
+    "Model-predictive control"
+   ],
+   [
+    "p",
+    "PETS does not learn an explicit policy. Instead it re-plans at every step: it optimizes an action sequence over a short horizon (using the cross-entropy method), executes only the first action, then re-plans. This receding-horizon control naturally corrects for model error because each decision uses the latest state."
+   ],
+   [
+    "p",
+    "The result was a landmark: on continuous-control benchmarks PETS reached the performance of leading model-free algorithms with roughly an order of magnitude fewer samples, demonstrating that careful uncertainty modeling is central to model-based RL."
+   ]
+  ],
+  "related": [
+   [
+    "model-based-rl-dyna",
+    "Dyna"
+   ],
+   [
+    "world-models-rl",
+    "World Models"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "offline-rl-cql",
+  "title": "Offline RL: Conservative Q-Learning",
+  "cat": "reinforcement-learning",
+  "lede": "CQL learns from a fixed dataset by pushing down Q-values on unseen actions, preventing overestimation of out-of-distribution behavior.",
+  "body": [
+   [
+    "h2",
+    "The offline problem"
+   ],
+   [
+    "p",
+    "Offline (batch) RL learns a policy from a fixed dataset of logged transitions with no further environment interaction. The central failure mode is <b>distributional shift</b>: the learned policy queries Q-values for actions the dataset rarely or never contains, and function approximation confidently overestimates them, producing a policy that looks great in training and fails on deployment."
+   ],
+   [
+    "h3",
+    "The conservative fix"
+   ],
+   [
+    "p",
+    "Conservative Q-Learning (CQL) adds a regularizer that lowers Q-values for actions the current policy would take but the data does not support, while keeping Q-values on dataset actions high. This yields a lower bound on the true value of the learned policy, so the agent cannot be fooled by optimistic errors on out-of-distribution actions."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# CQL objective (schematic)\n# standard Bellman error + conservative penalty\ncql_penalty = logsumexp(Q(s, all_actions)) - Q(s, dataset_action)\nloss = bellman_error + alpha * cql_penalty.mean()"
+    ]
+   ],
+   [
+    "h3",
+    "What the penalty does"
+   ],
+   [
+    "p",
+    "The logsumexp term pushes down the peaks of the Q-function over all actions; subtracting the value on the observed action pulls that one back up. The net effect: Q stays high where there is data and is suppressed elsewhere. The learned policy therefore stays near the data support without an explicit behavior-cloning constraint."
+   ],
+   [
+    "h2",
+    "When to use it"
+   ],
+   [
+    "ul",
+    [
+     "Data is fixed and interaction is expensive, unsafe, or impossible",
+     "The logging policy is unknown or a mixture of behaviors",
+     "You want a value-based method rather than a policy-constraint method"
+    ]
+   ],
+   [
+    "p",
+    "CQL is a strong default for value-based offline RL. Its main knob is the conservatism weight: too small and overestimation returns, too large and the policy is pinned to the data and cannot improve. Related methods instead constrain the policy directly or, like IQL, avoid querying unseen actions altogether."
+   ]
+  ],
+  "related": [
+   [
+    "offline-rl-iql",
+    "IQL"
+   ],
+   [
+    "imitation-learning-behavior-cloning",
+    "Behavior Cloning"
+   ],
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "offline-rl-iql",
+  "title": "Offline RL: Implicit Q-Learning",
+  "cat": "reinforcement-learning",
+  "lede": "IQL learns entirely within the dataset by never evaluating actions it has not seen, using expectile regression on the value function.",
+  "body": [
+   [
+    "h2",
+    "Avoid the query, avoid the shift"
+   ],
+   [
+    "p",
+    "Distributional shift in offline RL comes from evaluating Q at out-of-distribution actions. Implicit Q-Learning (IQL) sidesteps this by never querying such actions at all. It approximates the maximum over in-support actions rather than over all actions."
+   ],
+   [
+    "h3",
+    "Expectile value learning"
+   ],
+   [
+    "p",
+    "IQL fits a separate value function V(s) using <b>expectile regression</b> toward Q(s,a) on dataset actions. A high expectile (for example tau = 0.9) makes V approximate the best returns achievable by actions actually present in the data, without ever proposing new actions. The Q update then bootstraps from this V, keeping the whole target inside the data distribution."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def expectile_loss(diff, tau=0.9):\n    # asymmetric squared error\n    w = np.where(diff > 0, tau, 1 - tau)\n    return (w * diff**2).mean()\n\n# V toward Q on dataset actions; Q toward r + gamma*V(s')\n# no max over unseen actions anywhere"
+    ]
+   ],
+   [
+    "h3",
+    "Policy extraction"
+   ],
+   [
+    "p",
+    "IQL separates value learning from policy learning. After V and Q are fit, the policy is extracted by <b>advantage-weighted regression</b>: behavior-clone the dataset, but weight each action by exp(beta * (Q - V)), so higher-advantage actions dominate. The policy is thus a reweighting of observed behavior and stays on-support by construction."
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Simple, stable, and does not require sampling from a policy during value learning",
+     "Never evaluates unseen actions, so no explicit conservatism penalty is needed",
+     "Performance is capped by the quality of actions in the dataset and the chosen expectile"
+    ]
+   ],
+   [
+    "p",
+    "IQL and CQL are the two dominant offline-RL recipes. CQL suppresses optimism explicitly; IQL avoids the problematic query. Both aim at the same goal: a policy that improves on the logged behavior without stepping outside what the data can justify."
+   ]
+  ],
+  "related": [
+   [
+    "offline-rl-cql",
+    "CQL"
+   ],
+   [
+    "imitation-learning-behavior-cloning",
+    "Behavior Cloning"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-agent-rl",
+  "title": "Multi-Agent Reinforcement Learning",
+  "cat": "reinforcement-learning",
+  "lede": "When many learning agents share an environment, each faces a moving target: the others are learning too.",
+  "body": [
+   [
+    "h2",
+    "Beyond a single agent"
+   ],
+   [
+    "p",
+    "Multi-agent RL (MARL) studies several agents learning simultaneously in a shared environment. It generalizes the MDP to a stochastic (Markov) game, where the transition and each agent's reward depend on the joint action of all agents. Settings range from fully cooperative (shared reward) to fully competitive (zero-sum) to mixed."
+   ],
+   [
+    "h3",
+    "Non-stationarity"
+   ],
+   [
+    "p",
+    "The core difficulty is that from any one agent's view the environment is <b>non-stationary</b>: as other agents update their policies, the effective dynamics change, so past experience becomes stale and naive independent learning can oscillate or diverge. Convergence guarantees from single-agent RL no longer hold."
+   ],
+   [
+    "h3",
+    "Centralized training, decentralized execution"
+   ],
+   [
+    "p",
+    "A dominant paradigm is CTDE: during training a critic may see the global state and all agents' actions, which stabilizes learning; at execution each agent acts only on its own local observation. MADDPG and value-decomposition methods (VDN, QMIX) follow this pattern, the latter factoring a joint value into per-agent components while preserving a consistency condition."
+   ],
+   [
+    "ul",
+    [
+     "<b>Cooperative</b>: agents share a reward and must coordinate",
+     "<b>Competitive</b>: one agent's gain is another's loss; self-play applies",
+     "<b>Mixed / general-sum</b>: both cooperation and competition, as in team games"
+    ]
+   ],
+   [
+    "h2",
+    "Equilibria and emergent behavior"
+   ],
+   [
+    "p",
+    "Solution concepts borrow from game theory: a Nash equilibrium is a joint policy where no agent can improve by deviating alone. MARL research shows striking emergent phenomena, including tool use, division of labor, and communication protocols, arising purely from reward. Credit assignment across agents and scalable coordination remain the field's hardest open problems."
+   ]
+  ],
+  "related": [
+   [
+    "self-play-rl",
+    "Self-Play"
+   ],
+   [
+    "hierarchical-rl-options",
+    "Hierarchical RL"
+   ],
+   [
+    "thompson-sampling-rl",
+    "Thompson Sampling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hierarchical-rl-options",
+  "title": "Hierarchical RL and the Options Framework",
+  "cat": "reinforcement-learning",
+  "lede": "Options are temporally extended actions that let an agent plan over skills rather than primitive steps.",
+  "body": [
+   [
+    "h2",
+    "Acting at multiple time scales"
+   ],
+   [
+    "p",
+    "Hierarchical RL introduces structure over time. Instead of choosing a primitive action each step, a high-level policy selects a <b>skill</b> that runs for many steps before control returns. This shortens the effective horizon, improves exploration, and lets skills be reused across tasks."
+   ],
+   [
+    "h3",
+    "The options framework"
+   ],
+   [
+    "p",
+    "Sutton, Precup, and Singh formalized a skill as an <b>option</b>, a triple (I, pi, beta): an <b>initiation set</b> I of states where the option can start, an internal <b>policy</b> pi that acts while the option runs, and a <b>termination condition</b> beta(s) giving the probability of ending in each state. A policy over options selects among them; primitive actions are just one-step options."
+   ],
+   [
+    "h3",
+    "Semi-Markov decision processes"
+   ],
+   [
+    "p",
+    "Because options last variable durations, the decision process over options is a <b>semi-Markov</b> decision process (SMDP). Bellman equations extend naturally: the value of an option accounts for the multi-step discounted reward until termination, then bootstraps from the state where control returns."
+   ],
+   [
+    "ul",
+    [
+     "Faster credit assignment: reward propagates across whole skills, not single steps",
+     "Better exploration: options carry the agent through long uninformative regions",
+     "Transfer: a library of options learned on one task speeds learning on the next"
+    ]
+   ],
+   [
+    "h2",
+    "Learning the hierarchy"
+   ],
+   [
+    "p",
+    "Early work supplied options by hand. Later methods learn them end to end. The option-critic architecture learns option policies and termination functions by gradient descent; feudal and goal-conditioned approaches instead have a manager propose subgoals that a worker must reach. A persistent challenge is preventing degenerate solutions where options terminate every step (collapsing to flat RL) or never terminate (ignoring the hierarchy)."
+   ]
+  ],
+  "related": [
+   [
+    "goal-conditioned-rl",
+    "Goal-Conditioned RL"
+   ],
+   [
+    "successor-features-rl",
+    "Successor Features"
+   ],
+   [
+    "multi-agent-rl",
+    "Multi-Agent RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "inverse-reinforcement-learning",
+  "title": "Inverse Reinforcement Learning",
+  "cat": "reinforcement-learning",
+  "lede": "Inverse RL recovers the reward function that best explains observed expert behavior, then optimizes it.",
+  "body": [
+   [
+    "h2",
+    "Inferring the objective"
+   ],
+   [
+    "p",
+    "Standard RL is given a reward and finds a policy. Inverse reinforcement learning (IRL) reverses this: given demonstrations from an expert, it infers the reward function the expert appears to be optimizing. The recovered reward is often more transferable than the policy itself, because it can be re-optimized under new dynamics."
+   ],
+   [
+    "h3",
+    "The ambiguity problem"
+   ],
+   [
+    "p",
+    "IRL is fundamentally ill-posed: many reward functions, including trivial constant ones, make any policy optimal. Practical methods resolve this ambiguity with a principle. <b>Maximum-margin</b> IRL prefers rewards under which the expert beats alternatives by the largest margin. <b>Maximum-entropy</b> IRL assumes the expert is noisily optimal, making trajectory probability proportional to exp(reward), which yields a unique, well-defined distribution."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# MaxEnt IRL: P(trajectory) proportional to exp(sum of rewards)\n# Learn reward weights so expert feature counts match\n# the feature counts expected under the induced policy\ngrad = expert_feature_expectations - model_feature_expectations"
+    ]
+   ],
+   [
+    "h3",
+    "Feature and reward matching"
+   ],
+   [
+    "p",
+    "Many IRL algorithms reduce to matching <b>feature expectations</b>: adjust the reward so that the discounted feature counts of the learner's induced policy equal those of the expert. If features are matched, the learner's return equals the expert's under the true (linear) reward, regardless of what that reward exactly is."
+   ],
+   [
+    "h2",
+    "Why recover the reward at all"
+   ],
+   [
+    "ul",
+    [
+     "Rewards transfer across changed dynamics where a cloned policy would break",
+     "A learned reward can reveal the intent behind behavior, aiding interpretability",
+     "It supplies the objective for downstream RL when hand-specifying reward is hard"
+    ]
+   ],
+   [
+    "p",
+    "IRL underlies modern imitation methods and reward modeling. Its deep-learning descendants, such as adversarial approaches, learn a reward and policy jointly and scale to high-dimensional control."
+   ]
+  ],
+  "related": [
+   [
+    "imitation-learning-behavior-cloning",
+    "Imitation Learning"
+   ],
+   [
+    "adversarial-imitation-gail",
+    "GAIL"
+   ],
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "imitation-learning-behavior-cloning",
+  "title": "Imitation Learning and Behavior Cloning",
+  "cat": "reinforcement-learning",
+  "lede": "Behavior cloning turns imitation into supervised learning: predict the expert's action from the state.",
+  "body": [
+   [
+    "h2",
+    "Learning from demonstration"
+   ],
+   [
+    "p",
+    "Imitation learning trains a policy from expert demonstrations rather than a reward signal. It is attractive when demonstrations are easy to collect but a reward is hard to specify, for example teaching a robot a manipulation skill by teleoperation."
+   ],
+   [
+    "h3",
+    "Behavior cloning"
+   ],
+   [
+    "p",
+    "The simplest approach is <b>behavior cloning</b> (BC): treat each demonstrated (state, action) pair as a labeled example and fit the policy with ordinary supervised learning. For discrete actions this is classification; for continuous actions, regression or a learned action distribution."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Behavior cloning = supervised learning\n# dataset of expert (state, action) pairs\nloss = cross_entropy(policy(state), expert_action)   # discrete\n# or  mse(policy(state), expert_action)              # continuous"
+    ]
+   ],
+   [
+    "h3",
+    "Compounding error"
+   ],
+   [
+    "p",
+    "BC's weakness is <b>covariate shift</b>. The policy is trained only on states the expert visited, but any small error moves it toward states the expert never saw, where its predictions are unreliable, causing further drift. Errors compound quadratically in the horizon rather than linearly, so long tasks are fragile."
+   ],
+   [
+    "ul",
+    [
+     "No reward needed, no environment interaction during training",
+     "Fast and stable, since it is pure supervised learning",
+     "Cannot exceed the expert, and degrades off the demonstrated distribution"
+    ]
+   ],
+   [
+    "h2",
+    "Beyond cloning"
+   ],
+   [
+    "p",
+    "Remedies address the distribution problem directly. <b>DAgger</b> iteratively collects expert labels on states the learner actually visits. Inverse RL and adversarial imitation recover a reward so the agent can recover from mistakes. Offline RL uses demonstrations plus returns to improve on the expert. BC remains the standard baseline and a common initialization for these richer methods."
+   ]
+  ],
+  "related": [
+   [
+    "dagger-algorithm",
+    "DAgger"
+   ],
+   [
+    "inverse-reinforcement-learning",
+    "Inverse RL"
+   ],
+   [
+    "adversarial-imitation-gail",
+    "GAIL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dagger-algorithm",
+  "title": "DAgger: Dataset Aggregation",
+  "cat": "reinforcement-learning",
+  "lede": "DAgger fixes behavior cloning's drift by querying the expert on the states the learner itself visits.",
+  "body": [
+   [
+    "h2",
+    "The distribution mismatch, solved iteratively"
+   ],
+   [
+    "p",
+    "Behavior cloning trains on the expert's state distribution but is tested on its own, and the mismatch causes compounding errors. DAgger (Dataset Aggregation) closes this gap by repeatedly collecting new data under the learner's own distribution and labeling it with the expert's correct actions."
+   ],
+   [
+    "h3",
+    "The loop"
+   ],
+   [
+    "ul",
+    [
+     "Train an initial policy by behavior cloning on the expert data",
+     "Run the current policy in the environment to visit new states",
+     "Ask the expert what it would do in each visited state, and record those labels",
+     "Aggregate the new labeled states into the dataset and retrain",
+     "Repeat"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "D = expert_demos\npi = train(D)\nfor i in range(N):\n    # roll out current policy (optionally mix in expert)\n    states = rollout(pi)\n    labels = [expert(s) for s in states]   # expert labels learner's states\n    D = D + list(zip(states, labels))\n    pi = train(D)"
+    ]
+   ],
+   [
+    "h3",
+    "Why it works"
+   ],
+   [
+    "p",
+    "By training on states the learner actually reaches, DAgger removes the covariate shift that dooms plain cloning. It comes with a guarantee: under a no-regret online-learning view, the number of mistakes grows linearly in the horizon rather than quadratically. In early iterations one often mixes the expert into the rollout policy (a decaying probability) so the learner is not stranded in hopeless states before it can act competently."
+   ],
+   [
+    "h2",
+    "Costs and variants"
+   ],
+   [
+    "p",
+    "DAgger's price is an <b>interactive expert</b>: someone or something must label arbitrary learner-visited states on demand, which is expensive and sometimes infeasible (a human cannot always say the ideal action mid-trajectory). Variants reduce queries by asking only when the policy is uncertain (SafeDAgger) or by using an approximate expert. Where an interactive expert exists, DAgger is a reliable upgrade over one-shot cloning."
+   ]
+  ],
+  "related": [
+   [
+    "imitation-learning-behavior-cloning",
+    "Behavior Cloning"
+   ],
+   [
+    "inverse-reinforcement-learning",
+    "Inverse RL"
+   ],
+   [
+    "rlhf-human-feedback",
+    "RLHF"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rlhf-human-feedback",
+  "title": "Reinforcement Learning from Human Feedback",
+  "cat": "reinforcement-learning",
+  "lede": "RLHF trains a reward model from human preference comparisons, then optimizes a policy against it.",
+  "body": [
+   [
+    "h2",
+    "When reward is hard to write down"
+   ],
+   [
+    "p",
+    "For many tasks, especially open-ended text generation, there is no programmable reward that captures what people actually want. RLHF learns the objective from human judgments instead of hand-coding it. It has three stages: supervised fine-tuning, reward-model training, and policy optimization."
+   ],
+   [
+    "h3",
+    "Preference-based reward modeling"
+   ],
+   [
+    "p",
+    "Humans find it far easier to compare two outputs than to score one on an absolute scale. RLHF collects pairs (or rankings) and fits a <b>reward model</b> under the Bradley-Terry assumption: the probability that response A is preferred to B is sigmoid(r(A) - r(B)). Training maximizes the likelihood of the observed preferences, yielding a scalar reward for any output."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Reward-model loss on a preference (chosen > rejected)\nloss = -log(sigmoid(r(chosen) - r(rejected)))"
+    ]
+   ],
+   [
+    "h3",
+    "Policy optimization with a KL leash"
+   ],
+   [
+    "p",
+    "A policy is then optimized to maximize the learned reward, typically with PPO. A crucial term penalizes the KL divergence from the original supervised model. Without it the policy drifts into strange, high-reward-model but low-quality regions, a form of reward hacking. The KL penalty keeps outputs close to the trusted starting distribution while nudging them toward preferred behavior."
+   ],
+   [
+    "h2",
+    "Strengths and pitfalls"
+   ],
+   [
+    "ul",
+    [
+     "Optimizes hard-to-specify goals directly from human judgment",
+     "The reward model is imperfect and can be over-optimized (Goodhart's law)",
+     "Human labels carry bias and inconsistency that propagate into the policy"
+    ]
+   ],
+   [
+    "p",
+    "RLHF is the standard alignment recipe for instruction-following language models. Simpler alternatives such as direct preference optimization skip the explicit reward model and the RL loop, optimizing the policy on preferences with a single supervised-style objective, while inheriting the same dependence on preference-data quality."
+   ]
+  ],
+  "related": [
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ],
+   [
+    "reward-hacking-rl",
+    "Reward Hacking"
+   ],
+   [
+    "inverse-reinforcement-learning",
+    "Inverse RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "distributional-rl-c51",
+  "title": "Distributional RL and C51",
+  "cat": "reinforcement-learning",
+  "lede": "Distributional RL learns the full distribution of returns, not just its mean, capturing risk and multi-modality.",
+  "body": [
+   [
+    "h2",
+    "Modeling the whole return"
+   ],
+   [
+    "p",
+    "Classic value-based RL learns the expected return Q(s,a). Distributional RL instead learns the entire distribution Z(s,a) of the random return, of which Q is the mean. Two states can share the same expected value but differ sharply in risk; the distribution captures that, and learning it often stabilizes training."
+   ],
+   [
+    "h3",
+    "The distributional Bellman equation"
+   ],
+   [
+    "p",
+    "The Bellman operator generalizes to distributions: the return distribution at (s,a) equals the reward plus a discounted, shifted-and-scaled version of the next state's return distribution. Convergence is analyzed in a metric over distributions (the Wasserstein distance), which the exact operator contracts."
+   ],
+   [
+    "h3",
+    "C51: categorical distributions"
+   ],
+   [
+    "p",
+    "C51 (the categorical algorithm, so named for its 51 atoms) represents Z as a discrete distribution over a fixed grid of return values, learning a probability for each atom. Applying the Bellman update shifts the support by reward and discount, which generally lands between atoms, so the result is <b>projected</b> back onto the fixed grid before a cross-entropy loss is applied."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# C51 essentials\n# atoms z_i evenly spaced in [V_min, V_max]\n# network outputs p_i(s,a) = softmax logits over atoms\n# Bellman: shift atoms by r + gamma*z_i, clip, project onto grid,\n# then minimize cross-entropy( projected_target , p(s,a) )"
+    ]
+   ],
+   [
+    "h2",
+    "Why it helps"
+   ],
+   [
+    "p",
+    "Beyond enabling risk-sensitive policies, learning the distribution provides a richer, auxiliary-like training signal that empirically improves sample efficiency and final performance, which is why C51 became a component of Rainbow DQN. Its main limitation is the fixed support: values outside [V_min, V_max] cannot be represented, motivating the quantile-based successor QR-DQN which learns the support instead of fixing it."
+   ]
+  ],
+  "related": [
+   [
+    "quantile-regression-dqn",
+    "QR-DQN"
+   ],
+   [
+    "rainbow-dqn",
+    "Rainbow DQN"
+   ],
+   [
+    "safe-rl-constrained-mdps",
+    "Safe RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantile-regression-dqn",
+  "title": "Quantile Regression DQN",
+  "cat": "reinforcement-learning",
+  "lede": "QR-DQN represents the return distribution by learned quantile locations, removing C51's fixed value grid.",
+  "body": [
+   [
+    "h2",
+    "Flip the axes"
+   ],
+   [
+    "p",
+    "C51 fixes a set of return values (the support) and learns their probabilities. Quantile Regression DQN (QR-DQN) does the opposite: it fixes a set of probabilities (uniform quantile fractions) and learns the return values at those quantiles. This removes the need to guess V_min and V_max and lets the support adapt to the task."
+   ],
+   [
+    "h3",
+    "Learning quantiles"
+   ],
+   [
+    "p",
+    "The network outputs N values, one per quantile fraction tau_i = (i - 0.5)/N. Together they approximate the inverse cumulative distribution of the return. Because the estimates are quantiles, the natural training loss is the <b>quantile (pinball) loss</b>, made smooth near zero via the Huber function to give quantile Huber loss."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def quantile_huber(td_error, tau, kappa=1.0):\n    huber = np.where(np.abs(td_error) <= kappa,\n                     0.5*td_error**2,\n                     kappa*(np.abs(td_error) - 0.5*kappa))\n    return np.abs(tau - (td_error < 0).astype(float)) * huber / kappa"
+    ]
+   ],
+   [
+    "h3",
+    "Wasserstein view"
+   ],
+   [
+    "p",
+    "Minimizing the quantile loss corresponds to reducing the 1-Wasserstein distance between the predicted and target return distributions, the very metric under which the distributional Bellman operator is a contraction. QR-DQN thus aligns the practical loss with the theory, something C51's cross-entropy did not do exactly."
+   ],
+   [
+    "h2",
+    "Consequences"
+   ],
+   [
+    "ul",
+    [
+     "No fixed value range; the support is learned and unbounded",
+     "A principled loss tied to the distributional Bellman contraction",
+     "Foundation for implicit quantile networks (IQN), which sample tau continuously"
+    ]
+   ],
+   [
+    "p",
+    "QR-DQN and C51 are the two pillars of distributional value learning. C51 came first and proved the idea's power; QR-DQN refined the representation. Both feed risk-aware policies and both improve stability enough to be standard ingredients in strong deep-RL agents."
+   ]
+  ],
+  "related": [
+   [
+    "distributional-rl-c51",
+    "C51"
+   ],
+   [
+    "rainbow-dqn",
+    "Rainbow DQN"
+   ],
+   [
+    "prioritized-experience-replay",
+    "Prioritized Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rainbow-dqn",
+  "title": "Rainbow DQN",
+  "cat": "reinforcement-learning",
+  "lede": "Rainbow combines six independent improvements to DQN and shows they are largely complementary.",
+  "body": [
+   [
+    "h2",
+    "Assembling the parts"
+   ],
+   [
+    "p",
+    "After DQN, many separate extensions each claimed to improve deep Q-learning. Rainbow tested whether they compose. It integrates six components into a single agent and demonstrates that, combined, they substantially outperform any one alone on the Atari benchmark."
+   ],
+   [
+    "h3",
+    "The six ingredients"
+   ],
+   [
+    "ul",
+    [
+     "<b>Double Q-learning</b>: decouple action selection from evaluation to cut overestimation bias",
+     "<b>Prioritized experience replay</b>: sample high-error transitions more often",
+     "<b>Dueling networks</b>: separate state-value and advantage streams",
+     "<b>Multi-step returns</b>: bootstrap from n-step targets for faster reward propagation",
+     "<b>Distributional RL (C51)</b>: learn the return distribution, not just its mean",
+     "<b>Noisy networks</b>: learnable parametric noise in weights for state-dependent exploration"
+    ]
+   ],
+   [
+    "h3",
+    "Why they combine well"
+   ],
+   [
+    "p",
+    "The improvements address different weaknesses, so they interact constructively rather than redundantly. Distributional learning enriches the target; prioritization and multi-step returns improve which and how targets are used; double and dueling reduce bias in the estimates; noisy nets replace epsilon-greedy with adaptive exploration."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Rainbow target (schematic): distributional + double + n-step\n# a* = argmax over online net's expected Q at s_{t+n}\n# evaluate distribution of a* with target net\n# n-step bootstrap: sum_{k=0..n-1} gamma^k r_{t+k} + gamma^n Z_target"
+    ]
+   ],
+   [
+    "h2",
+    "Findings from ablation"
+   ],
+   [
+    "p",
+    "Rainbow's ablation study is as important as the agent itself. Removing prioritized replay and multi-step returns hurt performance most; removing double Q-learning mattered least in that combination, partly because distributional learning already curbs overestimation. Rainbow became the reference point for value-based deep RL and a lesson in engineering: careful integration of known ideas can beat any single novel one."
+   ]
+  ],
+  "related": [
+   [
+    "distributional-rl-c51",
+    "C51"
+   ],
+   [
+    "prioritized-experience-replay",
+    "Prioritized Replay"
+   ],
+   [
+    "quantile-regression-dqn",
+    "QR-DQN"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "prioritized-experience-replay",
+  "title": "Prioritized Experience Replay",
+  "cat": "reinforcement-learning",
+  "lede": "Replay transitions in proportion to how surprising they are, so the agent learns fastest from its biggest errors.",
+  "body": [
+   [
+    "h2",
+    "Not all experience is equal"
+   ],
+   [
+    "p",
+    "Uniform experience replay samples past transitions with equal probability. But some transitions carry far more learning signal than others. Prioritized experience replay (PER) samples in proportion to a measure of surprise, the magnitude of the temporal-difference (TD) error, so informative transitions are revisited more often."
+   ],
+   [
+    "h3",
+    "Priorities from TD error"
+   ],
+   [
+    "p",
+    "Each transition's priority is p = |TD error| + epsilon, with a small epsilon so nothing has zero chance. The sampling probability is P(i) proportional to p_i^alpha, where alpha in [0,1] interpolates between uniform (alpha = 0) and greedy prioritization (alpha = 1). A sum-tree data structure makes proportional sampling and priority updates efficient at scale."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# proportional variant\nP_i = (priority_i ** alpha) / sum(priority_j ** alpha for j)\n# importance-sampling weight to correct the bias\nw_i = (1 / (N * P_i)) ** beta\nw_i /= max_w   # normalize for stability"
+    ]
+   ],
+   [
+    "h3",
+    "Correcting the bias"
+   ],
+   [
+    "p",
+    "Non-uniform sampling biases the expected update, so PER multiplies each update by an <b>importance-sampling weight</b> w = (1/(N P))^beta. beta is annealed from a small value toward 1 over training, fully correcting the bias by the end when accurate estimates matter most. Priorities are refreshed with the latest TD error each time a transition is used."
+   ],
+   [
+    "h2",
+    "Effect and caveats"
+   ],
+   [
+    "ul",
+    [
+     "Faster learning: high-error transitions drive most of the improvement",
+     "Noise sensitivity: in stochastic environments large TD errors may be irreducible noise, not learning signal",
+     "Stale priorities: transitions not recently sampled keep outdated priorities"
+    ]
+   ],
+   [
+    "p",
+    "PER was one of the largest single contributors in the Rainbow ablation. It is broadly applicable to any off-policy method with a replay buffer, and its combination with n-step returns and distributional targets is now standard practice."
+   ]
+  ],
+  "related": [
+   [
+    "rainbow-dqn",
+    "Rainbow DQN"
+   ],
+   [
+    "hindsight-experience-replay",
+    "Hindsight Replay"
+   ],
+   [
+    "distributional-rl-c51",
+    "C51"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hindsight-experience-replay",
+  "title": "Hindsight Experience Replay",
+  "cat": "reinforcement-learning",
+  "lede": "HER turns failures into learning by relabeling trajectories with the goals that were actually achieved.",
+  "body": [
+   [
+    "h2",
+    "Learning from failure"
+   ],
+   [
+    "p",
+    "In goal-conditioned tasks with sparse rewards, an agent that never reaches the goal gets almost no reward and cannot learn. Hindsight Experience Replay (HER) extracts signal from these failures: even a trajectory that missed the intended goal successfully reached some other state, and that outcome is a valid demonstration for a different goal."
+   ],
+   [
+    "h3",
+    "Relabeling goals"
+   ],
+   [
+    "p",
+    "HER stores each transition twice. Once with the original goal, and again with a <b>substitute goal</b> chosen from states actually visited later in the same episode. Under the substitute goal the agent did succeed, so it receives the success reward and learns which actions lead to that outcome. The policy and value function are conditioned on the goal, so this knowledge generalizes across goals."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# For a stored transition (s, a, s2, g):\n# also add relabeled copies with g' = future achieved state\nfor g_prime in sample_future_states(episode, k):\n    r_prime = reward(s2, g_prime)   # often 0 if goal reached, -1 otherwise\n    buffer.add(s, a, s2, g_prime, r_prime)"
+    ]
+   ],
+   [
+    "h3",
+    "Strategies for substitutes"
+   ],
+   [
+    "ul",
+    [
+     "<b>future</b>: goals from states later in the same episode (most effective)",
+     "<b>final</b>: the last state of the episode",
+     "<b>episode</b> / <b>random</b>: states sampled more broadly"
+    ]
+   ],
+   [
+    "h2",
+    "Why it works"
+   ],
+   [
+    "p",
+    "HER converts a sparse-reward problem into one with dense, achievable targets without any reward engineering. It is an add-on to off-policy, goal-conditioned algorithms (such as DDPG or SAC with a goal input) and enabled robotic manipulation from binary success signals that were previously intractable. Its main requirement is that the reward be computable for arbitrary goals, which holds whenever the goal is defined as reaching a state."
+   ]
+  ],
+  "related": [
+   [
+    "goal-conditioned-rl",
+    "Goal-Conditioned RL"
+   ],
+   [
+    "prioritized-experience-replay",
+    "Prioritized Replay"
+   ],
+   [
+    "curiosity-intrinsic-motivation",
+    "Curiosity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "curiosity-intrinsic-motivation",
+  "title": "Curiosity and Intrinsic Motivation",
+  "cat": "reinforcement-learning",
+  "lede": "Intrinsic rewards drive exploration when the environment's own reward is sparse or absent.",
+  "body": [
+   [
+    "h2",
+    "Rewarding the novel"
+   ],
+   [
+    "p",
+    "When extrinsic reward is rare, an agent needs another reason to explore. Intrinsic motivation supplies an internal reward for encountering novel or informative states. The total reward becomes r_extrinsic + beta * r_intrinsic, and as the agent masters a region the intrinsic reward there fades, pushing it onward."
+   ],
+   [
+    "h3",
+    "Prediction-error curiosity"
+   ],
+   [
+    "p",
+    "One influential formulation rewards <b>prediction error</b>: the agent learns a forward model of dynamics and is rewarded when that model is surprised. The Intrinsic Curiosity Module (ICM) predicts the next state in a learned feature space and uses the prediction error as the curiosity bonus. Crucially the features are trained by an inverse model (predicting the action from consecutive states), so the agent is curious only about things it can affect, not about unpredictable but irrelevant noise."
+   ],
+   [
+    "h3",
+    "The noisy-TV problem"
+   ],
+   [
+    "p",
+    "Naive prediction-error curiosity has a famous failure: a source of pure randomness (a TV showing static) yields permanently high prediction error, trapping the agent in fascination with noise. Feature learning via the inverse model mitigates this; another family avoids it entirely by using <b>random network distillation</b> (RND), rewarding error in predicting the output of a fixed random network, which measures novelty of states rather than dynamics."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ICM curiosity bonus\nphi_s, phi_s2 = encoder(s), encoder(s2)\npred = forward_model(phi_s, a)\nr_intrinsic = 0.5 * ((pred - phi_s2)**2).sum()"
+    ]
+   ],
+   [
+    "h2",
+    "Count-based cousins"
+   ],
+   [
+    "p",
+    "A different tradition rewards visiting rarely seen states directly, approximating a visit count in high-dimensional spaces via density models or hashing (r_intrinsic proportional to 1/sqrt(count)). All these methods share a goal: turn exploration into an optimization target so the agent seeks out the unknown even before any task reward appears."
+   ]
+  ],
+  "related": [
+   [
+    "exploration-ucb",
+    "UCB"
+   ],
+   [
+    "hindsight-experience-replay",
+    "Hindsight Replay"
+   ],
+   [
+    "meta-reinforcement-learning",
+    "Meta-RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "exploration-ucb",
+  "title": "Exploration with Upper Confidence Bounds",
+  "cat": "reinforcement-learning",
+  "lede": "UCB explores by acting optimistically under uncertainty: prefer actions whose value might still be high.",
+  "body": [
+   [
+    "h2",
+    "Optimism in the face of uncertainty"
+   ],
+   [
+    "p",
+    "The exploration-exploitation dilemma asks whether to take the currently best-looking action or try an uncertain one that might be better. Upper Confidence Bound (UCB) methods resolve it with a principle: act as if each action's value is at the top of its plausible range, so under-tried actions are automatically favored until their uncertainty shrinks."
+   ],
+   [
+    "h3",
+    "The UCB1 rule"
+   ],
+   [
+    "p",
+    "In the multi-armed bandit, UCB1 selects the arm maximizing mean_i + sqrt(2 ln t / n_i), where mean_i is the empirical mean, n_i the number of pulls, and t the total steps. The bonus is large for rarely pulled arms and decays as evidence accumulates. This yields logarithmic regret, provably near-optimal for stochastic bandits."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\n\ndef ucb1(means, counts, t):\n    scores = []\n    for i in range(len(means)):\n        if counts[i] == 0:\n            return i               # try every arm once\n        bonus = math.sqrt(2*math.log(t)/counts[i])\n        scores.append(means[i] + bonus)\n    return scores.index(max(scores))"
+    ]
+   ],
+   [
+    "h3",
+    "From bandits to full RL"
+   ],
+   [
+    "p",
+    "The same optimism extends to sequential decisions. UCB drives the selection rule in Monte Carlo Tree Search (as UCT). Model-based RL algorithms build optimistic value functions by adding exploration bonuses to rewards for under-visited state-action pairs, giving formal regret bounds (UCRL, UCBVI). In deep RL, pseudo-count bonuses approximate the same idea in large state spaces."
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Deterministic and principled, with strong regret guarantees in the bandit setting",
+     "Requires a usable uncertainty estimate, which is hard in deep function approximation",
+     "Sensitive to the exploration-bonus scale, the analog of the constant in UCB1"
+    ]
+   ],
+   [
+    "p",
+    "UCB and Thompson sampling are the two canonical answers to bandit exploration; UCB is frequentist and optimistic, Thompson sampling is Bayesian and randomized. Both aim at the same target: explore enough to find the best action, no more."
+   ]
+  ],
+  "related": [
+   [
+    "thompson-sampling-rl",
+    "Thompson Sampling"
+   ],
+   [
+    "bandit-algorithms",
+    "Bandit Algorithms"
+   ],
+   [
+    "mcts-fundamentals",
+    "MCTS"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "thompson-sampling-rl",
+  "title": "Thompson Sampling in RL",
+  "cat": "reinforcement-learning",
+  "lede": "Thompson sampling explores by acting greedily with respect to a randomly sampled belief about the world.",
+  "body": [
+   [
+    "h2",
+    "Probability matching"
+   ],
+   [
+    "p",
+    "Thompson sampling (posterior sampling) maintains a probability distribution over unknowns, samples one hypothesis from it, and acts optimally as if that sample were true. Because samples are drawn in proportion to how likely each hypothesis is, actions are tried in proportion to the probability they are best, an elegant randomized exploration strategy."
+   ],
+   [
+    "h3",
+    "The bandit case"
+   ],
+   [
+    "p",
+    "For a Bernoulli bandit, keep a Beta posterior over each arm's success probability. Each round, draw one sample per arm and pull the arm with the highest sampled value. Arms with uncertain, possibly-high means get pulled because their posteriors have wide upper tails; as evidence accumulates the posteriors sharpen and the best arm dominates. Regret is competitive with UCB and often better in practice."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import numpy as np\n\ndef thompson_bernoulli(successes, failures):\n    samples = [np.random.beta(1+s, 1+f)\n               for s, f in zip(successes, failures)]\n    return int(np.argmax(samples))   # pull this arm"
+    ]
+   ],
+   [
+    "h3",
+    "Posterior sampling for RL"
+   ],
+   [
+    "p",
+    "The idea extends to full MDPs as Posterior Sampling for Reinforcement Learning (PSRL). Maintain a distribution over MDPs (transition and reward parameters); at the start of each episode, sample one MDP, solve it, and follow that policy for the whole episode. Committing to one sampled model for an episode produces coherent, deep exploration and yields strong Bayesian regret bounds."
+   ],
+   [
+    "h2",
+    "Deep approximations"
+   ],
+   [
+    "p",
+    "Exact posteriors are intractable with neural networks, so deep RL approximates them. Bootstrapped DQN trains an ensemble of value heads on different data subsets and acts greedily with respect to one randomly chosen head per episode, mimicking posterior sampling. This provides the temporally consistent exploration that epsilon-greedy lacks, at modest extra cost."
+   ]
+  ],
+  "related": [
+   [
+    "exploration-ucb",
+    "UCB"
+   ],
+   [
+    "bandit-algorithms",
+    "Bandit Algorithms"
+   ],
+   [
+    "pomdp-belief-states",
+    "POMDPs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pomdp-belief-states",
+  "title": "POMDPs and Belief States",
+  "cat": "reinforcement-learning",
+  "lede": "When the agent cannot observe the full state, it must act on a belief, a probability distribution over states.",
+  "body": [
+   [
+    "h2",
+    "Partial observability"
+   ],
+   [
+    "p",
+    "A Markov Decision Process assumes the agent sees the true state. A Partially Observable MDP (POMDP) drops this: the agent receives only observations that depend probabilistically on the hidden state, via an observation model O(o | s, a). Sensor noise, occlusion, and hidden intentions all make real problems POMDPs."
+   ],
+   [
+    "h3",
+    "The belief state"
+   ],
+   [
+    "p",
+    "The right sufficient statistic is the <b>belief</b> b(s), a probability distribution over states given the entire history of actions and observations. The belief is updated by Bayes' rule after each step. Remarkably, a POMDP over states becomes a fully observed MDP over beliefs: the belief is Markov even though the observations are not."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Bayesian belief update after action a, observation o\n# b'(s') proportional to O(o|s',a) * sum_s T(s'|s,a) * b(s)\ndef update(b, a, o, T, O):\n    b2 = {s2: O[o][s2][a] * sum(T[s][s2][a]*b[s] for s in b)\n          for s2 in b}\n    Z = sum(b2.values())\n    return {s: v/Z for s, v in b2.items()}"
+    ]
+   ],
+   [
+    "h3",
+    "Why solving is hard"
+   ],
+   [
+    "p",
+    "The belief space is continuous (a simplex over states), so exact planning is intractable in general, formally PSPACE-hard for finite horizons. The optimal value function over beliefs is piecewise-linear and convex, represented by a set of alpha-vectors; point-based solvers (PBVI, SARSOP) approximate it by focusing on reachable beliefs."
+   ],
+   [
+    "h2",
+    "POMDPs in deep RL"
+   ],
+   [
+    "p",
+    "Deep RL rarely maintains an explicit belief. Instead a <b>recurrent network</b> (LSTM or GRU) compresses the observation-action history into a hidden state that plays the role of an approximate belief. This lets agents handle partial observability, from memory tasks to control with noisy sensors, without ever writing down the observation model."
+   ],
+   [
+    "ul",
+    [
+     "Belief = distribution over hidden states; it is a Markov statistic of history",
+     "Exact POMDP planning is generally intractable; approximations are the norm",
+     "Recurrent policies learn an implicit belief end to end"
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "thompson-sampling-rl",
+    "Thompson Sampling"
+   ],
+   [
+    "meta-reinforcement-learning",
+    "Meta-RL"
+   ],
+   [
+    "safe-rl-constrained-mdps",
+    "Safe RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "meta-reinforcement-learning",
+  "title": "Meta-Reinforcement Learning",
+  "cat": "reinforcement-learning",
+  "lede": "Meta-RL learns how to learn, producing agents that adapt to a new task within a handful of episodes.",
+  "body": [
+   [
+    "h2",
+    "Learning to learn"
+   ],
+   [
+    "p",
+    "Standard RL learns one task from scratch. Meta-RL trains across a distribution of related tasks so that the resulting agent can adapt rapidly to a new task drawn from that distribution. The objective is not performance on any single task but fast adaptation across many."
+   ],
+   [
+    "h3",
+    "Two main families"
+   ],
+   [
+    "p",
+    "<b>Optimization-based</b> meta-RL, exemplified by MAML, learns an initial set of parameters from which a few gradient steps on a new task reach good performance. <b>Context-based</b> (recurrent) meta-RL, such as RL^2, treats adaptation as inference: a recurrent policy consumes rewards and observations across an episode, and its hidden state encodes what has been learned about the current task, so adaptation happens in the network's activations with no weight updates at test time."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# MAML meta-objective (schematic)\n# for each task: theta' = theta - alpha * grad(task_loss(theta))\n# meta-update: theta = theta - beta * grad( sum over tasks\n#                                            of task_loss(theta') )"
+    ]
+   ],
+   [
+    "h3",
+    "Adaptation as a POMDP"
+   ],
+   [
+    "p",
+    "Fast adaptation is really inference about which task the agent faces, an unknown parameter of a POMDP. Context-based methods like PEARL make this explicit: they infer a probabilistic task variable from recent experience and condition the policy on it, combining posterior sampling for exploration with off-policy efficiency."
+   ],
+   [
+    "h2",
+    "Why it matters and where it strains"
+   ],
+   [
+    "ul",
+    [
+     "Sample-efficient adaptation to new but related tasks, useful for robotics and control",
+     "Generalization is bounded by the training task distribution; far-off tasks fail",
+     "Meta-training itself is costly and can be unstable"
+    ]
+   ],
+   [
+    "p",
+    "Meta-RL formalizes transfer and few-shot adaptation for sequential decisions. Its central lesson, that the exploration strategy for a new task can itself be learned, connects it to curiosity, POMDPs, and Bayesian RL."
+   ]
+  ],
+  "related": [
+   [
+    "pomdp-belief-states",
+    "POMDPs"
+   ],
+   [
+    "curiosity-intrinsic-motivation",
+    "Curiosity"
+   ],
+   [
+    "sim-to-real-transfer",
+    "Sim-to-Real"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safe-rl-constrained-mdps",
+  "title": "Safe RL and Constrained MDPs",
+  "cat": "reinforcement-learning",
+  "lede": "Safe RL maximizes reward subject to constraints, so the agent respects safety limits during and after learning.",
+  "body": [
+   [
+    "h2",
+    "Reward is not enough"
+   ],
+   [
+    "p",
+    "Many real systems have hard limits: a robot must not exceed torque bounds, a controller must not drive a plant outside safe operating envelopes. Folding such limits into a single reward via penalties is brittle. Safe RL keeps them separate as explicit constraints."
+   ],
+   [
+    "h3",
+    "The constrained MDP"
+   ],
+   [
+    "p",
+    "A Constrained MDP (CMDP) augments the MDP with one or more <b>cost</b> functions and a budget for each. The goal is to maximize expected return subject to expected cumulative cost staying below its threshold. This is a constrained optimization, not a scalar maximization, and its solution can be a stochastic policy even when the unconstrained optimum is deterministic."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# CMDP: maximize E[return]  subject to  E[cost_j] <= d_j\n# Lagrangian relaxation:\n# max_pi min_{lambda>=0}  E[return] - sum_j lambda_j (E[cost_j] - d_j)\n# lambda is raised when a constraint is violated, lowered otherwise"
+    ]
+   ],
+   [
+    "h3",
+    "Solution approaches"
+   ],
+   [
+    "ul",
+    [
+     "<b>Lagrangian</b> methods add adaptive multipliers that penalize constraint violation, tuning them online",
+     "<b>Trust-region</b> methods (CPO) take policy steps guaranteed to keep constraints satisfied",
+     "<b>Shielding / safety layers</b> filter or project unsafe actions before they execute"
+    ]
+   ],
+   [
+    "h2",
+    "Safety during learning"
+   ],
+   [
+    "p",
+    "A subtlety separates safe RL from ordinary constrained optimization: constraints must often hold <b>during</b> training, not only at convergence, because exploratory mistakes on real hardware can be catastrophic. This drives interest in conservative exploration, control-theoretic safety filters, and formal guarantees. Where a machine or plant is expensive or safety-critical, learning is typically done first in simulation, with a safety layer retained during any real deployment."
+   ]
+  ],
+  "related": [
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ],
+   [
+    "rl-tokamak-plasma-control",
+    "RL for Plasma Control"
+   ],
+   [
+    "reward-hacking-rl",
+    "Reward Hacking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reward-modeling",
+  "title": "Reward Modeling",
+  "cat": "reinforcement-learning",
+  "lede": "A reward model is a learned proxy for what we want, standing in for a true objective that is hard to specify.",
+  "body": [
+   [
+    "h2",
+    "When the objective must be learned"
+   ],
+   [
+    "p",
+    "Reward modeling addresses tasks where the desired behavior is clear to a human but impossible to write as code: helpfulness, aesthetic quality, safe manipulation. Rather than hand-code the reward, we learn one from human evaluations, comparisons, or demonstrations, then optimize a policy against it."
+   ],
+   [
+    "h3",
+    "Sources of supervision"
+   ],
+   [
+    "ul",
+    [
+     "<b>Comparisons</b>: humans rank outputs; fit a reward under a Bradley-Terry preference model",
+     "<b>Ratings</b>: absolute scores, though these are noisier and less consistent than comparisons",
+     "<b>Demonstrations</b>: infer reward from expert behavior via inverse RL"
+    ]
+   ],
+   [
+    "h3",
+    "The over-optimization trap"
+   ],
+   [
+    "p",
+    "A learned reward is a proxy, and optimizing a proxy hard enough breaks it, an instance of Goodhart's law. As the policy pushes into regions where the reward model was never trained, its errors become exploitable and measured reward rises while true quality falls. Countermeasures include penalizing divergence from a trusted policy (a KL leash), keeping the reward model uncertain and conservative out of distribution, and periodically collecting fresh human data on the policy's current outputs."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Guarded objective: pursue proxy reward but stay near a base policy\n# maximize  E[ r_model(x) ]  -  beta * KL( policy || base_policy )"
+    ]
+   ],
+   [
+    "h2",
+    "Recursive and scalable variants"
+   ],
+   [
+    "p",
+    "When outputs exceed what a human can evaluate directly, reward modeling can be made recursive: use AI assistance or decomposition so evaluators can judge complex behavior, an approach sometimes called scalable oversight. Reward modeling is the technical core of RLHF and a central tool in alignment: get the objective right, because RL will optimize exactly what you actually measure, not what you intended."
+   ]
+  ],
+  "related": [
+   [
+    "rlhf-human-feedback",
+    "RLHF"
+   ],
+   [
+    "inverse-reinforcement-learning",
+    "Inverse RL"
+   ],
+   [
+    "reward-hacking-rl",
+    "Reward Hacking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sim-to-real-transfer",
+  "title": "Sim-to-Real Transfer",
+  "cat": "reinforcement-learning",
+  "lede": "Policies trained in simulation must survive the reality gap; domain randomization and adaptation help them cross it.",
+  "body": [
+   [
+    "h2",
+    "Why train in simulation"
+   ],
+   [
+    "p",
+    "Real-world RL is slow, costly, and often unsafe. Simulation is fast, parallelizable, and forgiving of exploratory mistakes. The catch is the <b>reality gap</b>: a policy that excels in a simulator can fail on hardware because the simulator's physics, sensors, and latencies differ from reality."
+   ],
+   [
+    "h3",
+    "Domain randomization"
+   ],
+   [
+    "p",
+    "The most influential technique is <b>domain randomization</b>: rather than model reality precisely, randomize simulator parameters (masses, friction, textures, sensor noise, delays) across a wide range during training. A policy forced to perform under this variety learns robust behavior and treats reality as just one more variation it has already seen. Randomizing visuals likewise lets vision policies transfer from rendered to real images."
+   ],
+   [
+    "ul",
+    [
+     "<b>Dynamics randomization</b>: physical parameters like mass, friction, actuator gains",
+     "<b>Visual randomization</b>: lighting, textures, camera pose for perception",
+     "<b>Latency and noise</b>: control delay and sensor error, often overlooked but decisive"
+    ]
+   ],
+   [
+    "h3",
+    "Closing the gap further"
+   ],
+   [
+    "p",
+    "Domain randomization can be made adaptive: automatic domain randomization gradually widens ranges as the policy improves. <b>System identification</b> tunes the simulator to match measured real data. <b>Domain adaptation</b> aligns simulated and real feature distributions. Online adaptation methods infer the true parameters at deployment from a short interaction and adjust the policy accordingly, connecting sim-to-real to meta-RL."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Domain randomization step\nparams = {\n  'friction': uniform(0.5, 1.5),\n  'mass':     uniform(0.8, 1.2) * nominal_mass,\n  'delay_ms': uniform(0, 40),\n}\nenv.set_params(params)   # new sample every episode"
+    ]
+   ],
+   [
+    "h2",
+    "Practical stance"
+   ],
+   [
+    "p",
+    "Sim-to-real is now the default recipe for learned robotic control, from in-hand manipulation to legged locomotion. The reliable pattern is: randomize broadly, keep a conservative safety layer on hardware, and validate on the real system rather than trusting simulated performance."
+   ]
+  ],
+  "related": [
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ],
+   [
+    "domain-randomization-rl",
+    "Domain Randomization"
+   ],
+   [
+    "meta-reinforcement-learning",
+    "Meta-RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rl-continuous-control",
+  "title": "RL for Continuous Control",
+  "cat": "reinforcement-learning",
+  "lede": "Continuous action spaces demand policy-gradient and actor-critic methods rather than discrete value maximization.",
+  "body": [
+   [
+    "h2",
+    "The continuous-action challenge"
+   ],
+   [
+    "p",
+    "Value-based methods like DQN choose actions by maximizing Q over a finite set. With continuous actions (joint torques, valve openings) that max is itself an optimization at every step, and enumerating actions is impossible. Continuous control therefore relies on policies that output actions directly and on actor-critic architectures."
+   ],
+   [
+    "h3",
+    "Deterministic and stochastic policies"
+   ],
+   [
+    "p",
+    "Two lineages dominate. <b>Deterministic policy gradient</b> methods (DDPG, TD3) output a single action and learn a critic whose gradient with respect to the action improves the actor, well suited to off-policy learning from a replay buffer. <b>Stochastic</b> methods (PPO, SAC) output an action distribution; PPO is on-policy and robust, while SAC is off-policy and adds an entropy bonus for exploration."
+   ],
+   [
+    "ul",
+    [
+     "<b>DDPG</b>: deterministic actor + Q-critic, off-policy, sample efficient but brittle",
+     "<b>TD3</b>: DDPG plus twin critics and delayed updates to curb overestimation",
+     "<b>SAC</b>: stochastic actor, entropy-regularized, strong and stable default",
+     "<b>PPO</b>: on-policy, clipped updates, simple and widely used"
+    ]
+   ],
+   [
+    "h3",
+    "Squashing and bounds"
+   ],
+   [
+    "p",
+    "Real actuators have limits, so continuous policies squash outputs into bounds, commonly with a tanh applied to a Gaussian sample. This requires a correction to the log-probability when computing entropy or likelihood, a detail that matters for SAC's numerics."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Gaussian policy with tanh squashing (bounded actions)\nmu, log_std = actor(state)\nu = mu + exp(log_std) * randn()\naction = tanh(u)                 # in (-1, 1)\n# log-prob correction: -sum log(1 - tanh(u)**2 + 1e-6)"
+    ]
+   ],
+   [
+    "h2",
+    "Where it is applied"
+   ],
+   [
+    "p",
+    "Continuous-control RL drives robotic manipulation, locomotion, and process control. Physical plants such as fusion devices present continuous, multi-input control problems, and published work has applied deep RL to tokamak magnetic control in simulation and on experimental hardware. Kronos machines, including the Hyperion breeder, are at design and simulation stage; any learned control would be developed and validated in simulation first."
+   ]
+  ],
+  "related": [
+   [
+    "deterministic-policy-gradient-ddpg",
+    "DDPG"
+   ],
+   [
+    "soft-actor-critic-sac",
+    "SAC"
+   ],
+   [
+    "rl-tokamak-plasma-control",
+    "RL for Plasma Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deterministic-policy-gradient-ddpg",
+  "title": "Deterministic Policy Gradients and DDPG",
+  "cat": "reinforcement-learning",
+  "lede": "DDPG learns a deterministic continuous-control policy off-policy, using a critic's action gradient to improve the actor.",
+  "body": [
+   [
+    "h2",
+    "A deterministic actor"
+   ],
+   [
+    "p",
+    "The deterministic policy gradient theorem shows that for a deterministic policy mu(s), the gradient of expected return is the expected gradient of the critic Q with respect to the action, chained through the actor: grad J = E[ grad_a Q(s,a) at a=mu(s) times grad_theta mu(s) ]. This avoids integrating over an action distribution and enables efficient off-policy learning."
+   ],
+   [
+    "h3",
+    "The DDPG algorithm"
+   ],
+   [
+    "p",
+    "Deep Deterministic Policy Gradient (DDPG) is the deep-learning realization. It maintains four networks: an actor mu and critic Q, each with a slowly updated <b>target</b> copy. The critic is trained by the usual Bellman error using the target networks; the actor is trained by ascending the critic's action gradient. Experience is stored in a replay buffer and sampled off-policy, as in DQN."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# DDPG updates per batch\ny = r + gamma * Q_targ(s2, mu_targ(s2))          # critic target\ncritic_loss = mse(Q(s, a), y)\nactor_loss  = -Q(s, mu(s)).mean()                # ascend critic\n# soft-update targets: theta_targ = tau*theta + (1-tau)*theta_targ"
+    ]
+   ],
+   [
+    "h3",
+    "Exploration"
+   ],
+   [
+    "p",
+    "Because the policy is deterministic, exploration comes from adding noise to actions during data collection, originally temporally correlated Ornstein-Uhlenbeck noise, though uncorrelated Gaussian noise usually works as well. Target networks and the replay buffer are essential for stability, mirroring the tricks that made DQN work."
+   ],
+   [
+    "h2",
+    "Limitations"
+   ],
+   [
+    "p",
+    "DDPG is sample efficient but notoriously brittle: it is sensitive to hyperparameters and prone to <b>overestimation bias</b>, where the critic's errors are amplified by the max-like actor update, sometimes causing collapse. TD3 was designed specifically to fix these issues, and SAC offers a more stable stochastic alternative. DDPG remains the conceptual foundation for both."
+   ]
+  ],
+  "related": [
+   [
+    "td3-twin-delayed",
+    "TD3"
+   ],
+   [
+    "soft-actor-critic-sac",
+    "SAC"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "td3-twin-delayed",
+  "title": "TD3: Twin Delayed DDPG",
+  "cat": "reinforcement-learning",
+  "lede": "TD3 fixes DDPG's overestimation with twin critics, delayed policy updates, and smoothed target actions.",
+  "body": [
+   [
+    "h2",
+    "Three targeted fixes"
+   ],
+   [
+    "p",
+    "Twin Delayed Deep Deterministic policy gradient (TD3) diagnoses why DDPG is unstable and applies three specific remedies. Each addresses a distinct source of error, and together they make deterministic continuous control reliable."
+   ],
+   [
+    "h3",
+    "Clipped double-Q"
+   ],
+   [
+    "p",
+    "DDPG's single critic systematically overestimates values because the actor exploits its errors. TD3 learns <b>two</b> critics and uses the <b>minimum</b> of the two in the Bellman target. Taking the minimum biases estimates downward, counteracting overestimation. This is the single most important change."
+   ],
+   [
+    "h3",
+    "Delayed policy updates"
+   ],
+   [
+    "p",
+    "A rapidly changing critic makes the actor chase a moving target. TD3 updates the actor and the target networks less frequently than the critics, typically once every two critic updates, so the actor optimizes against a more settled value estimate. This reduces variance in the policy update."
+   ],
+   [
+    "h3",
+    "Target policy smoothing"
+   ],
+   [
+    "p",
+    "To prevent the actor from exploiting sharp, spurious peaks in the critic, TD3 adds clipped noise to the target action when computing the Bellman target. This regularizes the value estimate over a small neighborhood, encoding the prior that similar actions should have similar value."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# TD3 target with smoothing and clipped double-Q\na2 = mu_targ(s2) + clip(noise, -c, c)\na2 = clip(a2, act_low, act_high)\ny  = r + gamma * min(Q1_targ(s2,a2), Q2_targ(s2,a2))\n# critics -> y ; actor updated every d steps, ascending Q1(s, mu(s))"
+    ]
+   ],
+   [
+    "h2",
+    "Result"
+   ],
+   [
+    "p",
+    "TD3 substantially outperforms DDPG in both stability and final performance on continuous-control benchmarks, with little extra complexity. It shares the off-policy, replay-based structure of DDPG, so it retains high sample efficiency. TD3 and SAC are the two standard off-policy choices for continuous control; TD3 is deterministic, SAC is stochastic and entropy-regularized."
+   ]
+  ],
+  "related": [
+   [
+    "deterministic-policy-gradient-ddpg",
+    "DDPG"
+   ],
+   [
+    "soft-actor-critic-sac",
+    "SAC"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "soft-actor-critic-sac",
+  "title": "Soft Actor-Critic",
+  "cat": "reinforcement-learning",
+  "lede": "SAC maximizes reward plus policy entropy, giving a stable, sample-efficient, exploration-friendly control algorithm.",
+  "body": [
+   [
+    "h2",
+    "The maximum-entropy objective"
+   ],
+   [
+    "p",
+    "Soft Actor-Critic (SAC) changes the objective: it maximizes expected reward <b>plus</b> the entropy of the policy, weighted by a temperature alpha. The agent is rewarded for succeeding and for staying as random as it can while doing so. This built-in preference for stochasticity improves exploration, robustness, and stability."
+   ],
+   [
+    "h3",
+    "Soft value functions"
+   ],
+   [
+    "p",
+    "Under this objective the Bellman equations gain an entropy bonus: the target adds alpha times the log-probability of the next action. SAC learns twin Q-critics (taking the minimum, as in TD3, to limit overestimation) and a stochastic actor that outputs a squashed Gaussian. Being off-policy, it reuses a replay buffer for high sample efficiency."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# SAC critic target (entropy-augmented, twin critics)\na2, logp2 = actor.sample(s2)\nq_targ = min(Q1_targ(s2,a2), Q2_targ(s2,a2)) - alpha*logp2\ny = r + gamma * q_targ\n# actor loss: maximize  Q(s,a) - alpha*log pi(a|s)"
+    ]
+   ],
+   [
+    "h3",
+    "Automatic temperature"
+   ],
+   [
+    "p",
+    "The temperature alpha trades reward against entropy and is hard to set by hand. SAC can tune it automatically by treating it as a constraint: adjust alpha so the policy's average entropy matches a target level. This removes a fragile hyperparameter and adapts exploration over the course of training, high early, lower as the policy sharpens."
+   ],
+   [
+    "h2",
+    "Why SAC is a default"
+   ],
+   [
+    "ul",
+    [
+     "Sample efficient (off-policy) yet stable, unlike DDPG",
+     "Entropy term gives structured exploration without hand-tuned action noise",
+     "Robust across tasks with little per-task tuning"
+    ]
+   ],
+   [
+    "p",
+    "SAC is a leading choice for continuous control in robotics and simulation. Its maximum-entropy framing also connects RL to probabilistic inference, where acting is cast as sampling from a distribution proportional to exponentiated reward."
+   ]
+  ],
+  "related": [
+   [
+    "td3-twin-delayed",
+    "TD3"
+   ],
+   [
+    "deterministic-policy-gradient-ddpg",
+    "DDPG"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "self-play-rl",
+  "title": "Self-Play",
+  "cat": "reinforcement-learning",
+  "lede": "In self-play an agent improves by competing against copies of itself, generating an ever-stronger curriculum.",
+  "body": [
+   [
+    "h2",
+    "An opponent that grows with you"
+   ],
+   [
+    "p",
+    "Self-play trains an agent by having it play against itself or past versions of itself. The opponent is always matched to the agent's current skill, producing an automatic curriculum: as the agent improves, so does its adversary, and both are pushed to keep advancing. No external teacher or fixed opponent pool is required."
+   ],
+   [
+    "h3",
+    "Why it produces strong play"
+   ],
+   [
+    "p",
+    "Self-play was central to landmark results: TD-Gammon in backgammon, and AlphaGo Zero and AlphaZero in Go, chess, and shogi, which reached superhuman strength starting only from the rules. In these systems self-play generates the training data, and search converts the current network into a stronger target, so quality compounds each iteration."
+   ],
+   [
+    "h3",
+    "Stability concerns"
+   ],
+   [
+    "ul",
+    [
+     "<b>Cycling</b>: strategies can chase each other in circles (rock-paper-scissors dynamics) without net progress",
+     "<b>Overfitting to self</b>: an agent may exploit quirks of its own past selves rather than learn general skill",
+     "<b>Forgetting</b>: beating only the latest version can erase the ability to beat older ones"
+    ]
+   ],
+   [
+    "h3",
+    "Opponent sampling"
+   ],
+   [
+    "p",
+    "Remedies keep and sample from a <b>population</b> of past checkpoints rather than always facing the newest version, which preserves robustness and prevents strategy collapse. Fictitious self-play and Policy-Space Response Oracles formalize this by best-responding to a mixture over past policies, with connections to computing Nash equilibria in two-player zero-sum games."
+   ],
+   [
+    "h2",
+    "Scope"
+   ],
+   [
+    "p",
+    "Self-play applies naturally to symmetric competitive games and to any setting expressible as an agent versus an equally capable adversary, including adversarial training and some multi-agent tasks. Its power is turning a hard exploration problem into a sequence of achievable ones."
+   ]
+  ],
+  "related": [
+   [
+    "alphazero-and-mcts",
+    "AlphaZero"
+   ],
+   [
+    "multi-agent-rl",
+    "Multi-Agent RL"
+   ],
+   [
+    "mcts-fundamentals",
+    "MCTS"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reward-shaping-rl",
+  "title": "Reward Shaping",
+  "cat": "reinforcement-learning",
+  "lede": "Reward shaping adds guidance signals to speed learning, but only potential-based shaping is guaranteed to be safe.",
+  "body": [
+   [
+    "h2",
+    "Guiding the agent"
+   ],
+   [
+    "p",
+    "Sparse rewards make learning slow: an agent may wander for a long time before stumbling on any signal. Reward shaping adds intermediate rewards to point the agent toward good behavior, for example rewarding progress toward a goal rather than only reaching it. Done carelessly, though, shaping can change the optimal policy and teach the wrong thing."
+   ],
+   [
+    "h3",
+    "The danger of naive shaping"
+   ],
+   [
+    "p",
+    "If you reward a soccer agent for touching the ball, it may learn to vibrate against the ball forever, maximizing the shaping reward while never scoring. The added signal created a new, unintended optimum. Any shaping that alters which policy is optimal is unsafe."
+   ],
+   [
+    "h3",
+    "Potential-based shaping"
+   ],
+   [
+    "p",
+    "Ng, Harada, and Russell proved a clean condition. If the shaping reward has the form F(s, s') = gamma * Phi(s') - Phi(s) for some <b>potential</b> function Phi over states, then the set of optimal policies is unchanged, guaranteed. Intuitively the extra rewards telescope along any trajectory and cancel, so they can accelerate learning without moving the optimum."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Potential-based shaping preserves optimal policy\n# F(s, s') = gamma * Phi(s') - Phi(s)\nr_shaped = r + gamma * Phi(s2) - Phi(s)\n# a good Phi is an estimate of the value/negative distance-to-goal"
+    ]
+   ],
+   [
+    "h2",
+    "Choosing a potential"
+   ],
+   [
+    "ul",
+    [
+     "A useful Phi resembles the true value function, so a rough heuristic estimate of it works well",
+     "Distance-to-goal (negated) is a common potential for navigation and reaching",
+     "Shaping only speeds convergence; it never changes what the optimal policy is"
+    ]
+   ],
+   [
+    "p",
+    "Reward shaping is the disciplined middle ground between sparse reward and reward hacking. When guidance is needed, express it as a potential difference; when it is not, keep the reward honest and rely on exploration methods instead."
+   ]
+  ],
+  "related": [
+   [
+    "reward-hacking-rl",
+    "Reward Hacking"
+   ],
+   [
+    "curiosity-intrinsic-motivation",
+    "Curiosity"
+   ],
+   [
+    "goal-conditioned-rl",
+    "Goal-Conditioned RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reward-hacking-rl",
+  "title": "Reward Hacking",
+  "cat": "reinforcement-learning",
+  "lede": "Agents optimize the reward you write, not the goal you meant; the gap between them is reward hacking.",
+  "body": [
+   [
+    "h2",
+    "Specification gaming"
+   ],
+   [
+    "p",
+    "Reward hacking (specification gaming) occurs when an agent achieves high reward through behavior the designer never intended. The agent is not malfunctioning: it is doing exactly what the reward function rewards. The fault lies in the objective, which failed to capture what we actually wanted."
+   ],
+   [
+    "h3",
+    "Classic examples"
+   ],
+   [
+    "ul",
+    [
+     "A boat-racing agent circling to collect the same power-ups forever instead of finishing the course",
+     "A simulated robot exploiting a physics-engine bug to move without real locomotion",
+     "A grasping agent positioning its hand between the camera and object to fake a successful grasp"
+    ]
+   ],
+   [
+    "h3",
+    "Why it is hard to avoid"
+   ],
+   [
+    "p",
+    "Any hand-written reward is a proxy for a true, unstated objective, and optimizing a proxy past a point makes it diverge from the target, an instance of Goodhart's law: when a measure becomes a target, it stops being a good measure. Powerful optimizers find the cheapest way to score, which is often a shortcut that violates the spirit of the task."
+   ],
+   [
+    "h3",
+    "Learned rewards hack too"
+   ],
+   [
+    "p",
+    "Learned reward models are also proxies. A policy optimized hard against a reward model drifts into regions where the model is wrong but confidently high, so measured reward rises while true quality falls. This is why RLHF constrains the policy to stay near a trusted base model with a KL penalty."
+   ],
+   [
+    "h2",
+    "Mitigations"
+   ],
+   [
+    "ul",
+    [
+     "Constrain divergence from a trusted policy (KL leash) so the agent cannot exploit far-off regions",
+     "Keep the reward conservative and uncertain out of distribution",
+     "Refresh evaluation on the policy's current behavior; audit and red-team for exploits",
+     "Prefer potential-based shaping, which cannot introduce new optima"
+    ]
+   ],
+   [
+    "p",
+    "Reward hacking is a central concern in AI safety and alignment. It reframes reward design as an adversarial problem: assume the agent will find any loophole, and close them before optimization does."
+   ]
+  ],
+  "related": [
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ],
+   [
+    "reward-shaping-rl",
+    "Reward Shaping"
+   ],
+   [
+    "rlhf-human-feedback",
+    "RLHF"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "exploration-exploitation-tradeoff",
+  "title": "The Exploration-Exploitation Trade-off",
+  "cat": "reinforcement-learning",
+  "lede": "Every learning agent must balance taking known-good actions against gathering information about uncertain ones.",
+  "body": [
+   [
+    "h2",
+    "The core dilemma"
+   ],
+   [
+    "p",
+    "An agent that always exploits its current best estimate may never discover a superior option; one that always explores never cashes in what it has learned. The exploration-exploitation trade-off is the problem of allocating actions between these two goals to maximize long-run return. It is fundamental to all of RL and to online decision-making generally."
+   ],
+   [
+    "h3",
+    "Simple strategies"
+   ],
+   [
+    "ul",
+    [
+     "<b>Epsilon-greedy</b>: act greedily with probability 1-epsilon, otherwise pick a random action; simple but undirected",
+     "<b>Boltzmann / softmax</b>: sample actions with probability rising in their estimated value, tunable by a temperature",
+     "<b>Optimistic initialization</b>: start value estimates high so untried actions look attractive until tried"
+    ]
+   ],
+   [
+    "h3",
+    "Principled strategies"
+   ],
+   [
+    "p",
+    "Better methods reason about uncertainty. <b>UCB</b> adds an optimism bonus to under-tried actions and enjoys logarithmic regret in bandits. <b>Thompson sampling</b> acts greedily under a sampled posterior, matching action frequency to the probability each is best. Both direct exploration where information is most valuable, rather than acting randomly."
+   ],
+   [
+    "h3",
+    "Deep and deep-hard exploration"
+   ],
+   [
+    "p",
+    "In large state spaces, undirected epsilon-greedy fails on tasks needing long, coordinated sequences of novel actions (hard-exploration problems like Montezuma's Revenge). Solutions add <b>intrinsic rewards</b> for novelty (curiosity, count-based bonuses) or use ensembles for temporally consistent, posterior-like exploration."
+   ],
+   [
+    "h2",
+    "Regret as the scorecard"
+   ],
+   [
+    "p",
+    "Exploration quality is measured by <b>regret</b>, the shortfall of total reward against an oracle that always plays optimally. Good strategies drive regret to grow slowly (sublinearly) over time, meaning the fraction of reward lost to exploration vanishes. The art is exploring enough, and no more, to identify the best actions."
+   ]
+  ],
+  "related": [
+   [
+    "exploration-ucb",
+    "UCB"
+   ],
+   [
+    "thompson-sampling-rl",
+    "Thompson Sampling"
+   ],
+   [
+    "curiosity-intrinsic-motivation",
+    "Curiosity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bandit-algorithms",
+  "title": "Multi-Armed Bandits",
+  "cat": "reinforcement-learning",
+  "lede": "The bandit is RL stripped to one decision: choose among actions with unknown payoffs to maximize total reward.",
+  "body": [
+   [
+    "h2",
+    "The simplest RL problem"
+   ],
+   [
+    "p",
+    "A multi-armed bandit offers K actions (arms), each returning a reward from an unknown distribution. There is no state and no transition dynamics, just repeated choice. This makes the bandit the cleanest laboratory for the exploration-exploitation trade-off, and its algorithms underpin recommendation, clinical trials, and online experimentation."
+   ],
+   [
+    "h3",
+    "Regret"
+   ],
+   [
+    "p",
+    "Performance is measured by <b>regret</b>: the difference between the reward of always pulling the best arm and the reward actually earned. The Lai-Robbins bound shows regret must grow at least logarithmically in the number of pulls for any good algorithm, and UCB and Thompson sampling both achieve this optimal rate."
+   ],
+   [
+    "h3",
+    "Core algorithms"
+   ],
+   [
+    "ul",
+    [
+     "<b>Epsilon-greedy</b>: exploit the best arm, explore randomly a fraction of the time",
+     "<b>UCB</b>: pull the arm with the highest optimistic value estimate",
+     "<b>Thompson sampling</b>: sample each arm's mean from a posterior, pull the highest sample"
+    ]
+   ],
+   [
+    "h3",
+    "Contextual bandits"
+   ],
+   [
+    "p",
+    "The contextual bandit adds side information: before each choice the agent sees a context (features), and rewards depend on both context and arm. This bridges bandits and full RL, capturing personalization where the best action depends on the situation but choices do not change future states. LinUCB and Thompson sampling with linear models are standard."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# epsilon-greedy bandit\nif random() < epsilon:\n    arm = randint(K)                 # explore\nelse:\n    arm = argmax(estimated_means)    # exploit\nreward = pull(arm)\ncounts[arm] += 1\nestimated_means[arm] += (reward - estimated_means[arm]) / counts[arm]"
+    ]
+   ],
+   [
+    "h2",
+    "Why bandits matter"
+   ],
+   [
+    "p",
+    "Bandits isolate exploration from the credit-assignment complexity of sequential RL, so their theory is sharp and their algorithms transfer upward: UCB drives MCTS, Thompson sampling generalizes to posterior sampling for MDPs. Master the bandit and much of exploration in full RL follows."
+   ]
+  ],
+  "related": [
+   [
+    "exploration-ucb",
+    "UCB"
+   ],
+   [
+    "thompson-sampling-rl",
+    "Thompson Sampling"
+   ],
+   [
+    "exploration-exploitation-tradeoff",
+    "Explore-Exploit"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "successor-features-rl",
+  "title": "Successor Features and Representations",
+  "cat": "reinforcement-learning",
+  "lede": "Successor representations factor value into expected future state occupancy times reward, enabling fast transfer.",
+  "body": [
+   [
+    "h2",
+    "Separating dynamics from reward"
+   ],
+   [
+    "p",
+    "The successor representation (SR) decomposes value into two parts: where the agent expects to go, and how much reward each place is worth. Formally the SR M(s, s') is the expected discounted number of future visits to state s' starting from s. Then V(s) = sum over s' of M(s, s') times R(s'). If the reward changes but dynamics do not, only R must be relearned; M is reused."
+   ],
+   [
+    "h3",
+    "Successor features"
+   ],
+   [
+    "p",
+    "In large or continuous spaces the tabular SR is replaced by <b>successor features</b>. Suppose reward is linear in features: R(s) = phi(s) dot w. Define psi(s), the expected discounted sum of future features. Then value is simply psi(s) dot w. psi obeys a Bellman equation and is learned like a value function, while w captures the task. Swapping tasks means swapping w."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Successor features: value = psi . w\n# psi(s) = E[ sum_t gamma^t phi(s_t) ]  (Bellman-learnable)\n# reward:  R(s) = phi(s) . w\nV = np.dot(psi(s), w)"
+    ]
+   ],
+   [
+    "h3",
+    "Transfer via GPI"
+   ],
+   [
+    "p",
+    "Successor features shine at transfer. Given a library of policies, each with its own psi, and a new task's reward vector w, <b>generalized policy improvement</b> evaluates all stored policies on the new task instantly (each value is a dot product) and acts greedily with respect to the best. This produces a strong policy for a novel reward with no new learning, then refines from there."
+   ],
+   [
+    "h2",
+    "Connections"
+   ],
+   [
+    "ul",
+    [
+     "Bridges model-free and model-based RL: SR is a partial, reward-agnostic model of dynamics",
+     "Explains some neuroscience findings on predictive maps in the hippocampus",
+     "Underlies fast multi-task and option-based transfer"
+    ]
+   ],
+   [
+    "p",
+    "Successor features are a principled route to transfer: learn the dynamics-dependent part once, and adapt only the small reward-dependent part per task."
+   ]
+  ],
+  "related": [
+   [
+    "hierarchical-rl-options",
+    "Options"
+   ],
+   [
+    "goal-conditioned-rl",
+    "Goal-Conditioned RL"
+   ],
+   [
+    "meta-reinforcement-learning",
+    "Meta-RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "goal-conditioned-rl",
+  "title": "Goal-Conditioned RL",
+  "cat": "reinforcement-learning",
+  "lede": "A single goal-conditioned policy learns to reach any goal, turning many tasks into one parameterized problem.",
+  "body": [
+   [
+    "h2",
+    "One policy, many goals"
+   ],
+   [
+    "p",
+    "Goal-conditioned RL trains a policy pi(a | s, g) and value function that take a goal g as an extra input. Instead of solving each task separately, the agent learns to reach arbitrary goals from the same state space. This unifies a family of tasks and lets experience toward one goal inform the pursuit of others."
+   ],
+   [
+    "h3",
+    "Universal value functions"
+   ],
+   [
+    "p",
+    "The core object is the Universal Value Function Approximator (UVFA): a value function V(s, g) that generalizes across goals via a shared network. Because goals and states often live in the same space, the network can interpolate to goals never explicitly trained, giving zero-shot generalization to new targets."
+   ],
+   [
+    "h3",
+    "Sparse reward and relabeling"
+   ],
+   [
+    "p",
+    "Goals usually come with sparse reward: 1 (or 0) for reaching the goal, nothing otherwise. This is where <b>hindsight relabeling</b> is transformative. Any trajectory reaches some state, so relabeling that state as the goal yields a success example, letting the agent learn from every episode regardless of whether it hit the intended goal. Hindsight Experience Replay is the standard implementation."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Goal-conditioned Q-learning target\ny = r(s2, g) + gamma * max_a Q(s2, a, g)\n# reward is typically:  r(s, g) = 0 if ||s - g|| < eps else -1"
+    ]
+   ],
+   [
+    "h2",
+    "Uses and links"
+   ],
+   [
+    "ul",
+    [
+     "Robotics: reach, push, or place objects at commanded configurations",
+     "Hierarchy: a manager sets subgoals that a goal-conditioned worker achieves",
+     "Exploration: automatically proposing achievable goals builds a curriculum"
+    ]
+   ],
+   [
+    "p",
+    "Goal-conditioned RL connects tightly to hierarchical RL (subgoals), successor features (reward is a goal indicator), and curriculum learning (proposing goals of the right difficulty). It reframes control as a general goal-reaching skill rather than a collection of separate policies."
+   ]
+  ],
+  "related": [
+   [
+    "hindsight-experience-replay",
+    "Hindsight Replay"
+   ],
+   [
+    "hierarchical-rl-options",
+    "Options"
+   ],
+   [
+    "successor-features-rl",
+    "Successor Features"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-predictive-control-rl",
+  "title": "Model-Predictive Control and RL",
+  "cat": "reinforcement-learning",
+  "lede": "MPC plans a short action sequence with a model, executes one step, then replans, and pairs naturally with learned models.",
+  "body": [
+   [
+    "h2",
+    "Plan, act, replan"
+   ],
+   [
+    "p",
+    "Model-Predictive Control (MPC) is a receding-horizon method: at each step it optimizes a sequence of actions over a short horizon using a dynamics model, executes only the first action, then discards the plan and repeats from the new state. Replanning at every step corrects for model error and disturbances, giving robustness that open-loop planning lacks."
+   ],
+   [
+    "h3",
+    "Optimizing the plan"
+   ],
+   [
+    "p",
+    "With a learned, possibly nonlinear neural model, the inner optimization is done by <b>sampling-based</b> planners rather than gradients. Random shooting samples many action sequences and keeps the best; the <b>cross-entropy method</b> (CEM) iteratively refits a distribution to the top-scoring sequences; model-predictive path integral (MPPI) weights sequences by exponentiated return. These handle non-differentiable, multimodal objectives."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# CEM-based MPC step\nfor _ in range(iters):\n    seqs = sample(mean, std, N)                 # action sequences\n    scores = [rollout_return(model, s0, seq) for seq in seqs]\n    elite = top_k(seqs, scores)\n    mean, std = fit_gaussian(elite)\nexecute(mean[0]); # then observe new state and replan"
+    ]
+   ],
+   [
+    "h3",
+    "Relationship to RL"
+   ],
+   [
+    "p",
+    "MPC and RL are complementary. MPC needs a model but no long training; RL amortizes planning into a reactive policy but needs many samples. Hybrids are powerful: PETS uses MPC over a learned probabilistic ensemble; MuZero runs tree search (a form of planning) with a learned model; and a learned value function can serve as MPC's terminal cost, extending its effective horizon beyond the planning window."
+   ],
+   [
+    "h2",
+    "Trade-offs"
+   ],
+   [
+    "ul",
+    [
+     "Robust to disturbances and model error thanks to constant replanning",
+     "No policy to train, but planning cost is paid at every control step",
+     "Performance is bounded by model accuracy over the horizon"
+    ]
+   ],
+   [
+    "p",
+    "MPC is the workhorse of classical and learned control alike. In RL it provides a principled way to use a learned model without committing to full-horizon planning or to a fixed reactive policy."
+   ]
+  ],
+  "related": [
+   [
+    "pets-probabilistic-ensembles",
+    "PETS"
+   ],
+   [
+    "model-based-rl-dyna",
+    "Dyna"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "adversarial-imitation-gail",
+  "title": "GAIL: Generative Adversarial Imitation Learning",
+  "cat": "reinforcement-learning",
+  "lede": "GAIL imitates an expert by matching state-action distributions through an adversarial game, skipping explicit reward recovery.",
+  "body": [
+   [
+    "h2",
+    "Imitation as distribution matching"
+   ],
+   [
+    "p",
+    "Behavior cloning matches actions pointwise and suffers from compounding error. Inverse RL recovers a reward but is expensive. Generative Adversarial Imitation Learning (GAIL) takes a direct route: make the learner's <b>state-action distribution</b> match the expert's, using the adversarial framework of generative adversarial networks."
+   ],
+   [
+    "h3",
+    "The adversarial game"
+   ],
+   [
+    "p",
+    "A <b>discriminator</b> D is trained to tell expert state-action pairs from the learner's; the <b>policy</b> (generator) is trained to fool it. The discriminator's output becomes the reward: the policy is rewarded for producing pairs the discriminator judges expert-like, typically r = -log(1 - D(s,a)) or log D(s,a). Policy optimization uses a standard RL algorithm such as TRPO or PPO."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# GAIL alternation\n# 1) update D to classify expert vs policy pairs\nd_loss = -(log(D(expert_sa)) + log(1 - D(policy_sa)))\n# 2) reward policy by how expert-like D judges it, then RL step\nreward = -log(1 - D(s, a))"
+    ]
+   ],
+   [
+    "h3",
+    "Why it beats cloning"
+   ],
+   [
+    "p",
+    "Because the policy is trained by RL, it visits its own states during training and learns to recover from drift, eliminating behavior cloning's covariate shift. And because it matches occupancy distributions rather than recovering an explicit reward, it avoids the inner RL loop that makes classical inverse RL slow. GAIL can match expert performance from relatively few demonstrations."
+   ],
+   [
+    "h2",
+    "Costs and descendants"
+   ],
+   [
+    "ul",
+    [
+     "Requires environment interaction (unlike behavior cloning), and inherits GAN training instability",
+     "Sensitive to reward form and discriminator overfitting",
+     "AIRL extends it to recover a transferable, disentangled reward function"
+    ]
+   ],
+   [
+    "p",
+    "GAIL formalized the link between imitation, inverse RL, and adversarial learning. Its descendants (AIRL, discriminator-actor-critic) improve sample efficiency and reward transfer, making adversarial imitation a mainstay when demonstrations exist but a reward does not."
+   ]
+  ],
+  "related": [
+   [
+    "imitation-learning-behavior-cloning",
+    "Behavior Cloning"
+   ],
+   [
+    "inverse-reinforcement-learning",
+    "Inverse RL"
+   ],
+   [
+    "dagger-algorithm",
+    "DAgger"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "domain-randomization-rl",
+  "title": "Domain Randomization",
+  "cat": "reinforcement-learning",
+  "lede": "Randomizing simulator parameters during training forces policies robust enough to treat reality as one more variation.",
+  "body": [
+   [
+    "h2",
+    "Robustness by variety"
+   ],
+   [
+    "p",
+    "Domain randomization trains a policy across a wide range of randomized simulator settings rather than a single best-guess model. By experiencing many variations of dynamics and appearance, the policy learns behavior that works under all of them, so the real world, if it falls within the training range, is just another sample the policy already handles."
+   ],
+   [
+    "h3",
+    "What to randomize"
+   ],
+   [
+    "ul",
+    [
+     "<b>Dynamics</b>: masses, inertias, friction, damping, actuator gains and limits",
+     "<b>Perception</b>: lighting, textures, colors, camera position and field of view",
+     "<b>Timing</b>: control latency, action repeat, sensor noise and dropout",
+     "<b>Disturbances</b>: external forces, initial-state variation"
+    ]
+   ],
+   [
+    "h3",
+    "Fixed versus adaptive"
+   ],
+   [
+    "p",
+    "Static domain randomization fixes the ranges up front, but ranges too wide make the task unlearnable and too narrow fail to transfer. <b>Automatic domain randomization</b> starts narrow and widens each parameter as the policy masters the current range, growing difficulty in step with competence, the approach behind dexterous in-hand manipulation that transferred to real hardware."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Automatic domain randomization: widen when performance is high\nif recent_success_rate > threshold:\n    ranges[param] = expand(ranges[param])   # harder next\nelif recent_success_rate < low_threshold:\n    ranges[param] = shrink(ranges[param])   # ease off"
+    ]
+   ],
+   [
+    "h2",
+    "Two views of the transfer"
+   ],
+   [
+    "p",
+    "One view treats the real world as inside the training distribution, so no adaptation is needed. Another treats randomization as producing a policy that can quickly infer and adapt to the true parameters at deployment, linking domain randomization to meta-RL and online system identification. Either way, broad randomization plus a conservative safety layer on hardware is the reliable sim-to-real recipe."
+   ]
+  ],
+  "related": [
+   [
+    "sim-to-real-transfer",
+    "Sim-to-Real"
+   ],
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ],
+   [
+    "meta-reinforcement-learning",
+    "Meta-RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rl-tokamak-plasma-control",
+  "title": "RL for Tokamak and Plasma Control",
+  "cat": "reinforcement-learning",
+  "lede": "Deep RL has been applied, in published work, to control the magnetic shape of tokamak plasmas.",
+  "body": [
+   [
+    "h2",
+    "A hard control problem"
+   ],
+   [
+    "p",
+    "A tokamak confines plasma with magnetic fields shaped by many poloidal field coils. Holding the plasma in a target shape and position is a fast, high-dimensional, nonlinear control problem: the plasma is unstable, the dynamics couple strongly, and control must run at kilohertz rates. Traditional control designs a separate controller for each coil and target, which is labor-intensive."
+   ],
+   [
+    "h3",
+    "The published result"
+   ],
+   [
+    "p",
+    "In 2022 a collaboration between a deep-learning research group and a Swiss tokamak laboratory demonstrated deep RL for <b>magnetic control</b> of plasma shape on the TCV tokamak. A single reinforcement-learning agent, trained in a physics simulator, directly commanded the coil voltages to achieve and hold a variety of plasma configurations, and the learned controller was then run successfully on the real device."
+   ],
+   [
+    "ul",
+    [
+     "A learned policy replaced a suite of hand-designed controllers",
+     "Training happened in a free-boundary plasma-evolution simulator",
+     "The controller shaped and stabilized real plasmas, including elongated and multi-domain shapes"
+    ]
+   ],
+   [
+    "h3",
+    "Why RL fits"
+   ],
+   [
+    "p",
+    "RL suits this problem because a reward can encode a desired shape and stability, and the agent discovers the coordinated multi-coil actuation to achieve it, including configurations that are awkward to design by hand. Learning in simulation is essential: exploration on real fusion hardware would be unsafe and slow, so this is a sim-to-real problem with a conservative deployment step, matching the safe-RL and sim-to-real principles discussed elsewhere in this library."
+   ],
+   [
+    "h2",
+    "Relation to Kronos"
+   ],
+   [
+    "p",
+    "Kronos machines are at design and simulation stage; the Hyperion breeder is a D-T spherical tokamak concept and the burner is a D-3He tandem-mirror concept, with construction planned to begin Q2 2027. Any learned plasma control for such devices would be developed and validated in simulation first, consistent with the published tokamak-control work and with safe-RL practice. No net-gain hardware claim is made before first-of-a-kind operation."
+   ]
+  ],
+  "related": [
+   [
+    "rl-continuous-control",
+    "Continuous Control"
+   ],
+   [
+    "sim-to-real-transfer",
+    "Sim-to-Real"
+   ],
+   [
+    "safe-rl-constrained-mdps",
+    "Safe RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multi-objective-rl",
+  "title": "Multi-Objective RL",
+  "cat": "reinforcement-learning",
+  "lede": "When several goals conflict, multi-objective RL seeks the Pareto front of policies rather than a single optimum.",
+  "body": [
+   [
+    "h2",
+    "More than one reward"
+   ],
+   [
+    "p",
+    "Many real decisions trade off competing objectives: speed against energy use, throughput against safety margin. Multi-objective RL (MORL) makes this explicit by using a <b>vector</b> reward, one component per objective, instead of collapsing everything into a single scalar in advance. This preserves the trade-off structure so it can be examined rather than baked in."
+   ],
+   [
+    "h3",
+    "Pareto optimality"
+   ],
+   [
+    "p",
+    "A policy is <b>Pareto optimal</b> if no other policy is at least as good on every objective and strictly better on one. The set of all such policies is the <b>Pareto front</b>. MORL aims to find this front (or a useful part of it), giving a decision-maker the menu of achievable trade-offs rather than a single answer that hid the choice."
+   ],
+   [
+    "h3",
+    "Scalarization"
+   ],
+   [
+    "p",
+    "The simplest approach picks weights and optimizes a weighted sum of objectives, recovering ordinary RL. Sweeping the weights traces out part of the Pareto front, but linear scalarization can only find its convex regions. Nonlinear scalarizations (for example maximizing the minimum objective, or Chebyshev) can reach concave portions the weighted sum misses."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Linear scalarization recovers scalar RL for fixed weights w\nscalar_reward = sum(w[i] * reward_vector[i] for i in range(K))\n# Sweeping w traces the convex part of the Pareto front"
+    ]
+   ],
+   [
+    "h2",
+    "Conditioned policies"
+   ],
+   [
+    "ul",
+    [
+     "<b>Single-policy</b>: fix a preference (weights), find one optimal trade-off",
+     "<b>Multi-policy</b>: learn a set of policies covering the Pareto front",
+     "<b>Preference-conditioned</b>: one network takes the weight vector as input and outputs the matching policy on demand"
+    ]
+   ],
+   [
+    "p",
+    "Preference-conditioned networks are attractive because they let a user choose the trade-off at deployment without retraining. MORL connects to constrained RL (a constraint is one way to encode a secondary objective) and to reward design, keeping objectives separate so their tensions stay visible."
+   ]
+  ],
+  "related": [
+   [
+    "safe-rl-constrained-mdps",
+    "Safe RL"
+   ],
+   [
+    "reward-modeling",
+    "Reward Modeling"
+   ],
+   [
+    "distributional-rl-c51",
+    "Distributional RL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "offline-to-online-rl",
+  "title": "Offline-to-Online RL",
+  "cat": "reinforcement-learning",
+  "lede": "Pretrain a policy on logged data, then fine-tune it with limited online interaction, combining safety and adaptability.",
+  "body": [
+   [
+    "h2",
+    "Best of both regimes"
+   ],
+   [
+    "p",
+    "Pure offline RL is safe but capped by the dataset; pure online RL adapts freely but is sample-hungry and risky early on. Offline-to-online RL bridges them: learn a competent initial policy from logged data, then refine it with a modest budget of real interaction. The offline phase provides a strong, safe starting point; the online phase overcomes the dataset's limits."
+   ],
+   [
+    "h3",
+    "The distribution-shift jolt"
+   ],
+   [
+    "p",
+    "Naively switching from offline to online training often causes a sudden performance drop. Offline methods are trained to be conservative, staying close to the data; when fresh online data arrives from a different distribution, the value estimates can destabilize and the policy can unlearn what it knew before it recovers. Managing this transition is the central technical problem."
+   ],
+   [
+    "ul",
+    [
+     "<b>Conservatism decay</b>: relax the offline pessimism gradually as online data accumulates",
+     "<b>Balanced replay</b>: mix offline and online transitions so learning is not swamped by either",
+     "<b>Value calibration</b>: correct over-conservative value estimates before aggressive online updates"
+    ]
+   ],
+   [
+    "h3",
+    "Exploration after pretraining"
+   ],
+   [
+    "p",
+    "A policy pretrained offline already behaves reasonably, so online exploration should be targeted: probe where the offline data was thin and the value uncertain, rather than explore from scratch. Ensembles and uncertainty estimates carried over from the offline phase can direct this fine-tuning efficiently."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Offline-to-online skeleton\npolicy = offline_train(logged_dataset)      # conservative start\nbuffer = replay(logged_dataset)             # seed with offline data\nfor step in online_budget:\n    t = policy.act(env.state())             # already competent\n    buffer.add(t)\n    policy.update(buffer.sample(mix_offline_online))"
+    ]
+   ],
+   [
+    "h2",
+    "Where it fits"
+   ],
+   [
+    "p",
+    "Offline-to-online RL suits domains with abundant logged data and limited, costly, or risky live interaction, from robotics to control of expensive physical systems. It reflects a practical philosophy: extract everything possible from existing data first, then spend scarce real interaction only to close the remaining gap."
+   ]
+  ],
+  "related": [
+   [
+    "offline-rl-cql",
+    "CQL"
+   ],
+   [
+    "offline-rl-iql",
+    "IQL"
+   ],
+   [
+    "sim-to-real-transfer",
+    "Sim-to-Real"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

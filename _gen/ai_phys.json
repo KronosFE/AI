@@ -1,0 +1,2743 @@
+[
+ {
+  "slug": "physical-interface-taxonomy",
+  "title": "Physical Interface Taxonomy",
+  "cat": "physical-interfaces",
+  "lede": "Every place the Kronos control stack touches metal, gas, or plasma is a typed interface with an owning layer, a latency budget, and a calibration record.",
+  "body": [
+   [
+    "h2",
+    "What a physical interface is"
+   ],
+   [
+    "p",
+    "A <b>physical interface</b> is the boundary where a software layer of the AI-native stack reads a sensor or drives an actuator on real hardware. On the breeder (Hyperion, a D&ndash;T spherical tokamak) and the burner (Aegis / MetroVolt, a D&ndash;<sup>3</sup>He tandem-mirror generator) these interfaces span magnets, fueling, the fuel cycle, the vessel, the divertor / first wall, the burner direct-energy-conversion (DEC) train, and 60+ diagnostic ports."
+   ],
+   [
+    "p",
+    "Each interface is documented with the same five attributes so that any layer &mdash; and any AI agent reading this repo &mdash; can reason about it: <b>signal set</b>, <b>owning layer</b>, <b>direction</b> (sense / actuate / bidirectional), <b>latency class</b>, and <b>calibration source</b>."
+   ],
+   [
+    "h2",
+    "The interface classes"
+   ],
+   [
+    "ul",
+    [
+     "Magnet interfaces: REBCO coil supplies, quench detection, strain and cryogenic thermometry.",
+     "Fueling interfaces: ice-piston and pellet injectors, gas-puff servo valves, neutral-beam injection.",
+     "Fuel-cycle interfaces: tritium plant, helium-3 handling, deuterium metering, lithium blanket, accountancy.",
+     "Structural interfaces: vessel structural-health monitoring, first-wall thermal, divertor/expander.",
+     "Power-extraction interfaces: burner DEC collector grid and grid-voltage modulation.",
+     "Diagnostic interfaces: magnetics, Thomson scattering, interferometry, neutron cameras across 60+ ports."
+    ]
+   ],
+   [
+    "h2",
+    "Ownership rule"
+   ],
+   [
+    "p",
+    "Latency decides ownership. Anything that can move energy or open a fault inside &micro;s&ndash;ms is owned by the hard real-time <a href=./interface-ownership-by-layer.html>L1 control plane</a>; slower supervisory, campaign, and accountancy interfaces are owned by L3/L4/L7. The <a href=./hal-interface-contracts.html>hardware-abstraction contracts</a> make the boundary explicit and testable. This taxonomy is a <b>design-and-simulation</b> map: the machines are not yet built, and no hardware net-gain is claimed before FOAK first tritium (~2030)."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Latency class",
+      "Owner",
+      "Example interface"
+     ],
+     [
+      [
+       "us",
+       "L1",
+       "quench trip"
+      ],
+      [
+       "ms",
+       "L1",
+       "shape coil supply"
+      ],
+      [
+       "s",
+       "L3",
+       "tritium plant setpoints"
+      ],
+      [
+       "min+",
+       "L7",
+       "isotope accountancy"
+      ]
+     ]
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "interface-ownership-by-layer",
+    "Which layer owns each interface"
+   ],
+   [
+    "sensor-actuator-map-breeder",
+    "Breeder sensor to actuator map"
+   ],
+   [
+    "hal-interface-contracts",
+    "Hardware-abstraction interface contracts"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interface-ownership-by-layer",
+  "title": "Interface Ownership by Layer",
+  "cat": "physical-interfaces",
+  "lede": "Ownership of a physical interface is assigned by its worst-case timing requirement, not by which team is smartest about the physics.",
+  "body": [
+   [
+    "h2",
+    "The assignment principle"
+   ],
+   [
+    "p",
+    "Kronos separates <b>intelligence</b> from <b>authority</b>. Learning layers (L3 twin, L5 copilots) may propose, but only the layer that can meet the interface's timing budget with a provable worst-case is allowed to drive it. This keeps the failsafe path certifiable independently of any machine-learning component."
+   ],
+   [
+    "h2",
+    "Layer responsibilities"
+   ],
+   [
+    "ul",
+    [
+     "L1 (control plane): microsecond&ndash;millisecond loops &mdash; quench trip, coil supplies, gas valves, beam notching, DEC modulation.",
+     "L2 (data fabric): timestamping, transport, and schema for every interface reading; owns no actuation.",
+     "L3 (twin / AI): state estimation and MPC setpoint trajectories on a 50&ndash;100 ms predictive shadow.",
+     "L4 (orchestration): campaign-level interface sequencing (fueling schedules, tritium campaigns).",
+     "L7 (ecosystem): accountancy, offtake logistics, regulatory feeds &mdash; minutes to days."
+    ]
+   ],
+   [
+    "h2",
+    "Handoff contract"
+   ],
+   [
+    "p",
+    "When a setpoint crosses from L3 into L1 it becomes <b>advisory</b>: L1 revalidates it against the hardware envelope, clamps or rejects out-of-range commands, and only then drives the interface. The reverse path &mdash; sensor readings &mdash; flows up through L2 with provenance so the twin and copilots never see an un-timestamped value."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Interface",
+      "Sense owner",
+      "Actuate owner"
+     ],
+     [
+      [
+       "quench trip",
+       "L1",
+       "L1"
+      ],
+      [
+       "shape coils",
+       "L2->L3",
+       "L1"
+      ],
+      [
+       "tritium plant",
+       "L2->L3",
+       "L3/L4"
+      ],
+      [
+       "accountancy",
+       "L2",
+       "L7"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "This division is why an <a href=./latency-budget-per-interface.html>interface latency budget</a> is the first thing specified for any new sensor or actuator, and why the <a href=./hal-interface-contracts.html>HAL contracts</a> encode the owning layer as a required field."
+   ]
+  ],
+  "related": [
+   [
+    "physical-interface-taxonomy",
+    "Physical interface taxonomy"
+   ],
+   [
+    "latency-budget-per-interface",
+    "Latency budget per interface"
+   ],
+   [
+    "hal-interface-contracts",
+    "Hardware-abstraction interface contracts"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sensor-actuator-map-breeder",
+  "title": "Breeder Sensor-to-Actuator Map",
+  "cat": "physical-interfaces",
+  "lede": "For Hyperion, each control objective is a chain from a diagnostic set to a physical actuator, with the twin and MPC in between.",
+  "body": [
+   [
+    "h2",
+    "The breeder control chains"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) runs a D&ndash;T spherical tokamak with design-point plasma current 9.86 MA, fusion power 88.7 MW, Q<sub>sci</sub> 3.424, peak field 16.84 T (8 T on-axis), and negative triangularity &delta; = &minus;0.30. Every one of those quantities is held by a sensor&rarr;actuator chain."
+   ],
+   [
+    "h2",
+    "Principal chains"
+   ],
+   [
+    "ul",
+    [
+     "Equilibrium / position: flux loops + magnetics -> equilibrium reconstruction -> PF/CS coil supplies.",
+     "Vertical stability: fast magnetics -> vertical-stability controller -> radial-field coil (kHz).",
+     "Shape / triangularity: magnetics + boundary reconstruction -> shape MPC -> PF shaping coils.",
+     "Density: interferometer chords -> density controller -> ice-piston / pellet injector + gas puff.",
+     "Disruption avoidance: precursor features -> avoidance actuation -> beams, fueling, or mitigation injection."
+    ]
+   ],
+   [
+    "h2",
+    "A worked chain"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# density control chain (breeder)\nn_e   = interferometer_lineavg()        # sense (L2 timestamped)\nn_ref = campaign_setpoint()             # from L4\nu     = density_mpc(n_e, n_ref, twin)   # L3, 50-100 ms shadow\n# actuate: L1 splits demand across fast and slow fuelers\ngas_puff_valve(u.fast)                  # ms response\npellet_injector(u.slow)                 # deeper deposition"
+    ]
+   ],
+   [
+    "p",
+    "The map is deliberately many-to-many: density is served by three actuators, and one actuator (the PF coils) serves both position and shape. Allocation is resolved by <a href=./interface-ownership-by-layer.html>MPC actuator weighting</a> so that reserve is kept on any actuator near a limit."
+   ],
+   [
+    "p",
+    "Because Hyperion is a <b>design-and-simulation</b> study today, each chain is exercised against the digital twin; hardware-in-the-loop commissioning begins after construction start in Q2 2027, and no net-gain is claimed before FOAK first tritium (~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "sensor-actuator-map-burner",
+    "Burner sensor to actuator map"
+   ],
+   [
+    "pf-cs-coil-supply-interface",
+    "PF and CS coil supply interface"
+   ],
+   [
+    "ice-piston-fueling-interface",
+    "Ice-piston fueling interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sensor-actuator-map-burner",
+  "title": "Burner Sensor-to-Actuator Map",
+  "cat": "physical-interfaces",
+  "lede": "For the burner (Aegis / MetroVolt), the control chains center on the end plugs, the ambipolar potential, and the direct-energy-conversion train.",
+  "body": [
+   [
+    "h2",
+    "The burner control chains"
+   ],
+   [
+    "p",
+    "The burner (Aegis fixed defense installations / MetroVolt data centers) is a D&ndash;<sup>3</sup>He tandem-mirror generator with a 26.49 T plug field, 17 T throat, neutron fraction 5.44%, and direct energy conversion of the escaping ion flux. Its chains are distinct from a tokamak's: confinement is set by mirror fields and an electrostatic potential, not by a toroidal current."
+   ],
+   [
+    "h2",
+    "Principal chains"
+   ],
+   [
+    "ul",
+    [
+     "Plug field: coil-current sense + strain -> plug-coil controller -> plug supply (see the stress gate below).",
+     "End-plug density: microwave/interferometry -> plug-density MPC -> plug fueling + heating.",
+     "Ambipolar potential: potential/emissive probes -> potential controller -> plug heating / bias electrodes.",
+     "Power extraction: collector currents/voltages -> DEC controller -> collector grid bias + grid-tie inverter."
+    ]
+   ],
+   [
+    "h2",
+    "Honest gates on these interfaces"
+   ],
+   [
+    "p",
+    "Two of the four canonical burner gates fall directly on physical interfaces. The plug-coil interface must hold a field whose structure overstresses the coil by <b>~3&ndash;3.9&times;</b> at the design bore &mdash; infeasible as specified. The plug-density / potential interface must sustain an operating regime <b>166&ndash;830&times;</b> beyond any device ever run, so it is not post-dictable today. These are physics facts stated as design-and-simulation findings, not softened."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Burner gate",
+      "Where it lands",
+      "Factor"
+     ],
+     [
+      [
+       "plug stress",
+       "plug-coil interface",
+       "3-3.9x"
+      ],
+      [
+       "regime",
+       "plug-density interface",
+       "166-830x"
+      ],
+      [
+       "He-3 supply",
+       "plug fueling",
+       "400x"
+      ],
+      [
+       "availability",
+       "whole plant",
+       "0.86-0.995"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The remaining two gates &mdash; helium-3 demand at <a href=./plug-density-fueling-interface.html>~400&times; domestic supply</a> and availability of 0.86&ndash;0.995 versus hyperscale Tier III 0.99982 &mdash; shape how the fueling and power interfaces are provisioned and why breeder-bred plus lunar helium-3 matter."
+   ]
+  ],
+  "related": [
+   [
+    "sensor-actuator-map-breeder",
+    "Breeder sensor to actuator map"
+   ],
+   [
+    "plug-coil-actuation-interface",
+    "Plug-coil actuation interface"
+   ],
+   [
+    "plug-density-fueling-interface",
+    "Plug-density fueling interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-magnet-command-interface",
+  "title": "REBCO Magnet Command Interface",
+  "cat": "physical-interfaces",
+  "lede": "The command path to the REBCO coil supplies carries current-ramp trajectories under hard slew and field-envelope limits, revalidated at the FPGA edge.",
+  "body": [
+   [
+    "h2",
+    "What the interface drives"
+   ],
+   [
+    "p",
+    "Both machines use high-temperature REBCO magnets: the breeder to reach 16.84 T peak field (8 T on-axis) and hold the negative-triangularity equilibrium; the burner to reach the 26.49 T plug and 17 T throat. The command interface delivers <b>current setpoints and ramp rates</b> to each coil's power supply, never a raw voltage."
+   ],
+   [
+    "h2",
+    "Command structure"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-coil command frame (L3 -> L1)\ncmd = { 'coil_id': k,\n        'I_target': I_k,        # A\n        'dIdt_max': slew_k,     # A/s, clamped at edge\n        'ramp':     traj_k }    # optional shaped trajectory\n# L1 edge revalidation before it reaches the supply\nassert I_k <= I_limit[k]\nassert slew_k <= dIdt_limit[k]\nassert field_envelope_ok(I_vector)   # cross-coil peak-field check"
+    ]
+   ],
+   [
+    "p",
+    "The cross-coil <b>field-envelope check</b> is essential: individual coil currents can each be legal while their combination exceeds the local peak-field limit on a conductor. This check runs at the L1 edge because it must complete before any supply acts."
+   ],
+   [
+    "h2",
+    "Interface owner and timing"
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1 control plane (shape and stability loops in ms; protection in &micro;s).",
+     "Sense side: coil current transducers, plus the <a href=./rebco-strain-thermometry-interface.html>strain/thermometry interface</a>.",
+     "Protection: co-resident with the <a href=./rebco-quench-detection-interface.html>quench-detection interface</a>, which can pre-empt any command."
+    ]
+   ],
+   [
+    "p",
+    "Setpoints originate in the breeder shape MPC or burner plug controller, but the magnet interface treats them as advisory: a quench trip or field-envelope violation overrides intent immediately. This is a design-and-simulation specification; the supplies are exercised against the twin before hardware commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-quench-detection-interface",
+    "REBCO quench-detection interface"
+   ],
+   [
+    "rebco-strain-thermometry-interface",
+    "REBCO strain and thermometry interface"
+   ],
+   [
+    "pf-cs-coil-supply-interface",
+    "PF and CS coil supply interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-quench-detection-interface",
+  "title": "REBCO Quench-Detection Interface",
+  "cat": "physical-interfaces",
+  "lede": "Quench detection is the highest-authority magnet interface: a validated precursor pre-empts every other command and dumps stored energy on a fixed deadline.",
+  "body": [
+   [
+    "h2",
+    "Why it has top authority"
+   ],
+   [
+    "p",
+    "A quench &mdash; loss of superconductivity in a REBCO coil &mdash; deposits large stored magnetic energy locally. On the breeder's 16.84 T system and the burner's 26.49 T plug, detection latency directly bounds the peak hot-spot temperature. This interface therefore sits above all shape, fueling, and power commands."
+   ],
+   [
+    "h2",
+    "Detection signal set"
+   ],
+   [
+    "ul",
+    [
+     "Co-wound voltage taps (resistive-voltage rise past the inductive baseline).",
+     "Fiber-optic and RTD temperature along the winding pack.",
+     "Acoustic and quench-antenna precursors for early, sub-threshold indication.",
+     "Cross-check against the <a href=./rebco-strain-thermometry-interface.html>strain/thermometry interface</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# quench discriminator (L1 edge, fixed WCET)\nv_res = v_tap - inductive_model(dI_dt)      # remove L*dI/dt\nif v_res > v_thresh and dwell > t_min:\n    trip_dump()                              # open dump switch, fire heaters\n    latch_fault('quench', coil_id)           # non-clearable by AI"
+    ]
+   ],
+   [
+    "p",
+    "The discriminator subtracts the inductive voltage L&middot;dI/dt so that a fast, legal current ramp is not mistaken for a resistive quench. A confirmed quench <b>latches</b> a fault that no learning layer can clear; recovery is an operator-and-interlock procedure."
+   ],
+   [
+    "h2",
+    "Timing and owner"
+   ],
+   [
+    "p",
+    "Owner: L1, on the deterministic protection fabric with a worst-case execution time budgeted in microseconds. The AI stack contributes only upstream: the twin flags rising quench probability so a campaign can be de-rated before the hardware discriminator ever fires. Detection authority itself never leaves hardware. All figures here are design-and-simulation targets validated against the twin."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-magnet-command-interface",
+    "REBCO magnet command interface"
+   ],
+   [
+    "rebco-strain-thermometry-interface",
+    "REBCO strain and thermometry interface"
+   ],
+   [
+    "cryo-vacuum-feedthrough-interface",
+    "Cryogenic and vacuum feedthrough interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-strain-thermometry-interface",
+  "title": "REBCO Strain and Thermometry Interface",
+  "cat": "physical-interfaces",
+  "lede": "Distributed strain and temperature along the winding pack feed both the quench path and the twin's slow structural-fatigue model.",
+  "body": [
+   [
+    "h2",
+    "Dual-purpose sensing"
+   ],
+   [
+    "p",
+    "REBCO tape is strain-sensitive: critical current degrades once mechanical strain exceeds an irreversible limit. On the burner's 26.49 T plug the Lorentz loads are severe &mdash; the reason the plug-coil is overstressed <b>~3&ndash;3.9&times;</b> at the design bore. This interface measures the strain and temperature fields that both the fast protection path and the slow fatigue model consume."
+   ],
+   [
+    "h2",
+    "Sensor set"
+   ],
+   [
+    "ul",
+    [
+     "Fiber Bragg grating (FBG) arrays for distributed strain and temperature along the conductor.",
+     "Resistance thermometers (RTD) at structural nodes and joints.",
+     "Reference (unstrained) fibers for common-mode thermal rejection."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# separate strain from temperature in FBG shift\n# d(lambda)/lambda = k_eps * eps + k_T * dT\neps = ( dlam_sensor/lam - k_T*dT_rtd ) / k_eps\nif eps > eps_irrev[coil]:                # approach to degradation limit\n    flag('rebco_strain_margin', coil, eps)"
+    ]
+   ],
+   [
+    "h2",
+    "Two consumers, two rates"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Consumer",
+      "Rate",
+      "Use"
+     ],
+     [
+      [
+       "quench path",
+       "us-ms",
+       "hot-spot cross-check"
+      ],
+      [
+       "twin fatigue",
+       "min-hr",
+       "cumulative load, lifetime"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The fast consumer is the <a href=./rebco-quench-detection-interface.html>quench-detection interface</a>, which uses temperature as an independent quench confirmation. The slow consumer is the digital twin's thermomechanics module, which integrates strain cycles into a fatigue estimate feeding predictive maintenance."
+   ],
+   [
+    "p",
+    "Owner: sense-side L2 for timestamping and transport; the fast cross-check is mirrored to L1. Calibration is traceable per fiber, with drift tracked so the strain margin is never read through a stale gauge. Design-and-simulation targets, validated against the twin before commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-quench-detection-interface",
+    "REBCO quench-detection interface"
+   ],
+   [
+    "rebco-magnet-command-interface",
+    "REBCO magnet command interface"
+   ],
+   [
+    "vessel-shm-interface",
+    "Vessel structural-health monitoring interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pf-cs-coil-supply-interface",
+  "title": "PF and CS Coil Supply Interface",
+  "cat": "physical-interfaces",
+  "lede": "The poloidal-field and central-solenoid supplies are the breeder's shape and position actuators, driven by MPC and clamped by the field envelope.",
+  "body": [
+   [
+    "h2",
+    "Role in the breeder"
+   ],
+   [
+    "p",
+    "On Hyperion the poloidal-field (PF) and central-solenoid (CS) coils set plasma position, elongation, and the negative triangularity &delta; = &minus;0.30. The supply interface converts shape-MPC coil-current trajectories into regulated currents while respecting slew and cross-coil field limits."
+   ],
+   [
+    "h2",
+    "Command and feedback"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# shape MPC output -> PF/CS supply interface\nI_coils = shape_mpc(shape_meas, shape_ref, twin)   # L3\nfor k in pf_cs_coils:\n    supply[k].command(I_coils[k], dIdt_max[k])     # L1\n# feedback: measured coil currents + reconstructed boundary\nshape_meas = equilibrium_recon(flux_loops, mirnov)"
+    ]
+   ],
+   [
+    "p",
+    "The interface is multivariable: a single triangularity change moves several coils together, and the same coils also hold vertical position. Allocation and slew reserve are handled inside the MPC weighting so no coil is driven to its limit without margin."
+   ],
+   [
+    "h2",
+    "Coupling to stability"
+   ],
+   [
+    "ul",
+    [
+     "Vertical stability runs faster (kHz) on the radial-field coil and can pre-empt slow shape moves.",
+     "Boundary reconstruction from <a href=./magnetics-diagnostic-interface.html>magnetics</a> closes the loop.",
+     "Peak-field checks share the <a href=./rebco-magnet-command-interface.html>REBCO command interface</a> envelope."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L1 for the regulated current loop; L3 for the setpoint trajectory. Timing: shape in tens of ms, vertical stabilization sub-ms. Negative triangularity is a shape target the interface must hold accurately because it is central to the breeder's edge-stability strategy. Design-and-simulation specification, exercised against the twin ahead of Q2 2027 construction start."
+   ]
+  ],
+  "related": [
+   [
+    "sensor-actuator-map-breeder",
+    "Breeder sensor to actuator map"
+   ],
+   [
+    "rebco-magnet-command-interface",
+    "REBCO magnet command interface"
+   ],
+   [
+    "magnetics-diagnostic-interface",
+    "Magnetics diagnostic interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ice-piston-fueling-interface",
+  "title": "Ice-Piston Fueling Interface",
+  "cat": "physical-interfaces",
+  "lede": "The ice-piston injector forms and launches solid D-T pellets for deep fueling of the breeder; its interface carries preload, extrude, and launch commands.",
+  "body": [
+   [
+    "h2",
+    "What it is"
+   ],
+   [
+    "p",
+    "Deep fueling of Hyperion needs solid fuel delivered past the plasma edge, not just gas puffed at the boundary. The ice-piston mechanism freezes a D&ndash;T column, extrudes it, and chops it into pellets that a gas gun or centrifuge launches inward. The interface exposes preload, extrusion rate, cut timing, and launch velocity."
+   ],
+   [
+    "h2",
+    "Command and sense set"
+   ],
+   [
+    "ul",
+    [
+     "Actuate: cryostat setpoint, piston preload force, extrusion rate, pellet cut trigger, propellant valve.",
+     "Sense: extrudate temperature, piston position/force, pellet mass (light-gate), launch velocity, arrival time.",
+     "Cross-link: density from the <a href=./interferometry-polarimetry-interface.html>interferometer chords</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# fueling demand split (breeder)\nn_e   = interferometer_lineavg()\nu     = density_mpc(n_e, n_ref, twin)\nif u.needs_deep:\n    pellet = size_from_demand(u.slow)\n    ice_piston.extrude(rate=pellet.rate)\n    ice_piston.launch(v=pellet.v, t=next_window)   # timed to plasma phase"
+    ]
+   ],
+   [
+    "h2",
+    "Timing and ownership"
+   ],
+   [
+    "p",
+    "Pellet <b>launch timing</b> is the critical parameter &mdash; deposition depth depends on injection velocity and the plasma phase at arrival &mdash; so the launch trigger is owned by L1 and synchronized to the <a href=./timing-clock-distribution-interface.html>plant clock</a>. Piston preload and cryostat setpoints are slow and owned by L3/L4 as part of a fueling campaign."
+   ],
+   [
+    "p",
+    "This interface is distinct from the existing preload telemetry: here the focus is the command contract that turns a density-MPC demand into a launched pellet. Calibration ties pellet mass to light-gate signal and velocity to time-of-flight, tracked for drift. Design-and-simulation specification."
+   ]
+  ],
+  "related": [
+   [
+    "pellet-injector-timing-interface",
+    "Pellet-injector timing interface"
+   ],
+   [
+    "gas-puff-valve-interface",
+    "Gas-puff servo-valve interface"
+   ],
+   [
+    "sensor-actuator-map-breeder",
+    "Breeder sensor to actuator map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pellet-injector-timing-interface",
+  "title": "Pellet-Injector Timing Interface",
+  "cat": "physical-interfaces",
+  "lede": "Deposition depth is a timing problem: the injector's launch trigger must be phased to plasma state within a tight window, so timing is an L1-owned interface.",
+  "body": [
+   [
+    "h2",
+    "Why timing is the interface"
+   ],
+   [
+    "p",
+    "A pellet launched at the wrong instant deposits its fuel at the wrong radius &mdash; too shallow and it ablates at the edge, too deep and it perturbs the core. On the breeder, deposition control is achieved by <b>phasing the launch trigger</b> to the measured plasma state, not by changing the pellet after it leaves the barrel."
+   ],
+   [
+    "h2",
+    "Timing chain"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# launch-phase scheduling (L1)\nt_arrival = t_launch + L_flight / v_pellet     # time of flight\nphase     = plasma_phase(t_arrival, twin)      # predicted state\nif phase in allowed_window and vac_ok:\n    fire_launch(t_launch)                       # PTP-timestamped\nelse:\n    hold_and_retime()"
+    ]
+   ],
+   [
+    "p",
+    "Because the trigger references a <b>predicted</b> arrival phase, the interface depends on the digital twin's short-horizon prediction and on flight-time measurement from a light-gate pair. Jitter in the trigger maps directly to jitter in deposition radius."
+   ],
+   [
+    "h2",
+    "Budget and owner"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Stage",
+      "Owner",
+      "Latency class"
+     ],
+     [
+      [
+       "demand -> size",
+       "L3",
+       "50-100 ms"
+      ],
+      [
+       "phase decision",
+       "L1",
+       "ms"
+      ],
+      [
+       "launch trigger",
+       "L1",
+       "us jitter"
+      ],
+      [
+       "arrival confirm",
+       "L2",
+       "post-hoc"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Owner: L1 for the trigger; L3 for the demand that sizes the pellet. The trigger is disciplined by the <a href=./timing-clock-distribution-interface.html>PTP clock distribution</a> so that flight-time and phase are computed on the same time base. Arrival is confirmed downstream and fed back to calibrate the flight-time model. Design-and-simulation specification; commissioned against the twin before hardware."
+   ]
+  ],
+  "related": [
+   [
+    "ice-piston-fueling-interface",
+    "Ice-piston fueling interface"
+   ],
+   [
+    "timing-clock-distribution-interface",
+    "Timing and clock-distribution interface"
+   ],
+   [
+    "interferometry-polarimetry-interface",
+    "Interferometry and polarimetry interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gas-puff-valve-interface",
+  "title": "Gas-Puff Servo-Valve Interface",
+  "cat": "physical-interfaces",
+  "lede": "Piezo servo valves give the fast, shallow end of the fueling authority spectrum; their interface is a millisecond flow-command loop with hard interlocks.",
+  "body": [
+   [
+    "h2",
+    "Role in the fueling mix"
+   ],
+   [
+    "p",
+    "Gas puffing is the fast, edge-localized complement to deep pellet fueling on the breeder, and it is also used for edge density and radiative control. On the burner it feeds the plug and central cell. The interface commands piezoelectric servo valves that respond in milliseconds &mdash; far faster than a pellet but with shallow deposition."
+   ],
+   [
+    "h2",
+    "Command and interlock"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# gas-puff flow command (L1)\nflow_cmd = density_mpc(n_e_edge, n_ref).fast\nif plenum_P_ok and vac_valve_open and not disruption_lock:\n    piezo_valve.set(flow_cmd)               # ms response\nelse:\n    piezo_valve.close()                      # fail-closed"
+    ]
+   ],
+   [
+    "p",
+    "The valve is <b>fail-closed</b>: any loss of plenum pressure, vacuum-boundary fault, or disruption lock drives it shut. This is enforced at the L1 edge so a supervisory fault cannot leave gas flowing into the vessel."
+   ],
+   [
+    "h2",
+    "Interlock table"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Plenum P ok",
+      "Vac boundary ok",
+      "Valve enable"
+     ],
+     [
+      [
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1 for the flow loop; L3 for the edge-density setpoint.",
+     "Timing: milliseconds, well inside the shape/density MPC cycle.",
+     "Cross-link: shares the <a href=./cryo-vacuum-feedthrough-interface.html>vacuum feedthrough</a> and vacuum interlocks."
+    ]
+   ],
+   [
+    "p",
+    "Calibration maps valve drive to mass flow at a known plenum pressure and is re-checked as the piezo ages. Design-and-simulation specification, exercised against the twin."
+   ]
+  ],
+  "related": [
+   [
+    "ice-piston-fueling-interface",
+    "Ice-piston fueling interface"
+   ],
+   [
+    "neutral-beam-injector-interface",
+    "Neutral-beam injector interface"
+   ],
+   [
+    "cryo-vacuum-feedthrough-interface",
+    "Cryogenic and vacuum feedthrough interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutral-beam-injector-interface",
+  "title": "Neutral-Beam Injector Interface",
+  "cat": "physical-interfaces",
+  "lede": "The neutral-beam interface delivers heating, current drive, and fueling with a fast-notch protection path that can blank the beam within microseconds.",
+  "body": [
+   [
+    "h2",
+    "What the beam does"
+   ],
+   [
+    "p",
+    "On the breeder, neutral-beam injection (NBI) delivers auxiliary heating and a fueling contribution while helping shape the current profile that supports the negative-triangularity equilibrium. The interface commands beam power, energy, and on/off timing, and hosts a fast protection notch."
+   ],
+   [
+    "h2",
+    "Command set and protection"
+   ],
+   [
+    "ul",
+    [
+     "Actuate: source current/voltage (power), modulation gate, aiming (where steerable).",
+     "Sense: beam current, shine-through, duct thermocouples, calorimetry.",
+     "Protect: fast notch that blanks the beam on a fault trigger."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# fast beam notch (L1 protection)\nif shinethrough > s_max or duct_T > T_max or disruption_precursor:\n    beam_gate.notch()          # blank in us, keep source alive\n# resume only when cause clears and supervisor re-arms\nif cause_cleared and rearmed:\n    beam_gate.restore(power_ref)"
+    ]
+   ],
+   [
+    "p",
+    "The <b>notch</b> is distinct from a shutdown: it removes beam power in microseconds while keeping the source conditioned, so heating can resume as soon as the fault clears. Shine-through protection guards the far wall when target density is low."
+   ],
+   [
+    "h2",
+    "Owner and timing"
+   ],
+   [
+    "p",
+    "Owner: L1 for the notch and power loop; L3 sets the heating/current-drive reference as part of the scenario. The notch trigger can come from a disruption precursor supplied by the twin, but the blanking action itself is hardware-fast and independent of the learning path. Calibration ties source settings to delivered power via calorimetry. Design-and-simulation specification, validated against the twin before commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "gas-puff-valve-interface",
+    "Gas-puff servo-valve interface"
+   ],
+   [
+    "sensor-actuator-map-breeder",
+    "Breeder sensor to actuator map"
+   ],
+   [
+    "first-wall-thermal-interface",
+    "First-wall thermal-protection interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "tritium-plant-interface",
+  "title": "Tritium Plant Interface",
+  "cat": "physical-interfaces",
+  "lede": "The tritium plant interface governs breeding, extraction, isotope separation, and storage; it is a slow, accountancy-grade loop with strict containment interlocks.",
+  "body": [
+   [
+    "h2",
+    "What the plant does"
+   ],
+   [
+    "p",
+    "The breeder is a tritium source: from D&ndash;T fusion and the lithium blanket it targets a <b>~4 kg/yr tritium class</b> product, with tritium breeding ratio treated as a design lever across 1.1 / 1.5 / 1.8. The plant interface controls the loops that recover unburned fuel, extract bred tritium from the blanket, separate isotopes, and store product safely."
+   ],
+   [
+    "h2",
+    "Interface segments"
+   ],
+   [
+    "ul",
+    [
+     "Blanket extraction: purge-gas flow, getter-bed cycling, tritium partial-pressure sensing.",
+     "Isotopics: cryogenic distillation column setpoints and stream composition (see <a href=./he3-handling-interface.html>helium-3 handling</a>).",
+     "Storage: getter-bed loading, inventory, and glovebox/containment status.",
+     "Accountancy: mass balance feeding the <a href=./isotope-accountancy-interface.html>byproduct accountancy interface</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# blanket tritium mass balance (L4, slow loop)\ndT_inv = (breed_rate*TBR - burn_consume - decay - losses) * dt\nT_inventory += dT_inv\nif T_inventory > storage_limit or containment_alarm:\n    hold_campaign(); seal_glovebox()      # fail-safe containment"
+    ]
+   ],
+   [
+    "h2",
+    "Owner and cadence"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Function",
+      "Owner",
+      "Cadence"
+     ],
+     [
+      [
+       "containment trip",
+       "L1",
+       "fast"
+      ],
+      [
+       "column setpoints",
+       "L3",
+       "s-min"
+      ],
+      [
+       "campaign balance",
+       "L4",
+       "min-hr"
+      ],
+      [
+       "accountancy",
+       "L7",
+       "hr-day"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Owner: L4 for campaign-level control, L3 for column regulation, L1 only for the fast containment trips. TBR is a lever in the design study, not a measured plant value, and no product flow is claimed before FOAK first tritium (~2030). Calibration is accountancy-grade: every stream measurement is traceable and reconciled against the mass balance. Design-and-simulation specification with regulatory containment framing."
+   ]
+  ],
+  "related": [
+   [
+    "he3-handling-interface",
+    "Helium-3 handling interface"
+   ],
+   [
+    "isotope-accountancy-interface",
+    "Isotope accountancy interface"
+   ],
+   [
+    "lithium-blanket-interface",
+    "Lithium-blanket interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "he3-handling-interface",
+  "title": "Helium-3 Handling Interface",
+  "cat": "physical-interfaces",
+  "lede": "Helium-3 is a breeder byproduct and the burner's fuel; its handling interface spans separation, inventory, and the 400x supply gate.",
+  "body": [
+   [
+    "h2",
+    "Two roles for one isotope"
+   ],
+   [
+    "p",
+    "On the breeder, helium-3 appears as a byproduct (~1.97 kg/yr class) chiefly from tritium decay, separated in the tritium plant. On the burner it is the fusion fuel with deuterium. The handling interface therefore links a supply side (breeder plant) to a demand side (burner fueling), and it is where the fourth-order supply constraint becomes concrete."
+   ],
+   [
+    "h2",
+    "The supply gate"
+   ],
+   [
+    "p",
+    "A single commercial burner unit demands helium-3 at <b>~400&times; the domestic terrestrial supply</b>. This is a physics-and-inventory fact, not an economic one: the fuel does not exist at terrestrial scale, which is why breeder-bred helium-3 and, ultimately, lunar helium-3 are part of the fuel strategy. The interface tracks inventory against this gate explicitly."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# helium-3 inventory vs demand (accountancy loop)\nsupply  = breeder_he3_rate + external_receipts     # kg/yr class\ndemand  = sum(unit.he3_burn_rate for unit in fleet)\ncover   = supply / demand\nflag('he3_supply_gate', cover)     # design study: cover << 1 today"
+    ]
+   ],
+   [
+    "h2",
+    "Interface segments"
+   ],
+   [
+    "ul",
+    [
+     "Separation: cryogenic distillation stream composition from the <a href=./tritium-plant-interface.html>tritium plant</a>.",
+     "Storage and transfer: getter/adsorption beds, inventory sensing, transfer interlocks.",
+     "Demand link: metered feed to the <a href=./plug-density-fueling-interface.html>burner plug fueling</a>."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L4 for inventory and transfer, L7 for cross-machine accountancy, L1 only for containment trips. Calibration is accountancy-grade and reconciled with the breeder mass balance. All quantities are design-and-simulation class; no fuel flow is claimed before the breeder produces (FOAK ~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "tritium-plant-interface",
+    "Tritium plant interface"
+   ],
+   [
+    "plug-density-fueling-interface",
+    "Plug-density fueling interface"
+   ],
+   [
+    "isotope-accountancy-interface",
+    "Isotope accountancy interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deuterium-supply-interface",
+  "title": "Deuterium Supply Interface",
+  "cat": "physical-interfaces",
+  "lede": "Deuterium is the common fuel for both machines; its supply interface is a metering-and-purity loop feeding the fueling actuators.",
+  "body": [
+   [
+    "h2",
+    "Common fuel, two consumers"
+   ],
+   [
+    "p",
+    "Deuterium fuels both the breeder (as the D in D&ndash;T) and the burner (as the D in D&ndash;<sup>3</sup>He). Unlike tritium and helium-3, deuterium is abundant, so this interface is about <b>metering and purity</b> rather than scarcity. It supplies the pellet, gas-puff, and beam interfaces with fuel of known isotopic and chemical purity."
+   ],
+   [
+    "h2",
+    "Interface functions"
+   ],
+   [
+    "ul",
+    [
+     "Metering: mass-flow sense and setpoints per consumer.",
+     "Purity: isotopic assay (D vs H) and impurity monitoring before delivery.",
+     "Buffering: plenum pressure regulation for the <a href=./gas-puff-valve-interface.html>gas-puff valves</a> and <a href=./ice-piston-fueling-interface.html>ice-piston</a> feed."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# purity gate before fueling delivery (L3/L4)\nif d_fraction >= d_min and impurity_ppm <= imp_max:\n    plenum.regulate(P_ref)\n    allow_fueling(consumer)\nelse:\n    divert_to_cleanup(); block_fueling(consumer)"
+    ]
+   ],
+   [
+    "h2",
+    "Owner and cadence"
+   ],
+   [
+    "p",
+    "Owner: L4 for supply-side inventory and purity, L3 for per-consumer metering setpoints. Cadence is seconds to minutes; there is no microsecond path here because the fast fueling timing lives in the pellet and gas-puff interfaces downstream. Isotopic purity matters because hydrogen contamination dilutes the fuel and shifts diagnostics that assume a known species mix."
+   ],
+   [
+    "p",
+    "Calibration ties the assay to a reference standard and tracks drift on the mass-flow meters. This is a design-and-simulation specification; delivery is exercised against the twin's fuel-cycle model before hardware commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "ice-piston-fueling-interface",
+    "Ice-piston fueling interface"
+   ],
+   [
+    "gas-puff-valve-interface",
+    "Gas-puff servo-valve interface"
+   ],
+   [
+    "tritium-plant-interface",
+    "Tritium plant interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "lithium-blanket-interface",
+  "title": "Lithium-Blanket Interface",
+  "cat": "physical-interfaces",
+  "lede": "The breeding blanket is a sensed-and-controlled subsystem: coolant, purge, and temperature interfaces set the effective tritium breeding ratio.",
+  "body": [
+   [
+    "h2",
+    "Where tritium is bred"
+   ],
+   [
+    "p",
+    "The breeder's lithium blanket captures 14 MeV neutrons and breeds tritium via lithium reactions. The design treats the tritium breeding ratio as a <b>lever across 1.1 / 1.5 / 1.8</b>; the blanket interface is where coolant flow, purge-gas cycling, and temperature distribution are sensed and regulated to hold the intended breeding condition."
+   ],
+   [
+    "h2",
+    "Interface signal set"
+   ],
+   [
+    "ul",
+    [
+     "Sense: blanket module temperatures, coolant inlet/outlet, purge tritium partial pressure, neutron fluence.",
+     "Actuate: coolant flow setpoints, purge-gas flow, module isolation valves.",
+     "Cross-link: extraction feeds the <a href=./tritium-plant-interface.html>tritium plant interface</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# blanket thermal + breeding monitor (L3/L4)\nfor m in modules:\n    if m.T > T_limit: derate_local_power_or_flow(m)\n# effective breeding estimate from neutronics + purge assay\nTBR_eff = breed_measured / neutron_source_est\nreconcile(TBR_eff, TBR_design_lever)"
+    ]
+   ],
+   [
+    "h2",
+    "Neutronics coupling"
+   ],
+   [
+    "p",
+    "The blanket's breeding performance is inferred by coupling the <a href=./neutron-diagnostic-interface.html>neutron diagnostics</a> to the twin's neutronics module; purge-gas assay then confirms extracted tritium. The two are reconciled against the design lever. This is where a design assumption (a chosen TBR) meets its measured proxy."
+   ],
+   [
+    "p",
+    "Owner: L4 for the breeding campaign, L3 for thermal regulation, L1 for coolant and isolation trips. Coolant temperature limits protect the structure and the REBCO cold mass behind it. Calibration is accountancy-grade on the tritium side. Design-and-simulation specification; no bred-tritium claim before FOAK first tritium (~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "tritium-plant-interface",
+    "Tritium plant interface"
+   ],
+   [
+    "neutron-diagnostic-interface",
+    "Neutron diagnostic interface"
+   ],
+   [
+    "isotope-accountancy-interface",
+    "Isotope accountancy interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "isotope-accountancy-interface",
+  "title": "Isotope Accountancy Interface",
+  "cat": "physical-interfaces",
+  "lede": "Accountancy is the slowest, most auditable physical interface: a reconciled mass balance for tritium, helium-3, and deuterium across both machines.",
+  "body": [
+   [
+    "h2",
+    "Why accountancy is an interface"
+   ],
+   [
+    "p",
+    "Every gram of tritium and helium-3 that moves through the plant is regulated material. The accountancy interface is where physical sensing (stream assays, inventories, containment status) meets a reconciled ledger. It is not a control loop &mdash; it is the audit surface that regulators, offtake, and the fleet view all read from."
+   ],
+   [
+    "h2",
+    "What it reconciles"
+   ],
+   [
+    "ul",
+    [
+     "Tritium: ~4 kg/yr class product plus in-plant inventory and decay.",
+     "Helium-3: ~1.97 kg/yr byproduct class, tracked against the <a href=./he3-handling-interface.html>400x demand gate</a>.",
+     "Deuterium: throughput and purity from the <a href=./deuterium-supply-interface.html>supply interface</a>.",
+     "Neutron budget: 14 MeV source used to close the breeding estimate."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# closing the isotope ledger (L7, auditable)\nfor iso in ['T','He3','D']:\n    balance[iso] = opening[iso] + produced[iso] \\\n                   - consumed[iso] - decay[iso] - transfers[iso]\n    residual[iso] = measured_closing[iso] - balance[iso]\n    assert abs(residual[iso]) <= mba_limit[iso]   # material-balance limit"
+    ]
+   ],
+   [
+    "h2",
+    "Owner and traceability"
+   ],
+   [
+    "p",
+    "Owner: L7 for the ledger; L4 supplies campaign-level flows; L2 guarantees that every input reading is timestamped and traceable. The material-balance limit is the tolerance within which the books must close; a residual outside it is an investigation trigger, not a control action."
+   ],
+   [
+    "p",
+    "Calibration is the strictest of any interface: each assay traces to a reference standard with documented uncertainty. All figures are design-and-simulation class; the ledger structure is built now so it is auditable from FOAK onward. No economics appear here &mdash; this is material accountancy only."
+   ]
+  ],
+  "related": [
+   [
+    "tritium-plant-interface",
+    "Tritium plant interface"
+   ],
+   [
+    "he3-handling-interface",
+    "Helium-3 handling interface"
+   ],
+   [
+    "deuterium-supply-interface",
+    "Deuterium supply interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vessel-shm-interface",
+  "title": "Vessel Structural-Health-Monitoring Interface",
+  "cat": "physical-interfaces",
+  "lede": "Distributed strain, displacement, and acoustic sensing on the vessel feed the twin's fatigue model and a slow structural-alarm path.",
+  "body": [
+   [
+    "h2",
+    "What it watches"
+   ],
+   [
+    "p",
+    "Both machines subject their vacuum vessels to large, cyclic electromagnetic and thermal loads &mdash; the breeder from disruptions and the 9.86 MA current, the burner from its mirror fields and thermal cycling. The structural-health-monitoring (SHM) interface instruments the vessel so cumulative damage is tracked long before it becomes a fault."
+   ],
+   [
+    "h2",
+    "Sensor set"
+   ],
+   [
+    "ul",
+    [
+     "Distributed strain (fiber and foil gauges) at high-stress nodes.",
+     "Displacement/proximity sensors across joints and supports.",
+     "Acoustic-emission sensors for crack-initiation precursors.",
+     "Temperature for thermal-load correlation."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# rainflow fatigue accumulation (twin, slow loop)\ncycles = rainflow(strain_history[node])\nfor (amp, mean, n) in cycles:\n    D[node] += n / N_allow(amp, mean)     # Miner's rule\nif D[node] > D_warn:\n    schedule_inspection(node)             # predictive maintenance"
+    ]
+   ],
+   [
+    "h2",
+    "Two paths"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Path",
+      "Owner",
+      "Trigger"
+     ],
+     [
+      [
+       "fast alarm",
+       "L1",
+       "overstress/limit"
+      ],
+      [
+       "fatigue trend",
+       "L3",
+       "cumulative D"
+      ],
+      [
+       "maintenance",
+       "L4/L7",
+       "inspection window"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The fast path is a simple limit alarm owned by L1; it exists for gross overstress, not routine control. The valuable path is slow: the twin integrates strain cycles into a damage estimate (Miner's rule via rainflow counting) that drives predictive maintenance and spare-parts planning."
+   ],
+   [
+    "p",
+    "Owner: sense-side L2; fatigue model L3; maintenance L4/L7. Calibration ties gauges to a known load and tracks drift so accumulated damage is never computed through a stale sensor. Design-and-simulation specification, exercised against the twin's thermomechanics module."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-strain-thermometry-interface",
+    "REBCO strain and thermometry interface"
+   ],
+   [
+    "first-wall-thermal-interface",
+    "First-wall thermal-protection interface"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "first-wall-thermal-interface",
+  "title": "First-Wall Thermal-Protection Interface",
+  "cat": "physical-interfaces",
+  "lede": "The plasma-facing thermal loop watches surface heat flux and can trigger fast fueling or power cuts before a first-wall component overheats.",
+  "body": [
+   [
+    "h2",
+    "Protecting the plasma-facing surface"
+   ],
+   [
+    "p",
+    "The first wall and plasma-facing components absorb radiated and conducted power from the plasma. On the breeder, edge-localized transients and the negative-triangularity edge condition set the loads; on the burner, the central-cell and throat regions see intense flux. This interface senses surface heat flux and temperature and can act to protect the wall."
+   ],
+   [
+    "h2",
+    "Sense-to-actuate chain"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# first-wall protection (L1/L3)\nq_surf = infer_heatflux(ir_thermography, thermocouples)\nif q_surf > q_limit or dT_dt > ramp_limit:\n    inject_radiator_gas()        # spread load radiatively (ms)\n    derate_beam_power()          # reduce input power\n    if q_surf > q_trip: abort_to_safe_state()"
+    ]
+   ],
+   [
+    "p",
+    "The protective actions escalate: seed a radiating impurity to spread the load, cut auxiliary power, and only then abort. The fast options (gas seeding, beam notch) live in L1 because they must act within milliseconds; the slow trend (surface erosion, hot-spot growth) is tracked by the twin."
+   ],
+   [
+    "h2",
+    "Sensing"
+   ],
+   [
+    "ul",
+    [
+     "Infrared thermography of the wall and divertor surface.",
+     "Embedded thermocouples at component roots.",
+     "Cross-link to <a href=./divertor-thermography-interface.html>divertor thermography</a> and the <a href=./divertor-expander-interface.html>expander interface</a>."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L1 for the fast protection trigger, L3 for heat-flux inference and erosion trending. Calibration ties IR emissivity and thermocouple response to reference conditions. Design-and-simulation specification; the loop is validated against the twin before hardware commissioning and no operational net-gain is implied."
+   ]
+  ],
+  "related": [
+   [
+    "divertor-expander-interface",
+    "Divertor and expander interface"
+   ],
+   [
+    "divertor-thermography-interface",
+    "Divertor thermography interface"
+   ],
+   [
+    "neutral-beam-injector-interface",
+    "Neutral-beam injector interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "divertor-expander-interface",
+  "title": "Divertor and Expander Interface",
+  "cat": "physical-interfaces",
+  "lede": "The divertor (breeder) and the burner's expander both handle exhaust flux; their interfaces control detachment and strike-point loading.",
+  "body": [
+   [
+    "h2",
+    "Two exhaust geometries"
+   ],
+   [
+    "p",
+    "Exhaust power and particles must land somewhere survivable. On the breeder that is the divertor, whose strike points must be spread and, ideally, detached. On the burner the analog is the expander region where the escaping ion flux is spread before the direct-energy-conversion collectors. Both need active control of where and how the flux lands."
+   ],
+   [
+    "h2",
+    "Divertor control (breeder)"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# detachment control (breeder divertor)\nrad_frac = infer_radiated_fraction(bolometer, langmuir)\nif rad_frac < rad_ref:\n    increase_divertor_seeding()      # push toward detachment\nsteer_strike_point(pf_coils, target)  # spread the load"
+    ]
+   ],
+   [
+    "p",
+    "Detachment &mdash; radiating the exhaust power before it reaches the target &mdash; is regulated by seeding an impurity and by steering strike points with the PF coils. The interface reads bolometry and Langmuir probes and adjusts seeding and strike-point position on a fast-but-not-protection timescale."
+   ],
+   [
+    "h2",
+    "Expander control (burner)"
+   ],
+   [
+    "p",
+    "On the burner the expander spreads the axial ion flux so that heat load on the <a href=./burner-dec-collector-interface.html>DEC collectors</a> is tolerable and the ion energies arrive sorted for direct conversion. The interface conditions the flux geometry the DEC train depends on."
+   ],
+   [
+    "ul",
+    [
+     "Owner: L3 for detachment/expansion setpoints; L1 for strike-point coil moves and seeding valves.",
+     "Sense: bolometry, Langmuir probes, target thermocouples, IR thermography.",
+     "Cross-link: shares actuators with the <a href=./pf-cs-coil-supply-interface.html>PF coil interface</a> and gas seeding."
+    ]
+   ],
+   [
+    "p",
+    "Calibration ties bolometer and probe signals to inferred power fractions. Design-and-simulation specification, validated against the twin."
+   ]
+  ],
+  "related": [
+   [
+    "divertor-thermography-interface",
+    "Divertor thermography interface"
+   ],
+   [
+    "first-wall-thermal-interface",
+    "First-wall thermal-protection interface"
+   ],
+   [
+    "burner-dec-collector-interface",
+    "Burner DEC collector interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "divertor-thermography-interface",
+  "title": "Divertor Thermography Interface",
+  "cat": "physical-interfaces",
+  "lede": "Infrared cameras give a 2-D surface-temperature field on the divertor and first wall; the interface turns raw frames into calibrated heat-flux maps.",
+  "body": [
+   [
+    "h2",
+    "From frames to heat flux"
+   ],
+   [
+    "p",
+    "A single thermocouple gives a point; the divertor needs a <b>field</b>. Infrared thermography cameras image the strike-point region and reconstruct surface temperature across the target, which the twin inverts into a heat-flux map. This map drives detachment control and erosion trending."
+   ],
+   [
+    "h2",
+    "The inversion"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# surface heat flux from IR temperature history\n# solve 1-D transient conduction per pixel:\n#   rho*c_p dT/dt = d/dx( k dT/dx )\n# with measured surface T(t) as boundary condition\nq_surf[px] = invert_conduction(T_ir[px, :], material[px])\nheatmap = assemble(q_surf)     # 2-D flux field for control + twin"
+    ]
+   ],
+   [
+    "p",
+    "The inversion is per-pixel transient conduction using the measured surface-temperature history as the boundary condition &mdash; it is model-based, so its accuracy depends on the material properties and on emissivity calibration. A layer of redeposited material changes emissivity and biases the reading, which is why calibration drift is tracked continuously."
+   ],
+   [
+    "h2",
+    "Consumers"
+   ],
+   [
+    "ul",
+    [
+     "Detachment control in the <a href=./divertor-expander-interface.html>divertor/expander interface</a>.",
+     "Erosion and lifetime trending in the twin.",
+     "First-wall protection cross-check with the <a href=./first-wall-thermal-interface.html>thermal interface</a>."
+    ]
+   ],
+   [
+    "p",
+    "Owner: sense-side L2 for frame transport and timestamping; L3 for inversion and heat-flux mapping. Timing: the map updates fast enough for detachment control (tens of ms) but is not on the protection path itself. Design-and-simulation specification, validated against the twin."
+   ]
+  ],
+  "related": [
+   [
+    "divertor-expander-interface",
+    "Divertor and expander interface"
+   ],
+   [
+    "first-wall-thermal-interface",
+    "First-wall thermal-protection interface"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-dec-collector-interface",
+  "title": "Burner DEC Collector Interface",
+  "cat": "physical-interfaces",
+  "lede": "Direct energy conversion decelerates escaping ions against biased collector grids; the interface reads per-grid currents and sets grid potentials.",
+  "body": [
+   [
+    "h2",
+    "How the burner extracts power"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) converts the kinetic energy of ions escaping the mirror directly into electricity rather than through a thermal cycle. Ions stream out the expander, sort by energy, and are decelerated against a stack of biased collector grids &mdash; each grid tuned to a slice of the ion energy spectrum. The interface reads per-grid current and sets each grid's potential."
+   ],
+   [
+    "h2",
+    "Signal set"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-grid collection (DEC train)\nfor g in grids:\n    I_g = measure_collector_current(g)\n    P_g = I_g * V_grid[g]                # power on grid g\n# tune grid potentials to the arriving spectrum\nV_grid = dec_controller(spectrum_est, I_grid, V_grid)\nP_dec = sum(P_g)"
+    ]
+   ],
+   [
+    "p",
+    "Efficiency depends on matching each grid potential to the arriving ion energy: a mismatch either fails to decelerate the ion (energy lost as heat) or over-decelerates and reflects it. The interface therefore couples tightly to the <a href=./divertor-expander-interface.html>expander</a>, which sets the spectrum, and to <a href=./dec-grid-modulation-interface.html>grid modulation</a>, which follows load."
+   ],
+   [
+    "h2",
+    "Neutron fraction context"
+   ],
+   [
+    "p",
+    "D&ndash;<sup>3</sup>He is chosen partly because only <b>5.44%</b> of its energy appears as neutrons; the rest is charged-particle energy that direct conversion can collect. This is a design-and-simulation property of the fuel, not a delivered performance number &mdash; the machine is not built."
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1 for grid-bias regulation and fault ride-through; L3 for spectrum-matched setpoints.",
+     "Sense: per-grid current and voltage, grid temperature, collector vacuum.",
+     "Protection: grid overcurrent and arc detection with fast bias shed."
+    ]
+   ],
+   [
+    "p",
+    "Calibration ties measured grid current to collected power at known bias. Design-and-simulation specification."
+   ]
+  ],
+  "related": [
+   [
+    "dec-grid-modulation-interface",
+    "DEC grid-modulation interface"
+   ],
+   [
+    "divertor-expander-interface",
+    "Divertor and expander interface"
+   ],
+   [
+    "sensor-actuator-map-burner",
+    "Burner sensor to actuator map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-grid-modulation-interface",
+  "title": "DEC Grid-Modulation Interface",
+  "cat": "physical-interfaces",
+  "lede": "Grid-tie modulation matches direct-conversion output to grid demand and rides through faults; it is the burner's electrical-export interface.",
+  "body": [
+   [
+    "h2",
+    "From collector to grid"
+   ],
+   [
+    "p",
+    "The collected direct-conversion power must be conditioned and exported. The grid-modulation interface sits between the <a href=./burner-dec-collector-interface.html>DEC collectors</a> and the grid-tie inverter, modulating collector-grid voltages and inverter output to track demand while protecting the plasma source from grid disturbances."
+   ],
+   [
+    "h2",
+    "Control loop"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# DEC output modulation (L1)\nP_demand = dispatch_setpoint()             # from L4\nV_grid   = dec_voltage_mpc(P_demand, spectrum, limits)\ninverter.follow(P_demand, grid_freq, grid_V)\nif grid_fault_detected():\n    ride_through(profile)                  # bounded, do not trip source"
+    ]
+   ],
+   [
+    "p",
+    "Fault ride-through is the hard part: a grid disturbance must not propagate back into the plasma as a sudden load change. The interface absorbs bounded grid faults with a defined ride-through profile and only sheds to a safe state if the fault exceeds the envelope."
+   ],
+   [
+    "h2",
+    "Availability context"
+   ],
+   [
+    "p",
+    "Continuous export is where the fourth burner gate lives: modeled plant availability is <b>0.86&ndash;0.995</b>, against hyperscale Tier III at <b>0.99982</b> &mdash; roughly 30&ndash;100&times; more downtime than a Tier III source tolerates. So this interface is designed to export power when available, not as a sole Tier-III source. That is a physics-and-reliability fact, stated without any economic translation."
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1 for modulation and ride-through; L4 for dispatch setpoints.",
+     "Sense: grid voltage/frequency, inverter state, collector power.",
+     "Cross-link: firm-power forecasting and dispatch at L4."
+    ]
+   ],
+   [
+    "p",
+    "Calibration ties inverter output to measured export under known conditions. Design-and-simulation specification; the burner is not built and no delivered-power claim is made."
+   ]
+  ],
+  "related": [
+   [
+    "burner-dec-collector-interface",
+    "Burner DEC collector interface"
+   ],
+   [
+    "sensor-actuator-map-burner",
+    "Burner sensor to actuator map"
+   ],
+   [
+    "latency-budget-per-interface",
+    "Latency budget per interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plug-coil-actuation-interface",
+  "title": "Plug-Coil Actuation Interface",
+  "cat": "physical-interfaces",
+  "lede": "The burner's end-plug coils must hold 26.49 T; the actuation interface is specified honestly against a coil overstressed 3-3.9x at the design bore.",
+  "body": [
+   [
+    "h2",
+    "What the plug coils do"
+   ],
+   [
+    "p",
+    "A tandem mirror confines plasma between high-field end plugs. The burner's plugs target <b>26.49 T</b> with a 17 T throat &mdash; the fields that create the magnetic mirror and, with the ambipolar potential, plug the ends. This interface commands the plug-coil currents and reads their electromagnetic and mechanical state."
+   ],
+   [
+    "h2",
+    "The stress gate, stated plainly"
+   ],
+   [
+    "p",
+    "At the design bore, the required field structure overstresses the plug coil by <b>~3&ndash;3.9&times;</b> the conductor's mechanical limit &mdash; it is <b>infeasible as specified</b>. This is a design-and-simulation finding, not a solved engineering problem, and it is not softened here. The actuation interface is documented so the constraint is explicit to any layer or agent reasoning about the burner."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# plug-coil command with the honest limit exposed\nsigma_hoop = lorentz_stress(I_plug, B_local, geom)\nmargin = sigma_allow / sigma_hoop\nassert margin >= 1.0, f'plug overstress {1/margin:.1f}x'   # 3-3.9x as specified\nplug_supply.command(I_plug, dIdt_max)   # gated by the assertion above"
+    ]
+   ],
+   [
+    "h2",
+    "Owner and sensing"
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1 for the current loop and protection; L3 for the plug-field setpoint.",
+     "Sense: coil current, local field, and the <a href=./rebco-strain-thermometry-interface.html>strain/thermometry</a> that quantifies the overstress.",
+     "Protection: shares the <a href=./rebco-quench-detection-interface.html>quench-detection interface</a>."
+    ]
+   ],
+   [
+    "p",
+    "Because the coil is overstressed as specified, any hardware path is contingent on a redesign that closes this gate; the interface exists in the design study to make that requirement measurable, not to imply it is met."
+   ]
+  ],
+  "related": [
+   [
+    "plug-density-fueling-interface",
+    "Plug-density fueling interface"
+   ],
+   [
+    "ambipolar-electrode-interface",
+    "Ambipolar potential electrode interface"
+   ],
+   [
+    "rebco-strain-thermometry-interface",
+    "REBCO strain and thermometry interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plug-density-fueling-interface",
+  "title": "Plug-Density Fueling Interface",
+  "cat": "physical-interfaces",
+  "lede": "Sustaining the end-plug density and confining potential drives an operating regime 166-830x beyond any device, on a helium-3 supply 400x short.",
+  "body": [
+   [
+    "h2",
+    "What the interface controls"
+   ],
+   [
+    "p",
+    "The tandem mirror confines the central cell by maintaining a high-density, high-potential plug at each end. This interface fuels and heats the plug to hold the target density and the ambipolar confining potential. It commands plug fueling (deuterium and helium-3), plug heating, and reads plug density and potential."
+   ],
+   [
+    "h2",
+    "Two gates on one interface"
+   ],
+   [
+    "p",
+    "This is the interface where two of the four burner gates concentrate. The plug operating regime sits <b>166&ndash;830&times;</b> beyond any device ever operated, so its behavior is <b>not post-dictable</b> from existing data today. And the helium-3 feed demands <b>~400&times;</b> the domestic terrestrial supply per commercial unit &mdash; the fuel does not exist at terrestrial scale, which is why breeder-bred and lunar helium-3 matter. Both are physics-and-supply facts, stated without softening."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# plug density/potential control (L3), with honest flags\nu = plug_mpc(n_plug, phi_conf, refs, twin)\nflag('plug_regime', regime_factor)     # 166-830x beyond any device\nflag('he3_supply', he3_cover)          # ~400x short today\nplug_fuel(u.d, u.he3); plug_heat(u.P)  # L1 actuation"
+    ]
+   ],
+   [
+    "h2",
+    "Signal set and owner"
+   ],
+   [
+    "ul",
+    [
+     "Sense: plug interferometry/microwave density, emissive-probe potential, heating power.",
+     "Actuate: plug fueling valves, plug heating, coupled to <a href=./ambipolar-electrode-interface.html>potential electrodes</a>.",
+     "Fuel link: metered helium-3 from the <a href=./he3-handling-interface.html>helium-3 handling interface</a>."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L3 for the plug setpoint on the predictive shadow, L1 for the fueling/heating actuation. Because the regime is un-post-dictable, twin predictions here carry wide uncertainty by construction. Design-and-simulation specification; the burner is not built."
+   ]
+  ],
+  "related": [
+   [
+    "plug-coil-actuation-interface",
+    "Plug-coil actuation interface"
+   ],
+   [
+    "ambipolar-electrode-interface",
+    "Ambipolar potential electrode interface"
+   ],
+   [
+    "he3-handling-interface",
+    "Helium-3 handling interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ambipolar-electrode-interface",
+  "title": "Ambipolar Potential Electrode Interface",
+  "cat": "physical-interfaces",
+  "lede": "Biased electrodes and plug heating shape the electrostatic potential that plugs the tandem mirror; the interface senses and drives that potential.",
+  "body": [
+   [
+    "h2",
+    "Confinement by potential"
+   ],
+   [
+    "p",
+    "In a tandem mirror, the central-cell ions are confined not only by the magnetic mirror but by an <b>electrostatic ambipolar potential</b> raised in the end plugs. Controlling that potential is as central to the burner as current control is to a tokamak. This interface reads the potential profile and drives it via plug heating and bias electrodes."
+   ],
+   [
+    "h2",
+    "Sense and actuate"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ambipolar potential regulation (burner)\nphi_z = estimate_potential(emissive_probes, endloss_analyzer)\nu     = potential_ctrl(phi_z, phi_ref, twin)\nplug_heat(u.P_ecrh)         # raise plug potential via hot electrons\nbias_electrode(u.V_bias)    # trim end potential\n# confinement depends on phi_conf = phi_plug - phi_center"
+    ]
+   ],
+   [
+    "p",
+    "The controlled quantity is the confining <b>potential dip</b> between plug and center, not an absolute voltage. Emissive probes and end-loss ion analyzers estimate the potential profile; plug heating (raising the hot-electron population) and bias electrodes are the actuators."
+   ],
+   [
+    "h2",
+    "Coupling and gates"
+   ],
+   [
+    "ul",
+    [
+     "Tightly coupled to <a href=./plug-density-fueling-interface.html>plug density</a> &mdash; density and potential are not independent.",
+     "Subject to the same un-post-dictable <b>166&ndash;830&times;</b> regime gate: the potential dynamics have no experimental precedent at this scale.",
+     "Sense side timestamped by L2; setpoint by L3; actuation by L1."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L3 for the potential setpoint, L1 for heating/bias actuation. Because the mirror's confinement rests on holding this potential in an untested regime, the interface is documented with explicit uncertainty rather than an implied performance guarantee. Design-and-simulation specification; the burner is not built."
+   ]
+  ],
+  "related": [
+   [
+    "plug-density-fueling-interface",
+    "Plug-density fueling interface"
+   ],
+   [
+    "plug-coil-actuation-interface",
+    "Plug-coil actuation interface"
+   ],
+   [
+    "sensor-actuator-map-burner",
+    "Burner sensor to actuator map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostic-port-map-breeder",
+  "title": "Breeder Diagnostic Port Map",
+  "cat": "physical-interfaces",
+  "lede": "Hyperion's 60+ diagnostic ports are mapped to flux coordinates so every reading lands at a known plasma location for the twin.",
+  "body": [
+   [
+    "h2",
+    "Why the map matters"
+   ],
+   [
+    "p",
+    "A diagnostic reading is meaningless without knowing where it looks. The breeder carries 60+ diagnostic ports &mdash; magnetics, interferometer chords, Thomson points, neutron sightlines, bolometry, probes &mdash; and the port map ties each channel to a geometric line-of-sight and, through the equilibrium, to a flux-surface coordinate."
+   ],
+   [
+    "h2",
+    "Port classes"
+   ],
+   [
+    "ul",
+    [
+     "Magnetics: flux loops and Mirnov coils distributed poloidally (fast, see <a href=./magnetics-diagnostic-interface.html>magnetics interface</a>).",
+     "Density: interferometer/polarimeter chords across the minor radius.",
+     "Kinetic profiles: Thomson-scattering spatial points for T_e and n_e.",
+     "Neutron: collimated 14 MeV sightlines and cameras.",
+     "Edge/exhaust: bolometry, Langmuir probes, IR thermography."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# map a port channel to flux coordinate\nfor ch in ports:\n    los = geometry[ch]                       # line-of-sight in (R,Z)\n    rho = flux_coord(los, equilibrium)        # normalized flux label\n    channel_map[ch] = rho                     # feeds twin ingestion"
+    ]
+   ],
+   [
+    "h2",
+    "Spatial normalization"
+   ],
+   [
+    "p",
+    "Because the equilibrium moves, the mapping from a fixed port to a flux coordinate is <b>time-varying</b>: it is recomputed as the reconstruction updates, so a chord that crosses the core at one instant may sample the edge at another. This normalization is what lets the twin fuse dozens of heterogeneous ports into one state estimate."
+   ],
+   [
+    "p",
+    "Owner: L2 for channel registration and timestamping; L3 for the flux-coordinate mapping. Calibration of geometry (port pointing) is tracked separately from signal calibration. Design-and-simulation specification, validated against the twin before commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "diagnostic-port-map-burner",
+    "Burner diagnostic port map"
+   ],
+   [
+    "magnetics-diagnostic-interface",
+    "Magnetics diagnostic interface"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostic-port-map-burner",
+  "title": "Burner Diagnostic Port Map",
+  "cat": "physical-interfaces",
+  "lede": "The burner's ports are organized along the machine axis - central cell, throat, plug, expander - because confinement is axial, not toroidal.",
+  "body": [
+   [
+    "h2",
+    "An axial machine"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is linear: plasma sits in a central cell between two end plugs. Its diagnostic ports are therefore mapped along the <b>axial</b> coordinate z rather than to flux surfaces. Density, potential, and field are functions of position along the axis, and the port map reflects that geometry."
+   ],
+   [
+    "h2",
+    "Port classes by region"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Region",
+      "Key diagnostics",
+      "Controls served"
+     ],
+     [
+      [
+       "central cell",
+       "interferometry, neutron",
+       "fueling, power"
+      ],
+      [
+       "throat",
+       "field probes, thermography",
+       "plug field"
+      ],
+      [
+       "plug",
+       "density, emissive probe",
+       "plug density/potential"
+      ],
+      [
+       "expander",
+       "end-loss analyzer, IR",
+       "DEC feed, heat load"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The plug and expander regions are the most heavily instrumented because they hold the two hardest-to-observe quantities: the plug density/potential that confines the machine, and the ion energy spectrum arriving at the direct-energy-conversion collectors."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# axial channel registration\nfor ch in ports:\n    z   = geometry[ch].axial_position\n    reg = region_of(z)                 # central/throat/plug/expander\n    channel_map[ch] = (z, reg)"
+    ]
+   ],
+   [
+    "h2",
+    "Observability under the regime gate"
+   ],
+   [
+    "p",
+    "A blunt honesty note: the plug regime is <b>166&ndash;830&times;</b> beyond any operated device, so several plug diagnostics have no calibration precedent at these conditions. The port map records this by tagging plug-region channels with elevated uncertainty, so the twin never treats an un-precedented reading as ground truth."
+   ],
+   [
+    "p",
+    "Owner: L2 for registration and timestamping; L3 for axial-profile assembly. Design-and-simulation specification; the burner is not built."
+   ]
+  ],
+  "related": [
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ],
+   [
+    "plug-density-fueling-interface",
+    "Plug-density fueling interface"
+   ],
+   [
+    "burner-dec-collector-interface",
+    "Burner DEC collector interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "magnetics-diagnostic-interface",
+  "title": "Magnetics Diagnostic Interface",
+  "cat": "physical-interfaces",
+  "lede": "Flux loops and Mirnov coils are the fastest, most trusted sensors on the breeder; their interface feeds real-time equilibrium and stability control.",
+  "body": [
+   [
+    "h2",
+    "The backbone of control"
+   ],
+   [
+    "p",
+    "Magnetic diagnostics &mdash; flux loops (integrated voltage) and Mirnov coils (dB/dt) &mdash; are the breeder's fastest and most reliable measurements. They underpin equilibrium reconstruction, vertical stability, and disruption-precursor detection. Nearly every fast control loop on Hyperion begins here."
+   ],
+   [
+    "h2",
+    "Signal handling"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# flux loop: integrate coil voltage to flux\npsi_loop = integral(v_loop, dt) + psi0      # drift-corrected\n# Mirnov: dB/dt -> mode analysis\nb_theta  = integral(v_mirnov, dt)\nmodes    = fourier_poloidal(b_theta_array)  # n,m mode content\nomega    = track_mode_rotation(modes)       # rotating MHD"
+    ]
+   ],
+   [
+    "p",
+    "Flux loops require careful integration-drift correction; Mirnov coils are analyzed as a poloidal array to extract rotating-mode content whose growth is a disruption precursor. The array structure is what a <a href=./magnetics-diagnostic-interface.html>graph model</a> exploits when a channel drops out."
+   ],
+   [
+    "h2",
+    "Owner and timing"
+   ],
+   [
+    "ul",
+    [
+     "Owner: L2 for acquisition/timestamping; consumed by L1 (stability) and L3 (reconstruction).",
+     "Timing: fastest diagnostic class, sub-ms, on the deterministic fabric.",
+     "Feeds: equilibrium reconstruction, vertical stability, disruption precursors."
+    ]
+   ],
+   [
+    "p",
+    "Calibration ties each coil's geometry and gain to a reference; because these signals drive protection-adjacent loops, their calibration and health are tracked continuously and a suspect channel is masked before it corrupts the reconstruction. Design-and-simulation specification, validated against the twin. Related existing pages cover Mirnov coils and flux loops in isolation; this interface page focuses on the acquisition contract feeding control."
+   ]
+  ],
+  "related": [
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ],
+   [
+    "pf-cs-coil-supply-interface",
+    "PF and CS coil supply interface"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "thomson-scattering-interface",
+  "title": "Thomson Scattering Interface",
+  "cat": "physical-interfaces",
+  "lede": "A pulsed laser and spatially resolved collection give calibrated electron temperature and density profiles; the interface is timing- and calibration-critical.",
+  "body": [
+   [
+    "h2",
+    "What it measures"
+   ],
+   [
+    "p",
+    "Thomson scattering fires a high-power laser through the plasma and measures the Doppler-broadened, Rayleigh-scattered light at multiple spatial points to recover electron temperature (T_e) and density (n_e) profiles. On the breeder these profiles anchor the twin's kinetic state; the interface manages laser firing, collection, and inversion."
+   ],
+   [
+    "h2",
+    "Interface elements"
+   ],
+   [
+    "ul",
+    [
+     "Actuate: laser trigger (timing to plasma phase), energy monitor.",
+     "Sense: spatially resolved spectra per collection volume.",
+     "Derive: T_e from spectral width, n_e from scattered intensity (Rayleigh-calibrated)."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-point Thomson inversion\nfor pt in collection_volumes:\n    spec   = acquire(pt, laser_shot)\n    T_e[pt] = fit_spectral_width(spec)          # Doppler broadening\n    n_e[pt] = scale(intensity(spec), rayleigh_cal[pt], E_laser)\nprofile = assemble(T_e, n_e, channel_map)       # to twin"
+    ]
+   ],
+   [
+    "p",
+    "Density accuracy depends on a <b>Rayleigh calibration</b> at known gas pressure; temperature depends on spectral-fit quality. The laser trigger must be timed and PTP-stamped so each profile is attributable to a known plasma instant. This is a burst diagnostic &mdash; it samples at the laser repetition rate, not continuously."
+   ],
+   [
+    "h2",
+    "Owner and role"
+   ],
+   [
+    "p",
+    "Owner: L2 for acquisition and timestamping; L3 for inversion and profile assembly. It is not on a fast control loop; instead it is a high-value anchor that <a href=./analog-front-end-calibration-interface.html>calibrates</a> and constrains faster proxies (interferometry) in the twin. Design-and-simulation specification, validated against the twin before hardware."
+   ]
+  ],
+  "related": [
+   [
+    "interferometry-polarimetry-interface",
+    "Interferometry and polarimetry interface"
+   ],
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interferometry-polarimetry-interface",
+  "title": "Interferometry and Polarimetry Interface",
+  "cat": "physical-interfaces",
+  "lede": "Interferometer chords give fast line-integrated density; polarimetry adds internal field information; the interface unfolds chords into profiles.",
+  "body": [
+   [
+    "h2",
+    "Fast density, continuously"
+   ],
+   [
+    "p",
+    "Where Thomson scattering is a burst measurement, interferometry runs continuously: laser chords across the plasma measure line-integrated electron density from the phase shift of the probing beam. This is the fast density signal the breeder's fueling loop closes on, feeding the <a href=./ice-piston-fueling-interface.html>pellet</a> and <a href=./gas-puff-valve-interface.html>gas-puff</a> interfaces."
+   ],
+   [
+    "h2",
+    "From chords to profile"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# line-integrated density per chord -> profile (Abel-like)\nfor c in chords:\n    n_line[c] = dphase[c] / (k_refr * chord_length[c])\n# unfold multiple chords into radial n_e(rho)\nn_e_profile = invert_chords(n_line, geometry, equilibrium)\n# polarimetry: Faraday rotation -> internal B constraint\nB_int = faraday_rotation(dpol, n_e_profile)"
+    ]
+   ],
+   [
+    "p",
+    "A single chord gives a line integral; several chords are unfolded (an Abel-type inversion using the equilibrium geometry) into a radial profile. Polarimetry measures Faraday rotation, adding an internal-field constraint that helps pin the current profile the equilibrium reconstruction needs."
+   ],
+   [
+    "h2",
+    "Owner and timing"
+   ],
+   [
+    "ul",
+    [
+     "Owner: L2 for acquisition; L3 for chord inversion; consumed fast by L1 fueling.",
+     "Timing: continuous, fast enough to close the density loop in the MPC cycle.",
+     "Calibration cross-check against <a href=./thomson-scattering-interface.html>Thomson scattering</a> to correct fringe-jump and refraction bias."
+    ]
+   ],
+   [
+    "p",
+    "Fringe jumps are the classic failure mode; the interface detects and corrects them against the Thomson anchor. Design-and-simulation specification, validated against the twin."
+   ]
+  ],
+  "related": [
+   [
+    "thomson-scattering-interface",
+    "Thomson scattering interface"
+   ],
+   [
+    "ice-piston-fueling-interface",
+    "Ice-piston fueling interface"
+   ],
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutron-diagnostic-interface",
+  "title": "Neutron Diagnostic Interface",
+  "cat": "physical-interfaces",
+  "lede": "Neutron flux, spectra, and cameras measure fusion rate and 14 MeV yield; the interface feeds the fusion-power estimate and the breeding budget.",
+  "body": [
+   [
+    "h2",
+    "Measuring the reaction directly"
+   ],
+   [
+    "p",
+    "Neutrons are the most direct signature of fusion. The breeder produces 14 MeV neutrons from D&ndash;T (design fusion power 88.7 MW), and the burner produces a much smaller neutron flux &mdash; only <b>5.44%</b> of D&ndash;<sup>3</sup>He energy is neutronic. The neutron interface measures total flux, energy spectrum, and spatial emission to estimate fusion rate and, on the breeder, close the breeding budget."
+   ],
+   [
+    "h2",
+    "Signal set"
+   ],
+   [
+    "ul",
+    [
+     "Total yield: fission chambers / activation foils for absolute rate.",
+     "Spectrum: to separate 14 MeV D-T neutrons from scattered/other components.",
+     "Imaging: collimated cameras for the spatial emission profile.",
+     "Cross-link: feeds the twin's <a href=./lithium-blanket-interface.html>neutronics/blanket</a> estimate."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# fusion rate + breeding closure\nrate_fus = calibrate(neutron_count, detector_eff)   # absolute\nP_fus_est = rate_fus * E_per_reaction               # design: 88.7 MW class\n# breeding closure\nTBR_eff = bred_T_measured / (rate_fus * fraction_to_blanket)"
+    ]
+   ],
+   [
+    "p",
+    "On the breeder, the neutron rate ties directly to the fusion-power estimate and to the tritium breeding ratio (a design lever across 1.1 / 1.5 / 1.8): the measured 14 MeV source is the denominator when closing the breeding budget with purge-gas assay."
+   ],
+   [
+    "h2",
+    "Owner and calibration"
+   ],
+   [
+    "p",
+    "Owner: L2 for acquisition; L3 for rate/profile inference; L4/L7 for the breeding and accountancy budget. Absolute calibration (detector efficiency, geometry) is the hard part and is traced to reference sources. The 88.7 MW figure is a design-and-simulation value; no measured fusion power is claimed before FOAK first tritium (~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "lithium-blanket-interface",
+    "Lithium-blanket interface"
+   ],
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ],
+   [
+    "isotope-accountancy-interface",
+    "Isotope accountancy interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cryo-vacuum-feedthrough-interface",
+  "title": "Cryogenic and Vacuum Feedthrough Interface",
+  "cat": "physical-interfaces",
+  "lede": "Every sensor and actuator wire crossing the cryostat or vacuum boundary passes a feedthrough; the interface owns integrity, isolation, and interlocks.",
+  "body": [
+   [
+    "h2",
+    "Crossing the boundary"
+   ],
+   [
+    "p",
+    "Signals and power must cross two hostile boundaries: the vacuum wall and the cryostat that keeps the REBCO magnets cold. Every diagnostic wire, coil lead, coolant line, and gas line passes a feedthrough. This interface owns the integrity of those crossings &mdash; leak-tightness, thermal isolation, and electrical continuity &mdash; on both machines."
+   ],
+   [
+    "h2",
+    "What it monitors and enforces"
+   ],
+   [
+    "ul",
+    [
+     "Vacuum integrity: pressure, leak rate, feedthrough seal status.",
+     "Cryogenic: feedthrough temperature and heat-leak budget.",
+     "Electrical: continuity and isolation of instrument and power leads.",
+     "Interlock: vacuum-boundary faults gate fueling and beam actuation."
+    ]
+   ],
+   [
+    "truth",
+    [
+     [
+      "Vac ok",
+      "Cryo ok",
+      "Fueling/beam enable"
+     ],
+     [
+      [
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The feedthrough interface is an <b>interlock source</b> more than an actuator: a vacuum-boundary fault immediately gates the fueling and beam interfaces closed, and a cryostat heat-leak excursion raises the magnet-protection posture. These interlocks are enforced at L1 so no supervisory layer can override a breached boundary."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# feedthrough interlock (L1)\nif vac_leak > leak_max or seal_fault:\n    close_all_fueling(); notch_beams()      # fail-safe\nif cryo_heatleak > budget:\n    raise_magnet_protection_posture()"
+    ]
+   ],
+   [
+    "p",
+    "The feedthrough count is large on both machines because every one of the 60+ diagnostic channels and every coil lead, coolant line, and gas line needs its own crossing. Each crossing is a potential leak path and a potential heat leak, so the interface tracks them individually rather than as a lumped boundary; a single degrading seal is localized to its feedthrough and scheduled for service before it forces a shutdown."
+   ],
+   [
+    "p",
+    "Owner: L1 for the interlock; L2 for monitoring transport. Calibration covers leak-rate reference and thermometry, both traced to reference standards and drift-tracked. This is a shared interface across breeder and burner. Design-and-simulation specification, validated before hardware commissioning; no operational claim is implied ahead of FOAK first tritium (~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-quench-detection-interface",
+    "REBCO quench-detection interface"
+   ],
+   [
+    "gas-puff-valve-interface",
+    "Gas-puff servo-valve interface"
+   ],
+   [
+    "timing-clock-distribution-interface",
+    "Timing and clock-distribution interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "analog-front-end-calibration-interface",
+  "title": "Analog Front-End and Calibration Interface",
+  "cat": "physical-interfaces",
+  "lede": "Between raw sensor and digital sample sits the analog front end; its interface defines conditioning, ADC quantization, and the calibration chain.",
+  "body": [
+   [
+    "h2",
+    "Turning volts into trusted numbers"
+   ],
+   [
+    "p",
+    "Every physical interface ultimately produces a voltage that must be conditioned, digitized, and calibrated before any layer trusts it. The analog front end (AFE) sets gain, filtering, and anti-alias limits; the ADC sets resolution and dynamic range; the calibration chain makes the number traceable. This is the interface that decides a reading's noise floor and its truth."
+   ],
+   [
+    "h2",
+    "The chain"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# raw voltage -> engineering unit (per channel)\nv_cond = afe_gain[ch]*(v_raw - offset[ch])       # condition\nv_filt = antialias_filter(v_cond, f_cut[ch])     # before sampling\ncode   = adc_sample(v_filt, bits[ch])            # quantize\nvalue  = calib_poly[ch](code) * unit[ch]         # traceable EU\nvalue  = drift_correct(value, cal_epoch[ch])     # apply latest cal"
+    ]
+   ],
+   [
+    "p",
+    "Two design choices dominate: the anti-alias filter must sit below the Nyquist limit for the channel's sample rate, and the ADC dynamic range must cover both quiescent noise and the largest transient without clipping. A channel that clips during a disruption is worse than useless because it corrupts the reconstruction."
+   ],
+   [
+    "h2",
+    "Calibration and drift"
+   ],
+   [
+    "ul",
+    [
+     "Per-channel calibration polynomial with an epoch and uncertainty.",
+     "Drift tracking: readings tagged with the age of their last calibration.",
+     "Health: dead-sensor and out-of-range detection before ingestion.",
+     "Feeds the <a href=./interface-calibration-provenance.html>calibration provenance</a> record."
+    ]
+   ],
+   [
+    "p",
+    "Owner: L2 for the AFE/ADC and calibration store. Every downstream layer consumes engineering-unit values that carry their calibration provenance, so the twin and copilots never reason on an uncalibrated or stale number. Design-and-simulation specification, applied identically across both machines' 60+ port channels."
+   ]
+  ],
+  "related": [
+   [
+    "interface-calibration-provenance",
+    "Interface calibration and provenance"
+   ],
+   [
+    "diagnostic-port-map-breeder",
+    "Breeder diagnostic port map"
+   ],
+   [
+    "magnetics-diagnostic-interface",
+    "Magnetics diagnostic interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "timing-clock-distribution-interface",
+  "title": "Timing and Clock-Distribution Interface",
+  "cat": "physical-interfaces",
+  "lede": "A single disciplined time base lets sensors, actuators, and the twin agree on when everything happened; this interface distributes and audits that clock.",
+  "body": [
+   [
+    "h2",
+    "One clock, whole plant"
+   ],
+   [
+    "p",
+    "Fusing 60+ diagnostics and timing a pellet launch both require that every node agree on the current time to sub-microsecond precision. The timing interface distributes a disciplined clock (PTP-class) to every acquisition and actuation node and audits the synchronization so the twin can align heterogeneous streams."
+   ],
+   [
+    "h2",
+    "What it guarantees"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-node time discipline (PTP-class)\noffset = master_time - node_time\nnode_clock.adjust(offset)                 # steer, don't step\nassert abs(offset) <= sync_budget         # e.g. sub-microsecond\n# every sample/command carries this time base\nsample.t = node_clock.now()"
+    ]
+   ],
+   [
+    "p",
+    "Two properties matter: <b>accuracy</b> (each node close to the master) and <b>bounded skew</b> (nodes close to each other). A pellet flight-time computed on one clock and a plasma phase on another must share a time base or the deposition timing is wrong. The interface continuously measures per-node offset and flags any node that exceeds the sync budget."
+   ],
+   [
+    "h2",
+    "Consumers"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Consumer",
+      "Why timing matters"
+     ],
+     [
+      [
+       "diagnostic fusion",
+       "align 60+ streams"
+      ],
+      [
+       "pellet launch",
+       "flight-time vs phase"
+      ],
+      [
+       "quench trip",
+       "ordered fault records"
+      ],
+      [
+       "deterministic replay",
+       "reproducible timelines"
+      ]
+     ]
+    ]
+   ],
+   [
+    "ul",
+    [
+     "Owner: L1/L2 for distribution and audit.",
+     "Feeds the <a href=./pellet-injector-timing-interface.html>pellet-injector timing</a> and every fast loop.",
+     "Underpins <a href=./latency-budget-per-interface.html>latency budgets</a>."
+    ]
+   ],
+   [
+    "p",
+    "The clock is steered rather than stepped: a node's time is nudged toward the master continuously so timestamps never jump backward, which would break ordered fault records and deterministic replay. When a node exceeds its sync budget the interface flags it and downgrades the trust of that node's samples until it reconverges, so a drifting clock is treated like a drifting sensor."
+   ],
+   [
+    "p",
+    "Owner: L1/L2 for distribution and audit. Design-and-simulation specification, applied identically to both machines and validated against the twin before hardware commissioning."
+   ]
+  ],
+  "related": [
+   [
+    "pellet-injector-timing-interface",
+    "Pellet-injector timing interface"
+   ],
+   [
+    "latency-budget-per-interface",
+    "Latency budget per interface"
+   ],
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "latency-budget-per-interface",
+  "title": "Latency Budget per Interface",
+  "cat": "physical-interfaces",
+  "lede": "Each physical interface carries an end-to-end latency budget from sensor edge to actuator gate, and the budget decides where its loop can close.",
+  "body": [
+   [
+    "h2",
+    "Latency is a specification, not an outcome"
+   ],
+   [
+    "p",
+    "For every interface Kronos writes a latency budget before hardware exists: the time from a physical change, through sensing, transport, decision, and actuation, back to the physical world. The budget determines which layer can own the loop and whether the twin can sit in the path at all."
+   ],
+   [
+    "h2",
+    "The budget terms"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# end-to-end latency budget (per interface)\nT_total = T_sense + T_afe + T_transport \\\n        + T_decision + T_command + T_actuate\n# owner assignment rule\nowner = 'L1' if T_total_required < ms_threshold else 'L3+'\nassert T_total_worstcase <= T_total_required   # WCET, not average"
+    ]
+   ],
+   [
+    "p",
+    "The budget is stated as a <b>worst case</b>, not an average, because a protection loop that meets its deadline 99% of the time is not a protection loop. The twin's predictive shadow runs at 50&ndash;100 ms, which is why anything faster must close in L1 without the learning layer in the loop."
+   ],
+   [
+    "h2",
+    "Representative budgets"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Interface",
+      "Class",
+      "In-loop owner"
+     ],
+     [
+      [
+       "quench trip",
+       "us",
+       "L1"
+      ],
+      [
+       "vertical stability",
+       "sub-ms",
+       "L1"
+      ],
+      [
+       "shape/density",
+       "ms-10s ms",
+       "L1+L3 shadow"
+      ],
+      [
+       "tritium plant",
+       "s-min",
+       "L3/L4"
+      ],
+      [
+       "accountancy",
+       "hr-day",
+       "L7"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The pattern is consistent across both machines: protection and inner loops in microseconds to milliseconds at L1; supervisory and campaign loops in seconds and up at L3/L4; accountancy in hours at L7. The <a href=./timing-clock-distribution-interface.html>clock distribution</a> is what makes these budgets measurable, and the <a href=./interface-ownership-by-layer.html>ownership rule</a> follows directly from them."
+   ],
+   [
+    "p",
+    "Design-and-simulation specification; budgets are validated against the twin and, later, hardware-in-the-loop commissioning after Q2 2027 construction start."
+   ]
+  ],
+  "related": [
+   [
+    "interface-ownership-by-layer",
+    "Which layer owns each interface"
+   ],
+   [
+    "timing-clock-distribution-interface",
+    "Timing and clock-distribution interface"
+   ],
+   [
+    "hal-interface-contracts",
+    "Hardware-abstraction interface contracts"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interface-calibration-provenance",
+  "title": "Interface Calibration and Provenance",
+  "cat": "physical-interfaces",
+  "lede": "A reading is only as trustworthy as its calibration record; this interface carries the traceable provenance every layer checks before acting.",
+  "body": [
+   [
+    "h2",
+    "Trust travels with the number"
+   ],
+   [
+    "p",
+    "Across both machines' 60+ ports, no layer is allowed to act on a bare number. Each engineering-unit value carries a provenance record: which calibration produced it, when, with what uncertainty, and whether the calibration is still valid. This interface defines and enforces that record."
+   ],
+   [
+    "h2",
+    "Provenance fields"
+   ],
+   [
+    "ul",
+    [
+     "Calibration polynomial/gain and its reference standard.",
+     "Calibration epoch and validity window (drift-based expiry).",
+     "Stated uncertainty for the channel.",
+     "Health status: valid / suspect / masked."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# provenance gate before any layer uses a value\ndef trusted(reading):\n    p = reading.provenance\n    return (p.status == 'valid'\n            and age(p.cal_epoch) <= p.validity_window\n            and reading.value == clip(reading.value, p.range))\n# twin/MPC/copilot all call trusted() first\nif not trusted(x): x = impute_or_mask(x)"
+    ]
+   ],
+   [
+    "p",
+    "When a calibration expires or a sensor drifts out of tolerance, the value is not silently used &mdash; it is marked <b>suspect</b> and either imputed (from the sensor-topology graph model) or masked so the reconstruction proceeds on trusted channels only. This is how a stale gauge never corrupts a strain margin, a heat-flux map, or an accountancy ledger."
+   ],
+   [
+    "h2",
+    "Owner and scope"
+   ],
+   [
+    "p",
+    "Owner: L2 for the calibration store and provenance record; every higher layer is a consumer that must check it. Accountancy-grade interfaces (tritium, helium-3) carry the strictest traceability; fast control channels carry the shortest validity windows because drift there is most damaging. This provenance is the same discipline the <a href=./analog-front-end-calibration-interface.html>analog front end</a> begins and the <a href=./isotope-accountancy-interface.html>accountancy ledger</a> ends with. Design-and-simulation specification."
+   ]
+  ],
+  "related": [
+   [
+    "analog-front-end-calibration-interface",
+    "Analog front-end and calibration interface"
+   ],
+   [
+    "isotope-accountancy-interface",
+    "Isotope accountancy interface"
+   ],
+   [
+    "hal-interface-contracts",
+    "Hardware-abstraction interface contracts"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hal-interface-contracts",
+  "title": "Hardware-Abstraction Interface Contracts",
+  "cat": "physical-interfaces",
+  "lede": "Every physical interface is declared as a typed contract so the control stack targets a stable abstraction, not a specific vendor part.",
+  "body": [
+   [
+    "h2",
+    "Why contracts, not wiring"
+   ],
+   [
+    "p",
+    "The AI-native stack must not be rewritten every time a sensor or supply changes vendor. The hardware-abstraction layer (HAL) declares each physical interface as a typed <b>contract</b>: its signals, units, ranges, latency class, owning layer, and failure behavior. Software targets the contract; the driver behind it can change."
+   ],
+   [
+    "h2",
+    "What a contract declares"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# HAL interface contract (schema)\ncontract = {\n  'id': 'pf_coil_supply.k',\n  'direction': 'actuate',\n  'signals': {'I_target':'A', 'dIdt_max':'A/s'},\n  'range':   {'I_target':(0, I_max), 'dIdt_max':(0, slew_max)},\n  'latency_class': 'ms',\n  'owner': 'L1',\n  'fail_mode': 'hold_last_safe',\n  'calibration_ref': 'cal://pf_coil/k' }"
+    ]
+   ],
+   [
+    "p",
+    "The contract encodes the fields the rest of this category depends on: the <a href=./interface-ownership-by-layer.html>owning layer</a>, the <a href=./latency-budget-per-interface.html>latency class</a>, the range checks the L1 edge enforces, and the <a href=./interface-calibration-provenance.html>calibration reference</a>. A command that violates the declared range is rejected against the contract, independent of the driver."
+   ],
+   [
+    "h2",
+    "Fail modes are part of the contract"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Interface type",
+      "Declared fail mode"
+     ],
+     [
+      [
+       "gas-puff valve",
+       "fail_closed"
+      ],
+      [
+       "coil supply",
+       "hold_last_safe"
+      ],
+      [
+       "quench dump",
+       "fail_active"
+      ],
+      [
+       "accountancy read",
+       "fail_flag_no_action"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Declaring the fail mode in the contract makes fail-safe behavior a testable property rather than driver folklore: a valve fails closed, a dump switch fails active, an accountancy read fails to a flag with no control action. Conformance tests check each driver against its contract before it is trusted in the loop."
+   ],
+   [
+    "p",
+    "Owner: L1/L2 jointly &mdash; L1 enforces the real-time contract, L2 the data contract. This is the abstraction that lets one AI-native stack drive two very different machines &mdash; breeder and burner &mdash; from the same code. Design-and-simulation specification; contracts are validated in hardware-in-the-loop commissioning after construction start."
+   ]
+  ],
+  "related": [
+   [
+    "interface-ownership-by-layer",
+    "Which layer owns each interface"
+   ],
+   [
+    "latency-budget-per-interface",
+    "Latency budget per interface"
+   ],
+   [
+    "interface-calibration-provenance",
+    "Interface calibration and provenance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

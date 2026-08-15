@@ -1,0 +1,3728 @@
+[
+ {
+  "slug": "l3-architecture-overview",
+  "title": "L3 Twin Modeling and AI: Architecture Overview",
+  "cat": "l3-twin-modeling",
+  "lede": "Layer 3 is where Kronos turns validated telemetry into predictive physics: GNNs, PINNs, anomaly ensembles, MPC agents, and the KRONOS-CTRL digital twin.",
+  "body": [
+   [
+    "h2",
+    "Where L3 sits in the stack"
+   ],
+   [
+    "p",
+    "Layer 3 (L3) consumes the clean, spatially normalized feature streams published by the L2 Data Fabric and returns physics-grade state estimates, forecasts, and actuation intents to the L1 Control Plane. It never touches the microsecond hard-real-time path directly: the L1 edge FPGAs and the autonomous hardware failsafe remain authoritative. L3 operates one tier up, in the 1-100 ms regime, producing the model of the plant that L1 executes against."
+   ],
+   [
+    "p",
+    "Five capabilities compose L3. <b>Graph neural networks</b> represent the diagnostic constellation as a dynamic graph and impute dropped or degraded signals. <b>Physics-informed neural networks</b> solve the Grad-Shafranov equilibrium and MHD stability natively, without a mesh solver in the loop. <b>Anomaly-detection ensembles</b> surface sub-threshold quench and disruption precursors. <b>Model-predictive-control agents</b> plan actuation inside a certified safe operating envelope. The <b>KRONOS-CTRL digital twin</b> binds these into a coupled Power / Neutronics / Thermomechanics / MHD state that runs a 50-100 ms predictive shadow ahead of the real plant."
+   ],
+   [
+    "h3",
+    "Both machines, one architecture"
+   ],
+   [
+    "p",
+    "L3 is instantiated twice from the same framework. For the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30, the hard problems are equilibrium reconstruction, the ELM-free negative-triangularity shape, and disruption avoidance. For the burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat, the hard problems are end-plug density, the ambipolar potential, and direct energy conversion of the 5.44%-neutron-fraction output."
+   ],
+   [
+    "ul",
+    [
+     "L2 in: validated 60+ port telemetry, feature store, lineage",
+     "L3 core: GNN, PINN, anomaly ensemble, MPC, KRONOS-CTRL twin",
+     "L1 out: actuation intents, envelope constraints, precursor flags",
+     "L0 offline: batch retraining, Monte Carlo priors, surrogate distillation"
+    ]
+   ],
+   [
+    "p",
+    "These machines are design and simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030; no hardware net-gain is claimed before FOAK. L3 is therefore validated today against multi-physics simulation and legacy device data, with a defined path to plant synchronization once hardware exists."
+   ]
+  ],
+  "related": [
+   [
+    "kronos-ctrl-overview",
+    "KRONOS-CTRL Digital Twin"
+   ],
+   [
+    "gnn-sensor-topology",
+    "GNNs for Sensor Topology"
+   ],
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kronos-ctrl-overview",
+  "title": "KRONOS-CTRL: The Digital Twin Stack",
+  "cat": "l3-twin-modeling",
+  "lede": "KRONOS-CTRL is the coupled digital twin that holds a live physics state of each machine and projects it forward as a predictive shadow.",
+  "body": [
+   [
+    "h2",
+    "What KRONOS-CTRL is"
+   ],
+   [
+    "p",
+    "KRONOS-CTRL is the digital-twin core of L3. It maintains a coherent state vector for the whole machine and advances it faster than real time, so that at any wall-clock instant the twin holds both the best current estimate of plant state and a 50-100 ms forecast of where the state is heading. Four physics modules run inside it and exchange boundary conditions every twin step."
+   ],
+   [
+    "ul",
+    [
+     "Power Systems: DEC electrode voltages, extraction efficiency, grid synchronization",
+     "Neutronics: 14 MeV and residual D-D neutron flux, activation, breeding balance",
+     "Thermomechanics: strain fields, thermal loads, divertor and first-wall margins",
+     "MHD Stability: plasma shape, equilibrium, stability boundaries"
+    ]
+   ],
+   [
+    "h3",
+    "How the modules couple"
+   ],
+   [
+    "p",
+    "The modules are not independent. The MHD module fixes the equilibrium and hence the neutron source profile the Neutronics module integrates; Neutronics deposits volumetric heating that the Thermomechanics module turns into strain and temperature; Thermomechanics returns geometry changes (thermal expansion of the vessel, magnet strain via REBCO gauges) that shift the MHD boundary; and for the burner the Power Systems module closes the loop by setting the extraction potential that changes the ambipolar confinement the MHD module sees. KRONOS-CTRL solves this as a weakly coupled fixed-point iteration per twin step, using the previous step as a warm start so one or two Picard passes converge."
+   ],
+   [
+    "p",
+    "Each module is accelerated by an L3 surrogate (a PINN or neural operator) so the coupled step fits inside the shadow latency budget. The twin publishes, every step, a full state estimate, its forward projection, and a per-module confidence score that MPC and the anomaly ensemble consume."
+   ],
+   [
+    "p",
+    "KRONOS-CTRL is instantiated per machine. The breeder twin carries the Grad-Shafranov equilibrium, ELM dynamics and disruption observers; the burner twin carries the ambipolar-potential solve, plug-density balance and the multi-modal DEC train. Both share the same synchronization, surrogate and validation machinery."
+   ]
+  ],
+  "related": [
+   [
+    "l3-architecture-overview",
+    "L3 Architecture Overview"
+   ],
+   [
+    "twin-mhd-stability-module",
+    "MHD Stability Module"
+   ],
+   [
+    "predictive-shadow-lookahead",
+    "The Predictive Shadow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-sensor-topology",
+  "title": "Graph Neural Networks for Dynamic Sensor Topology",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos represents its diagnostic constellation as a dynamic graph so a GNN can reason over the physical relationships between sensors rather than treating channels as independent.",
+  "body": [
+   [
+    "h2",
+    "The diagnostics as a graph"
+   ],
+   [
+    "p",
+    "The L2 Data Fabric delivers 60+ analog telemetry ports: Thomson scattering, interferometry, Mirnov coils, flux loops, REBCO strain gauges, electron-cyclotron emission (ECE), fast-ion trackers and neutron-flux detectors. Treating these as a flat vector discards what an experienced physicist knows: adjacent Mirnov coils see correlated MHD modes, an interferometer chord and a Thomson volume sample the same flux surface, and a REBCO strain gauge is mechanically coupled to its neighbors on the same magnet section."
+   ],
+   [
+    "p",
+    "Kronos encodes this as a graph G = (V, E). Each node v carries a sensor's validated feature vector; each edge e_ij carries the physical relationship between sensors i and j (geometric distance, shared flux surface, mechanical coupling, or measured cross-correlation). A GNN then performs message passing so each node's representation is informed by its physically relevant neighbors."
+   ],
+   [
+    "h3",
+    "Why the topology is dynamic"
+   ],
+   [
+    "p",
+    "The relationships are not static. As the breeder plasma moves, which interferometer chord shares a flux surface with which Thomson volume depends on the current equilibrium; as the burner plug density shifts, the coupling among end-cell diagnostics changes. Edge weights are therefore recomputed each cycle from the twin's current equilibrium estimate, so the graph tracks the plasma state rather than the fixed hardware layout."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# one message-passing layer over the diagnostic graph\n# h_i : node feature, e_ij : edge feature (geometry, flux-surface link)\nfor i in nodes:\n    msgs = [phi(h_i, h_j, e_ij) for j in neighbors(i)]\n    m_i  = aggregate(msgs)          # sum / mean / attention\n    h_i  = gru_update(h_i, m_i)      # gated update keeps temporal state"
+    ]
+   ],
+   [
+    "p",
+    "The output feeds two consumers: the imputation head that reconstructs dropped channels, and the KRONOS-CTRL twin, which uses topology-aware embeddings as a denoised measurement for state estimation. Because the GNN is permutation-equivariant, adding or retiring a diagnostic does not require retraining from scratch."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-dropped-signal-imputation",
+    "Imputing Dropped Signals"
+   ],
+   [
+    "gnn-mirnov-flux-graph",
+    "Mirnov and Flux-Loop Graph"
+   ],
+   [
+    "twin-diagnostics-constellation-fusion",
+    "Fusing the Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-dropped-signal-imputation",
+  "title": "GNN Imputation of Dropped and Degraded Signals",
+  "cat": "l3-twin-modeling",
+  "lede": "When a diagnostic channel drops out or saturates, the sensor-topology GNN reconstructs it from physically neighboring sensors so control never runs blind.",
+  "body": [
+   [
+    "h2",
+    "The failure mode L3 must survive"
+   ],
+   [
+    "p",
+    "In a high-field, high-neutron-flux environment, analog channels degrade: a cryo-rated vacuum feedthrough develops noise, an ECE channel saturates during a transient, a Mirnov coil clips, or an interferometer loses fringe count. If control treated each channel as independent, a single dropout would blind a state estimator. Kronos instead treats reconstruction as a graph inference problem: the GNN is trained to predict any node's true value from its neighbors."
+   ],
+   [
+    "h3",
+    "Training objective"
+   ],
+   [
+    "p",
+    "During training, random nodes are masked (dropout, additive noise, saturation are all simulated) and the network is penalized on reconstruction error at the masked nodes plus a physics-consistency term. The masked-autoencoder objective forces the embedding to carry enough neighborhood physics to regenerate a channel from context."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# masked node reconstruction with physics consistency\nL = 0\nfor v in masked_nodes:\n    L += (x_hat[v] - x_true[v])**2            # data fit at masked node\nL += lam_phys * residual_flux_surface(x_hat)   # e.g. chord/Thomson agreement\nL += lam_smooth * graph_laplacian(x_hat)       # spatial smoothness on E"
+    ]
+   ],
+   [
+    "p",
+    "At inference, a validity flag from L2 tells the GNN which nodes are trustworthy; untrusted nodes are treated as masked and imputed. The imputed value ships with an uncertainty estimate derived from the local edge weights and neighbor agreement, so downstream MPC can widen its safety margins when it is operating on reconstructed rather than measured data."
+   ],
+   [
+    "h3",
+    "Why it is safe"
+   ],
+   [
+    "p",
+    "Imputation is advisory, never authoritative for protection. The L1 autonomous hardware failsafe that dumps a quench does not depend on GNN output; it reads raw hardware signals. The GNN keeps the twin and MPC coherent through transient dropouts, but if too many neighbors of a node are invalid, the imputation confidence collapses and L3 flags a degraded-observability condition rather than fabricating a plausible-looking value. This honesty about observability is a design requirement, not a nicety."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "twin-confidence-scoring",
+    "Confidence Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-message-passing-diagnostics",
+  "title": "Message Passing Across the Diagnostic Constellation",
+  "cat": "l3-twin-modeling",
+  "lede": "The mathematics of how Kronos propagates information between physically related sensors, and why attention weights track the plasma state.",
+  "body": [
+   [
+    "h2",
+    "The message-passing update"
+   ],
+   [
+    "p",
+    "A GNN layer updates each node representation h_i by aggregating messages from its neighborhood N(i). Kronos uses an attention-weighted aggregation so that the influence of neighbor j on node i scales with how physically relevant j is right now:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# attention-weighted message passing (per layer l)\n#   alpha_ij  attention from edge/geometry features\n#   a         learnable attention vector; W  linear map\ne_ij   = LeakyReLU( a @ concat(W@h_i, W@h_j, edge_ij) )\nalpha  = softmax_over_neighbors(e_ij)\nh_i_l1 = sigma( sum_j alpha_ij * (W @ h_j) )"
+    ]
+   ],
+   [
+    "p",
+    "Stacking L layers lets information travel up to L hops across the constellation, so a neutron-flux node can be informed by a Thomson-scattering node several edges away if the intervening flux-surface links justify it. Three to four layers are sufficient for the breeder graph; beyond that, over-smoothing washes out node-specific detail."
+   ],
+   [
+    "h3",
+    "Attention as physical relevance"
+   ],
+   [
+    "p",
+    "The attention weight alpha_ij is not a black box. During a breeder ELM-free negative-triangularity discharge, the coils on the outboard midplane where MHD activity concentrates receive higher attention among themselves; during a burner plug-density excursion, the end-cell diagnostics dominate. Inspecting alpha therefore doubles as an interpretability tool: operators can see which sensors the model is leaning on, and validation checks that those are the physically sensible ones."
+   ],
+   [
+    "h3",
+    "Temporal state"
+   ],
+   [
+    "p",
+    "Each node also carries a gated recurrent state so the graph is spatio-temporal: message passing handles the spatial structure at one instant, and the gated update carries information across the sub-microsecond-sampled time series L2 provides. This lets the network distinguish a genuine physical transient (coherent across neighbors and time) from single-channel noise (incoherent), which is the same discrimination the anomaly ensemble needs upstream of quench detection."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ],
+   [
+    "gnn-mirnov-flux-graph",
+    "Mirnov and Flux-Loop Graph"
+   ],
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-mirnov-flux-graph",
+  "title": "Mirnov Coils and Flux Loops as a Coupled Graph",
+  "cat": "l3-twin-modeling",
+  "lede": "Magnetic diagnostics form the densest subgraph in Kronos's constellation, and the GNN uses their geometry to reconstruct MHD mode structure.",
+  "body": [
+   [
+    "h2",
+    "The magnetic subgraph"
+   ],
+   [
+    "p",
+    "Mirnov coils measure the local time-derivative of the poloidal field and are the primary sensors for MHD modes; flux loops measure integrated poloidal flux and anchor the equilibrium. In the breeder these sit in a poloidal-toroidal array around the vessel, so a rotating tearing mode of toroidal number n and poloidal number m appears as a phase-coherent pattern sweeping across the coils. Encoding the array as a graph, with edges weighted by angular separation, lets the GNN read mode number and rotation frequency directly from the phase gradient across neighboring nodes."
+   ],
+   [
+    "h3",
+    "Mode identification"
+   ],
+   [
+    "p",
+    "Because message passing is equivariant to the array's toroidal symmetry, the GNN embedding of a coherent (m,n) mode is stable even if individual coils drop out; the imputation head fills the gap from the surrounding phase pattern. This is what lets the MHD Stability module of KRONOS-CTRL keep tracking a growing mode through partial diagnostic loss, rather than losing lock at the worst moment."
+   ],
+   [
+    "ul",
+    [
+     "Mirnov coils: fast dB_pol/dt, node feature = amplitude + phase",
+     "Flux loops: integrated flux, node feature = slow equilibrium anchor",
+     "Edges: angular separation, shared flux surface, expected mode phase shift",
+     "Output: (m,n) mode amplitude, rotation frequency, growth-rate estimate"
+    ]
+   ],
+   [
+    "p",
+    "The magnetic subgraph is also where the anomaly ensemble looks first: a sub-threshold precursor to a locked mode shows up as a coil-to-coil phase pattern that stops rotating before amplitude grows. Detecting that on the graph, hops before it becomes a whole-machine event, is the core of disruption avoidance for the breeder."
+   ],
+   [
+    "p",
+    "For the burner, the analogous subgraph is the end-cell magnetic array around the 26.49 T plug, where the coupling structure reflects mirror symmetry rather than toroidal periodicity, but the same message-passing machinery applies."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-message-passing-diagnostics",
+    "Message Passing"
+   ],
+   [
+    "anomaly-disruption-precursors",
+    "Disruption Precursors"
+   ],
+   [
+    "twin-mhd-stability-module",
+    "MHD Stability Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-cross-machine-transfer",
+  "title": "Cross-Machine and Cross-Device Transfer Learning",
+  "cat": "l3-twin-modeling",
+  "lede": "Because the GNN is permutation-equivariant and topology-driven, embeddings pretrained on legacy device data transfer to both Kronos machines.",
+  "body": [
+   [
+    "h2",
+    "Why transfer is possible"
+   ],
+   [
+    "p",
+    "A GNN keyed on physical relationships, not on fixed channel indices, learns operators (how a flux-surface link propagates information, how mechanically coupled strain gauges co-move) that are device-agnostic. That means an embedding pretrained on public tokamak magnetic and Thomson data captures general MHD structure that is reusable, and only the Kronos-specific graph and heads need fine-tuning."
+   ],
+   [
+    "h3",
+    "The transfer path"
+   ],
+   [
+    "p",
+    "Kronos pretrains message-passing weights on legacy spherical-tokamak and mirror-experiment archives at L0 (offline HPC, batch retraining), then fine-tunes on high-fidelity simulation of the actual breeder and burner geometries. Because the machines are still design/simulation studies pre-FOAK, simulation is the dominant fine-tuning source today; once FOAK first tritium arrives ~2030, real telemetry progressively replaces simulated fine-tuning data."
+   ],
+   [
+    "ul",
+    [
+     "Pretrain: legacy device magnetics/Thomson, general MHD operators",
+     "Adapt: swap the graph (breeder toroidal vs burner mirror geometry)",
+     "Fine-tune: Kronos multi-physics simulation, then FOAK telemetry",
+     "Freeze: shared message-passing core; retrain only task heads"
+    ]
+   ],
+   [
+    "p",
+    "The breeder-to-burner transfer is the more interesting case. The two machines have different confinement physics, but share diagnostic modalities (Thomson, interferometry, magnetics, REBCO strain, neutron flux) and the same L2 feature conventions. The imputation and denoising heads transfer almost directly; the physics-interpretation heads (mode identification vs plug-density inference) are retrained per machine."
+   ],
+   [
+    "p",
+    "Transfer is validated, not assumed: every transferred model passes the same validation-and-verification gate as a from-scratch model before it is allowed to inform the twin, and confidence scoring is recalibrated on target-machine data so an over-confident transferred prediction cannot slip through."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ],
+   [
+    "surrogate-active-learning",
+    "Active Learning"
+   ],
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-grad-shafranov",
+  "title": "PINNs Solving the Grad-Shafranov Equilibrium",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos solves the breeder's magnetohydrodynamic equilibrium with a physics-informed neural network that embeds the Grad-Shafranov operator in its loss.",
+  "body": [
+   [
+    "h2",
+    "The equilibrium problem"
+   ],
+   [
+    "p",
+    "An axisymmetric tokamak equilibrium is governed by the Grad-Shafranov equation, a nonlinear elliptic PDE for the poloidal flux function psi(R,Z). It balances the plasma pressure gradient against the magnetic force:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Grad-Shafranov equation (axisymmetric ideal MHD equilibrium)\n#   R d/dR( (1/R) dpsi/dR ) + d2psi/dZ2  =  - mu0 R^2 p'(psi) - F(psi) F'(psi)\n# equivalently, with the elliptic operator Delta*:\n#   Delta_star(psi) = - mu0 R^2 dp/dpsi - F dF/dpsi\n# p(psi)  : plasma pressure profile\n# F(psi)  : poloidal current function, F = R B_toroidal"
+    ]
+   ],
+   [
+    "p",
+    "Classical solvers march a finite-element or finite-difference mesh to convergence each time the equilibrium changes. That is too slow for a 50-100 ms predictive shadow that must re-solve as the breeder plasma evolves. Kronos instead trains a PINN psi_theta(R,Z; boundary, profiles) whose network output is differentiable, so the Grad-Shafranov operator is evaluated by automatic differentiation and enforced pointwise."
+   ],
+   [
+    "h3",
+    "Native solving"
+   ],
+   [
+    "p",
+    "The network takes spatial coordinates and the current profile/boundary parameters as input and returns psi. Its loss (detailed on the loss-formulation page) penalizes the Grad-Shafranov residual on interior collocation points and the boundary condition on the plasma edge. Trained across the breeder's operating space, the PINN becomes an equilibrium solver that evaluates in a single forward pass and re-solves as fast as the twin steps."
+   ],
+   [
+    "p",
+    "This matters specifically for the breeder's negative-triangularity delta -0.30 shape at 9.86 MA and 16.84 T peak field: the equilibrium is where the ELM-free advantage of negative triangularity is realized or lost, and the twin must hold that shape accurately to reason about stability. The PINN provides the equilibrium that the MHD Stability module and the shape-control MPC both build on."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-formulation",
+    "PINN Loss Formulation"
+   ],
+   [
+    "pinn-free-boundary",
+    "Free-Boundary Reconstruction"
+   ],
+   [
+    "mpc-breeder-shape-control",
+    "Breeder Shape Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-loss-formulation",
+  "title": "The PINN Loss: Residual, Boundary, and Data Terms",
+  "cat": "l3-twin-modeling",
+  "lede": "How Kronos composes the physics residual, boundary conditions, and sparse measurements into a single differentiable loss for equilibrium and stability PINNs.",
+  "body": [
+   [
+    "h2",
+    "Composite loss"
+   ],
+   [
+    "p",
+    "A PINN is trained by minimizing a weighted sum of a PDE-residual term, boundary/initial-condition terms, and (when available) a data-fit term against measurements. For the Grad-Shafranov solver the loss reads:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# total PINN loss\nL = w_pde * L_pde + w_bc * L_bc + w_data * L_data\n\n# 1) physics residual on N_f interior collocation points\nL_pde  = mean_i ( Delta_star(psi_theta)(x_i)\n                  + mu0 * R_i**2 * dp_dpsi(psi_theta(x_i))\n                  + F(psi) * dF_dpsi(psi_theta(x_i)) )**2\n\n# 2) boundary condition on N_b edge points (e.g. psi = psi_bnd)\nL_bc   = mean_j ( psi_theta(x_j) - psi_bnd(x_j) )**2\n\n# 3) data fit to L2-validated diagnostics (flux loops, Mirnov, MSE)\nL_data = mean_k ( H(psi_theta)(x_k) - y_meas_k )**2"
+    ]
+   ],
+   [
+    "p",
+    "The differential operators inside L_pde are taken by automatic differentiation of the network, so no mesh is required. The data term H maps the flux field to what a diagnostic actually measures (a flux-loop integral, a line-integrated interferometer chord, a motional-Stark-effect pitch angle), which is how sparse, noisy measurements from L2 constrain the solution."
+   ],
+   [
+    "h3",
+    "Weighting and conditioning"
+   ],
+   [
+    "p",
+    "The weights w_pde, w_bc, w_data are not fixed. Kronos uses adaptive weighting (gradient-magnitude balancing) so no single term dominates the optimization and the boundary condition is not sacrificed to shrink an interior residual. Hard-constraint parameterizations, covered separately, remove the boundary term entirely by construction where possible, which improves conditioning."
+   ],
+   [
+    "p",
+    "The same template instantiates the MHD-stability PINN (residual = the linearized ideal-MHD eigenvalue operator) and the burner ambipolar-potential PINN (residual = the quasineutral Poisson-like balance for the mirror potential). One loss framework, three physics problems."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "pinn-hard-constraints",
+    "Hard-Constraint PINNs"
+   ],
+   [
+    "pinn-collocation-sampling",
+    "Collocation Sampling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-mhd-stability",
+  "title": "PINNs for MHD Stability Analysis",
+  "cat": "l3-twin-modeling",
+  "lede": "Beyond equilibrium, Kronos uses PINNs to evaluate ideal-MHD stability so the twin knows how close the plasma is to a limit, not just where it sits.",
+  "body": [
+   [
+    "h2",
+    "Equilibrium is not enough"
+   ],
+   [
+    "p",
+    "A valid Grad-Shafranov equilibrium can still be unstable. To avoid disruptions the breeder twin must know the growth rates of the dangerous ideal-MHD modes, kink, ballooning, and (for the negative-triangularity edge) the peeling-ballooning boundary that governs ELMs. Kronos trains a stability PINN that, given an equilibrium, returns the least-stable eigenvalue and its mode structure."
+   ],
+   [
+    "h3",
+    "The eigenvalue formulation"
+   ],
+   [
+    "p",
+    "Linearized ideal MHD casts stability as an eigenvalue problem for the plasma displacement xi: the force operator F(xi) balances against the inertia, and the sign of the eigenvalue omega^2 decides stability."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# linearized ideal-MHD normal-mode problem\n#   F(xi) = - rho * omega^2 * xi\n# F : self-adjoint ideal-MHD force operator (pressure + field-line bending)\n# omega^2 > 0  -> stable oscillation\n# omega^2 < 0  -> exponential growth, gamma = sqrt(-omega^2)\n#\n# PINN objective: minimize Rayleigh quotient subject to normalization\n#   omega^2 = < xi, F(xi) > / < xi, rho xi >"
+    ]
+   ],
+   [
+    "p",
+    "The PINN represents the displacement field xi_theta and minimizes the Rayleigh quotient under a normalization constraint, so it converges to the least-stable eigenmode. Trained across the operating space, it returns a growth-rate estimate in one forward pass, fast enough for the shadow to project how a mode will evolve over the next 50-100 ms."
+   ],
+   [
+    "p",
+    "For the breeder this is central to holding the ELM-free negative-triangularity regime: the twin continuously reports the margin to the peeling-ballooning boundary so shape-control MPC can back off before the edge crosses it. For the burner, the analogous PINN evaluates the interchange and mirror-mode stability of the end plug, feeding the plug-density controller."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "anomaly-disruption-precursors",
+    "Disruption Precursors"
+   ],
+   [
+    "l3-breeder-elm-free-shape",
+    "ELM-Free Shape Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-equilibrium-reconstruction",
+  "title": "Real-Time Equilibrium Reconstruction with PINNs",
+  "cat": "l3-twin-modeling",
+  "lede": "The equilibrium PINN doubles as a reconstructor, fusing sparse magnetic and kinetic diagnostics into a full flux map at twin cadence.",
+  "body": [
+   [
+    "h2",
+    "Reconstruction as an inverse problem"
+   ],
+   [
+    "p",
+    "Reconstruction asks: what equilibrium is most consistent with the measurements right now? Classically this is an iterative fit (Grad-Shafranov solved repeatedly to match flux loops, Mirnov coils, motional Stark effect, pressure). Kronos folds the physics and the data into one PINN objective: minimize the Grad-Shafranov residual and the mismatch to L2-validated diagnostics simultaneously."
+   ],
+   [
+    "p",
+    "Because the network already encodes the equilibrium operator, reconstruction is a fast conditioning of psi_theta on the current measurement vector rather than a cold solve. The GNN-imputed diagnostic set feeds the data term, so even with dropped channels the reconstruction stays constrained; the imputation uncertainty widens the effective data-term variance rather than being ignored."
+   ],
+   [
+    "h3",
+    "What the twin gets"
+   ],
+   [
+    "ul",
+    [
+     "Full psi(R,Z) flux map at 50-100 ms shadow cadence",
+     "Derived quantities: q-profile, plasma boundary, X-point, triangularity",
+     "Consistency residual as a self-diagnostic of reconstruction quality",
+     "Boundary and current-profile parameters handed to the stability PINN"
+    ]
+   ],
+   [
+    "p",
+    "The reconstruction reports its own Grad-Shafranov residual as a health metric. If diagnostics are inconsistent (a failing sensor L2 did not catch, or a genuinely off-normal event), the residual rises and the twin lowers its equilibrium confidence rather than presenting a clean but wrong flux map. That honest degradation is what lets MPC widen margins instead of steering on a false equilibrium."
+   ],
+   [
+    "p",
+    "For the breeder, accurate reconstruction of the negative-triangularity boundary and the X-point position is the prerequisite for both shape control and disruption avoidance. The reconstructed triangularity is checked against the design delta -0.30, and drift away from it is flagged."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "gnn-dropped-signal-imputation",
+    "Imputing Dropped Signals"
+   ],
+   [
+    "twin-mhd-stability-module",
+    "MHD Stability Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-free-boundary",
+  "title": "Free-Boundary Equilibrium and Coil Currents",
+  "cat": "l3-twin-modeling",
+  "lede": "The breeder's plasma boundary is not fixed; Kronos's free-boundary PINN co-solves the plasma equilibrium and the external coil currents that hold its shape.",
+  "body": [
+   [
+    "h2",
+    "Fixed vs free boundary"
+   ],
+   [
+    "p",
+    "A fixed-boundary solve assumes the plasma edge is known and finds the interior flux. The real control problem is the opposite: the poloidal-field coil currents are the actuators, and the boundary shape is a consequence. A free-boundary PINN takes coil currents (and plasma profiles) as input and returns both the interior equilibrium and the resulting last-closed flux surface, including the X-point and strike points on the divertor."
+   ],
+   [
+    "h3",
+    "Coupling to actuation"
+   ],
+   [
+    "p",
+    "This is what makes the PINN useful to shape-control MPC. The controller proposes coil-current trajectories; the free-boundary PINN predicts the shape they produce, including whether the negative-triangularity delta -0.30 target and the divertor strike-point placement are met, all inside the shadow horizon. The PINN's differentiability means MPC can also obtain gradients of shape with respect to coil current directly, which sharpens the optimization."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# free-boundary map used by shape-control MPC\n#   inputs : I_coils (PF/CS currents), p'(psi), FF'(psi)\n#   output : psi(R,Z), boundary(theta), X-point (R_x,Z_x), delta, kappa\nshape = pinn_freeboundary(I_coils, p_prime, ff_prime)\n# MPC reads shape.delta, shape.strike_points and their d/dI_coils"
+    ]
+   ],
+   [
+    "p",
+    "The vacuum-vessel geometry matters here. The breeder's CrMoNbV vessel and the thermal expansion tracked by the Thermomechanics module change the coil-to-plasma coupling slightly as the machine heats; the free-boundary PINN is conditioned on the current vessel geometry from the twin so its shape predictions stay accurate through a pulse."
+   ],
+   [
+    "p",
+    "Because coil currents are physical actuators with limits, the free-boundary map is always used inside the certified safe operating envelope: MPC may only request shapes reachable with in-limit currents, and the failsafe path for coil faults remains an L1 hardware function independent of the PINN."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "mpc-breeder-shape-control",
+    "Breeder Shape Control"
+   ],
+   [
+    "twin-thermomechanics-module",
+    "Thermomechanics Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-collocation-sampling",
+  "title": "Collocation Sampling and Adaptive Refinement",
+  "cat": "l3-twin-modeling",
+  "lede": "Where a PINN enforces its physics residual determines its accuracy; Kronos samples collocation points adaptively around steep gradients like the plasma edge.",
+  "body": [
+   [
+    "h2",
+    "The role of collocation points"
+   ],
+   [
+    "p",
+    "A PINN enforces the PDE only where it evaluates the residual, on a set of collocation points. Uniform sampling wastes capacity in smooth regions and under-resolves the places that matter: the steep pressure gradient at the negative-triangularity edge, the X-point singularity, and the burner's plug-throat transition where the field rises to 26.49 T. Kronos uses residual-adaptive sampling to concentrate points where the physics residual is largest."
+   ],
+   [
+    "h3",
+    "Adaptive refinement loop"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# residual-based adaptive collocation (RAR-style)\npts = sample_uniform(domain, N0)\nfor round in range(R):\n    train_pinn(pts)\n    r = abs(pde_residual(pinn, dense_candidates))\n    hot = topk(dense_candidates, key=r, k=M)   # high-residual regions\n    pts = concat(pts, hot)                       # add where physics is hard"
+    ]
+   ],
+   [
+    "p",
+    "The refinement targets exactly the features control cares about. For the breeder, the pedestal and separatrix get dense sampling so the reconstructed boundary and the peeling-ballooning margin are accurate. For the burner, the mirror throat and the ambipolar barrier get refined so the plug-density and potential solve resolves the sharp axial gradients."
+   ],
+   [
+    "h3",
+    "Cost control"
+   ],
+   [
+    "p",
+    "Collocation cost is an offline (L0) concern: adaptive refinement happens during batch training on the GPU clusters, producing a trained network whose inference cost is fixed and mesh-free. The runtime twin never re-samples; it evaluates the already-trained PINN. This split, expensive adaptive training offline, cheap deterministic inference online, is what lets a physically faithful solver live inside the 50-100 ms shadow budget."
+   ],
+   [
+    "p",
+    "Sampling quality is part of validation: a PINN whose residual is low only because it was tested on its own training points is rejected. Kronos evaluates residuals on held-out dense grids and against reference finite-element solutions before a PINN is allowed into the twin."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-formulation",
+    "PINN Loss Formulation"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ],
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-hard-constraints",
+  "title": "Hard-Constraint PINNs for Boundary Conditions",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos bakes boundary conditions into the network architecture so they hold exactly, improving conditioning over soft-penalty PINNs.",
+  "body": [
+   [
+    "h2",
+    "Soft vs hard constraints"
+   ],
+   [
+    "p",
+    "A standard PINN enforces boundary conditions with a penalty term, so they hold only approximately and compete with the interior residual during optimization. For equilibrium problems where the boundary flux value anchors the whole solution, an imperfect boundary is a real error source. Kronos uses hard-constraint parameterizations that satisfy the boundary by construction."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# hard-constrained ansatz: BC satisfied exactly for any network N\n#   psi(x) = g(x) + D(x) * N_theta(x)\n#   g(x) : a function meeting the boundary data (psi = psi_bnd on dOmega)\n#   D(x) : a distance-like function, D = 0 exactly on dOmega\n# => on the boundary psi = g = psi_bnd, regardless of N_theta"
+    ]
+   ],
+   [
+    "p",
+    "With this ansatz the boundary term disappears from the loss, leaving only the physics residual (and any data term). The optimization is better conditioned because it no longer trades boundary accuracy against interior accuracy, and training converges faster, which matters when Kronos retrains PINNs in batch as the design evolves pre-FOAK."
+   ],
+   [
+    "h3",
+    "Where Kronos applies it"
+   ],
+   [
+    "ul",
+    [
+     "Breeder equilibrium: fixed edge flux on the reconstruction boundary",
+     "Burner potential: known potential at the DEC collector and central-cell reference",
+     "Divertor thermomechanics: prescribed surface temperature/flux boundaries",
+     "Symmetry: axisymmetry (breeder) and mirror symmetry (burner) as exact constraints"
+    ]
+   ],
+   [
+    "p",
+    "Enforcing symmetry as a hard constraint is especially valuable: the breeder is axisymmetric and the burner mirror is symmetric about its midplane, so encoding these directly halves the effective domain and removes a class of spurious asymmetric solutions the network could otherwise drift into."
+   ],
+   [
+    "p",
+    "Hard constraints do not remove the need for validation; they remove one error mode. The interior physics residual is still checked against reference solvers, and the network's output is still confidence-scored before the twin uses it."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-formulation",
+    "PINN Loss Formulation"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ],
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-burner-ambipolar-potential",
+  "title": "PINNs for the Burner Ambipolar Potential",
+  "cat": "l3-twin-modeling",
+  "lede": "The tandem-mirror burner is confined by an electrostatic potential; Kronos solves that ambipolar potential with a physics-informed network.",
+  "body": [
+   [
+    "h2",
+    "Confinement by potential"
+   ],
+   [
+    "p",
+    "The burner is a D-3He tandem-mirror generator. Unlike a tokamak, it confines the central-cell plasma with an axial electrostatic potential established by dense, hot end plugs at 26.49 T. Ions are held by the ambipolar potential difference between the plug and the central cell; get that potential wrong and confinement collapses. The twin must therefore solve the potential profile phi(z) along the machine axis in real time."
+   ],
+   [
+    "h3",
+    "The quasineutral balance"
+   ],
+   [
+    "p",
+    "The potential is set by requiring quasineutrality and ambipolar (equal ion and electron) end-loss along the field line. Kronos solves this with a PINN whose residual enforces the balance:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ambipolar / quasineutral potential along the axis\n#   sum_s Z_s n_s(phi(z), z) = 0        (quasineutrality)\n#   Gamma_i(phi) = Gamma_e(phi)          (ambipolar end loss)\n# densities follow Boltzmann-like response to phi and mirror trapping:\n#   n_s(z) = n_s0 * exp(-Z_s e phi(z)/T_s) * (mirror-trapping factor)\n# PINN residual = quasineutrality mismatch + ambipolarity mismatch"
+    ]
+   ],
+   [
+    "p",
+    "Solving this natively gives the plug potential and the confining potential dip in one forward pass. The plug-density controller (an MPC agent) uses the PINN to predict how a change in end-plug fueling or heating will move the ambipolar potential, and hence central-cell confinement, over the shadow horizon."
+   ],
+   [
+    "h3",
+    "Coupling to DEC"
+   ],
+   [
+    "p",
+    "The potential solve is not isolated: the direct-energy-conversion train sets the collector potentials at the machine ends, and those boundary potentials feed back into the ambipolar balance. Kronos co-conditions the potential PINN on the Power Systems module's DEC state so the confinement and the energy-extraction picture stay consistent. This is the burner analogue of the breeder's free-boundary coupling between coil currents and plasma shape."
+   ]
+  ],
+  "related": [
+   [
+    "l3-burner-ambipolar-confinement",
+    "Ambipolar Confinement"
+   ],
+   [
+    "mpc-burner-plug-density-control",
+    "Plug-Density Control"
+   ],
+   [
+    "twin-power-systems-module",
+    "Power Systems Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-vs-fem-benchmark",
+  "title": "Benchmarking PINNs Against Finite-Element Solvers",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos validates every physics PINN against reference finite-element and finite-difference solvers before it is trusted in the twin.",
+  "body": [
+   [
+    "h2",
+    "Why benchmark at all"
+   ],
+   [
+    "p",
+    "A PINN is a surrogate for a PDE solution, and surrogates can be confidently wrong. Before any PINN enters KRONOS-CTRL, Kronos benchmarks it against established mesh solvers, finite-element Grad-Shafranov codes for equilibrium, eigenvalue MHD codes for stability, on a battery of cases spanning the operating space and, deliberately, its edges."
+   ],
+   [
+    "ul",
+    [
+     "Accuracy: flux-map L2 error and boundary-shape error vs FEM reference",
+     "Derived quantities: q-profile, delta, kappa, X-point position agreement",
+     "Stability: growth-rate and marginal-boundary agreement vs eigenvalue code",
+     "Extrapolation: behavior just outside the training envelope (must degrade gracefully)"
+    ]
+   ],
+   [
+    "h3",
+    "The trade the benchmark quantifies"
+   ],
+   [
+    "p",
+    "FEM is the accuracy reference but is too slow for the 50-100 ms shadow; the PINN is fast but approximate. The benchmark quantifies exactly how much accuracy is traded for speed and where. Kronos accepts a PINN only if its error is bounded below the tolerance the consuming controller needs, for shape control that is a boundary-position tolerance, for disruption avoidance a growth-rate tolerance."
+   ],
+   [
+    "h3",
+    "Guarding extrapolation"
+   ],
+   [
+    "p",
+    "The most important benchmark is out-of-distribution behavior. A PINN asked about an equilibrium outside its training envelope must not return a confident wrong answer. Kronos pairs each PINN with an in-distribution detector; queries that fall outside trigger a confidence drop and, if needed, a fallback to a slower on-demand FEM solve at L0 rather than trusting the network. The FEM reference thus remains available as an offline oracle even after the PINN is deployed."
+   ],
+   [
+    "p",
+    "This benchmark is re-run whenever the design changes (still frequent pre-FOAK) or whenever plant synchronization reveals model drift, keeping the twin's physics honest against first-principles solvers throughout the machine's life."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-collocation-sampling",
+    "Collocation Sampling"
+   ],
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ],
+   [
+    "surrogate-uncertainty-quantification",
+    "Uncertainty Quantification"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-quench-precursors",
+  "title": "Detecting Sub-Threshold Magnet-Quench Precursors",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos's anomaly ensemble catches the earliest signs of a REBCO magnet quench, below the threshold that would trip protection, so the twin can act before a trip is forced.",
+  "body": [
+   [
+    "h2",
+    "The quench problem"
+   ],
+   [
+    "p",
+    "A quench is a local loss of superconductivity in a REBCO magnet that, if unchecked, dumps stored magnetic energy destructively. The breeder runs at 16.84 T peak field and the burner plug at 26.49 T, so the magnets store large energy and a quench is the most severe protection event. The L1 autonomous hardware failsafe will dump the magnet on a hard threshold with zero AI dependency; that is the last line and it must never be weakened."
+   ],
+   [
+    "h3",
+    "Below the threshold"
+   ],
+   [
+    "p",
+    "The anomaly ensemble works in the region below that hard threshold, where a quench is still only a precursor: a slowly rising local temperature, a small resistive voltage developing across a pancake, a REBCO strain-gauge signature of a hot spot, or a co-moving pattern across neighboring gauges that no single-channel alarm would catch. Detecting this early gives the twin and operators time to ramp down gently rather than take a forced dump."
+   ],
+   [
+    "ul",
+    [
+     "Inputs: REBCO strain gauges, section voltages, cryo temperatures, current",
+     "Signatures: localized voltage rise, strain hot-spot, cooling-margin erosion",
+     "Lead time: seconds to tens of seconds before a hard threshold would trip",
+     "Action: advisory ramp-down request to MPC, never a substitute for the failsafe"
+    ]
+   ],
+   [
+    "p",
+    "The ensemble output is a precursor probability with a localization (which magnet section). It is advisory: it asks MPC to move toward a safer operating point and alerts operators, but the hardware failsafe remains the authority for an actual quench. The design principle is strict layering, AI buys lead time, hardware guarantees safety."
+   ],
+   [
+    "p",
+    "Because pre-FOAK there is no quench data from the real magnets, the ensemble is trained on high-fidelity quench simulations and REBCO test-coil data, then recalibrated once the machines operate. Its false-positive rate is tuned so advisory ramp-downs are rare enough to be actionable."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ],
+   [
+    "rebco-strain-anomaly",
+    "REBCO Strain Anomaly Detection"
+   ],
+   [
+    "anomaly-precursor-lead-time",
+    "Precursor Lead Time"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-detection-ensembles",
+  "title": "Anomaly-Detection Ensembles",
+  "cat": "l3-twin-modeling",
+  "lede": "No single detector is reliable enough for safety-relevant precursors, so Kronos combines reconstruction, density, and forecasting detectors into a calibrated ensemble.",
+  "body": [
+   [
+    "h2",
+    "Why an ensemble"
+   ],
+   [
+    "p",
+    "Sub-threshold precursors are rare, varied, and partly novel, exactly the regime where any single anomaly model has blind spots. Kronos runs an ensemble of complementary detectors so that a precursor invisible to one is likely visible to another, and combines their scores with a calibrated aggregator."
+   ],
+   [
+    "ul",
+    [
+     "Reconstruction detectors: autoencoders flag signals the model cannot reproduce",
+     "Density detectors: estimate how improbable the current feature vector is",
+     "Forecast-residual detectors: flag when observed evolution departs from the twin's prediction",
+     "One-class detectors: learn the boundary of normal operation, score distance outside it"
+    ]
+   ],
+   [
+    "h3",
+    "Combining scores"
+   ],
+   [
+    "p",
+    "Raw detector scores are on different scales, so each is calibrated to a probability, then combined. Kronos weights detectors by their validated reliability on the relevant failure class and requires agreement for high-confidence alarms, which suppresses the single-detector false positives that would erode operator trust."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# calibrated ensemble score\np_k   = calibrate_k(score_k(x))        # per-detector -> probability\nw_k   = validated_reliability[k]        # from V&V on that failure class\np_ens = sum_k w_k * p_k / sum_k w_k\nalarm = (p_ens > tau) and (n_agreeing >= m)   # require agreement"
+    ]
+   ],
+   [
+    "p",
+    "The ensemble does not only watch magnets. It watches disruption precursors for the breeder (locked-mode phase patterns on the Mirnov graph), plug-density excursions for the burner, divertor thermal anomalies, and fuel-cycle isotope-balance drift. Each failure class has its own tuned detector mix, but all report into the same calibrated framework so operators see one coherent risk picture."
+   ],
+   [
+    "h3",
+    "Relation to the twin"
+   ],
+   [
+    "p",
+    "The forecast-residual detector is the tightest coupling to KRONOS-CTRL: it compares the live signals against the twin's 50-100 ms shadow prediction, so an anomaly is precisely a place where reality diverges from validated physics. That is often the earliest and most physically meaningful precursor of all."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-quench-precursors",
+    "Quench Precursors"
+   ],
+   [
+    "anomaly-autoencoder-residual",
+    "Autoencoder Residuals"
+   ],
+   [
+    "shadow-divergence-detection",
+    "Shadow Divergence Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-strain-anomaly",
+  "title": "REBCO Strain-Gauge Anomaly Detection",
+  "cat": "l3-twin-modeling",
+  "lede": "High-field REBCO tape is strain-sensitive; Kronos monitors distributed strain gauges to catch mechanical precursors to conductor degradation and quench.",
+  "body": [
+   [
+    "h2",
+    "Strain as a leading indicator"
+   ],
+   [
+    "p",
+    "REBCO superconductor is mechanically brittle and its critical current degrades under excessive strain. In the breeder's 16.84 T magnets and the burner's 26.49 T plug, Lorentz forces and the cryogenic ICE-PISTON preload cycle put the conductor under large, structured stress. Distributed REBCO strain gauges, sampled sub-microsecond through cryo-rated feedthroughs, are therefore a leading indicator: a local strain excursion can precede both mechanical damage and the hot spot that seeds a quench."
+   ],
+   [
+    "h3",
+    "Spatial pattern, not single channel"
+   ],
+   [
+    "p",
+    "A single strain reading is ambiguous; the informative signal is the pattern across neighboring gauges on a magnet section. Kronos uses the sensor-topology GNN to model the mechanical coupling between gauges (they co-move under normal load) and flags the residual: strain that deviates from the coupled pattern indicates a local defect, delamination, or a conductor-motion event."
+   ],
+   [
+    "ul",
+    [
+     "Baseline: expected strain field vs field, current, and preload state",
+     "Coupled model: GNN over mechanically linked gauges predicts each from neighbors",
+     "Anomaly: gauge residual outside the coupled-pattern envelope",
+     "Cross-check: correlate strain residual with local voltage and temperature"
+    ]
+   ],
+   [
+    "p",
+    "The ICE-PISTON preload cycle gives a repeatable mechanical reference. Each cycle produces a known strain signature; drift in that signature across cycles indicates accumulating fatigue or a loosening preload, which the Thermomechanics module of the twin tracks as structural health rather than as an immediate alarm."
+   ],
+   [
+    "p",
+    "As with all anomaly outputs, strain-based precursors are advisory. They request a gentle ramp of field or current and feed the structural-health record; the hardware quench failsafe remains independent. Correlating a strain residual with a resistive-voltage rise raises the ensemble's confidence that a mechanical precursor is becoming an electrical one."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-quench-precursors",
+    "Quench Precursors"
+   ],
+   [
+    "twin-thermomechanics-module",
+    "Thermomechanics Module"
+   ],
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-autoencoder-residual",
+  "title": "Autoencoder Reconstruction Residuals",
+  "cat": "l3-twin-modeling",
+  "lede": "Autoencoders learn the manifold of normal operation and flag anything they cannot faithfully reconstruct, catching novel precursors without labeled failures.",
+  "body": [
+   [
+    "h2",
+    "Unsupervised by necessity"
+   ],
+   [
+    "p",
+    "Pre-FOAK there are few real failure examples, so Kronos cannot rely on supervised classifiers alone. Autoencoders sidestep this: they are trained only on normal operation to compress and reconstruct the feature vector. When the input lies on the learned manifold of normal behavior, reconstruction is accurate; when it does not, the reconstruction error rises. That error is the anomaly score."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# reconstruction-residual anomaly score\nz     = encoder(x)              # compress to latent\nx_hat = decoder(z)             # reconstruct\nres   = mahalanobis(x - x_hat, Sigma_normal)   # whitened residual\nscore = res                    # high => off-manifold => anomalous"
+    ]
+   ],
+   [
+    "p",
+    "Kronos whitens the residual by the covariance of normal reconstruction error so that noisy-but-normal channels do not dominate the score. Variational and denoising variants make the latent well-behaved and force the model to learn robust structure rather than memorize noise, which matters given the high-neutron-flux electrical environment."
+   ],
+   [
+    "h3",
+    "Localizing the anomaly"
+   ],
+   [
+    "p",
+    "Because the residual is per-channel, the autoencoder localizes: it says not only that something is off but which signals are least reconstructable, e.g. a cluster of REBCO strain and voltage channels on one magnet section, or the end-cell diagnostics of the burner plug. That localization feeds directly into the ensemble's aggregation and into operator displays."
+   ],
+   [
+    "h3",
+    "Guarding against normalization of failure"
+   ],
+   [
+    "p",
+    "An autoencoder trained on data that already contains slow degradation will learn to call degradation normal. Kronos guards this by training on curated, validated-healthy periods and by monitoring the autoencoder's own baseline residual over time; a rising healthy-state residual signals model drift and triggers retraining at L0 rather than silent desensitization."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ],
+   [
+    "anomaly-subthreshold-thresholds",
+    "Sub-Threshold Alarming"
+   ],
+   [
+    "twin-drift-monitoring",
+    "Twin Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-subthreshold-thresholds",
+  "title": "Sub-Threshold Alarming and False-Alarm Control",
+  "cat": "l3-twin-modeling",
+  "lede": "Detecting precursors below protection thresholds only helps if the alarm rate is low enough to act on; Kronos tunes thresholds against a cost of false vs missed alarms.",
+  "body": [
+   [
+    "h2",
+    "The operating-point trade"
+   ],
+   [
+    "p",
+    "A precursor detector is defined by its threshold on the ensemble score. Lower it and you catch more precursors earlier but raise false alarms that erode trust and cause needless ramp-downs; raise it and you miss precursors. Kronos sets the operating point explicitly on the detector's characteristic curve, weighting a missed precursor far more heavily than a false alarm, but not infinitely, because chronic false alarms are themselves a safety hazard through desensitization."
+   ],
+   [
+    "ul",
+    [
+     "Miss cost: high, a missed precursor forfeits the lead time the ensemble exists to buy",
+     "False-alarm cost: real, needless ramp-downs and operator distrust",
+     "Chosen point: high sensitivity for magnet-quench class; agreement required to fire",
+     "Hysteresis: alarm set and clear thresholds differ to prevent chatter"
+    ]
+   ],
+   [
+    "h3",
+    "Two-stage alarming"
+   ],
+   [
+    "p",
+    "Kronos separates a sensitive watch stage from an act stage. The watch stage flags a candidate precursor at a low threshold and raises attention (tightening the twin's monitoring, requesting corroborating diagnostics). Only if corroboration accumulates, multiple detectors agreeing, the forecast-residual diverging, a physically consistent localization, does the act stage request MPC to move to a safer point. This staged design gets early warning without early over-reaction."
+   ],
+   [
+    "p",
+    "Thresholds are per-failure-class and context-dependent: the acceptable false-alarm rate during a routine breeder flat-top differs from that during a commissioning ramp. The twin supplies context (operating phase, current, field) so thresholds adapt rather than being globally fixed."
+   ],
+   [
+    "p",
+    "None of this touches the hard protection threshold. Sub-threshold alarming lives entirely below the L1 hardware failsafe trip level; its whole purpose is to reduce how often that hard trip is ever reached, by acting earlier and more gently."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ],
+   [
+    "anomaly-precursor-lead-time",
+    "Precursor Lead Time"
+   ],
+   [
+    "mpc-anomaly-handoff",
+    "MPC-Anomaly Handoff"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-precursor-lead-time",
+  "title": "Quantifying Precursor Lead Time",
+  "cat": "l3-twin-modeling",
+  "lede": "The value of a precursor detector is the lead time it buys; Kronos measures lead-time distributions and designs actuation around the time available.",
+  "body": [
+   [
+    "h2",
+    "Lead time as the figure of merit"
+   ],
+   [
+    "p",
+    "A precursor is only useful if it fires early enough to act. Kronos characterizes each detector by its lead-time distribution: given a developing event, how long before the hard threshold does the detector cross its alarm level? This is measured on simulated and (post-FOAK) real events, per failure class."
+   ],
+   [
+    "ul",
+    [
+     "Magnet-quench precursors: seconds to tens of seconds of lead time",
+     "Locked-mode / disruption precursors (breeder): milliseconds to hundreds of ms",
+     "Plug-density collapse (burner): tens of ms as the ambipolar potential erodes",
+     "Divertor thermal excursions: hundreds of ms to seconds"
+    ]
+   ],
+   [
+    "h3",
+    "Matching action to time available"
+   ],
+   [
+    "p",
+    "Lead time dictates which response is feasible. Seconds allow a graceful, MPC-planned ramp-down that preserves the magnet and the pulse. Tens of milliseconds allow only a pre-computed safe maneuver, so Kronos precomputes disruption-avoidance and plug-recovery trajectories that MPC can trigger instantly rather than plan on the spot. Below the time even that needs, only the L1 hardware failsafe can act, and it does, independently."
+   ],
+   [
+    "p",
+    "This is why the layering is strict. Each layer owns a time regime: the microsecond hardware failsafe for the fastest events, precomputed L3 maneuvers for the millisecond regime, planned MPC ramp-downs for the second regime. The anomaly ensemble's job is to push detection as early as possible in each regime so the response can be as gentle as possible."
+   ],
+   [
+    "h3",
+    "Reporting honestly"
+   ],
+   [
+    "p",
+    "Kronos reports lead time with its uncertainty, and a precursor that historically fires with too little margin is treated as a protection input, not an avoidance input, feeding the failsafe logic rather than promising an avoidance the timing cannot support. Overstating lead time would be the most dangerous error, so it is validated conservatively."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-subthreshold-thresholds",
+    "Sub-Threshold Alarming"
+   ],
+   [
+    "anomaly-disruption-precursors",
+    "Disruption Precursors"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-disruption-precursors",
+  "title": "Disruption Precursors in the Breeder",
+  "cat": "l3-twin-modeling",
+  "lede": "For Hyperion, the anomaly ensemble specializes in the magnetic and kinetic signatures that precede a tokamak disruption, feeding disruption avoidance.",
+  "body": [
+   [
+    "h2",
+    "Why disruptions are the breeder's defining risk"
+   ],
+   [
+    "p",
+    "A disruption is a sudden loss of the tokamak plasma's confinement and current, dumping thermal and magnetic energy into the vessel. In a high-current spherical tokamak (9.86 MA) this is the event control most wants to avoid. Disruptions are usually preceded by identifiable precursors, and catching them early is the difference between a planned soft landing and an uncontrolled event."
+   ],
+   [
+    "ul",
+    [
+     "Locked modes: a rotating tearing mode slows and locks to the wall (Mirnov phase)",
+     "Density-limit approach: radiation and edge cooling signatures",
+     "Vertical-stability erosion: the elongated plasma drifts toward a VDE",
+     "MHD-limit approach: growth-rate margin from the stability PINN shrinking"
+    ]
+   ],
+   [
+    "h3",
+    "How the ensemble reads them"
+   ],
+   [
+    "p",
+    "The Mirnov/flux-loop subgraph GNN identifies mode number, amplitude and rotation; a slowing rotation with growing amplitude is the classic locked-mode precursor. The stability PINN supplies a continuous margin to the ideal-MHD and peeling-ballooning boundaries. The forecast-residual detector flags when the plasma stops following the twin's projection. Combined, these give a disruption probability with a dominant-mechanism label, which tells the avoidance controller what to do."
+   ],
+   [
+    "p",
+    "Avoidance is mechanism-specific: a locked mode may be addressed by shape and current adjustment, a density-limit approach by fueling reduction, a vertical instability by the vertical-position controller. These are pre-computed MPC maneuvers triggered on the ensemble's labeled precursor, because disruption lead times are short."
+   ],
+   [
+    "p",
+    "When avoidance is not achievable in the time available, the twin hands off to a mitigated shutdown; and beneath everything, the hardware protection path remains. The goal for the breeder is to spend its life avoiding disruptions early rather than mitigating them late, protecting the CrMoNbV vessel and the negative-triangularity operating regime."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-mirnov-flux-graph",
+    "Mirnov and Flux-Loop Graph"
+   ],
+   [
+    "l3-breeder-disruption-avoidance",
+    "Disruption Avoidance"
+   ],
+   [
+    "pinn-mhd-stability",
+    "PINN MHD Stability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-formulation",
+  "title": "Model-Predictive Control: The Optimization",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos's MPC agents plan actuation by solving a constrained optimization over the twin's predicted trajectory at every control cycle.",
+  "body": [
+   [
+    "h2",
+    "The receding-horizon problem"
+   ],
+   [
+    "p",
+    "Model-predictive control chooses actuation by looking ahead. At each cycle it uses the twin's predictive model to forecast how the plant will respond to a candidate sequence of actuator moves over a horizon N, scores that forecast against objectives and constraints, applies only the first move, then re-plans next cycle. The core optimization is:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# MPC optimal control problem, solved every control cycle\nminimize over u_0..u_{N-1}:\n    J = sum_{k=0}^{N-1} [ (x_k - x_ref)^T Q (x_k - x_ref)\n                          + u_k^T R u_k\n                          + du_k^T S du_k ]          # move suppression\n        + (x_N - x_ref)^T P (x_N - x_ref)             # terminal cost\nsubject to:\n    x_{k+1} = f_twin(x_k, u_k)         # twin dynamics (surrogate)\n    x_k in X_safe                        # state constraints (envelope)\n    u_k in U,  du_k in dU               # actuator limits and slew rates\n    x_N in X_terminal                    # terminal safe set"
+    ]
+   ],
+   [
+    "p",
+    "Q, R, S and P weight state error, actuator effort, move rate and terminal error. The dynamics f_twin come from KRONOS-CTRL's surrogates, so the forecast is physics-grounded but fast enough to solve inside the cycle. The state constraint set X_safe is the certified safe operating envelope, and it is what makes MPC the natural controller for a machine that must never leave that envelope."
+   ],
+   [
+    "h3",
+    "Why MPC over simple feedback"
+   ],
+   [
+    "p",
+    "MPC handles multi-input multi-output coupling and hard constraints natively. The breeder's shape depends on many coils at once; the burner's confinement couples plug fueling, heating and DEC potential. A PID loop cannot respect a stability-margin constraint the way MPC can encode X_safe directly. And because MPC plans over a horizon, it acts before a constraint is violated rather than reacting after."
+   ],
+   [
+    "p",
+    "MPC is advisory to L1: it produces actuation intents that L1 executes deterministically, and it operates in the millisecond regime above the microsecond hard-real-time path and the hardware failsafe."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ],
+   [
+    "mpc-receding-horizon",
+    "Receding Horizon"
+   ],
+   [
+    "mpc-constraint-handling",
+    "Constraint Handling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-safe-operating-envelope",
+  "title": "The Certified Safe Operating Envelope",
+  "cat": "l3-twin-modeling",
+  "lede": "MPC never optimizes freely; it optimizes inside a certified envelope of states and actuator moves proven safe, which is the constraint set X_safe.",
+  "body": [
+   [
+    "h2",
+    "What the envelope is"
+   ],
+   [
+    "p",
+    "The safe operating envelope is the region of state and actuator space in which the machine is known to operate safely. It is defined offline from physics limits and validated against simulation and (later) plant data: field and current limits, stability margins, thermal and strain limits, density limits, and the DEC operating range. MPC treats it as the hard constraint set X_safe; the optimizer may seek performance anywhere inside it but may never plan a trajectory that leaves it."
+   ],
+   [
+    "ul",
+    [
+     "Magnet limits: field, current, and REBCO strain within qualified bounds",
+     "Stability margins: distance to MHD / peeling-ballooning (breeder), mirror modes (burner)",
+     "Thermal limits: divertor and first-wall heat-flux and temperature bounds",
+     "Density limits: Greenwald-type edge (breeder), plug and central-cell density (burner)",
+     "Actuation: coil slew rates, heating-power ramps, fueling rates"
+    ]
+   ],
+   [
+    "h3",
+    "Envelope vs failsafe"
+   ],
+   [
+    "p",
+    "The envelope and the L1 hardware failsafe are distinct and complementary. The envelope is a soft, model-based boundary MPC stays well inside; the failsafe is a hard, hardware-enforced trip that fires if physical thresholds are crossed regardless of any model. MPC's job is to make failsafe activation rare by keeping the machine comfortably within the envelope; the failsafe's job is to guarantee safety if MPC or its model is ever wrong."
+   ],
+   [
+    "p",
+    "The envelope has margins. Kronos does not let MPC ride the exact edge of a constraint, because model error and imputation uncertainty are real. When observability degrades (many imputed channels, low twin confidence), the effective envelope shrinks automatically, so the controller becomes more conservative exactly when it knows less. This uncertainty-aware tightening is a core safety property of the L3 design."
+   ],
+   [
+    "p",
+    "The envelope is machine-specific and phase-specific: a commissioning ramp uses a tighter envelope than a validated flat-top, and the envelope expands only as operation is proven, a deliberately conservative posture consistent with the design/simulation status of both machines before FOAK."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-formulation",
+    "MPC Optimization"
+   ],
+   [
+    "mpc-constraint-handling",
+    "Constraint Handling"
+   ],
+   [
+    "twin-confidence-scoring",
+    "Confidence Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-breeder-shape-control",
+  "title": "MPC for Breeder Plasma-Shape Control",
+  "cat": "l3-twin-modeling",
+  "lede": "Holding the negative-triangularity ELM-free shape of Hyperion is an MPC problem over poloidal-field coil currents and the free-boundary equilibrium.",
+  "body": [
+   [
+    "h2",
+    "The control objective"
+   ],
+   [
+    "p",
+    "The breeder's performance and ELM-free character depend on maintaining the negative-triangularity delta -0.30 boundary, the elongation, the X-point and divertor strike points, all at 9.86 MA. Shape control is the MPC that drives the poloidal-field and central-solenoid coil currents to hold that target shape against disturbances (pressure evolution, current-profile changes, thermal drift of the vessel)."
+   ],
+   [
+    "h3",
+    "Model and actuation"
+   ],
+   [
+    "p",
+    "The prediction model is the free-boundary equilibrium PINN: given candidate coil currents it returns the resulting boundary, delta, kappa and strike points, differentiably, so MPC gets both the predicted shape and its sensitivity to each coil. The objective tracks the target shape while suppressing coil moves and respecting current and slew limits."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# shape-control MPC objective (per cycle)\nminimize over I_coils[0..N-1]:\n    sum_k ( ||shape_k - shape_ref||_W^2       # boundary, delta, X-point\n            + I_coils_k^T R I_coils_k          # coil effort\n            + dI_k^T S dI_k )                  # slew suppression\ns.t.  shape_k = pinn_freeboundary(I_coils_k, profiles_k)\n      I_coils_k in coil limits, dI_k in slew limits\n      margin_MHD(shape_k) >= margin_min        # stay ELM-free / stable"
+    ]
+   ],
+   [
+    "p",
+    "The MHD-margin constraint ties shape control to the stability PINN: MPC is not allowed to hold a pretty shape that sits on the peeling-ballooning boundary. It trades a small shape error for staying comfortably ELM-free when the two conflict, which is the whole point of choosing negative triangularity."
+   ],
+   [
+    "p",
+    "Vertical stability is handled on a faster inner loop (elongated plasmas are vertically unstable and need sub-millisecond feedback), which lives closer to L1; the shape MPC provides the slower current-distribution targets that inner loop tracks. This separation of timescales keeps the fast stabilization deterministic while MPC handles the multivariable shape optimization above it."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-free-boundary",
+    "Free-Boundary Reconstruction"
+   ],
+   [
+    "l3-breeder-elm-free-shape",
+    "ELM-Free Shape Control"
+   ],
+   [
+    "mpc-actuator-allocation",
+    "Actuator Allocation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-burner-plug-density-control",
+  "title": "MPC for Burner End-Plug Density",
+  "cat": "l3-twin-modeling",
+  "lede": "The tandem-mirror burner is confined by its end plugs; Kronos's MPC agent regulates plug density to hold the ambipolar potential that traps the central cell.",
+  "body": [
+   [
+    "h2",
+    "The control objective"
+   ],
+   [
+    "p",
+    "In the D-3He tandem-mirror burner, central-cell confinement is set by the ambipolar potential established by the dense end plugs at 26.49 T. Too little plug density and the confining potential dip weakens and the central cell leaks; too much and plug power and stability suffer. Plug-density control is the MPC that holds the plug density, and hence the potential profile, at the target for good central-cell confinement."
+   ],
+   [
+    "h3",
+    "Model and actuation"
+   ],
+   [
+    "p",
+    "The prediction model is the ambipolar-potential PINN: given plug fueling and heating it predicts the plug density and the resulting potential profile phi(z), and hence central-cell confinement, across the horizon. The actuators are end-plug fueling, plug heating (ECH/neutral-beam), and the DEC collector potentials that set the boundary condition on phi."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# plug-density / potential MPC (burner)\nminimize over u = (fuel_plug, P_heat, V_dec)[0..N-1]:\n    sum_k ( (n_plug_k - n_ref)^2 * q_n\n            + (phi_conf_k - phi_ref)^2 * q_phi   # confining potential dip\n            + u_k^T R u_k )\ns.t.  (n_plug_k, phi_k) = pinn_ambipolar(u_k, state_k)\n      n_plug_k, phi_k, u_k within burner safe envelope\n      mirror_stability_margin(state_k) >= margin_min"
+    ]
+   ],
+   [
+    "p",
+    "The control couples to direct energy conversion: the DEC collector potentials are both an actuator for the ambipolar boundary and the point where power is extracted, so plug-density control and Power-Systems control are solved with shared state rather than independently. Changing the DEC potential to extract more power shifts the confining potential, and MPC accounts for that coupling explicitly."
+   ],
+   [
+    "p",
+    "Because plug-density collapse can be fast (tens of milliseconds as the potential erodes), Kronos precomputes recovery maneuvers the controller can trigger on an anomaly-ensemble precursor, rather than planning recovery from scratch when confinement is already failing. Below that, the hardware protection layer still guards the magnets and power train."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-burner-ambipolar-potential",
+    "Ambipolar Potential PINN"
+   ],
+   [
+    "l3-burner-plug-density",
+    "Plug-Density Control"
+   ],
+   [
+    "twin-power-systems-module",
+    "Power Systems Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-constraint-handling",
+  "title": "Hard and Soft Constraints in MPC",
+  "cat": "l3-twin-modeling",
+  "lede": "How Kronos encodes physical limits as hard constraints and performance preferences as soft penalties, with slack variables that keep the optimizer feasible.",
+  "body": [
+   [
+    "h2",
+    "Two kinds of constraint"
+   ],
+   [
+    "p",
+    "MPC distinguishes constraints that must never be violated from those it merely prefers to respect. Actuator limits (a coil cannot exceed its current rating; a heating system cannot exceed its power) are hard; the optimizer physically cannot request more. Safety-envelope state constraints (stay below a strain limit, keep an MHD margin) are also treated as hard, but the future state is predicted by a model that can be wrong, so enforcing them naively can make the problem infeasible."
+   ],
+   [
+    "h3",
+    "Slack for feasibility"
+   ],
+   [
+    "p",
+    "Kronos softens the state constraints with slack variables that are heavily penalized. The optimizer strongly avoids the slack, so under normal conditions the constraint holds exactly; but if a disturbance pushes the predicted trajectory against a limit, the problem stays feasible and MPC returns the least-violating plan rather than failing to return anything, which for a real-time controller would be the worst outcome."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# soft state constraints via penalized slack\nminimize J(x,u) + sum_k rho * ||s_k||^2 + sum_k gamma * ||s_k||_1\ns.t.  x_k in X_safe  +/-  s_k       # slack relaxes state bound\n      s_k >= 0\n      u_k in U (hard),  du_k in dU (hard)   # actuator limits never slacked"
+    ]
+   ],
+   [
+    "p",
+    "Actuator constraints are never slacked, they are physical. The L1-negotiated command boundary guarantees that whatever MPC requests is clamped to what the hardware can actually do, so even a bug in the optimizer cannot command an out-of-range actuator move."
+   ],
+   [
+    "h3",
+    "Priority ordering"
+   ],
+   [
+    "p",
+    "When multiple soft constraints tension, Kronos orders them by safety relevance through the penalty weights: a stability-margin or strain constraint carries a far larger penalty than a shape-tracking preference, so the optimizer sacrifices performance to protect the machine. This ordering is part of the certified envelope definition, not tuned ad hoc, so the controller's priorities under stress are known in advance."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-formulation",
+    "MPC Optimization"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ],
+   [
+    "mpc-terminal-set-stability",
+    "Terminal Set and Stability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-receding-horizon",
+  "title": "Receding Horizon and Real-Time Feasibility",
+  "cat": "l3-twin-modeling",
+  "lede": "MPC re-solves every cycle; Kronos chooses horizon length and solver so the plan is both far-sighted enough and fast enough for the control cadence.",
+  "body": [
+   [
+    "h2",
+    "Choosing the horizon"
+   ],
+   [
+    "p",
+    "The prediction horizon N must be long enough to see a disturbance coming and act before a constraint binds, but every extra step costs solve time. Kronos sizes the horizon to the dominant dynamics of each control problem: shape control needs a horizon covering the coil and current-profile response; plug-density control needs to cover the ambipolar-potential response time. The horizon is expressed in twin steps, aligned to the 50-100 ms shadow so the controller sees exactly as far as the twin can faithfully predict."
+   ],
+   [
+    "h3",
+    "Warm starting and real-time iteration"
+   ],
+   [
+    "p",
+    "Because the problem changes only slightly cycle to cycle, Kronos warm-starts each solve from the previous solution shifted by one step. Combined with a real-time-iteration scheme, taking one Newton-type step per cycle rather than solving to full convergence, this keeps the per-cycle cost bounded and predictable, which is what a real-time controller requires."
+   ],
+   [
+    "ul",
+    [
+     "Horizon aligned to the 50-100 ms predictive shadow",
+     "Warm start: shift previous solution, re-solve incrementally",
+     "Real-time iteration: bounded per-cycle compute, deterministic latency",
+     "Surrogate dynamics: PINN/neural-operator f_twin keeps each rollout cheap"
+    ]
+   ],
+   [
+    "p",
+    "Feasibility guarantees come from the terminal set: if each cycle can steer the horizon into a known safe terminal region, the receding-horizon scheme remains recursively feasible, it will always have a safe plan next cycle. This is the theoretical backbone that lets Kronos trust MPC to stay in the envelope indefinitely, not just for one horizon."
+   ],
+   [
+    "p",
+    "If a solve ever fails to complete in time, MPC does not stall: it applies the remaining valid moves from the previous plan (a feasible fallback the terminal set guarantees exists) while flagging the miss. Persistent misses trigger a controlled ramp toward a safe state. The deterministic behavior under compute pressure is designed, not incidental."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-formulation",
+    "MPC Optimization"
+   ],
+   [
+    "mpc-terminal-set-stability",
+    "Terminal Set and Stability"
+   ],
+   [
+    "surrogate-acceleration",
+    "Surrogate Acceleration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-actuator-allocation",
+  "title": "Actuator Allocation Across Coupled Systems",
+  "cat": "l3-twin-modeling",
+  "lede": "Both machines have more actuators than control objectives; Kronos's MPC allocates effort across coils, heating, fueling and DEC to meet goals with margin.",
+  "body": [
+   [
+    "h2",
+    "Over-actuation as an asset"
+   ],
+   [
+    "p",
+    "The breeder has many poloidal-field and solenoid coils plus heating and fueling; the burner has plug fueling, multiple heating sources and DEC potentials. There are more actuators than independent control objectives, which is an asset: the same shape or confinement target can be met by many actuator combinations, and MPC picks the combination that also respects secondary goals, staying off actuator limits, minimizing strain, keeping reserve for disturbance rejection."
+   ],
+   [
+    "h3",
+    "Allocation inside the optimization"
+   ],
+   [
+    "p",
+    "Kronos does not use a separate allocation stage; allocation falls out of the MPC objective. The actuator-effort term u^T R u with a per-actuator weight matrix R distributes effort, and constraints keep each actuator within limits with headroom. Weighting a nearly saturated coil more heavily pushes effort to coils with reserve, preserving the ability to respond to the next disturbance."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-actuator effort weighting drives allocation\nR = diag(r_i)                      # larger r_i -> use actuator i less\nr_i = base_i * (1 + saturation_penalty(u_i))   # back off near limits\n# result: objectives met while keeping reserve on constrained actuators"
+    ]
+   ],
+   [
+    "p",
+    "Allocation is coupled across physics in the burner. The DEC collector potential serves double duty, energy extraction and ambipolar-boundary setting, so its use is allocated jointly by the plug-density MPC and the Power-Systems control. Kronos solves these with a shared state so the allocation is consistent rather than two controllers fighting over one actuator."
+   ],
+   [
+    "p",
+    "When an actuator degrades or is taken offline, the over-actuation provides graceful reconfiguration: MPC simply re-solves with that actuator constrained out, and the remaining actuators pick up the objective if the envelope still permits. If they cannot, the envelope shrinks and the controller moves to a safe reduced-performance operating point rather than pretending the objective is still reachable."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-formulation",
+    "MPC Optimization"
+   ],
+   [
+    "mpc-breeder-shape-control",
+    "Breeder Shape Control"
+   ],
+   [
+    "mpc-dec-voltage-control",
+    "DEC Voltage Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-terminal-set-stability",
+  "title": "Terminal Sets and Recursive Feasibility",
+  "cat": "l3-twin-modeling",
+  "lede": "The theory that lets Kronos trust MPC over a finite horizon to keep the machine safe indefinitely: a terminal safe set and a terminal cost.",
+  "body": [
+   [
+    "h2",
+    "The finite-horizon gap"
+   ],
+   [
+    "p",
+    "MPC plans only N steps ahead, yet the machine runs indefinitely. Without care, a plan that looks fine over the horizon could steer the machine into a corner from which no safe continuation exists. The standard remedy, adopted by Kronos, is a terminal constraint: require the horizon to end in a terminal safe set X_terminal from which a known safe policy can keep the machine safe forever."
+   ],
+   [
+    "h3",
+    "Why it guarantees safety"
+   ],
+   [
+    "p",
+    "If every MPC plan ends inside X_terminal, and inside X_terminal a fallback controller is known to keep the state safe, then the receding-horizon scheme is recursively feasible: a safe plan existing this cycle guarantees a safe plan exists next cycle (shift the plan and append the fallback move). The terminal cost P approximates the cost-to-go of that fallback policy, so optimizing over the finite horizon behaves like optimizing over the infinite one. This is what converts a horizon-limited optimizer into a controller with an indefinite safety guarantee."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# terminal ingredients\n#   X_terminal : invariant safe set (fallback policy keeps state inside)\n#   P          : terminal cost ~ cost-to-go of fallback policy\n# recursive feasibility: feasible now => feasible next cycle\n#   plan_next = shift(plan_now) + fallback_move   # always feasible"
+    ]
+   ],
+   [
+    "p",
+    "For the breeder, X_terminal corresponds to a stable, well inside the envelope, low-stress equilibrium the machine can be held in; for the burner, a plug-density and potential state with comfortable confinement and mirror-stability margins. The fallback policy is a simple, certified controller, not another learned model, so the safety guarantee does not rest on a neural network behaving well."
+   ],
+   [
+    "p",
+    "This layering, learned surrogates and optimization for performance, a certified fallback and terminal set for the safety floor, is the same philosophy as the L1 hardware failsafe: performance may lean on AI, but the safety guarantee never depends on it alone."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-receding-horizon",
+    "Receding Horizon"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ],
+   [
+    "mpc-surrogate-in-loop",
+    "Surrogates in the MPC Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-surrogate-in-loop",
+  "title": "Surrogate Models Inside the MPC Loop",
+  "cat": "l3-twin-modeling",
+  "lede": "MPC needs to roll the plant model forward many times per cycle, so Kronos uses fast differentiable surrogates as the prediction model.",
+  "body": [
+   [
+    "h2",
+    "The rollout cost problem"
+   ],
+   [
+    "p",
+    "Every MPC solve rolls the dynamics forward over the horizon, many times, as the optimizer searches. If each rollout required a mesh-based physics solve, MPC could not run in real time. Kronos uses the L3 surrogates, the equilibrium and stability PINNs for the breeder, the ambipolar-potential PINN for the burner, as the prediction model f_twin, so each rollout is a sequence of fast forward passes."
+   ],
+   [
+    "h3",
+    "Differentiability buys gradients"
+   ],
+   [
+    "p",
+    "Because the surrogates are neural networks, they are differentiable end to end. MPC gets gradients of the predicted trajectory with respect to the actuator sequence for free via automatic differentiation, turning the optimization into a smooth gradient-based problem rather than a derivative-free search. This is a major reason Kronos chose PINN surrogates over black-box lookup: the sensitivity information is intrinsic."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# gradient-based MPC step using a differentiable surrogate\nx = rollout(f_surrogate, x0, u_seq)     # forward passes over horizon\nJ = cost(x, u_seq)\ngrad = autodiff(J, u_seq)                # d cost / d actuators\nu_seq = project_to_constraints(u_seq - step * grad)   # one RTI step"
+    ]
+   ],
+   [
+    "p",
+    "The surrogate must be accurate over the horizon, not just at one point, so Kronos trains and validates the surrogates specifically on rollout accuracy, penalizing accumulated multi-step error, not only single-step error. A surrogate that is pointwise accurate but drifts over a rollout would give MPC a confidently wrong forecast."
+   ],
+   [
+    "h3",
+    "Uncertainty into the loop"
+   ],
+   [
+    "p",
+    "The surrogate reports predictive uncertainty, and MPC uses it: higher uncertainty tightens the effective constraints (via the envelope shrinking) so the controller is more cautious where the model is less trustworthy. This closes the loop between surrogate fidelity and control conservatism, ensuring MPC never bets more on the model than the model's validated accuracy justifies."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-formulation",
+    "MPC Optimization"
+   ],
+   [
+    "surrogate-acceleration",
+    "Surrogate Acceleration"
+   ],
+   [
+    "surrogate-uncertainty-quantification",
+    "Uncertainty Quantification"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-dec-voltage-control",
+  "title": "MPC for DEC Voltage and Grid Synchronization",
+  "cat": "l3-twin-modeling",
+  "lede": "The burner's direct energy conversion produces electrical output that must track collector potentials and synchronize to the grid; Kronos governs this with MPC.",
+  "body": [
+   [
+    "h2",
+    "Direct energy conversion as a control target"
+   ],
+   [
+    "p",
+    "The tandem-mirror burner extracts power directly from the streaming end-loss plasma via a multi-modal DEC train, traveling-wave direct conversion (TWDEC), ultra-high-field MHD conversion, and thermionics. Each stage has electrode/collector potentials that set both its extraction efficiency and, for the end collectors, the ambipolar boundary condition on plasma confinement. Controlling these potentials is a Power-Systems MPC problem."
+   ],
+   [
+    "h3",
+    "Two objectives, one actuator set"
+   ],
+   [
+    "p",
+    "The DEC potentials must be set to convert the end-loss energy efficiently while presenting the right potential boundary for confinement, and the resulting electrical output must synchronize to grid phase and frequency for MetroVolt data-center supply or Aegis fixed-installation supply. MPC balances extraction against confinement against grid-sync, respecting the coupling that raising a collector potential to extract more power also perturbs the ambipolar potential the plug-density controller manages."
+   ],
+   [
+    "ul",
+    [
+     "Actuators: TWDEC/MHD/thermionic collector potentials, power-electronics setpoints",
+     "Objectives: conversion efficiency, ambipolar boundary, grid phase/frequency lock",
+     "Constraints: electrode limits, plasma-facing thermal limits, grid interconnect spec",
+     "Coupling: shared state with plug-density MPC to avoid actuator conflict"
+    ]
+   ],
+   [
+    "p",
+    "Grid synchronization is a dispatch-and-timing function: MPC tracks the grid reference so the burner's output stays phase- and frequency-locked and ramps within interconnect limits. This is described purely operationally, when and how much power is delivered and how it is kept in sync, with no reference to any commercial or market signal, which belongs nowhere in the control stack."
+   ],
+   [
+    "p",
+    "As with all L3 controllers, DEC-voltage MPC operates inside a certified envelope and above the hardware protection layer; electrode faults and over-voltage conditions are guarded by deterministic interlocks independent of the optimizer."
+   ]
+  ],
+  "related": [
+   [
+    "twin-power-systems-module",
+    "Power Systems Module"
+   ],
+   [
+    "mpc-burner-plug-density-control",
+    "Plug-Density Control"
+   ],
+   [
+    "l3-burner-dec-control",
+    "DEC Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-power-systems-module",
+  "title": "KRONOS-CTRL: Power Systems Module",
+  "cat": "l3-twin-modeling",
+  "lede": "The Power Systems module tracks direct-energy-conversion voltages, extraction efficiency, and grid synchronization for the burner.",
+  "body": [
+   [
+    "h2",
+    "Scope"
+   ],
+   [
+    "p",
+    "The Power Systems module is the part of KRONOS-CTRL that models the electrical side of the burner: the multi-modal DEC train (TWDEC, ultra-high-field MHD conversion, thermionics), the power electronics, and the interface to the grid. It maintains a live estimate of collector potentials, per-stage extraction efficiency, and delivered electrical power, and projects them over the shadow horizon."
+   ],
+   [
+    "h3",
+    "State and coupling"
+   ],
+   [
+    "p",
+    "Its state includes the DEC electrode potentials, the streaming end-loss power reaching each conversion stage, and the grid phase/frequency the output must track. It is tightly coupled to the MHD/confinement side: the end-loss power it converts is set by the ambipolar potential and plug density, and its collector potentials feed back as a boundary condition on that same potential. KRONOS-CTRL resolves this coupling each twin step so the electrical and plasma pictures stay consistent."
+   ],
+   [
+    "ul",
+    [
+     "Tracks: DEC collector potentials, per-stage efficiency, delivered power",
+     "Consumes: end-loss power profile from the MHD/confinement modules",
+     "Provides: potential boundary for the ambipolar solve; grid-sync state",
+     "Serves: DEC-voltage MPC and grid-synchronization dispatch"
+    ]
+   ],
+   [
+    "p",
+    "For grid synchronization the module models the machine as a controllable source that must phase- and frequency-lock to the interconnect and ramp within limits, whether feeding a MetroVolt data-center load or an Aegis fixed installation. It reports dispatch-relevant quantities, available power, ramp rate, sync status, in operational terms only."
+   ],
+   [
+    "p",
+    "The breeder has an analogous but simpler electrical picture (it is optimized for tritium, helium-3 and 14 MeV neutron production rather than net electrical output), so its Power Systems module tracks auxiliary and magnet power draw and plant balance rather than a DEC train. Both share the same module framework and grid-sync machinery."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-dec-voltage-control",
+    "DEC Voltage Control"
+   ],
+   [
+    "twin-neutronics-module",
+    "Neutronics Module"
+   ],
+   [
+    "l3-burner-dec-control",
+    "DEC Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-neutronics-module",
+  "title": "KRONOS-CTRL: Neutronics Module",
+  "cat": "l3-twin-modeling",
+  "lede": "The Neutronics module tracks neutron flux and spectrum, tritium breeding balance, and the residual D-D output for both machines.",
+  "body": [
+   [
+    "h2",
+    "Scope"
+   ],
+   [
+    "p",
+    "The Neutronics module models where neutrons are born, how they transport, and what they do to materials and the fuel cycle. For the breeder it integrates the 14 MeV D-T neutron source over the equilibrium the MHD module provides and tracks the tritium breeding ratio; for the burner it tracks the low but nonzero neutron output, neutron fraction 5.44%, and the residual D-D reactions that make the D-3He burn low-neutron rather than aneutronic."
+   ],
+   [
+    "h3",
+    "Breeding balance for the breeder"
+   ],
+   [
+    "p",
+    "The tritium breeding ratio (TBR) is treated as a design lever across 1.1 / 1.5 / 1.8, so the module tracks the running tritium balance, production in the blanket versus consumption in the plasma, as a live quantity feeding the fuel-cycle controller. The breeder is designed to net-produce tritium (roughly 4 kg/yr class) and helium-3 (roughly 1.97 kg/yr), so the Neutronics module's breeding accounting is central to the machine's purpose, not incidental."
+   ],
+   [
+    "ul",
+    [
+     "Source: 14 MeV neutron birth profile from the current equilibrium (breeder)",
+     "Transport: flux and spectrum to blanket, vessel, magnets",
+     "Breeding: live TBR estimate against the 1.1/1.5/1.8 lever",
+     "Residual D-D: burner neutron fraction 5.44% and its material/activation load"
+    ]
+   ],
+   [
+    "p",
+    "Neutron output also drives the Thermomechanics module (volumetric heating and displacement damage) and long-term activation of the CrMoNbV vessel. The Neutronics module supplies those source terms each twin step and accumulates a lifetime fluence record used for structural-health and component-life tracking."
+   ],
+   [
+    "p",
+    "Because the machines are simulation studies pre-FOAK, the neutronics is grounded in offline Monte Carlo transport at L0, distilled into a fast surrogate for the runtime module and periodically re-validated against full Monte Carlo. Once FOAK operates ~2030, real neutron-flux diagnostics recalibrate the surrogate against measured flux."
+   ]
+  ],
+  "related": [
+   [
+    "twin-thermomechanics-module",
+    "Thermomechanics Module"
+   ],
+   [
+    "digital-twin-fuel-cycle-isotope-balance",
+    "Fuel-Cycle Isotope Balance"
+   ],
+   [
+    "surrogate-neural-operators",
+    "Neural Operators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-thermomechanics-module",
+  "title": "KRONOS-CTRL: Thermomechanics Module",
+  "cat": "l3-twin-modeling",
+  "lede": "The Thermomechanics module maps thermal loads and strain across the vessel, magnets, and divertor, turning physics into structural-health state.",
+  "body": [
+   [
+    "h2",
+    "Scope"
+   ],
+   [
+    "p",
+    "The Thermomechanics module models heat and mechanical stress in the machine structure: volumetric neutron heating in the blanket and vessel, surface heat flux on the divertor and first wall, Lorentz and preload stresses in the REBCO magnets, and the resulting temperature and strain fields. It converts the physics from the other modules into the mechanical state that governs component life and near-term thermal margins."
+   ],
+   [
+    "h3",
+    "Inputs and outputs"
+   ],
+   [
+    "ul",
+    [
+     "Consumes: neutron heating (Neutronics), plasma heat flux (MHD/equilibrium), magnet loads (field/current)",
+     "Models: CrMoNbV vessel, carbon-fiber cocoon, divertor/expander, magnet structure",
+     "Reads: REBCO strain gauges and thermal sensors via L2",
+     "Provides: strain/temperature fields, structural-health state, thermal-margin constraints for MPC"
+    ]
+   ],
+   [
+    "p",
+    "The divertor and expander are the highest-heat-flux surfaces and set a hard thermal constraint that shape-control MPC (breeder) and end-loss handling (burner) must respect; the module supplies the live heat-flux estimate and margin. The carbon-fiber cocoon and CrMoNbV vessel are tracked for thermal expansion, which feeds back geometry changes to the equilibrium and free-boundary solves."
+   ],
+   [
+    "h3",
+    "Structural health monitoring"
+   ],
+   [
+    "p",
+    "The module maintains a structural-health record by fusing the strain-gauge network (through the sensor-topology GNN), the accumulated neutron fluence from Neutronics, and the ICE-PISTON preload-cycle signatures. Deviation of measured strain from the modeled coupled pattern is the input to the strain-anomaly detector; drift in the preload signature across cycles indicates fatigue. This turns the twin into a continuous structural-health monitor, not just a plasma model."
+   ],
+   [
+    "p",
+    "A physics-informed thermomechanical surrogate (conduction plus thermoelastic response) keeps the module fast enough for the shadow, validated against finite-element thermomechanical reference models the same way the equilibrium PINN is validated against FEM."
+   ]
+  ],
+  "related": [
+   [
+    "twin-neutronics-module",
+    "Neutronics Module"
+   ],
+   [
+    "rebco-strain-anomaly",
+    "REBCO Strain Anomaly Detection"
+   ],
+   [
+    "twin-mhd-stability-module",
+    "MHD Stability Module"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-mhd-stability-module",
+  "title": "KRONOS-CTRL: MHD Stability Module",
+  "cat": "l3-twin-modeling",
+  "lede": "The MHD Stability module holds the plasma shape, equilibrium, and stability margins that anchor the whole twin.",
+  "body": [
+   [
+    "h2",
+    "Scope"
+   ],
+   [
+    "p",
+    "The MHD Stability module is the plasma heart of KRONOS-CTRL. It maintains the current equilibrium (via the Grad-Shafranov PINN and reconstruction), the plasma shape (boundary, triangularity, X-point), and the stability margins (via the stability PINN). For the breeder this is the negative-triangularity equilibrium and its peeling-ballooning and kink margins; for the burner it is the mirror equilibrium, the plug configuration, and the interchange/mirror-mode margins."
+   ],
+   [
+    "h3",
+    "Why it anchors the others"
+   ],
+   [
+    "p",
+    "The equilibrium fixes the neutron source profile (Neutronics), the plasma heat-flux footprint (Thermomechanics), and, for the burner, the confinement that sets end-loss power (Power Systems). So the MHD module is solved first each twin step and its output propagates to the others; their feedback (thermal expansion of the vessel, changes in the confining potential) is folded in on the next Picard pass of the coupled solve."
+   ],
+   [
+    "ul",
+    [
+     "Holds: psi(R,Z), q-profile, boundary shape, delta, X-point / plug configuration",
+     "Computes: MHD growth-rate margins, peeling-ballooning (breeder), mirror modes (burner)",
+     "Feeds: source profile to Neutronics, heat flux to Thermomechanics, confinement to Power Systems",
+     "Serves: shape-control and plug-density MPC, disruption/precursor detection"
+    ]
+   ],
+   [
+    "p",
+    "The module's continuous stability margin is the single most safety-relevant number L3 produces for plasma control: shape MPC constrains against it, the anomaly ensemble watches its erosion, and the disruption-avoidance logic triggers on it. Reporting that margin accurately, and lowering confidence when the equilibrium reconstruction residual rises, is the module's core responsibility."
+   ],
+   [
+    "p",
+    "Because it drives everything else, the MHD module is the most heavily validated part of the twin, benchmarked against finite-element equilibrium and eigenvalue MHD codes across the operating space before deployment and re-validated on drift."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "pinn-mhd-stability",
+    "PINN MHD Stability"
+   ],
+   [
+    "twin-module-coupling",
+    "Module Coupling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-module-coupling",
+  "title": "Coupling the Four Twin Modules",
+  "cat": "l3-twin-modeling",
+  "lede": "The Power, Neutronics, Thermomechanics, and MHD modules are solved as a weakly coupled multi-physics system each twin step.",
+  "body": [
+   [
+    "h2",
+    "A coupled multi-physics state"
+   ],
+   [
+    "p",
+    "The four KRONOS-CTRL modules are not independent solvers reporting side by side; they share boundary conditions and must agree. The equilibrium sets the neutron source; the neutrons deposit heat; the heat strains and expands structure; the geometry change shifts the equilibrium; for the burner the DEC potentials close a further loop through confinement. KRONOS-CTRL solves this as a weakly coupled system every twin step."
+   ],
+   [
+    "h3",
+    "Fixed-point iteration"
+   ],
+   [
+    "p",
+    "Kronos uses a Picard (fixed-point) scheme: solve MHD, pass the source to Neutronics, pass heating to Thermomechanics, pass geometry and (burner) potential back to MHD, and repeat until the coupled state stops changing. Warm-starting from the previous twin step means the state is already near the fixed point, so one or two passes converge, which is what makes a full multi-physics update fit inside the 50-100 ms shadow budget."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# one coupled twin step (weak coupling, Picard)\nstate = prev_state                     # warm start\nfor it in range(max_picard):\n    eq   = mhd.solve(state)             # equilibrium + stability\n    src  = neutronics.solve(eq)         # source, TBR, flux\n    tm   = thermo.solve(src, eq)        # strain, temperature, geometry\n    pw   = power.solve(eq, tm)          # DEC / grid (burner)\n    state = assemble(eq, src, tm, pw)\n    if converged(state): break"
+    ]
+   ],
+   [
+    "p",
+    "Each module inside the loop is a fast surrogate, so the whole iteration is cheap. The coupling residual, how much the state changed on the last pass, is itself a diagnostic: a coupling that fails to converge in the allotted passes signals either a fast transient the twin cannot resolve at this cadence or a modeling problem, and the twin lowers its confidence accordingly."
+   ],
+   [
+    "p",
+    "This coupled state is what makes the twin more than a collection of models: MPC and the anomaly ensemble see one consistent machine, so a decision made for plasma shape already accounts for its thermal and neutronic consequences."
+   ]
+  ],
+  "related": [
+   [
+    "kronos-ctrl-overview",
+    "KRONOS-CTRL Overview"
+   ],
+   [
+    "twin-state-vector",
+    "The Twin State Vector"
+   ],
+   [
+    "predictive-shadow-lookahead",
+    "The Predictive Shadow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-state-vector",
+  "title": "The Twin State Vector and Interfaces",
+  "cat": "l3-twin-modeling",
+  "lede": "What KRONOS-CTRL actually holds and publishes: a defined state vector with lineage that L1, MPC, and the anomaly ensemble consume.",
+  "body": [
+   [
+    "h2",
+    "A defined state, not a black box"
+   ],
+   [
+    "p",
+    "KRONOS-CTRL maintains an explicit, versioned state vector rather than an opaque model. It comprises the plasma equilibrium and stability margins, the neutron flux and breeding balance, the thermal and strain fields, and the electrical/DEC and grid-sync state, plus per-quantity uncertainty and a lineage tag pointing back to the L2 features and model versions that produced it."
+   ],
+   [
+    "ul",
+    [
+     "Plasma: psi map, q-profile, shape, delta, X-point, stability margins",
+     "Neutronics: flux/spectrum, TBR, residual D-D, fluence",
+     "Thermomechanics: temperature and strain fields, thermal margins, health indices",
+     "Power: DEC potentials, efficiency, delivered power, grid-sync status",
+     "Meta: per-quantity uncertainty, model versions, L2 feature lineage, timestamp"
+    ]
+   ],
+   [
+    "h3",
+    "Interfaces"
+   ],
+   [
+    "p",
+    "The state vector is the contract between L3 and its consumers. L1 receives actuation intents and envelope constraints derived from it; MPC reads the current state and its forward projection as f_twin; the anomaly ensemble reads it to compute forecast residuals; operators read a curated view. Because it carries lineage, any decision can be traced to the features and model versions behind it, which is required for validation and post-event analysis."
+   ],
+   [
+    "p",
+    "The state is published on a fixed cadence with both a now estimate and the shadow projection, so consumers always know current state and near-future state together. Uncertainty travels with every quantity, so a downstream controller can see not just the value but how much to trust it and tighten its margins when trust is low."
+   ],
+   [
+    "p",
+    "Strict metadata governance from L2 carries through here: the twin state inherits the same lineage discipline, so the whole chain from analog port to control decision is auditable. This is what lets Kronos treat the twin as evidence, not just as an aid."
+   ]
+  ],
+  "related": [
+   [
+    "twin-module-coupling",
+    "Module Coupling"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "twin-confidence-scoring",
+    "Confidence Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "predictive-shadow-lookahead",
+  "title": "The 50-100 ms Predictive Shadow",
+  "cat": "l3-twin-modeling",
+  "lede": "KRONOS-CTRL runs ahead of the real plant, holding a 50-100 ms forecast so controllers act on where the machine is going, not only where it is.",
+  "body": [
+   [
+    "h2",
+    "Running ahead of reality"
+   ],
+   [
+    "p",
+    "The predictive shadow is KRONOS-CTRL advancing its coupled state faster than real time to hold a continuous 50-100 ms forecast of the machine. At any wall-clock instant the twin publishes both the current best estimate and a projection of the state 50-100 ms into the future under the current actuation plan. Controllers and the anomaly ensemble consume the projection, so they act on the developing situation rather than the already-past present."
+   ],
+   [
+    "h3",
+    "Why this horizon"
+   ],
+   [
+    "p",
+    "The 50-100 ms window is chosen to match the dynamics L3 governs: it is long enough to see a growing MHD mode, an eroding plug potential, or a developing thermal excursion in time to plan a response, and short enough that the twin's surrogates stay accurate over the rollout. The fastest events, sub-millisecond vertical instability, microsecond quench, are not the shadow's job; they belong to the L1 fast loops and the hardware failsafe. The shadow owns the millisecond-to-hundred-millisecond regime between them."
+   ],
+   [
+    "ul",
+    [
+     "Horizon: 50-100 ms of validated forward projection",
+     "Purpose: give MPC and anomaly detection lead time to act",
+     "Cadence: refreshed every twin step against fresh telemetry",
+     "Boundary: does not encroach on L1 microsecond determinism"
+    ]
+   ],
+   [
+    "p",
+    "The shadow is only as good as its synchronization to the real plant: each step it is corrected toward the latest measurements so the forecast does not drift away from reality. The divergence between shadow and plant is itself monitored, a growing divergence is both a model-drift signal and an anomaly signal, since it means the machine is doing something the validated physics did not predict."
+   ],
+   [
+    "p",
+    "The MPC horizon is aligned to the shadow so the controller never plans further than the twin can faithfully predict; extending control ambition beyond the validated forecast would be exactly the kind of overclaim the L3 design forbids."
+   ]
+  ],
+  "related": [
+   [
+    "kronos-ctrl-overview",
+    "KRONOS-CTRL Overview"
+   ],
+   [
+    "shadow-realtime-sync",
+    "Real-Plant Synchronization"
+   ],
+   [
+    "shadow-divergence-detection",
+    "Shadow Divergence Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shadow-realtime-sync",
+  "title": "Synchronizing the Shadow to the Real Plant",
+  "cat": "l3-twin-modeling",
+  "lede": "A forecast that drifts from reality is worse than none; Kronos continuously corrects the twin toward live telemetry so the shadow stays anchored.",
+  "body": [
+   [
+    "h2",
+    "Prediction plus correction"
+   ],
+   [
+    "p",
+    "The predictive shadow is a predict-correct cycle. Each step, the twin predicts the next state from its physics, then corrects that prediction toward the latest L2-validated measurements. This is classical state estimation applied to a multi-physics twin: the physics provides the forward model, the diagnostics provide the corrections, and the estimator blends them by their relative trust."
+   ],
+   [
+    "h3",
+    "Handling latency and rate"
+   ],
+   [
+    "p",
+    "Diagnostics arrive at different rates and with different latencies, magnetics fast, Thomson scattering slower, neutron counting integrated over a window. The synchronizer time-aligns them using L2 timestamps and folds each in when it arrives, rather than waiting for the slowest. Fast magnetics keep the equilibrium anchored between slower kinetic updates; the kinetic updates correct profile drift when they come."
+   ],
+   [
+    "ul",
+    [
+     "Predict: advance the coupled twin state one step via surrogates",
+     "Align: time-stamp and register multi-rate diagnostics from L2",
+     "Correct: pull the state toward measurements weighted by trust",
+     "Impute: use GNN-reconstructed values (with widened uncertainty) for dropped channels"
+    ]
+   ],
+   [
+    "p",
+    "When channels drop, the GNN imputation feeds the correction step but with inflated measurement uncertainty, so the estimator leans more on physics where data is missing and does not over-trust a reconstructed value. If observability degrades badly, the correction weakens and the twin's confidence drops, again the honest-degradation principle."
+   ],
+   [
+    "p",
+    "Pre-FOAK there is no real plant to synchronize to, so the shadow is validated in a plant-in-the-loop simulation where a high-fidelity offline model plays the role of the machine. This exercises the full predict-correct loop, including latency and dropout handling, so that when FOAK telemetry arrives ~2030 the synchronizer is already validated and only needs recalibration to real signals."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-shadow-lookahead",
+    "The Predictive Shadow"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "shadow-latency-budget",
+    "Latency Budget"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shadow-latency-budget",
+  "title": "The Shadow Latency Budget",
+  "cat": "l3-twin-modeling",
+  "lede": "For the predictive shadow to lead the plant, every stage from telemetry to twin update must fit within a strict latency budget.",
+  "body": [
+   [
+    "h2",
+    "Budgeting the loop"
+   ],
+   [
+    "p",
+    "The shadow only leads reality if the sense-estimate-predict-publish loop completes fast enough that the forecast is still ahead by the time controllers read it. Kronos budgets latency across the whole chain and holds each stage to its share, so the twin step reliably fits inside the cadence that supports a 50-100 ms lookahead."
+   ],
+   [
+    "ul",
+    [
+     "L2 ingest: validated features delivered with bounded, known latency",
+     "GNN denoise/impute: a bounded forward pass over the diagnostic graph",
+     "State correction: estimator update against aligned measurements",
+     "Coupled twin step: 1-2 Picard passes over four surrogate modules",
+     "Publish: state + projection + uncertainty to L1/MPC/anomaly consumers"
+    ]
+   ],
+   [
+    "h3",
+    "Determinism over average speed"
+   ],
+   [
+    "p",
+    "What matters is worst-case, not average, latency: a controller cannot depend on a forecast that is usually on time. Kronos therefore uses bounded-compute components, surrogates with fixed inference cost, real-time-iteration MPC with one step per cycle, capped Picard passes, so the loop's execution time is predictable rather than data-dependent. A step that risks overrun publishes its best available result and flags reduced fidelity rather than blocking."
+   ],
+   [
+    "p",
+    "The latency gradient across L0-L2 matters here: the shadow runs on compute close to the plant (the edge-to-cloud gradient keeps twin inference near the machine), while the expensive offline work, Monte Carlo neutronics, PINN training, surrogate distillation, lives at L0 and never sits in the shadow loop. Only pre-trained, fixed-cost inference runs online."
+   ],
+   [
+    "p",
+    "The shadow's latency budget is deliberately separated from L1's microsecond budget. L3 does not compete for the hard-real-time path; it operates in the slower predictive regime, and the strict sub-10 microsecond command boundary and hardware failsafe are untouched by any L3 latency variation."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-shadow-lookahead",
+    "The Predictive Shadow"
+   ],
+   [
+    "surrogate-acceleration",
+    "Surrogate Acceleration"
+   ],
+   [
+    "shadow-realtime-sync",
+    "Real-Plant Synchronization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shadow-state-estimation-kalman",
+  "title": "State Estimation for the Twin",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos fuses noisy multi-rate diagnostics with physics forecasts using nonlinear state estimation, so the twin holds a best estimate with quantified uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Fusing model and measurement"
+   ],
+   [
+    "p",
+    "State estimation answers: given a physics forward model and noisy, partial measurements, what is the most probable current state and how uncertain is it? Kronos uses nonlinear estimators, ensemble and unscented Kalman-type filters, because the twin dynamics (equilibrium, ambipolar potential, thermomechanics) are nonlinear and the measurement maps (a flux-loop integral, a line-integrated chord) are nonlinear too."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# predict-update cycle (nonlinear, ensemble form)\n# predict: push each ensemble member through the twin surrogate\nX_pred = [f_twin(x, u) for x in ensemble]\n# update: correct with measurement y via Kalman gain from sample stats\nK      = cross_cov(X_pred, H(X_pred)) @ inv(cov(H(X_pred)) + R_meas)\nensemble = [x + K @ (y - H(x)) for x in X_pred]\nx_hat  = mean(ensemble); P = cov(ensemble)   # estimate + uncertainty"
+    ]
+   ],
+   [
+    "p",
+    "The ensemble spread P is the twin's uncertainty, and it flows everywhere: MPC tightens its envelope when P grows, the anomaly ensemble scales its forecast-residual test by P, and operators see calibrated confidence. Imputed channels enter with inflated measurement noise R_meas, so reconstructed data widens uncertainty rather than falsely sharpening it."
+   ],
+   [
+    "h3",
+    "Why not a simple filter"
+   ],
+   [
+    "p",
+    "A linear filter would misrepresent the nonlinear equilibrium and confinement physics and could produce over-confident, biased estimates near the strongly nonlinear operating points that matter most, the pedestal, the plug throat. The ensemble/unscented approach propagates uncertainty through the true nonlinear model, so the twin's confidence stays honest across the operating space."
+   ],
+   [
+    "p",
+    "The estimator uses the twin surrogates as its forward model, so it inherits their speed and differentiability, and it is validated in the plant-in-the-loop simulation before FOAK. Its uncertainty calibration is checked, an estimator that is confidently wrong is more dangerous than one that is honestly uncertain, so calibration is a gating validation criterion."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-realtime-sync",
+    "Real-Plant Synchronization"
+   ],
+   [
+    "twin-confidence-scoring",
+    "Confidence Scoring"
+   ],
+   [
+    "surrogate-uncertainty-quantification",
+    "Uncertainty Quantification"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shadow-divergence-detection",
+  "title": "Detecting Shadow-to-Plant Divergence",
+  "cat": "l3-twin-modeling",
+  "lede": "When the plant departs from the twin's forecast, that gap is both a model-drift alarm and a physical anomaly signal.",
+  "body": [
+   [
+    "h2",
+    "Divergence as a signal"
+   ],
+   [
+    "p",
+    "The predictive shadow forecasts the plant; the plant then reveals what actually happened. The difference, the innovation in estimator terms, is information. A small, unbiased innovation means the twin is tracking well. A growing or biased innovation means one of two things: the twin's model has drifted, or the machine is doing something the validated physics did not predict. Both are important, and Kronos monitors the divergence explicitly."
+   ],
+   [
+    "h3",
+    "Two interpretations, two responses"
+   ],
+   [
+    "ul",
+    [
+     "Slow, systematic drift: model is stale -> flag for recalibration/retraining at L0",
+     "Sudden, localized divergence: physical anomaly -> feed the anomaly ensemble",
+     "Whitened, in-bounds innovation: healthy tracking, no action",
+     "Divergence with rising reconstruction/coupling residual: reduce twin confidence"
+    ]
+   ],
+   [
+    "p",
+    "The forecast-residual detector in the anomaly ensemble is exactly this divergence test applied for safety: an event that departs from validated physics is often the earliest and most meaningful precursor, because it does not depend on having seen that failure mode before. A plug-density collapse or a disruption-precursor mode shows up as the plant diverging from the shadow before any single-channel threshold trips."
+   ],
+   [
+    "p",
+    "Kronos whitens the divergence by the estimator's predicted innovation covariance, so the test accounts for how uncertain the forecast was: a large divergence on a quantity the twin already flagged as uncertain is less alarming than a small divergence on one it was confident about. This keeps the test statistically meaningful across the operating space."
+   ],
+   [
+    "p",
+    "Persistent healthy-state divergence is the trigger for the drift-monitoring workflow: the model is scheduled for recalibration or retraining offline, and until then the twin lowers its confidence in the affected quantities. This closes the loop that keeps the twin honest over the machine's life, especially as materials activate and geometry ages under neutron fluence."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ],
+   [
+    "twin-drift-monitoring",
+    "Twin Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-acceleration",
+  "title": "Surrogate Acceleration of the Twin",
+  "cat": "l3-twin-modeling",
+  "lede": "Full multi-physics solves are too slow for real-time control, so Kronos distills them into fast surrogates that preserve the physics that matters.",
+  "body": [
+   [
+    "h2",
+    "The speed requirement"
+   ],
+   [
+    "p",
+    "A first-principles solve, Monte Carlo neutron transport, finite-element equilibrium and thermomechanics, ideal-MHD eigenvalue analysis, can take minutes to hours. The predictive shadow needs a full coupled state every few tens of milliseconds. The gap is many orders of magnitude, and no amount of hardware closes it directly. Kronos closes it by replacing the online solve with surrogates, models trained offline to reproduce the expensive solver's output at a fraction of the cost."
+   ],
+   [
+    "h3",
+    "Kinds of surrogate Kronos uses"
+   ],
+   [
+    "ul",
+    [
+     "Physics-informed networks: equilibrium, stability, ambipolar potential (physics in the loss)",
+     "Neural operators: learn solution operators for parametric transport/thermal fields",
+     "Reduced-order models: project high-dimensional fields onto dominant modes",
+     "Distilled Monte Carlo: fast neutronics surrogates trained on offline transport runs"
+    ]
+   ],
+   [
+    "p",
+    "The choice per module depends on the physics. Where a governing PDE is known and enforceable, PINNs give physics-grounded surrogates. Where the map is from parameters to full fields (neutron flux over the blanket, temperature over the divertor), neural operators learn the solution operator and generalize across parameters. Reduced-order models exploit that these fields live near a low-dimensional manifold."
+   ],
+   [
+    "h3",
+    "Offline cost, online speed"
+   ],
+   [
+    "p",
+    "The expense moves offline to L0: Monte Carlo campaigns, PINN training, and surrogate distillation run on the GPU clusters and batch-retraining pipeline. The runtime twin only evaluates the trained surrogates, at fixed, low cost. This offline/online split is the enabling idea behind the whole L3 stack, and it is why the shadow can be both fast and physically faithful."
+   ],
+   [
+    "p",
+    "Surrogates never replace the reference solvers; they stand in for them online. The full solvers remain the validation oracles and the fallback for out-of-distribution queries, so speed is bought without abandoning first-principles ground truth."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-neural-operators",
+    "Neural Operators"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Models"
+   ],
+   [
+    "mpc-surrogate-in-loop",
+    "Surrogates in the MPC Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-neural-operators",
+  "title": "Neural Operators for Field Surrogates",
+  "cat": "l3-twin-modeling",
+  "lede": "Neural operators learn the mapping from parameters to entire physical fields, giving Kronos fast, resolution-flexible surrogates for transport and thermal solves.",
+  "body": [
+   [
+    "h2",
+    "Learning operators, not points"
+   ],
+   [
+    "p",
+    "Many twin quantities are not single numbers but whole fields: the neutron flux over the blanket, the temperature over the divertor, the strain over a magnet. A neural operator learns the solution operator, the mapping from input functions (source profile, boundary conditions, material properties) to the output field, rather than a point-to-point regression. This lets one trained model return the field for a range of inputs and, for the Fourier-operator family, at flexible resolution."
+   ],
+   [
+    "h3",
+    "Where Kronos applies them"
+   ],
+   [
+    "ul",
+    [
+     "Neutronics: source and geometry -> flux and spectrum field (distilling Monte Carlo)",
+     "Thermomechanics: heat sources and boundaries -> temperature and strain fields",
+     "Divertor/expander: upstream conditions -> heat-flux footprint",
+     "Burner DEC: end-loss distribution -> conversion-stage loading"
+    ]
+   ],
+   [
+    "p",
+    "Neural operators are attractive for these because they are mesh-flexible and generalize across the parametric operating space, so the twin can query a new operating point without a fresh Monte Carlo or FEM run. They pair naturally with reduced-order representations, the operator can output modal coefficients rather than a dense field, cutting cost further."
+   ],
+   [
+    "h3",
+    "Physics and validation"
+   ],
+   [
+    "p",
+    "Kronos regularizes operator surrogates with conservation constraints where they apply (energy and particle balance), so the learned field respects the physics it approximates rather than merely fitting samples. Each operator is validated against its reference solver across held-out parameters, with special attention to conservation error and to extrapolation, an operator asked outside its training envelope must degrade gracefully and lower its confidence, not return a confident wrong field."
+   ],
+   [
+    "p",
+    "As with all surrogates, the offline reference (Monte Carlo transport, FEM thermomechanics) remains the ground truth and the fallback; the neural operator is the fast online stand-in that keeps the coupled twin step inside the shadow's latency budget."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-acceleration",
+    "Surrogate Acceleration"
+   ],
+   [
+    "twin-neutronics-module",
+    "Neutronics Module"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Models"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-reduced-order-models",
+  "title": "Reduced-Order Models for the Twin",
+  "cat": "l3-twin-modeling",
+  "lede": "High-dimensional physics fields lie near low-dimensional manifolds; Kronos projects onto the dominant modes to get compact, fast twin components.",
+  "body": [
+   [
+    "h2",
+    "Exploiting low-dimensional structure"
+   ],
+   [
+    "p",
+    "A temperature or flux field discretized on a fine grid has millions of degrees of freedom, but the family of physically reachable fields is far smaller, most of the variation lives in a handful of modes. Reduced-order modeling finds those dominant modes (via proper orthogonal decomposition or a learned autoencoder latent) and evolves the physics in that compact space, then reconstructs the full field when needed."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# POD-Galerkin style reduced-order model\n# snapshots from offline high-fidelity runs -> basis U (r modes)\nU = pod_basis(snapshots, rank=r)        # r << full dimension\na = U.T @ field                          # reduced coordinates\na_next = reduced_dynamics(a, u)          # cheap r-dim update\nfield_hat = U @ a_next                    # reconstruct when needed"
+    ]
+   ],
+   [
+    "p",
+    "The payoff is speed and stability: evolving r modes instead of millions of grid points is cheap and predictable, which suits the shadow's fixed latency budget. Kronos uses reduced-order models where the field is smooth and low-rank, thermal fields, slowly varying equilibria, and reserves full neural operators or PINNs where sharp features (the pedestal, the plug throat) resist low-rank compression."
+   ],
+   [
+    "h3",
+    "Guarding reduced models"
+   ],
+   [
+    "p",
+    "A reduced model is only valid where its basis spans the true field. If the machine reaches a state whose field has significant energy outside the retained modes, the reconstruction error rises. Kronos monitors that projection residual as a validity check, a rising residual means the reduced model is being asked to represent something outside its basis, and the twin lowers confidence or falls back to a richer surrogate."
+   ],
+   [
+    "p",
+    "Reduced-order latents also serve the anomaly ensemble: an operating point whose reduced coordinates fall outside the training distribution is itself an anomaly signal, complementing the autoencoder-residual detector at the field level."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-acceleration",
+    "Surrogate Acceleration"
+   ],
+   [
+    "surrogate-neural-operators",
+    "Neural Operators"
+   ],
+   [
+    "anomaly-autoencoder-residual",
+    "Autoencoder Residuals"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-uncertainty-quantification",
+  "title": "Uncertainty Quantification for Surrogates",
+  "cat": "l3-twin-modeling",
+  "lede": "A surrogate must know when it does not know; Kronos equips every twin surrogate with calibrated uncertainty so control stays cautious where the model is weak.",
+  "body": [
+   [
+    "h2",
+    "Why UQ is non-negotiable"
+   ],
+   [
+    "p",
+    "A surrogate is an approximation, and a silent approximation is dangerous in a control loop. Kronos requires every twin surrogate to report calibrated predictive uncertainty, so downstream consumers, MPC, the estimator, the anomaly ensemble, can weight the prediction by how much to trust it. Uncertainty separates into two kinds Kronos tracks distinctly."
+   ],
+   [
+    "ul",
+    [
+     "Aleatoric: irreducible noise in the process/measurements, learned as a variance head",
+     "Epistemic: model ignorance, high where training data was sparse or out-of-distribution",
+     "Total: combined, propagated into the estimator and the MPC envelope"
+    ]
+   ],
+   [
+    "h3",
+    "How Kronos estimates it"
+   ],
+   [
+    "p",
+    "Epistemic uncertainty is estimated with ensembles of surrogates (disagreement grows away from training data) and, where cheaper, with evidential or dropout-based approximations. Aleatoric uncertainty is a learned variance output. The two combine into a total predictive uncertainty attached to every surrogate output and hence to every quantity in the twin state vector."
+   ],
+   [
+    "p",
+    "The consequence is concrete: when a surrogate is uncertain, the state estimator inflates the corresponding process noise, the MPC envelope tightens, and the anomaly ensemble scales its forecast-residual test. The controller becomes more conservative exactly where the physics model is least reliable, which is the correct behavior for a machine that must never be over-driven on a weak prediction."
+   ],
+   [
+    "h3",
+    "Calibration is validated"
+   ],
+   [
+    "p",
+    "Uncertainty is only useful if it is calibrated, if 90% intervals contain the truth 90% of the time. Kronos validates surrogate calibration on held-out data and recalibrates on drift. An over-confident surrogate is treated as a defect that fails the V&V gate, because over-confidence is precisely the failure that would let a wrong prediction drive an unsafe action."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-surrogate-in-loop",
+    "Surrogates in the MPC Loop"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "twin-confidence-scoring",
+    "Confidence Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-active-learning",
+  "title": "Active Learning and Continual Retraining",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos targets its expensive offline solves where the surrogates are weakest, and retrains them as the design evolves and, later, as the plant reveals new data.",
+  "body": [
+   [
+    "h2",
+    "Spending compute where it helps"
+   ],
+   [
+    "p",
+    "Offline high-fidelity solves (Monte Carlo neutronics, FEM thermomechanics, reference MHD) are expensive, so Kronos does not sample the operating space uniformly. Active learning chooses the next simulations to run where the surrogates are most uncertain or where control most needs accuracy, so each expensive solve maximally improves the twin."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# active-learning acquisition loop (offline, L0)\nwhile budget:\n    x_query = argmax_x acquisition(epistemic_uncertainty(x),\n                                   control_relevance(x))\n    y = high_fidelity_solve(x_query)     # Monte Carlo / FEM / MHD\n    dataset.add(x_query, y)\n    retrain_surrogates(dataset)"
+    ]
+   ],
+   [
+    "p",
+    "The acquisition function balances epistemic uncertainty (learn where the model is ignorant) against control relevance (prioritize regions the machine actually operates in and the safety-critical edges of the envelope). This concentrates fidelity on the negative-triangularity pedestal for the breeder and the plug-throat/ambipolar region for the burner, exactly where control tolerance is tightest."
+   ],
+   [
+    "h3",
+    "Continual retraining"
+   ],
+   [
+    "p",
+    "Pre-FOAK the design still changes, so surrogates are retrained in batch at L0 as geometries and parameters update, then re-validated before redeployment. Post-FOAK, plant telemetry becomes the richest data source: divergence between shadow and plant flags where the surrogate is wrong, active learning targets those regions, and retraining folds real data in. This is the loop that keeps the twin faithful as materials activate and the machine ages under neutron fluence."
+   ],
+   [
+    "p",
+    "Retraining is governed, not automatic: a new surrogate version passes the full V&V and calibration gate and is versioned with lineage before it can inform control, so continual learning never silently swaps in an unvalidated model on the safety path."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-uncertainty-quantification",
+    "Uncertainty Quantification"
+   ],
+   [
+    "twin-drift-monitoring",
+    "Twin Drift Monitoring"
+   ],
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-fidelity-metrics",
+  "title": "Twin Fidelity Metrics",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos measures how well the twin represents each machine with concrete, per-module fidelity metrics, not a single vague score.",
+  "body": [
+   [
+    "h2",
+    "Fidelity is plural"
+   ],
+   [
+    "p",
+    "There is no single number for whether a digital twin is good. A twin can predict plasma shape well and thermal loads poorly, or be accurate at flat-top and unreliable during ramps. Kronos defines fidelity per module and per operating regime, with metrics tied to what each consumer needs, so a fidelity claim is always specific and checkable."
+   ],
+   [
+    "ul",
+    [
+     "MHD: boundary-position error (mm), delta/kappa error, growth-rate agreement",
+     "Neutronics: flux/spectrum error vs Monte Carlo, TBR error against the 1.1/1.5/1.8 lever",
+     "Thermomechanics: temperature and strain field error vs FEM, divertor heat-flux error",
+     "Power/DEC: potential and efficiency error, grid-sync tracking error",
+     "Shadow: forecast error vs realized state over the 50-100 ms horizon"
+    ]
+   ],
+   [
+    "h3",
+    "Regime-resolved"
+   ],
+   [
+    "p",
+    "Each metric is reported per regime, commissioning ramp, flat-top, transient, because fidelity that is adequate at steady state can be inadequate during the fast changes where control matters most. Kronos reports the worst-case regime, not the average, since control safety depends on the twin being right when the machine is hardest to model."
+   ],
+   [
+    "p",
+    "Fidelity metrics also drive where effort goes: a module or regime with poor fidelity is where active learning samples and where surrogates are refined. The metrics therefore close a loop, they diagnose weakness, that weakness targets offline compute, and retraining improves the metric, which is re-measured."
+   ],
+   [
+    "p",
+    "Because the machines are pre-FOAK, fidelity today is measured against high-fidelity offline references (Monte Carlo, FEM, reference MHD) and legacy-device data. The metric framework is designed so that when FOAK data arrives ~2030, the same metrics are simply re-evaluated against the real plant, giving a continuous fidelity record across the simulation-to-hardware transition."
+   ]
+  ],
+  "related": [
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ],
+   [
+    "twin-calibration",
+    "Twin Calibration"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-validation-vv",
+  "title": "Verification and Validation of the Twin",
+  "cat": "l3-twin-modeling",
+  "lede": "Every L3 model passes a verification-and-validation gate, against reference solvers and real data, before it is allowed to inform control.",
+  "body": [
+   [
+    "h2",
+    "Verification vs validation"
+   ],
+   [
+    "p",
+    "Kronos separates two questions. Verification asks whether the model solves the equations it claims to, checked against reference numerical solvers and analytic cases. Validation asks whether those equations represent the real machine, checked against experimental and (post-FOAK) plant data. A model must pass both; a beautifully verified PINN of the wrong physics is still wrong, and a model tuned to data without solving the physics will not generalize."
+   ],
+   [
+    "h3",
+    "The V&V gate"
+   ],
+   [
+    "ul",
+    [
+     "Verify: residuals and derived quantities vs FEM/Monte Carlo/eigenvalue references",
+     "Validate: agreement with legacy-device data and, from ~2030, FOAK telemetry",
+     "Calibrate: predictive uncertainty checked and adjusted to be honest",
+     "Extrapolate: graceful degradation and confidence drop outside the training envelope",
+     "Version: lineage recorded; only gated models reach the control path"
+    ]
+   ],
+   [
+    "p",
+    "The gate is a hard boundary in the architecture: no surrogate, PINN, GNN, anomaly detector, or MPC model reaches the control-relevant twin state without passing it, and any retrained version must re-pass. This is what lets Kronos treat L3 outputs as evidence rather than suggestions, and it is the same discipline that governs the L2 lineage the twin state inherits."
+   ],
+   [
+    "h3",
+    "Independence and traceability"
+   ],
+   [
+    "p",
+    "Validation references are independent of the surrogate being tested, offline first-principles solvers and archived measurements, so a model cannot be validated against itself. Every gated model carries a lineage tag to its training data, reference set, and metrics, so any control decision can be traced back through the twin to the evidence that qualified the models behind it."
+   ],
+   [
+    "p",
+    "Pre-FOAK, validation leans on simulation and legacy data by necessity; the machines are design/simulation studies and no hardware net-gain is claimed. The V&V framework is explicitly built to strengthen as real data arrives, tightening the validation half of the gate once FOAK operates, rather than assuming today's simulation-based confidence is final."
+   ]
+  ],
+  "related": [
+   [
+    "twin-fidelity-metrics",
+    "Twin Fidelity Metrics"
+   ],
+   [
+    "twin-calibration",
+    "Twin Calibration"
+   ],
+   [
+    "surrogate-active-learning",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-calibration",
+  "title": "Calibrating the Twin to Its Machine",
+  "cat": "l3-twin-modeling",
+  "lede": "Each twin is tuned so its predictions match its specific machine, correcting the gap between an idealized model and real hardware.",
+  "body": [
+   [
+    "h2",
+    "From generic physics to this machine"
+   ],
+   [
+    "p",
+    "A physics model captures the general behavior; a real machine has its own coil misalignments, sensor offsets, material property spread, and geometry tolerances. Calibration is the process of adjusting the twin's parameters so it reproduces the specific machine, not an idealized one. It is what turns a physics model into a twin of a particular unit, important because the breeder program runs FOAK then NOAK then BOAK, each with its own as-built characteristics."
+   ],
+   [
+    "h3",
+    "What gets calibrated"
+   ],
+   [
+    "ul",
+    [
+     "Sensor models: offsets, gains, and the measurement maps H used in estimation",
+     "Geometry: as-built coil positions, vessel dimensions, magnet alignment",
+     "Material properties: conductivity, thermal and mechanical constants within tolerance",
+     "Model biases: systematic surrogate offsets identified against reference or plant data"
+    ]
+   ],
+   [
+    "p",
+    "Calibration is posed as parameter estimation: find the parameter values that minimize the mismatch between the twin's predictions and reference or measured data, with priors that keep parameters physically plausible. Because it shares machinery with state estimation, Kronos can co-estimate slowly varying parameters alongside fast state (joint state-parameter estimation), letting the twin track slow changes like magnet settling or material activation."
+   ],
+   [
+    "h3",
+    "Per-unit twins"
+   ],
+   [
+    "p",
+    "Each machine, and each unit in the breeder FOAK-NOAK-BOAK sequence, gets its own calibrated twin instance sharing the common model framework. Lessons from FOAK calibration inform NOAK and BOAK priors, so later units start closer to calibrated, but each is still tuned to its own as-built state rather than assumed identical."
+   ],
+   [
+    "p",
+    "Calibration is validated and versioned like any model change: a recalibrated twin re-passes the fidelity and uncertainty checks before it drives control, so calibration cannot introduce an unnoticed bias that later misleads the controller."
+   ]
+  ],
+  "related": [
+   [
+    "twin-validation-vv",
+    "Twin Validation and V&V"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "twin-drift-monitoring",
+    "Twin Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-drift-monitoring",
+  "title": "Monitoring and Correcting Twin Drift",
+  "cat": "l3-twin-modeling",
+  "lede": "A twin that was accurate can drift as the machine ages; Kronos monitors drift continuously and triggers recalibration before it degrades control.",
+  "body": [
+   [
+    "h2",
+    "Why twins drift"
+   ],
+   [
+    "p",
+    "A validated twin does not stay validated forever. Neutron fluence activates and embrittles materials, magnets settle, sensors age, and surfaces erode, so the real machine slowly departs from the model that once matched it. If unnoticed, this drift silently degrades every L3 decision. Kronos treats drift monitoring as a permanent background function of the twin."
+   ],
+   [
+    "h3",
+    "How drift is detected"
+   ],
+   [
+    "ul",
+    [
+     "Innovation statistics: a biased or growing shadow-to-plant divergence over time",
+     "Residual trends: rising equilibrium reconstruction or coupling residuals at healthy states",
+     "Calibration checks: periodic re-evaluation of fidelity and uncertainty calibration",
+     "Baseline creep: the autoencoders' healthy-state reconstruction error rising"
+    ]
+   ],
+   [
+    "p",
+    "The key discrimination is drift versus anomaly. A sudden divergence is an anomaly (a physical event); a slow, systematic divergence at nominal operating points is drift (a stale model). Kronos separates these by timescale and persistence, so a drifting model triggers recalibration while a sharp event triggers the anomaly response, and the two do not mask each other."
+   ],
+   [
+    "h3",
+    "Correction"
+   ],
+   [
+    "p",
+    "When drift is confirmed, Kronos recalibrates the affected parameters (joint state-parameter estimation for slow changes) and, if needed, schedules surrogate retraining at L0 with active learning targeted at the drifted regime. Until the corrected model passes the V&V gate, the twin lowers its confidence in the affected quantities, so MPC widens margins rather than trusting a model known to be drifting. This is the same honest-degradation principle applied over the machine's life, not just within a pulse."
+   ],
+   [
+    "p",
+    "For the breeder's FOAK-NOAK-BOAK units and the burner installations, drift records also feed component-life tracking, linking model drift to the physical aging (fluence, fatigue) driving it, so maintenance and model maintenance stay aligned."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-divergence-detection",
+    "Shadow Divergence Detection"
+   ],
+   [
+    "twin-calibration",
+    "Twin Calibration"
+   ],
+   [
+    "surrogate-active-learning",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-confidence-scoring",
+  "title": "Confidence Scoring Across the Twin",
+  "cat": "l3-twin-modeling",
+  "lede": "Every quantity the twin reports carries a confidence score, and control behavior is tied to that score so the machine is driven cautiously when the twin is unsure.",
+  "body": [
+   [
+    "h2",
+    "Confidence as a first-class output"
+   ],
+   [
+    "p",
+    "The twin never reports a value without a confidence. That confidence integrates several sources: the state estimator's uncertainty, the surrogates' predictive uncertainty, the observability given how many channels were imputed, the physics-residual health of the reconstruction, and the model's drift status. The result is a per-quantity, calibrated confidence that travels with the twin state vector."
+   ],
+   [
+    "ul",
+    [
+     "Estimator uncertainty: ensemble spread on the estimated state",
+     "Surrogate UQ: epistemic + aleatoric from the twin models",
+     "Observability: how much depended on GNN-imputed vs measured signals",
+     "Residual health: equilibrium and coupling residuals as self-diagnostics",
+     "Drift status: how recently the model was validated in this regime"
+    ]
+   ],
+   [
+    "h3",
+    "Wired into control"
+   ],
+   [
+    "p",
+    "Confidence is not a display feature; it changes behavior. Low confidence shrinks the MPC safe-operating envelope, inflates the estimator's process noise, scales the anomaly ensemble's residual tests, and can gate whether a maneuver is permitted at all. The machine is driven more conservatively exactly when the twin knows less, which is the central safety property Kronos designs the twin around."
+   ],
+   [
+    "p",
+    "This ties the whole L3 stack together: GNN imputation honesty, PINN residual self-diagnosis, surrogate UQ, estimator spread, and drift monitoring all feed one number that governs how much the controller is allowed to lean on the twin. An over-confident score would defeat every other safeguard, so confidence calibration is a gated V&V criterion."
+   ],
+   [
+    "p",
+    "Beneath all of it, the L1 hardware failsafe is independent of confidence, it protects the machine regardless. Confidence scoring governs how boldly L3 pursues performance; it never governs whether the machine is safe, that floor is guaranteed in hardware."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-uncertainty-quantification",
+    "Uncertainty Quantification"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ],
+   [
+    "twin-drift-monitoring",
+    "Twin Drift Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-breeder-equilibrium-control",
+  "title": "L3 for the Breeder: Equilibrium Control",
+  "cat": "l3-twin-modeling",
+  "lede": "For Hyperion, the central L3 task is holding a valid, stable Grad-Shafranov equilibrium at 9.86 MA in a compact spherical geometry.",
+  "body": [
+   [
+    "h2",
+    "The breeder's defining control problem"
+   ],
+   [
+    "p",
+    "The breeder is a compact spherical tokamak, R0 1.2 m, aspect ratio 2.5, 9.86 MA plasma current, 16.84 T peak field. Its performance rests on maintaining a valid MHD equilibrium continuously as pressure and current profiles evolve. Everything else in the breeder twin, neutron source, heat loads, stability margins, is downstream of that equilibrium, so L3's first job is to reconstruct and control it accurately."
+   ],
+   [
+    "h3",
+    "How L3 does it"
+   ],
+   [
+    "p",
+    "The Grad-Shafranov PINN provides fast equilibrium reconstruction from GNN-conditioned diagnostics; the free-boundary PINN maps coil currents to plasma shape; shape-control MPC drives the poloidal-field and solenoid coils to hold the target boundary; the stability PINN reports margins that constrain the MPC. The predictive shadow projects the equilibrium 50-100 ms ahead so control acts before the plasma drifts."
+   ],
+   [
+    "ul",
+    [
+     "Compact ST: strong shaping, high current density, tight equilibrium tolerances",
+     "Actuators: PF/CS coils; fast vertical-stability loop below the shape MPC",
+     "Constraints: MHD margin, divertor heat flux, coil and strain limits",
+     "Target: negative-triangularity delta -0.30 boundary held stably"
+    ]
+   ],
+   [
+    "p",
+    "The spherical geometry sharpens the challenge: strong shaping and high current density mean the equilibrium is sensitive and vertical stability demands fast feedback. Kronos splits timescales, a fast vertical-position loop near L1 for stabilization, a slower multivariable shape MPC above it, so each runs at the cadence its physics requires."
+   ],
+   [
+    "p",
+    "Because the machine is a design/simulation study pre-FOAK, equilibrium control is validated in plant-in-the-loop simulation against reference equilibrium solvers, with the path to synchronize against real reconstruction once FOAK first tritium arrives ~2030. No net-gain behavior is claimed from this control before hardware exists."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-grad-shafranov",
+    "PINN Grad-Shafranov Solver"
+   ],
+   [
+    "mpc-breeder-shape-control",
+    "Breeder Shape Control"
+   ],
+   [
+    "l3-breeder-vs-burner-contrast",
+    "Breeder vs Burner L3"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-breeder-elm-free-shape",
+  "title": "L3 for the Breeder: The ELM-Free Negative-Triangularity Shape",
+  "cat": "l3-twin-modeling",
+  "lede": "Negative triangularity offers an ELM-free edge, but only if the shape is held precisely; L3 makes that a continuous control guarantee.",
+  "body": [
+   [
+    "h2",
+    "Why negative triangularity"
+   ],
+   [
+    "p",
+    "The breeder runs at negative triangularity, delta -0.30, because that edge shaping can suppress edge-localized modes (ELMs), the periodic edge instabilities that dump heat onto plasma-facing components. An ELM-free edge protects the divertor and vessel and improves the machine's duty. But the benefit is contingent: it holds only while the plasma sits in the negative-triangularity configuration with adequate stability margin. Lose the shape and the advantage goes with it."
+   ],
+   [
+    "h3",
+    "Holding the regime"
+   ],
+   [
+    "p",
+    "L3 turns ELM-free operation into a continuous control objective. The free-boundary PINN reports the actual triangularity and boundary; shape-control MPC drives it to the delta -0.30 target; the stability PINN reports the margin to the peeling-ballooning boundary that governs the edge. MPC constrains against that margin, so it will trade a little shape-tracking error to keep the edge comfortably inside the ELM-free window rather than riding its limit."
+   ],
+   [
+    "ul",
+    [
+     "Objective: hold delta -0.30 boundary with peeling-ballooning margin",
+     "Sensors: Mirnov/flux graph for edge MHD, Thomson for the pedestal profile",
+     "Risk watched: edge approaching the peeling-ballooning boundary",
+     "Response: shape/profile adjustment before an ELM or mode onset"
+    ]
+   ],
+   [
+    "p",
+    "The anomaly ensemble watches the edge specifically: a pedestal building toward the stability boundary, or an edge magnetic signature growing, is a precursor that the ELM-free regime is about to break. Catching that sub-threshold lets MPC back off the pedestal gently, preserving the ELM-free character instead of taking an edge event."
+   ],
+   [
+    "p",
+    "This is a clear example of L3's role: the physics advantage of negative triangularity is real but conditional, and the twin's job is to keep the machine inside the condition, continuously and with margin, rather than assuming the favorable regime persists on its own."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-breeder-shape-control",
+    "Breeder Shape Control"
+   ],
+   [
+    "pinn-mhd-stability",
+    "PINN MHD Stability"
+   ],
+   [
+    "anomaly-disruption-precursors",
+    "Disruption Precursors"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-breeder-disruption-avoidance",
+  "title": "L3 for the Breeder: Disruption Avoidance",
+  "cat": "l3-twin-modeling",
+  "lede": "The breeder's highest-consequence event is a disruption; L3 is architected to avoid disruptions early rather than mitigate them late.",
+  "body": [
+   [
+    "h2",
+    "Avoidance over mitigation"
+   ],
+   [
+    "p",
+    "A disruption suddenly terminates the plasma, dumping thermal and magnetic energy into the structure, the event a 9.86 MA spherical tokamak most needs to avoid. Kronos's L3 strategy is avoidance-first: use the twin's stability margins and the anomaly ensemble's precursors to steer away from disruptive boundaries before they are reached, keeping mitigated shutdown as a fallback rather than a routine tool."
+   ],
+   [
+    "h3",
+    "The avoidance chain"
+   ],
+   [
+    "ul",
+    [
+     "Continuous margins: stability PINN reports distance to MHD and density limits",
+     "Precursor detection: locked-mode, density-limit, vertical-stability signatures",
+     "Labeled mechanism: the ensemble names the dominant approaching limit",
+     "Pre-computed maneuvers: mechanism-specific MPC responses triggered fast"
+    ]
+   ],
+   [
+    "p",
+    "Because disruption precursors give short lead times (milliseconds to hundreds of milliseconds), Kronos pre-computes avoidance maneuvers per mechanism, current/shape adjustment for an approaching locked mode, fueling reduction for a density-limit approach, vertical-position action for an incipient VDE, so the controller triggers a validated response instantly rather than planning under time pressure. The lead-time analysis tells the system which responses are feasible for a given precursor."
+   ],
+   [
+    "h3",
+    "Layered fallback"
+   ],
+   [
+    "p",
+    "If avoidance cannot succeed in the time available, L3 hands off to a controlled, mitigated shutdown that spreads the energy release as safely as possible; and beneath that, the L1 hardware protection path remains, independent of any model. The layering means the AI buys the lead time to avoid, the mitigation limits damage if avoidance fails, and hardware guarantees the machine is protected regardless."
+   ],
+   [
+    "p",
+    "Pre-FOAK, the avoidance logic is trained and validated on disruption simulations and legacy-device disruption data, then recalibrated on real events after FOAK. The design goal is a machine that spends its operational life avoiding disruptions early, protecting the CrMoNbV vessel and preserving the ELM-free regime."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-disruption-precursors",
+    "Disruption Precursors"
+   ],
+   [
+    "anomaly-precursor-lead-time",
+    "Precursor Lead Time"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-burner-plug-density",
+  "title": "L3 for the Burner: End-Plug Density",
+  "cat": "l3-twin-modeling",
+  "lede": "For the tandem-mirror burner, confinement stands or falls on end-plug density, and L3's central task is to hold it against a fast collapse mode.",
+  "body": [
+   [
+    "h2",
+    "The burner's defining control problem"
+   ],
+   [
+    "p",
+    "The D-3He tandem-mirror burner confines its central cell with an ambipolar potential set by dense end plugs at 26.49 T (17 T throat). Plug density is therefore the master control variable: it sets the confining potential, which sets central-cell confinement, which sets fusion output. Where the breeder's core problem is equilibrium, the burner's is holding plug density in the window that sustains the potential."
+   ],
+   [
+    "h3",
+    "How L3 holds it"
+   ],
+   [
+    "p",
+    "The ambipolar-potential PINN predicts how plug fueling, heating, and DEC collector potentials move the plug density and the confining potential; plug-density MPC drives those actuators to the target; the stability analysis checks mirror/interchange margins; the shadow projects the potential 50-100 ms ahead. The Power Systems module couples in because the DEC potentials are both an actuator and the confinement boundary."
+   ],
+   [
+    "ul",
+    [
+     "Master variable: plug density -> ambipolar potential -> confinement",
+     "Actuators: plug fueling, plug heating (ECH/NBI), DEC collector potentials",
+     "Risk watched: potential erosion that can collapse confinement in tens of ms",
+     "Coupling: shared state with the DEC/Power-Systems controller"
+    ]
+   ],
+   [
+    "p",
+    "The dangerous mode is fast: if plug density falls, the confining potential erodes and central-cell confinement can collapse in tens of milliseconds, faster than a from-scratch MPC replan. Kronos precomputes plug-recovery maneuvers triggered on an anomaly-ensemble precursor (a potential or plug-density signature departing from the shadow), so recovery begins before confinement is lost."
+   ],
+   [
+    "p",
+    "As a design/simulation study pre-FOAK, plug-density control is validated against high-fidelity mirror-confinement models; the burner is a later program element than the breeder, and no net-gain is claimed from this control before hardware. The framework mirrors the breeder's, same PINN/MPC/anomaly machinery, applied to a different confinement physics."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-burner-ambipolar-potential",
+    "Ambipolar Potential PINN"
+   ],
+   [
+    "mpc-burner-plug-density-control",
+    "Plug-Density Control"
+   ],
+   [
+    "l3-burner-ambipolar-confinement",
+    "Ambipolar Confinement"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-burner-ambipolar-confinement",
+  "title": "L3 for the Burner: The Ambipolar Potential",
+  "cat": "l3-twin-modeling",
+  "lede": "The electrostatic potential that traps the burner's central-cell ions is what L3 must estimate and shape, a control target with no tokamak analogue.",
+  "body": [
+   [
+    "h2",
+    "Confinement you cannot see directly"
+   ],
+   [
+    "p",
+    "In the tandem mirror, ions are confined by an axial electrostatic potential, not by closed magnetic flux surfaces. The confining potential dip between the end plugs and the central cell is the quantity that matters, but it is inferred, not measured directly, so L3 must estimate it from diagnostics and physics. This is the burner's counterpart to the breeder's equilibrium reconstruction."
+   ],
+   [
+    "h3",
+    "Estimating and shaping the potential"
+   ],
+   [
+    "p",
+    "The ambipolar-potential PINN enforces quasineutrality and ambipolar end-loss to solve phi(z) along the axis, conditioned on plug and central-cell diagnostics and on the DEC boundary potentials. State estimation fuses this physics with the available measurements to hold a best estimate of the potential profile, with uncertainty, in the twin. MPC then shapes the potential by acting on plug density and the DEC collectors."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# what the burner twin tracks, mirroring the breeder equilibrium\n# breeder:  psi(R,Z)  reconstructed via Grad-Shafranov PINN\n# burner:   phi(z)    reconstructed via ambipolar/quasineutral PINN\n# both: physics residual + diagnostics -> state estimate + uncertainty"
+    ]
+   ],
+   [
+    "p",
+    "The potential couples to everything downstream: it sets central-cell confinement and hence the neutron and power output, and it depends on the DEC collector potentials at the ends. So the burner twin's coupled solve threads the ambipolar potential through the MHD/confinement, Neutronics, and Power Systems modules just as the breeder's threads the equilibrium."
+   ],
+   [
+    "p",
+    "Getting the potential wrong in either direction is costly, too shallow and the central cell leaks, too deep and plug demands and stability suffer, so L3 holds it with margin and lowers confidence (tightening the envelope) when observability of the potential degrades. The low-neutron D-3He burn (neutron fraction 5.44%) means the confinement is judged on the potential and confinement quality rather than dominated by neutronic loads as in the breeder."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-burner-ambipolar-potential",
+    "Ambipolar Potential PINN"
+   ],
+   [
+    "l3-burner-plug-density",
+    "Plug-Density Control"
+   ],
+   [
+    "l3-breeder-vs-burner-contrast",
+    "Breeder vs Burner L3"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-burner-dec-control",
+  "title": "L3 for the Burner: Direct Energy Conversion",
+  "cat": "l3-twin-modeling",
+  "lede": "The burner extracts electricity directly from its end-loss plasma; L3 governs the multi-modal DEC train and its coupling back to confinement.",
+  "body": [
+   [
+    "h2",
+    "Converting streaming energy directly"
+   ],
+   [
+    "p",
+    "The tandem-mirror burner does not rely on a thermal cycle for its primary conversion: energy leaving the ends as streaming charged particles is captured directly by a multi-modal DEC train, traveling-wave direct conversion (TWDEC), ultra-high-field MHD conversion, and thermionics. Each modality suits a different part of the end-loss energy spectrum, and L3 coordinates them and their collector potentials."
+   ],
+   [
+    "h3",
+    "The control coupling"
+   ],
+   [
+    "p",
+    "DEC control is a two-sided problem. On the extraction side, collector potentials and power-electronics setpoints are tuned for conversion efficiency across the end-loss spectrum. On the confinement side, the end-collector potentials are the boundary condition on the ambipolar potential, so a change made to extract more power perturbs the confinement the plug-density controller manages. L3 solves the two with shared state so they cooperate rather than fight over the same actuators."
+   ],
+   [
+    "ul",
+    [
+     "TWDEC: decelerates and captures fast ion streams via traveling waves",
+     "Ultra-high-field MHD conversion: extracts from the flowing conducting plasma",
+     "Thermionics: captures the residual thermal fraction",
+     "Coupling: end-collector potential = ambipolar boundary condition"
+    ]
+   ],
+   [
+    "p",
+    "Downstream of conversion, the Power Systems module handles grid synchronization: keeping the output phase- and frequency-locked to the interconnect and ramping within limits for a MetroVolt data-center load or an Aegis fixed installation. This is described purely as dispatch and timing, when and how much power is delivered, with no economic content, which has no place in the control stack."
+   ],
+   [
+    "p",
+    "DEC control operates inside a certified envelope (electrode, thermal, and interconnect limits) and above the hardware protection layer that guards against over-voltage and electrode faults. Pre-FOAK it is validated against DEC and end-loss models; the burner is a later program stage than the breeder, and no net electrical output is claimed before hardware."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-dec-voltage-control",
+    "DEC Voltage Control"
+   ],
+   [
+    "twin-power-systems-module",
+    "Power Systems Module"
+   ],
+   [
+    "l3-burner-plug-density",
+    "Plug-Density Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-breeder-vs-burner-contrast",
+  "title": "L3 Contrasted: Breeder vs Burner",
+  "cat": "l3-twin-modeling",
+  "lede": "The same L3 framework instantiates differently for a spherical tokamak and a tandem mirror; here is what changes and what stays the same.",
+  "body": [
+   [
+    "h2",
+    "One framework, two physics"
+   ],
+   [
+    "p",
+    "Both machines run the same L3 architecture, GNN diagnostics, PINN physics, anomaly ensembles, MPC, and the KRONOS-CTRL twin with a 50-100 ms shadow, but the physics they model and control is different, so the instantiation differs in specific, well-defined ways."
+   ],
+   [
+    "matrix",
+    [
+     "L3 aspect: breeder (Hyperion) vs burner (Aegis/MetroVolt)",
+     [
+      [
+       "Core control problem",
+       "equilibrium / shape / disruption",
+       "plug density / ambipolar potential / DEC"
+      ],
+      [
+       "Confinement",
+       "closed flux surfaces, Grad-Shafranov psi(R,Z)",
+       "axial electrostatic potential phi(z)"
+      ],
+      [
+       "Key PINN",
+       "Grad-Shafranov + MHD stability",
+       "ambipolar/quasineutral potential"
+      ],
+      [
+       "Headline actuators",
+       "PF/CS coils, heating, fueling",
+       "plug fueling/heating, DEC potentials"
+      ],
+      [
+       "Dominant risk",
+       "disruption / ELM / VDE",
+       "potential collapse / plug-density loss"
+      ],
+      [
+       "Neutronics role",
+       "central: TBR lever 1.1/1.5/1.8, 14 MeV",
+       "secondary: 5.44% neutron fraction, residual D-D"
+      ],
+      [
+       "Power module",
+       "plant/aux balance",
+       "multi-modal DEC + grid sync"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "What stays the same"
+   ],
+   [
+    "p",
+    "The shared parts are substantial: the L2 feature conventions and lineage, the sensor-topology GNN and its imputation, the surrogate-acceleration and UQ machinery, the state-estimation and shadow-synchronization loop, the anomaly-ensemble framework, the MPC formulation with a certified envelope and terminal set, and the V&V, calibration, drift-monitoring, and confidence-scoring discipline. Only the physics modules and the control targets are swapped."
+   ],
+   [
+    "p",
+    "This is deliberate. Building one rigorous L3 framework and instantiating it twice means the breeder and burner programs share validation machinery, transfer learning, and operational tooling, and lessons from the breeder (which reaches FOAK first, ~2030) inform the later burner without rebuilding the stack."
+   ],
+   [
+    "p",
+    "Both remain design/simulation studies pre-FOAK, with no hardware net-gain claimed, and both inherit the same strict layering: L3 governs performance within a certified envelope while the L1 hardware failsafe guarantees safety independently of any model."
+   ]
+  ],
+  "related": [
+   [
+    "l3-architecture-overview",
+    "L3 Architecture Overview"
+   ],
+   [
+    "l3-breeder-equilibrium-control",
+    "Breeder Equilibrium Control"
+   ],
+   [
+    "l3-burner-plug-density",
+    "Burner Plug-Density Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-pinn-hybrid",
+  "title": "Hybrid GNN-PINN Models",
+  "cat": "l3-twin-modeling",
+  "lede": "Kronos combines the graph network's diagnostic reasoning with the physics network's equation-solving so measurement and physics constrain one solution.",
+  "body": [
+   [
+    "h2",
+    "Two strengths, one estimate"
+   ],
+   [
+    "p",
+    "The GNN excels at reasoning over the diagnostic constellation, denoising, imputing dropped channels, identifying mode structure, but it does not enforce the governing equations. The PINN excels at solving the physics but needs a clean, complete measurement constraint. Kronos couples them: the GNN produces a physics-consistent measurement set, and the PINN produces the equation-consistent field that best matches it."
+   ],
+   [
+    "h3",
+    "How the coupling works"
+   ],
+   [
+    "p",
+    "In equilibrium reconstruction, the GNN conditions and imputes the flux-loop, Mirnov, and kinetic diagnostics (with uncertainty), and the Grad-Shafranov PINN reconstructs psi(R,Z) whose data term uses exactly those GNN outputs, weighted by their imputation uncertainty. The physics residual regularizes the reconstruction so it cannot fit noise, and the GNN keeps the data constraint intact through dropouts. Neither alone is as robust as the pair."
+   ],
+   [
+    "ul",
+    [
+     "GNN: topology-aware denoise/impute, mode identification, per-channel uncertainty",
+     "PINN: enforces Grad-Shafranov / ambipolar physics on that measurement set",
+     "Coupling: GNN uncertainty sets the PINN data-term weights",
+     "Result: a reconstruction robust to dropouts and consistent with the equations"
+    ]
+   ],
+   [
+    "p",
+    "The same hybrid serves the burner: the GNN reasons over the end-cell and central-cell diagnostics, and the ambipolar-potential PINN solves phi(z) constrained by them. And it serves anomaly detection: the GNN localizes an off-pattern signal while the PINN residual says whether the resulting state is physically consistent, together distinguishing a sensor fault from a genuine physical event."
+   ],
+   [
+    "p",
+    "This composition is why Kronos does not choose between data-driven and physics-driven modeling: the diagnostic reasoning and the equation-solving are complementary, and binding them gives the twin both robustness to imperfect data and fidelity to first principles."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ],
+   [
+    "pinn-equilibrium-reconstruction",
+    "Equilibrium Reconstruction"
+   ],
+   [
+    "twin-diagnostics-constellation-fusion",
+    "Fusing the Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-diagnostics-constellation-fusion",
+  "title": "Fusing the Diagnostics Constellation",
+  "cat": "l3-twin-modeling",
+  "lede": "L3 turns 60+ heterogeneous diagnostic channels into one coherent physics state, weighting each by what it measures and how much it can be trusted.",
+  "body": [
+   [
+    "h2",
+    "Many instruments, one state"
+   ],
+   [
+    "p",
+    "The diagnostics constellation spans very different physics: Thomson scattering (electron temperature and density), interferometry (line-integrated density), Mirnov coils and flux loops (magnetics), REBCO strain gauges (magnet mechanics), ECE (electron temperature), fast-ion trackers, and neutron flux. Each measures a different projection of the machine state, at a different rate, latency, and noise level. L3's job is to fuse them into one consistent twin state, not to display them side by side."
+   ],
+   [
+    "h3",
+    "Fusion by measurement model"
+   ],
+   [
+    "p",
+    "Fusion works because each diagnostic has a forward model H mapping the physics state to what that instrument reads, a line integral for interferometry, a local pitch-angle for motional Stark effect, a flux integral for a loop. State estimation inverts all of them at once: it finds the state whose predicted measurements best match every instrument, weighting each by its noise and current trust. A disagreement between instruments is resolved by the physics prior rather than by trusting one arbitrarily."
+   ],
+   [
+    "ul",
+    [
+     "Thomson/ECE: local temperature and density profiles",
+     "Interferometry: line-integrated density constraint",
+     "Mirnov/flux: equilibrium anchor and MHD mode structure",
+     "REBCO strain: magnet mechanical state and structural health",
+     "Neutron flux / fast-ion: source and confinement cross-checks"
+    ]
+   ],
+   [
+    "p",
+    "Cross-checks between instruments are a built-in health test: an interferometer chord and a Thomson profile that imply inconsistent densities flag a sensor problem or a genuine off-normal state, raising the reconstruction residual and lowering confidence. The GNN's topology model makes these cross-checks physically aware, comparing instruments that share a flux surface rather than arbitrary pairs."
+   ],
+   [
+    "p",
+    "The fused state, with per-quantity uncertainty and lineage back to each contributing channel, is what every L3 consumer sees, so control, anomaly detection, and operators all reason over one coherent, traceable picture of the machine rather than a wall of raw signals."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-sensor-topology",
+    "Dynamic Sensor Topology"
+   ],
+   [
+    "shadow-state-estimation-kalman",
+    "State Estimation"
+   ],
+   [
+    "twin-state-vector",
+    "The Twin State Vector"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "digital-twin-fuel-cycle-isotope-balance",
+  "title": "Twin-Governed Fuel Cycle and Isotope Balance",
+  "cat": "l3-twin-modeling",
+  "lede": "The KRONOS-CTRL twin tracks the tritium and helium-3 balance in real time so the breeder's fuel cycle stays closed and its isotope products are accounted.",
+  "body": [
+   [
+    "h2",
+    "The fuel cycle as a controlled loop"
+   ],
+   [
+    "p",
+    "The breeder is a D-T machine that must supply its own tritium and produce a surplus, roughly a 4 kg/yr tritium class plus about 1.97 kg/yr helium-3, alongside 14 MeV neutrons. That requires closing the fuel cycle: tritium bred in the blanket must at least replace tritium burned, with the tritium breeding ratio treated as a design lever across 1.1 / 1.5 / 1.8. The twin governs this as a real-time isotope balance."
+   ],
+   [
+    "h3",
+    "What the twin tracks"
+   ],
+   [
+    "ul",
+    [
+     "Burn: tritium consumed, inferred from neutron output and plasma state",
+     "Breeding: tritium produced in the blanket, from the Neutronics module and TBR",
+     "Inventory: running tritium and helium-3 inventory across the fuel loop",
+     "Products: helium-3 accumulation and 14 MeV neutron output accounting"
+    ]
+   ],
+   [
+    "p",
+    "The Neutronics module supplies the source and breeding terms, and the fuel-cycle controller balances fueling, processing, and inventory so the loop stays closed with the chosen TBR margin. Helium-3, a decay product of tritium, is tracked as an accumulating product; the neutron output is accounted for both as a product and as the driver of blanket breeding and material activation."
+   ],
+   [
+    "p",
+    "Isotope-balance drift is watched by the anomaly ensemble: a breeding-to-burn ratio departing from the expected TBR, or an inventory trend that does not close, indicates a fuel-cycle problem (a processing issue, a blanket anomaly) that the twin flags before inventory is compromised. Because a D-T machine must not lose control of its tritium inventory, this accounting is safety- and mission-critical, not just bookkeeping."
+   ],
+   [
+    "p",
+    "All of this is described in physical terms, kilograms of isotope, breeding ratios, neutron flux, with no economic content whatsoever; the fuel-cycle copilot's role is operational balance and accounting, never commercial value. Pre-FOAK the balance model is validated against neutronics simulation, to be synchronized with real inventory measurement once FOAK operates ~2030."
+   ]
+  ],
+  "related": [
+   [
+    "twin-neutronics-module",
+    "Neutronics Module"
+   ],
+   [
+    "anomaly-detection-ensembles",
+    "Anomaly Ensembles"
+   ],
+   [
+    "l3-architecture-overview",
+    "L3 Architecture Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-anomaly-handoff",
+  "title": "Handoff Between Anomaly Detection and MPC",
+  "cat": "l3-twin-modeling",
+  "lede": "The precursor that the anomaly ensemble raises must become an action the MPC agent takes; Kronos defines that handoff precisely and safely.",
+  "body": [
+   [
+    "h2",
+    "From detection to action"
+   ],
+   [
+    "p",
+    "Detecting a precursor is only half of L3's value; the other half is acting on it correctly. Kronos defines a precise handoff from the anomaly ensemble to the MPC agents so that a raised precursor produces a proportionate, validated response, not an ad hoc reaction. The handoff carries the precursor's class, localization, confidence, and estimated lead time."
+   ],
+   [
+    "h3",
+    "Matching response to the precursor"
+   ],
+   [
+    "p",
+    "The response depends on all four. A high-confidence magnet-quench precursor with seconds of lead time triggers an MPC-planned gentle ramp of field or current toward a safer point. A short-lead-time disruption or plug-collapse precursor triggers a pre-computed maneuver rather than an on-the-spot plan, because there is no time to optimize. A low-confidence or ambiguous precursor triggers the watch stage, tightened monitoring and corroboration, before any actuation change."
+   ],
+   [
+    "ul",
+    [
+     "Class -> which maneuver family applies (quench, disruption, plug, thermal)",
+     "Localization -> which actuators and subsystems to act on",
+     "Confidence -> watch stage vs act stage; how much to tighten the envelope",
+     "Lead time -> planned MPC ramp vs pre-computed instant maneuver"
+    ]
+   ],
+   [
+    "p",
+    "The envelope is the mediator. On a credible precursor, L3 shrinks the safe operating envelope toward the precursor's cause, and MPC, already constrained to stay inside the envelope, naturally steers away. This means the handoff mostly works through the existing MPC machinery rather than a separate override path, which keeps behavior consistent and analyzable."
+   ],
+   [
+    "h3",
+    "The floor remains hardware"
+   ],
+   [
+    "p",
+    "If the precursor is too fast for any L3 maneuver, the handoff defers to the L1 layer, pre-computed fast maneuvers for the millisecond regime, and the autonomous hardware failsafe for the microsecond regime. The anomaly-to-MPC handoff exists to make those last resorts rare by acting earlier; it never substitutes for them, and it never weakens the hardware guarantee."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-subthreshold-thresholds",
+    "Sub-Threshold Alarming"
+   ],
+   [
+    "anomaly-precursor-lead-time",
+    "Precursor Lead Time"
+   ],
+   [
+    "mpc-safe-operating-envelope",
+    "Safe Operating Envelope"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

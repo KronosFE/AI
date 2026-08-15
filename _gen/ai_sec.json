@@ -1,0 +1,2580 @@
+[
+ {
+  "slug": "security-architecture-overview",
+  "title": "Zero-Trust Security Architecture: Overview",
+  "cat": "security",
+  "lede": "The Kronos plant treats every network, device, and request as untrusted by default; access is earned per-request through identity, attestation, and policy, never by location.",
+  "body": [
+   [
+    "h2",
+    "Why zero trust for a fusion plant"
+   ],
+   [
+    "p",
+    "A Kronos plant is a cyber-physical system where software decides how plasma is heated, shaped, and shut down. The breeder (Hyperion) is a D-T spherical tokamak (Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30) that breeds a tritium product (~4 kg/yr class) plus ~1.97 kg/yr helium-3 and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator (26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion). A single spoofed sensor or forged actuator command in either machine can drive the plasma off its operating point. Perimeter trust is therefore inadequate: we assume the perimeter is already breached and defend every hop."
+   ],
+   [
+    "h3",
+    "The four load-bearing principles"
+   ],
+   [
+    "ul",
+    [
+     "Never trust by location: a packet from inside the OT VLAN earns no more trust than one from the internet.",
+     "Authenticate device and workload, not just user: every FPGA node and service holds a cryptographic identity and must attest its firmware before it is spoken to.",
+     "Least privilege, per-request: authorization is evaluated at each call against policy, scope, and current plant state.",
+     "Assume breach: segment, log, and design blast-radius limits so one compromised node cannot reach the interlock chain."
+    ]
+   ],
+   [
+    "h3",
+    "How it maps to the stack"
+   ],
+   [
+    "p",
+    "Zero trust is enforced across the S.M.A.R.T. stack. See <a href=./it-ot-separation.html>IT/OT separation</a> for the coarse split, <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> for the fine-grained one, <a href=./zero-trust-identity.html>zero-trust identity</a> for mTLS between workloads, and <a href=./secure-boot-edge-fpga.html>secure boot</a> plus <a href=./remote-attestation-fpga.html>remote attestation</a> for the edge FPGAs that close the fast control loops."
+   ],
+   [
+    "h3",
+    "Designed versus implemented"
+   ],
+   [
+    "p",
+    "Candor: these machines are design and simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030; no hardware net-gain is claimed before FOAK. The security architecture described here is exercised today against the digital twin and simulated OT networks. Policy engines, data-diode data paths, and attestation flows are prototyped in emulation; the physical air gaps, hardware diodes, and safety-instrumented isolation are specified and staged for the FOAK build, not yet operating on a live reactor."
+   ]
+  ],
+  "related": [
+   [
+    "it-ot-separation",
+    "IT/OT Separation"
+   ],
+   [
+    "threat-model-networked-reactor",
+    "Threat Model: Networked Reactor"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "it-ot-separation",
+  "title": "IT/OT Separation: Two Domains, One Boundary",
+  "cat": "security",
+  "lede": "Business IT and operational technology are physically and logically distinct domains; the only bridge between them is a governed, mostly one-way boundary.",
+  "body": [
+   [
+    "h2",
+    "Two worlds with different failure modes"
+   ],
+   [
+    "p",
+    "Information Technology (IT) carries email, engineering documents, model training clusters, and the L7 external API. Operational Technology (OT) runs the machine: magnet power supplies, gyrotron/NBI heating, gas valves, cryoplant, the L1 fast control loop, and the safety-instrumented systems. Their threat profiles diverge. IT tolerates a reboot; an OT node that stalls mid-discharge can leave a 9.86 MA plasma unactuated. IT prizes confidentiality; OT prizes availability and integrity of control. Mixing them lets an IT compromise (phishing, ransomware) reach machine actuators. We keep them apart."
+   ],
+   [
+    "h3",
+    "The separation model"
+   ],
+   [
+    "ul",
+    [
+     "Distinct physical networks with no shared switches or routers between IT and OT.",
+     "No general routing between domains; the only crossing is the plant boundary appliance.",
+     "OT holds no direct internet egress; updates and telemetry cross the boundary under policy.",
+     "Directory, DNS, and time services are duplicated per domain so OT does not depend on IT infrastructure to keep the machine safe."
+    ]
+   ],
+   [
+    "h3",
+    "Data flows across the boundary"
+   ],
+   [
+    "p",
+    "The dominant flow is OT-to-IT telemetry: plasma diagnostics, digital-twin state, and audit records leaving the machine for analysis. That flow crosses a <a href=./unidirectional-data-diodes.html>unidirectional data diode</a> so a compromised IT side cannot inject into OT. The rare reverse flow (a validated model update, a new control policy) uses a separate, tightly gated path with two-person authorization; see <a href=./airgaps-and-bridging.html>air gaps and controlled bridging</a>."
+   ],
+   [
+    "h3",
+    "Relation to the Purdue reference"
+   ],
+   [
+    "p",
+    "The split is aligned to the <a href=./purdue-model-segmentation.html>Purdue segmentation model</a>: enterprise levels (4/5) live in IT, control levels (0-3) in OT, and the boundary sits at the level 3.5 industrial demilitarized zone. Kronos hardens that DMZ into a diode-plus-broker pair rather than a conventional firewall pair."
+   ],
+   [
+    "p",
+    "Design status: the logical separation and boundary policy are implemented in the twin environment. The physical two-network build, diode hardware, and duplicated OT infrastructure are specified for the FOAK plant from Q2 2027 and not yet deployed on operating hardware."
+   ]
+  ],
+  "related": [
+   [
+    "purdue-model-segmentation",
+    "Purdue Model Segmentation"
+   ],
+   [
+    "unidirectional-data-diodes",
+    "Unidirectional Data Diodes"
+   ],
+   [
+    "airgaps-and-bridging",
+    "Air Gaps and Bridging"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "purdue-model-segmentation",
+  "title": "Purdue Model Segmentation for the Plant",
+  "cat": "security",
+  "lede": "The plant network is layered into Purdue levels 0 to 5 with a hardened level 3.5 DMZ, so a breach at one level cannot traverse directly to the physics.",
+  "body": [
+   [
+    "h2",
+    "Levels 0 through 5"
+   ],
+   [
+    "p",
+    "The Purdue Enterprise Reference Architecture partitions an industrial system into levels. Kronos maps them explicitly for both machines:"
+   ],
+   [
+    "ul",
+    [
+     "Level 0: field devices - magnet coils, gas valves, gyrotrons, NBI, diagnostics sensors, direct-energy-conversion grids on the burner.",
+     "Level 1: real-time control - the L1 fast loop on edge FPGAs closing plasma shape/position at sub-millisecond cadence.",
+     "Level 2: supervisory control - discharge sequencing, the operator HMI, the L3 KRONOS-CTRL digital twin runtime.",
+     "Level 3: site operations - historian, batch coordination, byproduct-material accountancy.",
+     "Level 3.5: industrial DMZ - the only crossing to enterprise.",
+     "Levels 4/5: enterprise IT and external L7 API."
+    ]
+   ],
+   [
+    "h3",
+    "The 3.5 DMZ as a chokepoint"
+   ],
+   [
+    "p",
+    "All north-south traffic funnels through level 3.5. Rather than a pair of firewalls, Kronos places a <a href=./unidirectional-data-diodes.html>data diode</a> for outbound telemetry and a small, formally reviewed broker for the rare inbound update. This makes the DMZ a place where every crossing is enumerable and auditable, feeding the <a href=./decision-audit-lineage.html>decision-audit lineage</a>."
+   ],
+   [
+    "h3",
+    "East-west containment"
+   ],
+   [
+    "p",
+    "Purdue levels alone do not stop lateral movement within a level. Kronos adds <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> so that, for example, the magnet power-supply controller and the gas-injection controller cannot address each other even though both sit at level 1. The default east-west rule is deny."
+   ],
+   [
+    "h3",
+    "Safety carve-out"
+   ],
+   [
+    "p",
+    "The safety-instrumented system is not merely a Purdue level 1 peer. It is isolated further (see <a href=./safety-instrumented-system-isolation.html>SIS isolation</a>) so that no path through levels 1-3 can defeat an independent shutdown. Segmentation is a designed layout validated in the twin network model; the physical cabling, VLAN enforcement, and DMZ appliances are staged for FOAK, not yet live."
+   ]
+  ],
+  "related": [
+   [
+    "it-ot-separation",
+    "IT/OT Separation"
+   ],
+   [
+    "network-segmentation-microsegmentation",
+    "Microsegmentation"
+   ],
+   [
+    "safety-instrumented-system-isolation",
+    "SIS Isolation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "unidirectional-data-diodes",
+  "title": "Unidirectional Data Diodes",
+  "cat": "security",
+  "lede": "A hardware data diode enforces one-way flow at the physics layer: telemetry leaves OT for analysis while no bit can travel back into the machine.",
+  "body": [
+   [
+    "h2",
+    "Enforcement in hardware, not policy"
+   ],
+   [
+    "p",
+    "A data diode passes light or electrons in one direction only - typically a transmit-only fiber optic with no receive path physically present. Because the reverse channel does not exist, no software misconfiguration, zero-day, or insider rule change can turn it into a two-way link. Kronos uses diodes at the level 3.5 boundary to export the high-volume, high-value OT telemetry stream (diagnostics, twin state, audit lineage) to IT and offsite analysis while guaranteeing the machine cannot be commanded through that path."
+   ],
+   [
+    "h3",
+    "Solving the TCP problem"
+   ],
+   [
+    "p",
+    "Most protocols need acknowledgements, which a strict diode forbids. Kronos uses a proxy pair: a send-side agent in OT terminates the local TCP session, serializes data with forward error correction, and streams it across the diode; a receive-side agent in IT reconstructs and re-offers it. Reliability is bought with redundancy, not back-channels."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Diode send-side framing (conceptual)\n# No ACKs cross the diode; loss is masked by FEC + sequence gaps.\ndef diode_send(record):\n    frame = serialize(record)                 # canonical bytes\n    frame += reed_solomon_parity(frame, k=32) # forward error correction\n    for shard in interleave(frame):\n        emit_tx_only(shard, seq=next_seq())   # transmit-only fiber\n    # receiver detects gaps via seq; cannot request retransmit\n"
+    ]
+   ],
+   [
+    "h3",
+    "What crosses which way"
+   ],
+   [
+    "ul",
+    [
+     "OT -> IT via diode: plasma diagnostics, KRONOS-CTRL twin snapshots, control-decision audit lineage, material-accountancy logs.",
+     "IT -> OT: never over the diode. Model and policy updates use the separate gated broker with two-person control - see <a href=./airgaps-and-bridging.html>air gaps and bridging</a>.",
+     "Integrity: exported records are signed on the OT side so IT can verify origin without a return channel."
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "Diode framing, FEC, and the proxy pair are implemented and tested against the digital twin's telemetry firehose. The physical diode hardware is specified for the FOAK boundary build; today the one-way constraint is emulated so downstream analytics and the <a href=./immutable-audit-log.html>immutable audit log</a> can be exercised end to end."
+   ]
+  ],
+  "related": [
+   [
+    "it-ot-separation",
+    "IT/OT Separation"
+   ],
+   [
+    "airgaps-and-bridging",
+    "Air Gaps and Bridging"
+   ],
+   [
+    "immutable-audit-log",
+    "Immutable Audit Log"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "airgaps-and-bridging",
+  "title": "Air Gaps and Controlled Bridging",
+  "cat": "security",
+  "lede": "The safety and control core is air-gapped from routable networks; the rare crossing to update a model or policy is a deliberate, two-person, fully logged event.",
+  "body": [
+   [
+    "h2",
+    "What is air-gapped and why"
+   ],
+   [
+    "p",
+    "The innermost control and safety domain - the L1 fast loop, the safety-instrumented system, and the master interlock chain - has no routable connection to any wider network during operation. An air gap is the strongest available containment: an attacker on the enterprise or even the OT supervisory network has no packet path to these nodes. For a machine holding a 9.86 MA plasma (breeder) or a 26.49 T plug (burner), that guarantee is worth the operational friction it imposes."
+   ],
+   [
+    "h3",
+    "The problem air gaps create"
+   ],
+   [
+    "p",
+    "A pure air gap makes legitimate updates hard: new control policies, retrained models from the digital twin, calibration tables, and firmware all need to cross it eventually. Historically this is where air gaps fail - via unmanaged USB media or a temporary cable that becomes permanent. Kronos treats every crossing as a named, ceremony-governed event rather than an ad hoc convenience."
+   ],
+   [
+    "h3",
+    "The bridging ceremony"
+   ],
+   [
+    "ul",
+    [
+     "Payload is built and signed on the IT side; provenance is recorded (see <a href=./sbom-and-provenance.html>SBOM and provenance</a>).",
+     "A one-way import station verifies signatures, scans, and re-signs with an OT-domain key.",
+     "Two authorized staff with distinct roles must both approve - see <a href=./separation-of-duties.html>separation of duties</a>.",
+     "The import is time-boxed; the transfer medium is single-use and inventoried.",
+     "Every step lands in the <a href=./decision-audit-lineage.html>decision-audit lineage</a> with operator identities and hashes."
+    ]
+   ],
+   [
+    "h3",
+    "Distinction from data diodes"
+   ],
+   [
+    "p",
+    "The <a href=./unidirectional-data-diodes.html>data diode</a> handles continuous OT-to-IT export. The air-gap bridge handles the opposite, rare, high-consequence direction: bringing a vetted artifact in. They are different mechanisms for different flows and are never collapsed into a single bidirectional link."
+   ],
+   [
+    "p",
+    "Design status: the ceremony, import-station verification, and dual-approval workflow are implemented in the twin/staging environment. The physically air-gapped control room build is part of the FOAK plant scope from Q2 2027; nothing here runs against a live reactor yet."
+   ]
+  ],
+  "related": [
+   [
+    "unidirectional-data-diodes",
+    "Unidirectional Data Diodes"
+   ],
+   [
+    "separation-of-duties",
+    "Separation of Duties"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "network-segmentation-microsegmentation",
+  "title": "Microsegmentation of the OT Network",
+  "cat": "security",
+  "lede": "Beyond coarse zones, every controller pair is placed in its own micro-perimeter, so lateral movement between two OT nodes requires an explicit allow rule that mostly does not exist.",
+  "body": [
+   [
+    "h2",
+    "Zones are not enough"
+   ],
+   [
+    "p",
+    "Purdue levels stop north-south traversal but leave east-west movement inside a level open. An attacker who lands on one supervisory host will try to reach peers. Microsegmentation shrinks the perimeter to the individual workload: the magnet power-supply controller, the gas-injection controller, each diagnostic acquisition node, and each edge FPGA gets its own policy identity, and the default rule between any two is deny."
+   ],
+   [
+    "h3",
+    "Identity-based, not IP-based"
+   ],
+   [
+    "p",
+    "Rules are written against cryptographic workload identity (see <a href=./zero-trust-identity.html>zero-trust identity</a>), not IP addresses, so re-cabling or DHCP churn cannot silently open a path. A flow is permitted only when the source identity, destination identity, port, and current plant mode all match an allow entry."
+   ],
+   [
+    "matrix",
+    [
+     "Allowed OT flows (rows=source, cols=dest): 1=allow 0=deny",
+     [
+      [
+       "1",
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "0",
+       "1"
+      ],
+      [
+       "0",
+       "0",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "0",
+       "0",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "In the matrix above the four workloads are, in order, the L1 shape controller, the magnet supply, the gas-injection node, and the historian. Note the historian (last column) receives from many but originates to none - a sink, never a source into control."
+   ],
+   [
+    "h3",
+    "Policy as code"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Microsegmentation allow-list evaluated per connection\ndef permit(flow, plant_mode):\n    rule = policy.lookup(src=flow.src_id, dst=flow.dst_id, port=flow.port)\n    if rule is None:\n        return DENY                      # default deny\n    if plant_mode not in rule.modes:     # e.g. no reconfig during a discharge\n        return DENY\n    audit(flow, rule.id, plant_mode)     # every decision is logged\n    return ALLOW\n"
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "The policy engine and identity-keyed allow-lists run in the twin OT network. Enforcement points (host firewalls, smart NICs, switch ACLs) are specified for FOAK. The blast-radius intent - one compromised node cannot reach the interlock chain - is validated by simulation, not yet by an operating plant."
+   ]
+  ],
+  "related": [
+   [
+    "purdue-model-segmentation",
+    "Purdue Model Segmentation"
+   ],
+   [
+    "zero-trust-identity",
+    "Zero-Trust Identity"
+   ],
+   [
+    "anomaly-detection-ot",
+    "OT Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "zero-trust-identity",
+  "title": "Zero-Trust Identity and Mutual TLS",
+  "cat": "security",
+  "lede": "Every workload, FPGA node, and service holds a short-lived cryptographic identity and proves it on every connection, so trust follows the credential, not the wire.",
+  "body": [
+   [
+    "h2",
+    "Machine identity as the primitive"
+   ],
+   [
+    "p",
+    "In a zero-trust plant, the unit of trust is not a network but a verified identity. Each service, controller, and edge FPGA is issued an X.509-style certificate bound to its attested state. Peers authenticate each other with mutual TLS on every connection - there is no anonymous or one-sided handshake anywhere in OT. A stolen IP or a spoofed MAC buys nothing without the private key, and the private key never leaves the hardware that holds it."
+   ],
+   [
+    "h3",
+    "Short-lived credentials"
+   ],
+   [
+    "p",
+    "Certificates are deliberately short-lived (hours, not years) and issued by an OT-internal certificate authority. Short lifetimes limit the value of a leaked key and force continuous re-attestation: to renew, a node must again prove its firmware measurement matches policy (see <a href=./remote-attestation-fpga.html>remote attestation</a>). Revocation is fast because expiry does most of the work."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Issuance couples identity to attestation state\ndef issue_cert(node):\n    quote = node.get_attestation_quote()          # signed PCR/measurement\n    if not verify_measurement(quote, policy.golden(node.role)):\n        raise Deny('attestation mismatch')        # unknown firmware -> no cert\n    csr = node.make_csr()\n    return ca.sign(csr, ttl_hours=8, spiffe_id=node.workload_id)\n"
+    ]
+   ],
+   [
+    "h3",
+    "Binding identity to authorization"
+   ],
+   [
+    "p",
+    "Authentication answers who; authorization answers what they may do now. The verified identity is the input to per-request policy in <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> and to role checks in <a href=./privileged-access-management.html>privileged access management</a>. A controller that has proven its identity still cannot, say, command a magnet ramp unless its role and the current plant mode permit it."
+   ],
+   [
+    "h3",
+    "Human identity too"
+   ],
+   [
+    "p",
+    "Operators authenticate with hardware-backed multi-factor credentials; there are no shared accounts on control systems. Every human action is attributable, which is what makes the <a href=./decision-audit-lineage.html>decision-audit lineage</a> and the <a href=./insider-threat-model.html>insider-threat model</a> tractable."
+   ],
+   [
+    "p",
+    "Design status: the CA, mTLS mesh, and attestation-coupled issuance are implemented in the twin environment. Hardware key stores on the FOAK FPGAs and the production CA are staged for the Q2 2027 build."
+   ]
+  ],
+  "related": [
+   [
+    "remote-attestation-fpga",
+    "Remote Attestation"
+   ],
+   [
+    "privileged-access-management",
+    "Privileged Access Management"
+   ],
+   [
+    "secrets-and-key-management",
+    "Secrets and Key Management"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "secure-boot-edge-fpga",
+  "title": "Secure Boot for Edge FPGAs",
+  "cat": "security",
+  "lede": "Every edge FPGA that closes a control loop boots only cryptographically verified firmware, from an immutable root of trust to the running bitstream.",
+  "body": [
+   [
+    "h2",
+    "Why the edge FPGAs are the crown jewels"
+   ],
+   [
+    "p",
+    "The L1 fast control loop runs on FPGAs at the machine edge because plasma shape and position on the breeder (9.86 MA, delta -0.30) and mirror/plug control on the burner demand deterministic sub-millisecond response. That places these devices directly on the actuation path. If an attacker can substitute the bitstream, they own the actuators. Secure boot ensures the device will refuse to run anything not signed by Kronos."
+   ],
+   [
+    "h3",
+    "The chain of trust"
+   ],
+   [
+    "ul",
+    [
+     "Root of trust: an immutable boot ROM and fused public-key hash the device manufacturer cannot rewrite in the field.",
+     "First-stage bootloader: verified against the fused key before execution.",
+     "Bitstream: encrypted and authenticated (see <a href=./fpga-bitstream-integrity.html>bitstream integrity</a>); a failed signature halts boot.",
+     "Runtime measurement: each stage measures the next into a protected register for later <a href=./remote-attestation-fpga.html>attestation</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Measured, verified boot (conceptual, per stage)\ndef boot_stage(image, next_pubkey_in_image):\n    if not verify_sig(image, key=fused_root_pubkey if stage==0 else prev_key):\n        halt('signature failure')          # fail closed, do not run\n    measure_extend(pcr, sha384(image))     # accumulate measurement\n    key = extract_pubkey(image)            # key for the next stage\n    exec_verified(image)\n    return key\n"
+    ]
+   ],
+   [
+    "h3",
+    "Fail-closed, not fail-open"
+   ],
+   [
+    "p",
+    "A verification failure never falls back to an unverified image. The node halts and signals the supervisor, which treats the missing node as a fault and drives the machine toward a safe state via the independent <a href=./safety-instrumented-system-isolation.html>safety-instrumented system</a>. A dead controller is safe; a subverted one is not."
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "Secure-boot logic, measured-boot extension, and fail-closed handling are implemented and tested on development FPGA boards and in the twin. The fused production keys and field-locked ROM configuration are part of the FOAK hardware provisioning; no live-reactor FPGA is yet in service."
+   ]
+  ],
+  "related": [
+   [
+    "fpga-bitstream-integrity",
+    "FPGA Bitstream Integrity"
+   ],
+   [
+    "remote-attestation-fpga",
+    "Remote Attestation"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "remote-attestation-fpga",
+  "title": "Remote Attestation of Control Nodes",
+  "cat": "security",
+  "lede": "Before the plant will speak to an edge FPGA, the node must prove - with a signed measurement - that it is running exactly the firmware policy expects.",
+  "body": [
+   [
+    "h2",
+    "Trust, but verify continuously"
+   ],
+   [
+    "p",
+    "Secure boot ensures a node runs only signed firmware; remote attestation lets the rest of the plant confirm which signed firmware, and that it has not been rolled back to a known-vulnerable version. Each node accumulates a measurement of its boot chain (see <a href=./secure-boot-edge-fpga.html>secure boot</a>) into a protected register and can produce a signed quote of that measurement on demand. A verifier compares the quote to a golden value for the node's role."
+   ],
+   [
+    "h3",
+    "The attestation exchange"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Verifier side: gate all access on a fresh, matching quote\ndef attest(node):\n    nonce = random_nonce()                       # anti-replay\n    quote = node.quote(nonce)                     # signed by device key\n    if not verify_sig(quote, node.ek_pub):        # genuine device?\n        return REJECT\n    if quote.nonce != nonce:                       # fresh, not replayed?\n        return REJECT\n    if quote.measurement != golden(node.role):    # expected firmware?\n        return REJECT\n    if quote.fw_version < policy.min_version:      # no rollback\n        return REJECT\n    return ACCEPT\n"
+    ]
+   ],
+   [
+    "h3",
+    "Coupled to identity issuance"
+   ],
+   [
+    "p",
+    "Attestation is not a one-time gate. Because control-node certificates are short-lived (see <a href=./zero-trust-identity.html>zero-trust identity</a>), every renewal re-runs attestation. A node whose firmware is tampered mid-operation fails its next renewal within hours and is cut off; peers stop accepting its mTLS sessions and the supervisor treats it as failed and drives toward a safe state. This continuous re-verification is what turns a static boot check into an ongoing property of the running plant."
+   ],
+   [
+    "h3",
+    "Freshness and rollback protection"
+   ],
+   [
+    "p",
+    "Two properties beyond a matching measurement are essential. A nonce ensures the quote is fresh, so an attacker cannot replay a previously valid quote from a since-tampered node. A monotonic firmware-version check ensures a validly signed but older, known-vulnerable image is rejected even though its signature verifies - a valid signature never means a safe artifact. Both are enforced by the verifier before any actuation path is opened to the node, and both feed the <a href=./decision-audit-lineage.html>decision-audit lineage</a> so that every accepted node's attested state is on the record."
+   ],
+   [
+    "h3",
+    "Truth table of the decision"
+   ],
+   [
+    "truth",
+    [
+     [
+      "sig ok",
+      "fresh",
+      "measurement match",
+      "ACCEPT"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "The attestation protocol, nonce handling, rollback protection, and verifier are implemented against development boards and the twin. Production device endorsement keys and the golden-measurement registry are provisioned during the FOAK build; attestation is not yet gating a live reactor's actuators."
+   ]
+  ],
+  "related": [
+   [
+    "secure-boot-edge-fpga",
+    "Secure Boot for Edge FPGAs"
+   ],
+   [
+    "zero-trust-identity",
+    "Zero-Trust Identity"
+   ],
+   [
+    "fpga-bitstream-integrity",
+    "FPGA Bitstream Integrity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fpga-bitstream-integrity",
+  "title": "FPGA Bitstream Encryption and Authentication",
+  "cat": "security",
+  "lede": "Control-loop bitstreams are both encrypted and authenticated, so an attacker can neither read the design nor load a modified one onto a Kronos control FPGA.",
+  "body": [
+   [
+    "h2",
+    "Two distinct guarantees"
+   ],
+   [
+    "p",
+    "Bitstream security needs two separable properties. Encryption (confidentiality) stops an adversary from reverse-engineering the control design or extracting embedded secrets by reading flash or sniffing the configuration bus. Authentication (integrity) stops an adversary from loading a bitstream Kronos did not produce. Encryption alone is not enough: without an authentication tag, a malleable ciphertext can be altered. Kronos requires authenticated encryption on every configuration load."
+   ],
+   [
+    "h3",
+    "Order of operations"
+   ],
+   [
+    "p",
+    "The device authenticates before it decrypts and configures - a fail-closed order. If the authentication tag over the encrypted bitstream does not verify against the device's provisioned key, configuration is refused and the node halts, feeding the same fail-closed path as <a href=./secure-boot-edge-fpga.html>secure boot</a>."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Load path: verify then decrypt (authenticated encryption, e.g. AES-GCM)\ndef load_bitstream(blob):\n    hdr, ct, tag = parse(blob)\n    if not aead_verify(ct, tag, key=device_key, aad=hdr):\n        halt('bitstream auth failed')     # refuse before decrypt\n    plain = aead_decrypt(ct, key=device_key)\n    if hdr.design_id not in policy.allowed_designs:\n        halt('unexpected design id')\n    configure_fabric(plain)\n"
+    ]
+   ],
+   [
+    "h3",
+    "Key handling"
+   ],
+   [
+    "ul",
+    [
+     "Bitstream keys are provisioned into device key stores and never exit the device; see <a href=./secrets-and-key-management.html>secrets and key management</a>.",
+     "Each device (or small batch) has a distinct key so one extracted key does not compromise the fleet.",
+     "Rollback of a bitstream to an older, signed-but-vulnerable version is blocked by a monotonic version field checked at load and re-checked in <a href=./remote-attestation-fpga.html>attestation</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "Authenticated-encryption load logic and version-monotonicity checks are implemented on development boards and modeled in the twin. Per-device key provisioning and the tamper-resistant key store are part of FOAK hardware manufacturing; no production reactor FPGA is yet fielded."
+   ]
+  ],
+  "related": [
+   [
+    "secure-boot-edge-fpga",
+    "Secure Boot for Edge FPGAs"
+   ],
+   [
+    "remote-attestation-fpga",
+    "Remote Attestation"
+   ],
+   [
+    "supply-chain-security",
+    "Supply-Chain Security"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "decision-audit-lineage",
+  "title": "Full Decision-Audit Lineage",
+  "cat": "security",
+  "lede": "Every control decision is traceable from actuator command back through the model, its inputs, and the code and data versions that produced it - a complete, replayable chain.",
+  "body": [
+   [
+    "h2",
+    "Why lineage, not just logs"
+   ],
+   [
+    "p",
+    "A conventional log tells you what happened. Lineage tells you why, in a form you can replay. When an autonomy layer or an operator drives a magnet ramp on the breeder or a plug-field adjustment on the burner, Kronos records not only the command but the exact model version, the sensor snapshot that fed it, the policy that authorized it, and the code and configuration hashes in effect. This is essential for a machine that makes fast decisions faster than a human can review them, and for regulators who must reconstruct events."
+   ],
+   [
+    "h3",
+    "What a lineage record contains"
+   ],
+   [
+    "ul",
+    [
+     "The actuator command and its timestamp, signed by the issuing node's identity.",
+     "The input state vector (diagnostics snapshot / twin state) by content hash.",
+     "The model or controller version and its bitstream/model hash.",
+     "The authorizing policy id and, for human actions, the operator identity.",
+     "The parent decisions this one depended on - forming a directed acyclic graph."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Each decision emits a signed, hash-linked lineage node\ndef record_decision(cmd, state, model, policy_id, parents):\n    rec = {\n      'cmd': cmd, 't': now_ns(),\n      'state_hash': sha384(canonical(state)),\n      'model_hash': model.hash, 'policy': policy_id,\n      'parents': [p.id for p in parents],       # builds the DAG\n      'issuer': node.workload_id,\n    }\n    rec['id'] = sha384(canonical(rec))\n    rec['sig'] = node.sign(rec['id'])\n    append_immutable(rec)                         # to the audit log\n    return rec\n"
+    ]
+   ],
+   [
+    "h3",
+    "Replay and accountability"
+   ],
+   [
+    "p",
+    "Because inputs are content-addressed, any decision can be re-run against the same state in the <a href=./digital-twin-security.html>digital twin</a> to confirm the model would produce the same output - distinguishing a model error from tampering or a hardware fault. The chain is written to the <a href=./immutable-audit-log.html>immutable audit log</a> and exported via the <a href=./unidirectional-data-diodes.html>data diode</a>."
+   ],
+   [
+    "p",
+    "Design status: the lineage schema, DAG linking, and replay harness are implemented against the twin. On a live plant the same records would be generated at control-loop cadence; the throughput and storage design is validated in simulation, not yet under reactor operation."
+   ]
+  ],
+  "related": [
+   [
+    "immutable-audit-log",
+    "Immutable Audit Log"
+   ],
+   [
+    "digital-twin-security",
+    "Digital Twin Security"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "immutable-audit-log",
+  "title": "Immutable, Tamper-Evident Audit Log",
+  "cat": "security",
+  "lede": "Audit records are written to an append-only, hash-chained store so any alteration or deletion is cryptographically detectable after the fact.",
+  "body": [
+   [
+    "h2",
+    "Append-only by construction"
+   ],
+   [
+    "p",
+    "The audit log holds the decision lineage, access events, attestation results, and boundary crossings. Its value depends on being trustworthy after an incident, when an attacker or a careless insider might want to rewrite history. Kronos makes the log append-only and tamper-evident: each entry commits to the hash of the previous entry, forming a chain whose head is periodically anchored so that removing or editing any record breaks verification."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Hash-chained append; verification catches any edit or gap\ndef append(entry):\n    entry['prev'] = head_hash()\n    entry['idx']  = next_index()\n    entry['h']    = sha384(canonical(entry))\n    store.write_wo(entry)          # write-once medium / WORM\n    set_head(entry['h'])\n\ndef verify(chain):\n    for i, e in enumerate(chain):\n        assert e['idx'] == i\n        assert e['h'] == sha384(canonical({k:e[k] for k in e if k!='h'}))\n        assert i == 0 or e['prev'] == chain[i-1]['h']  # unbroken chain\n"
+    ]
+   ],
+   [
+    "h3",
+    "Beyond a single log"
+   ],
+   [
+    "ul",
+    [
+     "Write-once (WORM) media on the OT side so operators cannot overwrite entries.",
+     "Periodic anchoring: the chain head is co-signed by two custodians and mirrored offsite via the <a href=./unidirectional-data-diodes.html>diode</a>, so a local rewrite conflicts with the external anchor.",
+     "Independent from the control plane: an attacker who owns a controller still cannot silently rewrite the log's history without breaking hashes others hold."
+    ]
+   ],
+   [
+    "h3",
+    "What tamper-evident does and does not give"
+   ],
+   [
+    "p",
+    "Tamper-evident is not tamper-proof: a sufficiently privileged attacker can still delete forward, but they cannot do so undetectably, and they cannot alter past entries without invalidating every subsequent hash and the external anchors. That detectability is what makes the <a href=./decision-audit-lineage.html>decision-audit lineage</a> admissible for incident reconstruction and regulatory review."
+   ],
+   [
+    "p",
+    "Design status: hash-chaining, verification, and anchoring are implemented and run against twin-generated audit streams. WORM hardware and the offsite anchor custodianship are provisioned in the FOAK build."
+   ]
+  ],
+  "related": [
+   [
+    "decision-audit-lineage",
+    "Decision-Audit Lineage"
+   ],
+   [
+    "secrets-and-key-management",
+    "Secrets and Key Management"
+   ],
+   [
+    "incident-response-ot",
+    "OT Incident Response"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "post-quantum-cryptography",
+  "title": "Post-Quantum Cryptography: Overview",
+  "cat": "security",
+  "lede": "Kronos plants are designed to outlive the arrival of cryptographically relevant quantum computers, so long-lived keys and signatures move to quantum-resistant algorithms now.",
+  "body": [
+   [
+    "h2",
+    "The harvest-now, decrypt-later threat"
+   ],
+   [
+    "p",
+    "A reactor commissioned near 2030 will operate for decades. Data and credentials it produces today may be captured now and decrypted later once a large quantum computer can run Shor's algorithm against RSA and elliptic-curve schemes. For confidentiality of long-lived exported records, and for signatures on firmware and audit anchors that must remain verifiable for the plant's life, Kronos adopts NIST-standardized post-quantum algorithms and treats classical public-key crypto as a legacy fallback."
+   ],
+   [
+    "h3",
+    "Where PQC matters most"
+   ],
+   [
+    "ul",
+    [
+     "Firmware and bitstream signatures that must stay valid for 20+ years - see <a href=./pqc-signatures-ml-dsa.html>PQC signatures</a>.",
+     "Key exchange protecting exported telemetry and byproduct-material records - see <a href=./pqc-key-exchange-ml-kem.html>PQC key exchange</a>.",
+     "Audit-log anchoring signatures whose forgeability would undermine incident reconstruction.",
+     "Long-term identity roots in the OT certificate authority."
+    ]
+   ],
+   [
+    "h3",
+    "Symmetric crypto is largely fine"
+   ],
+   [
+    "p",
+    "Grover's algorithm only quadratically speeds up brute force, so AES-256 and SHA-384 retain adequate margin. The urgent migration is in the public-key layer: key establishment and digital signatures. Kronos therefore pairs quantum-safe key exchange and signatures with strong symmetric primitives, and adopts hybrids during transition (see <a href=./crypto-agility.html>crypto agility</a>)."
+   ],
+   [
+    "h3",
+    "Standards baseline"
+   ],
+   [
+    "p",
+    "The baseline algorithms are the NIST FIPS 203/204/205 families: ML-KEM for key encapsulation, ML-DSA for lattice signatures, and SLH-DSA (hash-based) for the most conservative long-term signatures such as firmware roots. Choosing a hash-based option for the highest-assurance roots hedges against a future break in lattice assumptions."
+   ],
+   [
+    "p",
+    "Design status: PQC primitives are integrated into the twin's transport and signing paths and interoperability-tested. Fielding them on FOAK hardware, including FPGA-side verification cost, is part of the Q2 2027 build; no production reactor is yet running these keys."
+   ]
+  ],
+  "related": [
+   [
+    "pqc-key-exchange-ml-kem",
+    "PQC Key Exchange (ML-KEM)"
+   ],
+   [
+    "pqc-signatures-ml-dsa",
+    "PQC Signatures (ML-DSA/SLH-DSA)"
+   ],
+   [
+    "crypto-agility",
+    "Crypto Agility"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pqc-key-exchange-ml-kem",
+  "title": "Post-Quantum Key Exchange with ML-KEM",
+  "cat": "security",
+  "lede": "Confidential channels use ML-KEM in a hybrid with an elliptic-curve exchange, so a session stays secure unless both the classical and the quantum-safe scheme fail.",
+  "body": [
+   [
+    "h2",
+    "Lattice-based key encapsulation"
+   ],
+   [
+    "p",
+    "ML-KEM (FIPS 203, from CRYSTALS-Kyber) is a module-lattice key-encapsulation mechanism. One party publishes a public key; the other encapsulates a random shared secret to it and returns a ciphertext; both derive the same symmetric key. Its security rests on the hardness of the module learning-with-errors problem, which no known quantum algorithm breaks efficiently. Kronos uses it to establish the symmetric keys protecting exported telemetry and cross-boundary sessions."
+   ],
+   [
+    "h3",
+    "Hybrid, not replacement"
+   ],
+   [
+    "p",
+    "During transition Kronos runs a hybrid: the session key is derived from both an X25519 (classical) exchange and an ML-KEM encapsulation. An attacker must break both to recover the key. This guards against an as-yet-undiscovered flaw in the newer lattice scheme while still defeating a future quantum adversary against the classical half."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Hybrid key derivation: classical XOR quantum-safe, both required\ndef hybrid_session_key(peer):\n    ss_classical = x25519(our_eph_priv, peer.x25519_pub)   # ECDH\n    ct, ss_pq    = ml_kem_encaps(peer.mlkem_pub)           # FIPS 203\n    send(ct)\n    # Both secrets feed the KDF; compromise of one is not enough\n    return hkdf_sha384(ss_classical + ss_pq, info=b'kronos-ot-v1')\n"
+    ]
+   ],
+   [
+    "h3",
+    "Parameter choice and cost"
+   ],
+   [
+    "ul",
+    [
+     "Category-3 parameters (ML-KEM-768) balance margin against the larger key/ciphertext sizes lattice schemes carry.",
+     "Larger handshakes cost bandwidth; on the diode export path this is budgeted and acceptable.",
+     "On resource-limited FPGA links, key reuse windows and session lifetimes are tuned to keep handshake overhead bounded - see <a href=./crypto-agility.html>crypto agility</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "Hybrid ML-KEM is implemented in the twin's transport layer and tested for interoperability and performance. Deployment on FOAK OT links and validation of handshake cost on the edge FPGAs is part of the 2027 build; no live reactor uses it yet."
+   ]
+  ],
+  "related": [
+   [
+    "post-quantum-cryptography",
+    "Post-Quantum Cryptography"
+   ],
+   [
+    "pqc-signatures-ml-dsa",
+    "PQC Signatures"
+   ],
+   [
+    "secrets-and-key-management",
+    "Secrets and Key Management"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pqc-signatures-ml-dsa",
+  "title": "Post-Quantum Signatures: ML-DSA and SLH-DSA",
+  "cat": "security",
+  "lede": "Firmware, bitstreams, and audit anchors are signed with quantum-resistant schemes so their authenticity survives long past the machine's commissioning.",
+  "body": [
+   [
+    "h2",
+    "Two families for two risk appetites"
+   ],
+   [
+    "p",
+    "Signatures must remain verifiable for the whole life of a signed artifact. A bitstream signed in 2030 must still be trustworthy in 2050. Kronos uses two post-quantum signature families. ML-DSA (FIPS 204, from CRYSTALS-Dilithium) is a lattice scheme with small signatures and fast verification, used for high-frequency signing such as the <a href=./decision-audit-lineage.html>decision lineage</a> and short-lived identities. SLH-DSA (FIPS 205, stateless hash-based) is slower with larger signatures but rests only on hash-function security, so it anchors the most conservative long-term roots."
+   ],
+   [
+    "h3",
+    "Where each is used"
+   ],
+   [
+    "matrix",
+    [
+     "Signature scheme by use (rows=use, cols=ML-DSA/SLH-DSA), 1=chosen",
+     [
+      [
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Rows above: per-decision lineage signing, firmware root of trust, short-lived node identity, and audit-log anchoring. The high-frequency, low-latency uses take ML-DSA; the long-lived, break-glass roots take hash-based SLH-DSA to hedge against a future lattice weakness."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Verify a firmware image against a hash-based long-term root\ndef verify_firmware(img):\n    if not slh_dsa_verify(img.bytes, img.sig, root_pub):  # FIPS 205\n        halt('firmware signature invalid')                 # fail closed\n    if img.version < policy.min_version:\n        halt('rollback blocked')\n    return True\n"
+    ]
+   ],
+   [
+    "h3",
+    "Cost trade-off on the edge"
+   ],
+   [
+    "ul",
+    [
+     "SLH-DSA signatures are large (kilobytes) and verification is heavier - acceptable at boot, not per control cycle.",
+     "ML-DSA is compact enough to sign at lineage cadence and verify inside short-lived identity renewal.",
+     "FPGA verification cost is a real constraint and is being measured during the FOAK hardware program - see <a href=./secure-boot-edge-fpga.html>secure boot</a>."
+    ]
+   ],
+   [
+    "p",
+    "Design status: both signature families are integrated into the twin's signing/verification paths. On-device verification budgets for FOAK FPGAs are under measurement; no production reactor yet verifies these signatures on live boots."
+   ]
+  ],
+  "related": [
+   [
+    "post-quantum-cryptography",
+    "Post-Quantum Cryptography"
+   ],
+   [
+    "pqc-key-exchange-ml-kem",
+    "PQC Key Exchange"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "crypto-agility",
+  "title": "Crypto Agility and Migration",
+  "cat": "security",
+  "lede": "No algorithm is hard-coded; every key, certificate, and protocol carries an algorithm identifier so schemes can be rotated without redesigning the plant.",
+  "body": [
+   [
+    "h2",
+    "Assume today's algorithms will be retired"
+   ],
+   [
+    "p",
+    "Cryptographic history is a history of deprecations. A plant that hard-codes a cipher will one day need surgery to replace it. Kronos designs for agility: algorithms are named in metadata, negotiated at connection time, and swappable behind stable interfaces. When a scheme weakens - classical or post-quantum - it can be phased out through configuration and re-issuance rather than a rebuild."
+   ],
+   [
+    "h3",
+    "Mechanisms of agility"
+   ],
+   [
+    "ul",
+    [
+     "Algorithm identifiers on every artifact (certs, signatures, encapsulations) so verifiers know what to run.",
+     "Negotiated suites with a policy-driven minimum, so weak options can be disabled centrally.",
+     "Hybrid modes (classical + PQC) as the default during transition - see <a href=./pqc-key-exchange-ml-kem.html>ML-KEM hybrid</a>.",
+     "Short credential lifetimes so a policy change propagates in hours via re-issuance - see <a href=./zero-trust-identity.html>zero-trust identity</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Verifier dispatches by declared algorithm and enforces a floor\ndef verify(artifact):\n    alg = artifact.alg_id\n    if alg not in policy.allowed or policy.strength(alg) < policy.floor:\n        return REJECT               # deprecated schemes fail policy, not code\n    return REGISTRY[alg].verify(artifact)\n"
+    ]
+   ],
+   [
+    "h3",
+    "Migration without downtime"
+   ],
+   [
+    "p",
+    "Because control availability matters, migrations are staged: introduce the new algorithm alongside the old, require both (hybrid), then raise the policy floor to retire the old one once every node presents the new. The <a href=./immutable-audit-log.html>audit log</a> records the transition so verification of historical artifacts still resolves the algorithm they were signed with."
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "The algorithm registry, negotiation, and policy-floor enforcement are implemented in the twin. The migration playbook is exercised in simulation by rotating a suite end to end; it has not yet been run against live reactor hardware, which begins with the FOAK build."
+   ]
+  ],
+  "related": [
+   [
+    "post-quantum-cryptography",
+    "Post-Quantum Cryptography"
+   ],
+   [
+    "pqc-signatures-ml-dsa",
+    "PQC Signatures"
+   ],
+   [
+    "secrets-and-key-management",
+    "Secrets and Key Management"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "insider-threat-model",
+  "title": "Insider-Threat Model",
+  "cat": "security",
+  "lede": "The design assumes a privileged insider may turn malicious or be coerced, and limits what any single trusted person can do without a second party detecting or blocking it.",
+  "body": [
+   [
+    "h2",
+    "The hardest adversary"
+   ],
+   [
+    "p",
+    "External controls do little against someone already trusted: an operator, an engineer with maintenance access, or an administrator of the control systems. A malicious or coerced insider is the hardest adversary because they hold legitimate credentials and knowledge of the machine. Kronos does not pretend to eliminate insiders; it designs so that no single insider can cause an unsafe plasma state or erase their tracks alone."
+   ],
+   [
+    "h3",
+    "Structural mitigations"
+   ],
+   [
+    "ul",
+    [
+     "Separation of duties: consequential actions need two distinct roles - see <a href=./separation-of-duties.html>separation of duties</a>.",
+     "Least privilege and just-in-time access: standing power is minimized - see <a href=./privileged-access-management.html>privileged access management</a>.",
+     "Attributable actions: no shared accounts; every action is bound to an identity in the <a href=./decision-audit-lineage.html>lineage</a>.",
+     "Independent safety path: the <a href=./safety-instrumented-system-isolation.html>safety-instrumented system</a> is out of the control administrators' reach.",
+     "Tamper-evident records: an insider cannot rewrite the <a href=./immutable-audit-log.html>audit log</a> undetectably."
+    ]
+   ],
+   [
+    "h3",
+    "Threat scenarios considered"
+   ],
+   [
+    "matrix",
+    [
+     "Insider scenario vs mitigating control (1=addressed): cols=SoD/JIT/audit/SIS",
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "0",
+       "1",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Rows: unsafe actuation attempt, credential misuse, covering tracks, and data exfiltration. Unsafe actuation is blocked on multiple axes; exfiltration is caught by audit and constrained by the export-only <a href=./unidirectional-data-diodes.html>diode</a> and least privilege, though a determined insider with legitimate read access remains a residual risk that monitoring, not architecture alone, must address."
+   ],
+   [
+    "h3",
+    "Honest limits"
+   ],
+   [
+    "p",
+    "No design fully stops a sufficiently privileged, patient insider from misusing legitimate read access or from social-engineering a second approver. These residual risks are managed with monitoring, vetting, and rotation, which are organizational, not purely technical. Design status: the technical controls run in the twin; the personnel and vetting program is defined for plant operation and not yet operating."
+   ]
+  ],
+  "related": [
+   [
+    "separation-of-duties",
+    "Separation of Duties"
+   ],
+   [
+    "privileged-access-management",
+    "Privileged Access Management"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "separation-of-duties",
+  "title": "Separation of Duties and Two-Person Control",
+  "cat": "security",
+  "lede": "Consequential actions require two people in distinct roles, so no single credential holder can move the machine to a high-consequence state or bypass safety alone.",
+  "body": [
+   [
+    "h2",
+    "Splitting authority on purpose"
+   ],
+   [
+    "p",
+    "Separation of duties (SoD) divides a sensitive operation so that completing it needs more than one person, and the parties hold different roles. Kronos applies it to the operations whose misuse would matter most: authorizing a cross-boundary import, changing a control policy, disabling a maintenance interlock, or committing a new model to the control plane. One person proposes; a second, in a different role, must approve before the action executes."
+   ],
+   [
+    "h3",
+    "Two-person rule for the machine"
+   ],
+   [
+    "p",
+    "For actions that touch the physics envelope - raising a field toward the breeder's 16.84 T peak or adjusting the burner's 26.49 T plug regime in commissioning - the two approvers must be independent (an operator and a physics-authority role), and the request is time-boxed. Neither approver's credential alone advances the state."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Enforced two-person authorization for consequential actions\ndef authorize(action, approvals):\n    roles = {a.role for a in approvals if a.valid()}\n    need  = policy.required_roles(action.kind)   # e.g. {'operator','physics'}\n    if not need.issubset(roles):\n        return DENY('missing distinct roles')\n    if len({a.identity for a in approvals}) < 2:  # must be two people\n        return DENY('single individual')\n    if action.expired():\n        return DENY('window closed')\n    audit(action, approvals)                       # both identities logged\n    return ALLOW\n"
+    ]
+   ],
+   [
+    "h3",
+    "Why it defeats several threats at once"
+   ],
+   [
+    "ul",
+    [
+     "A single malicious insider cannot act alone - see <a href=./insider-threat-model.html>insider-threat model</a>.",
+     "A single stolen credential is insufficient for high-consequence actions.",
+     "The dual approval and both identities enter the <a href=./decision-audit-lineage.html>lineage</a>, making collusion attributable.",
+     "It gates the <a href=./airgaps-and-bridging.html>air-gap bridge</a> so imports cannot be a solo act."
+    ]
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "The authorization engine, role model, and two-person enforcement run in the twin/staging environment. The mapping of roles to actual plant staff and the physical control-room procedures are defined for FOAK operation and not yet in live use."
+   ]
+  ],
+  "related": [
+   [
+    "insider-threat-model",
+    "Insider-Threat Model"
+   ],
+   [
+    "privileged-access-management",
+    "Privileged Access Management"
+   ],
+   [
+    "airgaps-and-bridging",
+    "Air Gaps and Bridging"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "privileged-access-management",
+  "title": "Privileged Access Management",
+  "cat": "security",
+  "lede": "Standing administrative power is minimized; elevated access is granted just-in-time, scoped, time-boxed, and fully recorded, then automatically revoked.",
+  "body": [
+   [
+    "h2",
+    "No permanent superusers"
+   ],
+   [
+    "p",
+    "Persistent administrative accounts are a standing liability: if compromised, they hand an attacker durable control. Kronos removes standing privilege from control systems. Elevated capability is requested for a specific task, granted for a bounded window, scoped to the minimum systems needed, and revoked automatically when the window closes. The default state of every account is low privilege."
+   ],
+   [
+    "h3",
+    "Just-in-time elevation"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# JIT grant: scoped, time-boxed, second-party approved for high tiers\ndef grant(request):\n    if request.tier == 'high' and not two_person_ok(request):  # SoD\n        return DENY\n    lease = Lease(scope=request.scope,\n                  ttl=min(request.ttl, policy.max_ttl(request.tier)),\n                  identity=request.who)\n    audit('grant', lease)\n    schedule_revoke(lease)       # auto-expire, no manual cleanup needed\n    return lease\n"
+    ]
+   ],
+   [
+    "h3",
+    "Controls layered on top"
+   ],
+   [
+    "ul",
+    [
+     "Scope: a lease opens only the specific controllers or services the task needs, honoring <a href=./network-segmentation-microsegmentation.html>microsegmentation</a>.",
+     "Time-box: leases expire; there is no lingering access to forget to remove.",
+     "Second party for high tiers: elevation to safety-adjacent systems needs <a href=./separation-of-duties.html>separation of duties</a>.",
+     "Session recording: privileged sessions are captured into the <a href=./immutable-audit-log.html>audit log</a>.",
+     "Break-glass: emergency access exists but is loud - it triggers alerts and mandatory review."
+    ]
+   ],
+   [
+    "h3",
+    "Interaction with identity"
+   ],
+   [
+    "p",
+    "Privilege decisions consume the verified identity from <a href=./zero-trust-identity.html>zero-trust identity</a>; a lease is meaningless without a proven, attested principal. Combined with short-lived credentials, a revoked lease takes effect within the credential's brief lifetime."
+   ],
+   [
+    "p",
+    "Design status: the JIT engine, lease lifecycle, and session recording run against the twin. Break-glass procedures and the operator-facing request workflow are defined for plant operation; they are not yet governing access to a live reactor."
+   ]
+  ],
+  "related": [
+   [
+    "separation-of-duties",
+    "Separation of Duties"
+   ],
+   [
+    "zero-trust-identity",
+    "Zero-Trust Identity"
+   ],
+   [
+    "insider-threat-model",
+    "Insider-Threat Model"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-critical-cyber",
+  "title": "Safety-Critical Cyber-Physical Design",
+  "cat": "security",
+  "lede": "Cybersecurity and functional safety are co-designed so that no cyber event - however severe - can prevent the machine from reaching a safe state.",
+  "body": [
+   [
+    "h2",
+    "Safety must survive a full compromise"
+   ],
+   [
+    "p",
+    "The central safety claim is deliberately strong: even if an attacker fully owns the control network, the machine must still be able to reach a safe state. That is only possible if the shutdown path does not depend on the compromised systems. Kronos separates the safety function from the control function and gives safety an independent, simpler, and more assured path to act."
+   ],
+   [
+    "h3",
+    "Independence in depth"
+   ],
+   [
+    "ul",
+    [
+     "The safety-instrumented system is on its own isolated network - see <a href=./safety-instrumented-system-isolation.html>SIS isolation</a>.",
+     "Safety logic is simple and analyzable, not an ML model, so its behavior is provable.",
+     "Actuation for safe shutdown (de-energizing heating, dumping plasma, opening fast gas paths) is triggerable without the control plane's cooperation.",
+     "Fail-closed everywhere: a lost or subverted control node causes the supervisor to move toward, not away from, safe state - see <a href=./secure-boot-edge-fpga.html>secure boot</a>."
+    ]
+   ],
+   [
+    "h3",
+    "The two machines' safe states"
+   ],
+   [
+    "p",
+    "For the breeder (Hyperion), a safe state includes controlled termination of the 9.86 MA discharge and securing tritium/vacuum boundaries. For the burner (Aegis / MetroVolt), it includes de-energizing the high-field plug/throat magnets and stopping D-3He fueling. In both, the safety path can command these independently of the L1/L2 control autonomy."
+   ],
+   [
+    "h3",
+    "Where cyber meets the honest gates"
+   ],
+   [
+    "p",
+    "Candor: the burner's design carries physics gates unrelated to cyber - the plug coil is overstressed roughly 3 to 3.9x at the design bore, its operating regime sits 166-830x beyond any built device, its He-3 fuel demand is ~400x domestic supply per commercial unit, and its availability of 0.86-0.995 is far below hyperscale Tier III's 0.99982. Safety-critical cyber design does not remedy those physics facts; it ensures that whatever machine is eventually built can be driven to a safe state under adversarial conditions."
+   ],
+   [
+    "p",
+    "Design status: the safety/control separation and fail-closed logic are validated in the twin and hardware-in-the-loop rigs. The independent SIS hardware is part of the FOAK build; no live reactor yet exercises it."
+   ]
+  ],
+  "related": [
+   [
+    "safety-instrumented-system-isolation",
+    "SIS Isolation"
+   ],
+   [
+    "incident-response-ot",
+    "OT Incident Response"
+   ],
+   [
+    "threat-model-actuator-manipulation",
+    "Actuator Manipulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-instrumented-system-isolation",
+  "title": "Safety-Instrumented System Isolation",
+  "cat": "security",
+  "lede": "The safety-instrumented system is physically and logically independent of the control network, with a one-way status feed out and no command path in.",
+  "body": [
+   [
+    "h2",
+    "A shutdown that cannot be talked out of it"
+   ],
+   [
+    "p",
+    "The safety-instrumented system (SIS) exists to place the machine in a safe state when defined limits are crossed. Its assurance comes from independence: it must not share failure modes, networks, or authority with the control system it protects. Kronos runs the SIS on separate hardware, separate networks, and separate power, with logic simple enough to verify exhaustively. Nothing on the control plane can disable or reprogram it during operation."
+   ],
+   [
+    "h3",
+    "One-way relationship with control"
+   ],
+   [
+    "ul",
+    [
+     "Status flows out: the SIS publishes its state to the supervisor for display, over a one-way link (conceptually a <a href=./unidirectional-data-diodes.html>diode</a>).",
+     "No commands in: the control plane cannot arm, disarm, or retune the SIS remotely; changes require physical, two-person maintenance access.",
+     "Distinct sensors: the SIS reads its own instrument channels, not the control system's, so <a href=./threat-model-diagnostic-spoofing.html>diagnostic spoofing</a> of the control loop cannot blind it.",
+     "Distinct actuators: safe-state actuation paths are dedicated to the SIS."
+    ]
+   ],
+   [
+    "h3",
+    "Why sensor independence matters"
+   ],
+   [
+    "p",
+    "If the SIS trusted the same diagnostics an attacker could spoof to fool the control loop, a single spoof could defeat both control and safety. Independent instrument channels mean an attacker would have to compromise two physically separate sensing chains to hide a limit violation from safety - a much higher bar."
+   ],
+   [
+    "h3",
+    "Simplicity as a security property"
+   ],
+   [
+    "p",
+    "The SIS logic is intentionally not an ML model or a general-purpose computer. It is small, deterministic, and formally analyzable, so its behavior under all inputs can be reasoned about. Complexity is where vulnerabilities hide; the safety layer minimizes it deliberately, in contrast to the model-rich control stack it guards."
+   ],
+   [
+    "p",
+    "Design status: the isolation architecture and one-way status feed are validated in the twin and bench rigs. The physically independent SIS hardware and its dedicated actuation are FOAK build scope; not yet operating on a reactor."
+   ]
+  ],
+  "related": [
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ],
+   [
+    "threat-model-diagnostic-spoofing",
+    "Diagnostic Spoofing"
+   ],
+   [
+    "purdue-model-segmentation",
+    "Purdue Model Segmentation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "threat-model-networked-reactor",
+  "title": "Threat Model: The Networked Reactor",
+  "cat": "security",
+  "lede": "A structured enumeration of who might attack a Kronos plant, what they want, and how they could try - the basis every control in this section is measured against.",
+  "body": [
+   [
+    "h2",
+    "Adversaries and objectives"
+   ],
+   [
+    "p",
+    "A threat model names the adversary before naming the defense. For a networked fusion plant Kronos considers: nation-state actors seeking to damage critical energy or defense infrastructure (Aegis is a fixed defense installation); criminal actors seeking disruption or extortion leverage; malicious or coerced insiders; and opportunistic attackers riding IT compromises. Objectives range from causing an unsafe plasma state, to disrupting availability, to stealing design or byproduct-material data, to corrupting the digital twin's models."
+   ],
+   [
+    "h3",
+    "Attack surfaces"
+   ],
+   [
+    "ul",
+    [
+     "The external L7 API and enterprise IT - see <a href=./it-ot-separation.html>IT/OT separation</a>.",
+     "The OT control network and its edge FPGAs - see <a href=./secure-boot-edge-fpga.html>secure boot</a>.",
+     "The supply chain for hardware, firmware, and ML models - see <a href=./supply-chain-security.html>supply-chain security</a>.",
+     "Diagnostics and actuation paths - see <a href=./threat-model-diagnostic-spoofing.html>diagnostic spoofing</a> and <a href=./threat-model-actuator-manipulation.html>actuator manipulation</a>.",
+     "People with legitimate access - see <a href=./insider-threat-model.html>insider-threat model</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Consequence ranking"
+   ],
+   [
+    "matrix",
+    [
+     "Consequence x likelihood-driver (illustrative priority, 1=primary focus)",
+     [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Rows: unsafe physical state, byproduct-material data integrity, availability disruption, and model/twin corruption. Columns: high consequence, high exposure. Safety of the physical state is the top priority regardless of likelihood, which is why <a href=./safety-critical-cyber.html>safety-critical cyber</a> gets an independent path."
+   ],
+   [
+    "h3",
+    "How the model is used"
+   ],
+   [
+    "p",
+    "Each control in this section maps to threats it mitigates and residual risks it leaves. The model is revisited as the design evolves; new subsystems are added to the surface list and re-scored. Design status: the threat model is a living design document exercised against the twin and red-team simulations - see <a href=./penetration-testing-red-team.html>red-team validation</a> - not against an operating reactor, which does not yet exist."
+   ]
+  ],
+  "related": [
+   [
+    "insider-threat-model",
+    "Insider-Threat Model"
+   ],
+   [
+    "threat-model-plasma-control-attack",
+    "Plasma-Control Attack"
+   ],
+   [
+    "penetration-testing-red-team",
+    "Red-Team Validation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "threat-model-plasma-control-attack",
+  "title": "Threat Model: Attacking the Plasma-Control Loop",
+  "cat": "security",
+  "lede": "An attacker who reaches the fast control loop would try to drive the plasma off its operating point; layered identity, attestation, and an independent safety path deny that.",
+  "body": [
+   [
+    "h2",
+    "The most consequential target"
+   ],
+   [
+    "p",
+    "The L1 fast loop keeps the breeder plasma on its operating point - shape and vertical position at 9.86 MA with negative triangularity delta -0.30 - and manages the burner's mirror/plug regime. An attacker who could issue or alter commands here could attempt to induce a disruption, a vertical displacement event, or an off-normal excursion. This is the scenario the whole architecture is built to defeat."
+   ],
+   [
+    "h3",
+    "Attack paths and denials"
+   ],
+   [
+    "ul",
+    [
+     "Forge a command: denied by <a href=./zero-trust-identity.html>mTLS identity</a> - unsigned or wrong-identity commands are rejected.",
+     "Substitute firmware on an FPGA: denied by <a href=./secure-boot-edge-fpga.html>secure boot</a> and caught by <a href=./remote-attestation-fpga.html>attestation</a>.",
+     "Reach the loop laterally: denied by <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> default-deny.",
+     "Feed false sensor data: constrained by <a href=./threat-model-diagnostic-spoofing.html>diagnostic integrity</a> and independent SIS sensing.",
+     "Succeed anyway: the <a href=./safety-instrumented-system-isolation.html>independent SIS</a> can still force a safe state."
+    ]
+   ],
+   [
+    "h3",
+    "Timing as a defense and a constraint"
+   ],
+   [
+    "p",
+    "The loop is deterministic and sub-millisecond; injected commands that violate timing or rate envelopes are anomalous and rejected. But the same timing budget forbids heavy per-cycle cryptography on the innermost loop, so integrity is enforced at configuration and identity time (attested firmware, authenticated bitstream) rather than by signing every cycle. This is an honest trade: the fast path trusts an attested, isolated FPGA rather than re-verifying each command."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Command acceptance combines identity, rate envelope, and mode\ndef accept_cmd(cmd):\n    if not verify_issuer(cmd):          return REJECT   # attested identity\n    if not within_rate_envelope(cmd):    return REJECT   # physics-plausible\n    if cmd.op not in mode_allowed(state): return REJECT  # legal in this mode\n    return ACCEPT\n"
+    ]
+   ],
+   [
+    "p",
+    "Design status: these denials are validated against the digital twin and hardware-in-the-loop rigs, including simulated injection attacks. No live reactor plasma exists yet; the loop runs against simulated plasma models pending FOAK from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "threat-model-networked-reactor",
+    "Threat Model: Networked Reactor"
+   ],
+   [
+    "threat-model-diagnostic-spoofing",
+    "Diagnostic Spoofing"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "threat-model-diagnostic-spoofing",
+  "title": "Threat Model: Diagnostic and Sensor Spoofing",
+  "cat": "security",
+  "lede": "Falsified diagnostics could deceive the control loop or the digital twin; integrity checks, sensor fusion, and independent safety sensing bound the damage.",
+  "body": [
+   [
+    "h2",
+    "Lie to the controller, not the plasma"
+   ],
+   [
+    "p",
+    "A subtle attack does not command an actuator directly; it feeds the controller false measurements so the controller itself drives the machine wrong, or so a real fault is hidden from operators. Kronos treats diagnostics as an attack surface. The breeder's magnetics, interferometry, Thomson scattering, and neutron diagnostics, and the burner's field and end-loss diagnostics, all feed control and the twin, so their integrity is a safety concern."
+   ],
+   [
+    "h3",
+    "Layered defenses"
+   ],
+   [
+    "ul",
+    [
+     "Authenticated acquisition: diagnostic nodes hold identities and sign their data streams - see <a href=./zero-trust-identity.html>zero-trust identity</a>.",
+     "Physical-consistency checks: measurements must satisfy conservation laws and cross-diagnostic agreement, so a single spoofed channel is detectable.",
+     "Sensor fusion / redundancy: independent diagnostics of the same quantity must agree within tolerance.",
+     "Independent safety sensing: the <a href=./safety-instrumented-system-isolation.html>SIS reads its own sensors</a>, so spoofing the control diagnostics does not blind safety.",
+     "Anomaly detection on the data itself - see <a href=./anomaly-detection-ot.html>OT anomaly detection</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Consistency as a detector"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Reject a channel that violates cross-diagnostic physics consistency\ndef diagnostic_ok(fused):\n    # e.g. line-integrated density vs Thomson profile vs stored energy\n    resid = physics_residual(fused)             # should be ~0 for real data\n    if resid > policy.tolerance:\n        flag_spoof_suspect(fused.channels)\n        return False\n    if disagreement(fused.redundant) > policy.redundant_tol:\n        return False\n    return True\n"
+    ]
+   ],
+   [
+    "h3",
+    "Honest residual risk"
+   ],
+   [
+    "p",
+    "A sophisticated attacker who compromises multiple independent diagnostics simultaneously and crafts physically consistent false data could still deceive control - but that requires defeating redundancy, physics consistency, and authenticated acquisition at once, and safety still reads separate sensors. Design status: consistency and fusion checks run against twin-generated and archival diagnostic data; live-plasma validation waits on FOAK."
+   ]
+  ],
+  "related": [
+   [
+    "threat-model-plasma-control-attack",
+    "Plasma-Control Attack"
+   ],
+   [
+    "safety-instrumented-system-isolation",
+    "SIS Isolation"
+   ],
+   [
+    "anomaly-detection-ot",
+    "OT Anomaly Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "threat-model-actuator-manipulation",
+  "title": "Threat Model: Actuator Manipulation",
+  "cat": "security",
+  "lede": "Even with valid-looking commands, actuator behavior is bounded by rate limits, interlocks, and an independent shutdown path so manipulation cannot exceed a safe envelope.",
+  "body": [
+   [
+    "h2",
+    "The last-mile of an attack"
+   ],
+   [
+    "p",
+    "Actuators - magnet power supplies, gyrotron and neutral-beam heating, gas and pellet injection, and the burner's high-field plug/throat coils and direct-conversion grids - are where any attack must ultimately land to cause physical harm. Kronos assumes an attacker might issue commands that pass upstream checks and asks: can the actuator layer itself refuse to do something unsafe? The answer is designed to be yes, within a bounded envelope."
+   ],
+   [
+    "h3",
+    "Envelope enforcement at the actuator"
+   ],
+   [
+    "ul",
+    [
+     "Rate and magnitude limits enforced in the actuator controller, independent of the commanding node - a ramp toward 16.84 T peak cannot exceed safe di/dt regardless of the command.",
+     "Hardware interlocks that trip on physical limits (current, temperature, field) without software mediation.",
+     "Cross-checks: a commanded action inconsistent with plant mode or with other actuators is refused.",
+     "The <a href=./safety-instrumented-system-isolation.html>independent SIS</a> can de-energize actuators outside the control plane's authority."
+    ]
+   ],
+   [
+    "truth",
+    [
+     [
+      "cmd valid identity",
+      "within envelope",
+      "interlocks clear",
+      "EXECUTE"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Defense in depth against a valid-but-malicious command"
+   ],
+   [
+    "p",
+    "The truth table above shows execution requires all three: authenticated identity (<a href=./zero-trust-identity.html>identity</a>), being within the physical envelope, and interlocks clear. A command with a stolen but valid identity that asks for an out-of-envelope action still fails on the middle column. This layering is what makes a single compromised credential insufficient to cause harm."
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "Envelope logic and interlock trip conditions are implemented in actuator-controller models and hardware-in-the-loop rigs. The hardware interlocks and the SIS de-energization paths are FOAK build scope; no live reactor actuator is yet under this regime. For the burner specifically, recall the plug coil is overstressed ~3-3.9x at the design bore - a physics feasibility gate that constrains the machine independently of any cyber control."
+   ]
+  ],
+  "related": [
+   [
+    "threat-model-plasma-control-attack",
+    "Plasma-Control Attack"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ],
+   [
+    "safety-instrumented-system-isolation",
+    "SIS Isolation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "supply-chain-security",
+  "title": "Supply-Chain Security for Hardware and Software",
+  "cat": "security",
+  "lede": "Components, firmware, and dependencies are verified for provenance before they enter the plant, because a tampered part defeats every runtime control downstream.",
+  "body": [
+   [
+    "h2",
+    "The trust starts before install"
+   ],
+   [
+    "p",
+    "Runtime security assumes the hardware and software are what they claim to be. If an FPGA arrives with a subverted boot ROM, or a dependency ships with a backdoor, downstream secure boot and attestation are anchored to a lie. Kronos treats the supply chain as part of the attack surface: it verifies provenance of hardware, firmware, and software before they reach the OT environment."
+   ],
+   [
+    "h3",
+    "Controls across the chain"
+   ],
+   [
+    "ul",
+    [
+     "Provenance and SBOMs for all software and firmware - see <a href=./sbom-and-provenance.html>SBOM and provenance</a>.",
+     "Signed firmware and reproducible builds so a binary can be tied to reviewed source - see <a href=./firmware-signing-update.html>firmware signing</a>.",
+     "Trusted-supplier requirements and incoming inspection for security-critical hardware (FPGAs, HSMs, diode hardware).",
+     "Device provisioning under Kronos control: keys and root-of-trust configuration are set in a controlled facility, not accepted from the vendor's defaults.",
+     "ML models treated as supply-chain artifacts too - see <a href=./ml-model-supply-chain.html>ML model supply chain</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Anchoring the root of trust in-house"
+   ],
+   [
+    "p",
+    "Because field secure boot depends on fused keys, those keys are provisioned by Kronos during a controlled manufacturing step rather than trusting factory defaults. This means a compromised vendor cannot pre-load a key it controls into a device destined for the reactor. The provisioning ceremony itself is under <a href=./separation-of-duties.html>separation of duties</a>."
+   ],
+   [
+    "h3",
+    "Honest residual"
+   ],
+   [
+    "p",
+    "Deep hardware implants (malicious silicon) are the hardest supply-chain threat and cannot be fully excluded by inspection alone; Kronos mitigates with trusted sourcing, attestation, and behavioral monitoring, and accepts a residual risk that is documented in the <a href=./threat-model-networked-reactor.html>threat model</a>. Design status: SBOM, signing, and provisioning workflows are implemented for the toolchain and twin; hardware inspection and vendor programs are defined for the FOAK procurement, which begins ahead of Q2 2027 construction."
+   ]
+  ],
+  "related": [
+   [
+    "sbom-and-provenance",
+    "SBOM and Provenance"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ],
+   [
+    "ml-model-supply-chain",
+    "ML Model Supply Chain"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sbom-and-provenance",
+  "title": "Software Bill of Materials and Build Provenance",
+  "cat": "security",
+  "lede": "Every deployed artifact carries a complete bill of materials and verifiable build provenance, so what runs on the plant is traceable to reviewed source.",
+  "body": [
+   [
+    "h2",
+    "Know exactly what is running"
+   ],
+   [
+    "p",
+    "You cannot defend what you cannot enumerate. A Software Bill of Materials (SBOM) lists every component and dependency in an artifact, with versions and hashes. Build provenance (in the SLSA sense) records how that artifact was produced - which source commit, which builder, under what conditions - and signs the attestation. Together they let Kronos confirm that a control binary or ML model corresponds to reviewed, unmodified source before it is admitted to OT."
+   ],
+   [
+    "h3",
+    "What the provenance chain asserts"
+   ],
+   [
+    "ul",
+    [
+     "Source: the exact commit and repository the artifact was built from.",
+     "Build: an isolated, reproducible builder produced it; the build is not attacker-influenced.",
+     "Materials: the SBOM of all inputs, each pinned by hash.",
+     "Signature: the whole attestation is signed with a <a href=./pqc-signatures-ml-dsa.html>post-quantum signature</a> for long-term verifiability."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Admission control: reject artifacts without matching provenance\ndef admit(artifact):\n    prov = artifact.provenance\n    if not verify_sig(prov, builder_root):        return DENY\n    if prov.source_commit not in approved_commits: return DENY\n    if sha384(artifact.bytes) != prov.subject_hash: return DENY\n    for dep in artifact.sbom:\n        if dep.hash not in allowed_components:      return DENY  # no surprises\n    return ADMIT\n"
+    ]
+   ],
+   [
+    "h3",
+    "Feeding runtime trust"
+   ],
+   [
+    "p",
+    "The SBOM and provenance are what <a href=./firmware-signing-update.html>firmware signing</a> and <a href=./remote-attestation-fpga.html>attestation</a> ultimately vouch for: the signature at boot is only meaningful because the signed thing has a known, reviewed origin. Provenance also enables fast response to a newly disclosed vulnerability - Kronos can query which deployed artifacts include the affected component."
+   ],
+   [
+    "h3",
+    "Design status"
+   ],
+   [
+    "p",
+    "SBOM generation, provenance attestation, and admission control run in the Kronos build pipeline and against the twin's deployment path. Extending this to every FOAK hardware firmware image is part of the 2027 build-out; the pipeline exists today, the reactor it will gate does not."
+   ]
+  ],
+  "related": [
+   [
+    "supply-chain-security",
+    "Supply-Chain Security"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ],
+   [
+    "ml-model-supply-chain",
+    "ML Model Supply Chain"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "firmware-signing-update",
+  "title": "Firmware Signing and Secure Update",
+  "cat": "security",
+  "lede": "Firmware and control artifacts are signed, version-monotonic, and delivered through the gated import path, so only authorized, non-rollback updates ever reach the machine.",
+  "body": [
+   [
+    "h2",
+    "Updates are a privileged, rare event"
+   ],
+   [
+    "p",
+    "Updating firmware on a control FPGA is one of the highest-consequence routine operations in the plant: it changes what runs on the actuation path. Kronos makes updates infrequent, signed, verified at load, monotonic in version, and delivered only through the controlled <a href=./airgaps-and-bridging.html>air-gap bridge</a> under <a href=./separation-of-duties.html>two-person control</a>. There is no over-the-internet auto-update to OT."
+   ],
+   [
+    "h3",
+    "The update pipeline"
+   ],
+   [
+    "ul",
+    [
+     "Build with provenance and SBOM - see <a href=./sbom-and-provenance.html>SBOM and provenance</a>.",
+     "Sign with a post-quantum firmware key (SLH-DSA root) - see <a href=./pqc-signatures-ml-dsa.html>PQC signatures</a>.",
+     "Import via the air-gap ceremony, re-signed with an OT-domain key at the import station.",
+     "Verify at load and enforce version monotonicity - see <a href=./fpga-bitstream-integrity.html>bitstream integrity</a>.",
+     "Re-attest after update so peers confirm the new measurement matches policy - see <a href=./remote-attestation-fpga.html>attestation</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Rollback protection"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Refuse older versions even if validly signed (anti-rollback)\ndef apply_update(img):\n    if not verify_firmware_sig(img):        return REJECT\n    if img.version <= device.current_version: return REJECT   # monotonic\n    if not import_ceremony_ok(img):          return REJECT   # 2-person + diode\n    stage_and_reboot(img)                    # secure boot re-verifies on start\n"
+    ]
+   ],
+   [
+    "h3",
+    "Why monotonicity matters"
+   ],
+   [
+    "p",
+    "A validly signed but older firmware may contain a known vulnerability. Without a monotonic version check, an attacker could downgrade to that version and exploit it - a valid signature is not the same as a safe artifact. Kronos blocks downgrades at both apply time and boot time."
+   ],
+   [
+    "p",
+    "Design status: signing, monotonic checks, and the ceremony-gated pipeline run in the twin and staging. Production firmware keys and the physical import station are FOAK build scope; no live reactor firmware update has occurred."
+   ]
+  ],
+  "related": [
+   [
+    "fpga-bitstream-integrity",
+    "FPGA Bitstream Integrity"
+   ],
+   [
+    "airgaps-and-bridging",
+    "Air Gaps and Bridging"
+   ],
+   [
+    "sbom-and-provenance",
+    "SBOM and Provenance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "digital-twin-security",
+  "title": "Securing the KRONOS-CTRL Digital Twin",
+  "cat": "security",
+  "lede": "The digital twin drives design, training, and replay; its models and data are integrity-protected so a corrupted twin cannot poison the controllers it informs.",
+  "body": [
+   [
+    "h2",
+    "The twin as a trust dependency"
+   ],
+   [
+    "p",
+    "KRONOS-CTRL, the digital twin, is where control policies are developed, models are trained, and decisions are replayed for verification. Because the twin influences what the real machine will do, its integrity is a security property, not just an engineering convenience. A corrupted twin could ship a subtly wrong control model, or make a real fault look normal in replay. Kronos protects the twin's model artifacts, training data, and outputs accordingly."
+   ],
+   [
+    "h3",
+    "Integrity controls"
+   ],
+   [
+    "ul",
+    [
+     "Model artifacts are versioned, hashed, and carry provenance - see <a href=./sbom-and-provenance.html>SBOM and provenance</a>.",
+     "Training data is content-addressed and access-controlled - see <a href=./ml-model-supply-chain.html>ML model supply chain</a>.",
+     "Any model promoted to the control plane crosses the air-gap bridge under <a href=./separation-of-duties.html>two-person control</a>.",
+     "Replay determinism: a recorded <a href=./decision-audit-lineage.html>decision</a> re-run in the twin must reproduce the original output, or tampering/drift is flagged."
+    ]
+   ],
+   [
+    "h3",
+    "Replay as a tamper detector"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Replay a signed decision against the pinned model; mismatch = alarm\ndef replay_check(decision):\n    model = load_pinned(decision.model_hash)     # exact model version\n    out = model.infer(load_state(decision.state_hash))\n    if out != decision.cmd:\n        raise Tamper('decision not reproducible - investigate')\n    return True\n"
+    ]
+   ],
+   [
+    "h3",
+    "Separation from live control"
+   ],
+   [
+    "p",
+    "The twin runs at Purdue level 2 and in IT-side training clusters, never directly on the actuation path. It cannot command the machine; its influence is only through vetted, promoted artifacts. This means even a fully compromised twin cannot directly move the plasma - it can only attempt to ship a bad model, which the promotion ceremony and post-promotion <a href=./remote-attestation-fpga.html>attestation</a> are designed to catch."
+   ],
+   [
+    "p",
+    "Design status: model versioning, replay determinism, and gated promotion run today in the twin environment - which is itself the current test bed since no reactor is built. Live-plant separation is the intended FOAK deployment."
+   ]
+  ],
+  "related": [
+   [
+    "ml-model-supply-chain",
+    "ML Model Supply Chain"
+   ],
+   [
+    "decision-audit-lineage",
+    "Decision-Audit Lineage"
+   ],
+   [
+    "adversarial-ml-defense",
+    "Adversarial ML Defense"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ml-model-supply-chain",
+  "title": "ML Model Integrity and Anti-Poisoning",
+  "cat": "security",
+  "lede": "Models that inform control are treated as security-critical artifacts: their training data, weights, and lineage are protected against poisoning and silent substitution.",
+  "body": [
+   [
+    "h2",
+    "Models are code that learned"
+   ],
+   [
+    "p",
+    "Kronos uses learned models for state estimation, disruption/off-normal prediction, and control assistance. A model is only as trustworthy as the data it learned from and the pipeline that produced it. Two threats matter: data poisoning (an attacker corrupts training data so the model behaves badly on a chosen trigger) and model substitution (an attacker swaps a trusted model for a malicious one). Both are supply-chain problems and are handled like <a href=./supply-chain-security.html>hardware supply-chain</a> risks."
+   ],
+   [
+    "h3",
+    "Anti-poisoning measures"
+   ],
+   [
+    "ul",
+    [
+     "Content-addressed, access-controlled training datasets with recorded provenance.",
+     "Data validation and outlier screening before training, so injected samples are flagged.",
+     "Held-out physics-consistency tests: a model must respect conservation and known plasma behavior, not just fit points.",
+     "Reproducible training so a model's weights can be regenerated and hash-matched from reviewed data and code."
+    ]
+   ],
+   [
+    "h3",
+    "Anti-substitution measures"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# A model is admitted to control only if it matches signed provenance\ndef admit_model(model):\n    if sha384(model.weights) != model.provenance.subject_hash: return DENY\n    if not verify_sig(model.provenance, model_signing_root):    return DENY\n    if not passes_physics_tests(model, held_out):               return DENY\n    if not two_person_ok(model.promotion):                      return DENY\n    return ADMIT   # then crosses the air-gap bridge to control\n"
+    ]
+   ],
+   [
+    "h3",
+    "Bounded authority as a backstop"
+   ],
+   [
+    "p",
+    "Even a poisoned model that slips through cannot exceed the physical envelope: actuator-level limits and the <a href=./safety-instrumented-system-isolation.html>independent SIS</a> bound what any model-driven command can do. A model informs control; it does not get unmediated authority over the actuators. This is the same defense-in-depth that limits a <a href=./threat-model-plasma-control-attack.html>direct control-loop attack</a>."
+   ],
+   [
+    "p",
+    "Design status: dataset provenance, reproducible training, physics tests, and gated promotion run in the twin/training environment. On-plant model deployment is part of FOAK operations; today models act only on simulated plasma."
+   ]
+  ],
+  "related": [
+   [
+    "digital-twin-security",
+    "Digital Twin Security"
+   ],
+   [
+    "adversarial-ml-defense",
+    "Adversarial ML Defense"
+   ],
+   [
+    "supply-chain-security",
+    "Supply-Chain Security"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "adversarial-ml-defense",
+  "title": "Adversarial-Input Defense for Control Models",
+  "cat": "security",
+  "lede": "Learned components are hardened against crafted inputs, and physics-based sanity bounds ensure a fooled model still cannot request an unsafe action.",
+  "body": [
+   [
+    "h2",
+    "Crafted inputs, not random noise"
+   ],
+   [
+    "p",
+    "Adversarial inputs are small, deliberate perturbations that push a model to a wrong output while looking normal. In a fusion control context, an attacker who can perturb diagnostics (see <a href=./threat-model-diagnostic-spoofing.html>diagnostic spoofing</a>) might try to steer a learned estimator or predictor toward a decision that benefits the attack. Kronos defends the models directly and, more importantly, refuses to give any model unbounded authority."
+   ],
+   [
+    "h3",
+    "Model-level hardening"
+   ],
+   [
+    "ul",
+    [
+     "Input validation and range/consistency checks before inference - physically impossible inputs are rejected, not classified.",
+     "Ensembles and redundancy: agreement across independent models/diagnostics is required for consequential inferences.",
+     "Uncertainty-aware outputs: a model that is out of distribution reports low confidence, which downgrades its authority.",
+     "Adversarial training and robustness testing during model development."
+    ]
+   ],
+   [
+    "h3",
+    "Physics as the outer guardrail"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# A model output is only acted on if it is physically plausible AND confident\ndef guarded_infer(model, x):\n    if not physically_valid(x):        return SAFE_DEFAULT   # reject bad input\n    y, conf = model.infer_with_uncertainty(x)\n    if conf < policy.min_conf:         return SAFE_DEFAULT   # OOD -> fall back\n    if not within_physics_bounds(y):   return SAFE_DEFAULT   # implausible -> ignore\n    return y\n"
+    ]
+   ],
+   [
+    "h3",
+    "Why the guardrail is the real defense"
+   ],
+   [
+    "p",
+    "Adversarial robustness of any single model is never perfect. Kronos's stronger claim is architectural: no learned output bypasses the physics envelope, the actuator limits, or the <a href=./safety-critical-cyber.html>independent safety path</a>. A perfectly fooled model can still only request actions within a safe envelope; anything outside it is refused by non-learned, analyzable logic. The learned layer optimizes; the deterministic layer protects."
+   ],
+   [
+    "p",
+    "Design status: input validation, uncertainty gating, and physics-bound guardrails run in the twin against simulated and archival data, including adversarial test suites. Live-plasma validation waits on FOAK from Q2 2027."
+   ]
+  ],
+  "related": [
+   [
+    "ml-model-supply-chain",
+    "ML Model Supply Chain"
+   ],
+   [
+    "threat-model-diagnostic-spoofing",
+    "Diagnostic Spoofing"
+   ],
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-detection-ot",
+  "title": "Anomaly Detection on the OT Network and Process",
+  "cat": "security",
+  "lede": "Continuous monitoring learns the plant's normal network and process behavior so deviations - a new flow, an odd command pattern - are flagged for response.",
+  "body": [
+   [
+    "h2",
+    "Detection complements prevention"
+   ],
+   [
+    "p",
+    "Prevention (segmentation, identity, attestation) reduces the odds of compromise; detection assumes some attempts get through and aims to notice them fast. OT is an unusually good place for anomaly detection because the plant's behavior is highly regular: the same controllers talk to the same peers with the same cadence, and a discharge follows known sequences. Anything outside that baseline is suspicious in a way it would not be on a chaotic IT network."
+   ],
+   [
+    "h3",
+    "Two layers of baseline"
+   ],
+   [
+    "ul",
+    [
+     "Network baseline: which identities communicate, on which ports, at what rate - deviations from the <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> allow-list or its normal volumes.",
+     "Process baseline: whether commands and telemetry follow physically and procedurally normal patterns for the current plant mode.",
+     "Correlation with attestation and access events so a flow anomaly can be tied to a node that recently failed <a href=./remote-attestation-fpga.html>attestation</a> or an unusual <a href=./privileged-access-management.html>privilege grant</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Score a flow against the learned baseline; escalate on high anomaly\ndef monitor(flow, mode):\n    s = baseline.score(flow, context=mode)      # 0..1, higher = stranger\n    if s > policy.alert_threshold:\n        alert(flow, s)\n        record(flow, s)                         # into the audit log\n    if s > policy.contain_threshold:\n        propose_isolation(flow.src_id)          # human-confirmed, fail-safe\n"
+    ]
+   ],
+   [
+    "h3",
+    "Careful about automated response"
+   ],
+   [
+    "p",
+    "On a machine holding a live plasma, automated isolation is dangerous: cutting off a control node mid-discharge could itself be unsafe. So containment actions that touch control are proposed to operators and gated, while the independent <a href=./safety-critical-cyber.html>safety path</a> handles the physical safe state. Detection informs response; it does not blindly yank controllers offline during operation."
+   ],
+   [
+    "p",
+    "Design status: network and process baselining run against twin-generated traffic and simulated discharges. Tuning false-positive rates on real plant behavior is FOAK-era work; no live reactor traffic exists to learn from yet."
+   ]
+  ],
+  "related": [
+   [
+    "network-segmentation-microsegmentation",
+    "Microsegmentation"
+   ],
+   [
+    "incident-response-ot",
+    "OT Incident Response"
+   ],
+   [
+    "threat-model-networked-reactor",
+    "Threat Model: Networked Reactor"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "incident-response-ot",
+  "title": "OT Incident Response and Safe-State Fallback",
+  "cat": "security",
+  "lede": "When something goes wrong, the priority order is safe physical state first, then containment, then recovery - never the reverse.",
+  "body": [
+   [
+    "h2",
+    "Response ordered by consequence"
+   ],
+   [
+    "p",
+    "IT incident response often prioritizes containment and evidence preservation. OT inverts the first step: the machine must be safe before anything else. Kronos's playbook is explicit - reach a safe physical state, then contain the cyber event, then preserve evidence, then recover. An analyst must never delay a safe shutdown to keep a forensic session alive."
+   ],
+   [
+    "h3",
+    "The response sequence"
+   ],
+   [
+    "ul",
+    [
+     "Safe state: the <a href=./safety-critical-cyber.html>independent safety path</a> drives the machine to safe termination if the incident touches control integrity.",
+     "Contain: isolate affected segments per playbook, guided by <a href=./anomaly-detection-ot.html>anomaly detection</a>, with control-touching isolation gated by operators.",
+     "Preserve: the tamper-evident <a href=./immutable-audit-log.html>audit log</a> and <a href=./decision-audit-lineage.html>lineage</a> are already captured and mirrored offsite via the <a href=./unidirectional-data-diodes.html>diode</a>.",
+     "Eradicate and recover: re-provision affected nodes from signed, attested images - see <a href=./resilience-and-recovery.html>resilience and recovery</a>."
+    ]
+   ],
+   [
+    "h3",
+    "Deterministic recovery, not improvisation"
+   ],
+   [
+    "p",
+    "Recovery re-establishes a known-good state rather than patching in place. Compromised nodes are re-flashed with signed firmware and must pass <a href=./remote-attestation-fpga.html>attestation</a> before rejoining. Because credentials are short-lived, re-issuance naturally excludes nodes that cannot attest. The lineage lets responders reconstruct exactly what happened using <a href=./digital-twin-security.html>twin replay</a>."
+   ],
+   [
+    "h3",
+    "Roles and authority"
+   ],
+   [
+    "p",
+    "Consequential response actions follow <a href=./separation-of-duties.html>separation of duties</a>; break-glass access is available but loud and reviewed. The plan names who may authorize a shutdown, an isolation, and a recovery, so no step waits on ambiguity during an incident."
+   ],
+   [
+    "p",
+    "Design status: the playbook is drilled against the twin and red-team exercises. Live drills on plant hardware are FOAK-era; the organizational response team and on-call structure are defined for plant operation, not yet standing for a running reactor."
+   ]
+  ],
+  "related": [
+   [
+    "safety-critical-cyber",
+    "Safety-Critical Cyber"
+   ],
+   [
+    "resilience-and-recovery",
+    "Resilience and Recovery"
+   ],
+   [
+    "penetration-testing-red-team",
+    "Red-Team Validation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "secrets-and-key-management",
+  "title": "Secrets and Key Management",
+  "cat": "security",
+  "lede": "Private keys and secrets live in hardware security modules and device key stores, are never exported in the clear, and rotate on short, enforced schedules.",
+  "body": [
+   [
+    "h2",
+    "Keys are the root of every guarantee"
+   ],
+   [
+    "p",
+    "Identity, attestation, signing, and encryption all reduce to keys. If a private key leaks, the guarantee built on it collapses. Kronos concentrates key material in hardware: a hardware security module (HSM) for the certificate authority and signing roots, and per-device key stores on FPGAs and controllers. Private keys are generated in hardware and never leave it in plaintext; operations happen inside the boundary."
+   ],
+   [
+    "h3",
+    "Key hierarchy"
+   ],
+   [
+    "ul",
+    [
+     "Long-term roots: the OT CA and the firmware signing root (SLH-DSA) in the HSM, used rarely and under <a href=./separation-of-duties.html>two-person control</a>.",
+     "Short-lived leaf credentials: node and workload identities issued for hours - see <a href=./zero-trust-identity.html>zero-trust identity</a>.",
+     "Per-device bitstream and attestation keys provisioned in <a href=./supply-chain-security.html>controlled manufacturing</a>.",
+     "Data-protection keys for exported telemetry, established via <a href=./pqc-key-exchange-ml-kem.html>ML-KEM hybrid</a>."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Signing happens inside the HSM; the private key never leaves\ndef sign_root(payload):\n    handle = hsm.open('firmware-root', quorum=2)   # 2-person to authorize\n    sig = hsm.sign(handle, payload, alg='SLH-DSA')  # key stays in hardware\n    hsm.close(handle)\n    audit('root-sign', subject=sha384(payload))\n    return sig\n"
+    ]
+   ],
+   [
+    "h3",
+    "Rotation and revocation"
+   ],
+   [
+    "p",
+    "Short leaf lifetimes make routine rotation automatic - re-attestation issues fresh credentials continuously. Long-term roots rotate on a defined schedule with overlap so verification of existing artifacts is never interrupted, aided by <a href=./crypto-agility.html>crypto agility</a>. Revocation of a leaf is mostly handled by expiry; roots have an explicit revocation and re-anchoring procedure."
+   ],
+   [
+    "p",
+    "Design status: HSM-backed signing, per-device provisioning logic, and rotation are implemented in the toolchain and twin. Production HSMs and device key injection are part of FOAK manufacturing and build; no live reactor key hierarchy is yet in service."
+   ]
+  ],
+  "related": [
+   [
+    "zero-trust-identity",
+    "Zero-Trust Identity"
+   ],
+   [
+    "pqc-signatures-ml-dsa",
+    "PQC Signatures"
+   ],
+   [
+    "supply-chain-security",
+    "Supply-Chain Security"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "material-accountancy-security",
+  "title": "Securing Byproduct-Material Accountancy Data",
+  "cat": "security",
+  "lede": "Records of bred tritium, helium-3, and neutron services are integrity-protected and access-controlled, because their trustworthiness matters to regulators and safeguards.",
+  "body": [
+   [
+    "h2",
+    "Why accountancy is a security concern"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) produces a tritium product (~4 kg/yr class), ~1.97 kg/yr helium-3, and 14 MeV neutron services, with the tritium breeding ratio treated as a design lever across 1.1/1.5/1.8. Records of what was produced, held, and transferred underpin regulatory reporting and material safeguards. If those records can be silently altered, the accountancy is worthless. Kronos protects them with the same integrity machinery used for control audit - not as an afterthought but as a first-class data class."
+   ],
+   [
+    "h3",
+    "Integrity and access controls"
+   ],
+   [
+    "ul",
+    [
+     "Accountancy entries are written to the tamper-evident <a href=./immutable-audit-log.html>append-only log</a> and hash-chained.",
+     "Each entry is signed by the measuring instrument's authenticated identity - see <a href=./zero-trust-identity.html>zero-trust identity</a>.",
+     "Records are exported to regulators/analysis only via the one-way <a href=./unidirectional-data-diodes.html>diode</a>, so the reporting path cannot be an ingress.",
+     "Write access follows least privilege and <a href=./separation-of-duties.html>separation of duties</a> for adjustments/corrections.",
+     "Reconciliation checks flag any inventory discrepancy for review."
+    ]
+   ],
+   [
+    "h3",
+    "Consistency reconciliation"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Mass-balance reconciliation over the signed record chain\ndef reconcile(period):\n    produced = sum(e.qty for e in records(period, kind='produced'))\n    transferred = sum(e.qty for e in records(period, kind='transferred'))\n    held_delta = inventory_end(period) - inventory_start(period)\n    resid = produced - transferred - held_delta\n    if abs(resid) > policy.material_tolerance:\n        flag_discrepancy(period, resid)     # cannot be silently absorbed\n"
+    ]
+   ],
+   [
+    "h3",
+    "Confidentiality alongside integrity"
+   ],
+   [
+    "p",
+    "Some accountancy data is sensitive; access is role-scoped and its export destinations are fixed by policy, never chosen by an external caller. This aligns with the plant's rule that only the L7 boundary talks outward and that no observed request redirects where regulated data goes."
+   ],
+   [
+    "p",
+    "Design status: the record schema, signing, chaining, and reconciliation run against twin-simulated production data. Live material accountancy begins with FOAK operation and first tritium ~2030; the integrity architecture is ready ahead of it."
+   ]
+  ],
+  "related": [
+   [
+    "immutable-audit-log",
+    "Immutable Audit Log"
+   ],
+   [
+    "unidirectional-data-diodes",
+    "Unidirectional Data Diodes"
+   ],
+   [
+    "decision-audit-lineage",
+    "Decision-Audit Lineage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "penetration-testing-red-team",
+  "title": "Penetration Testing and Red-Team Validation",
+  "cat": "security",
+  "lede": "Security claims are tested by an adversarial team against the digital twin and staging OT, because a control that has never been attacked is only a hypothesis.",
+  "body": [
+   [
+    "h2",
+    "Attack your own plant, on purpose"
+   ],
+   [
+    "p",
+    "Every claim in this section is a hypothesis until an adversary tries to break it. Kronos runs red-team exercises against the digital twin and a staging OT environment that mirrors the plant's segmentation, identity, and safety architecture. The red team's goal is concrete: reach an unsafe simulated plasma state, exfiltrate a protected record, or corrupt a control model without being detected. If they succeed, the architecture changes."
+   ],
+   [
+    "h3",
+    "Scope of exercises"
+   ],
+   [
+    "ul",
+    [
+     "Network: attempt lateral movement past <a href=./network-segmentation-microsegmentation.html>microsegmentation</a> and across the <a href=./it-ot-separation.html>IT/OT boundary</a>.",
+     "Control: attempt a <a href=./threat-model-plasma-control-attack.html>plasma-control attack</a> and <a href=./threat-model-diagnostic-spoofing.html>diagnostic spoofing</a>.",
+     "Supply chain: attempt to slip an unsigned or poisoned artifact past <a href=./sbom-and-provenance.html>provenance</a> and <a href=./ml-model-supply-chain.html>model admission</a>.",
+     "Insider: exercise a compromised-credential and coerced-approver scenario against <a href=./separation-of-duties.html>separation of duties</a>.",
+     "Detection: measure whether <a href=./anomaly-detection-ot.html>anomaly detection</a> and audit catch each attempt."
+    ]
+   ],
+   [
+    "h3",
+    "Measuring what matters"
+   ],
+   [
+    "p",
+    "The key metric is not vulnerability count but whether the top-consequence outcomes from the <a href=./threat-model-networked-reactor.html>threat model</a> were reachable, and whether the <a href=./safety-critical-cyber.html>independent safety path</a> held even when control was assumed compromised. A finding that the safety path can always force a safe state, even after full control-plane compromise, is the single most important result the exercises seek to confirm."
+   ],
+   [
+    "h3",
+    "Honest posture"
+   ],
+   [
+    "p",
+    "Because no reactor exists, red teaming is against models and staging, which is a real limit: physical attacks, hardware implants, and real-plasma timing behaviors cannot be fully reproduced yet. Findings therefore carry a confidence caveat and are re-tested on FOAK hardware as it comes online from Q2 2027. Design status: the program is running against the twin; the physical-plant red-team phase is planned, not complete."
+   ]
+  ],
+  "related": [
+   [
+    "threat-model-networked-reactor",
+    "Threat Model: Networked Reactor"
+   ],
+   [
+    "incident-response-ot",
+    "OT Incident Response"
+   ],
+   [
+    "resilience-and-recovery",
+    "Resilience and Recovery"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "resilience-and-recovery",
+  "title": "Resilience, Backup, and Deterministic Recovery",
+  "cat": "security",
+  "lede": "The plant is designed to recover to a known-good state from signed artifacts and verified backups, so an incident ends in restoration rather than uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Recovery is a security control"
+   ],
+   [
+    "p",
+    "Availability and integrity after an incident depend on being able to rebuild the control environment to a state you can trust. Kronos designs recovery as a first-class control: golden, signed firmware and model images; verified, integrity-checked backups of configuration and accountancy; and a deterministic procedure to re-provision nodes so that a recovered plant is provably known-good, not merely rebooted."
+   ],
+   [
+    "h3",
+    "What is backed up and how"
+   ],
+   [
+    "ul",
+    [
+     "Golden images: signed firmware, bitstreams, and approved models with <a href=./sbom-and-provenance.html>provenance</a>, stored offline.",
+     "Configuration and policy: segmentation rules, identities' issuance policy, safety limits - versioned and hashed.",
+     "Records: the tamper-evident <a href=./immutable-audit-log.html>audit log</a> and <a href=./material-accountancy-security.html>material accountancy</a>, mirrored offsite via the <a href=./unidirectional-data-diodes.html>diode</a>.",
+     "Immutable, offline copies so ransomware or an insider cannot encrypt or delete the only copy."
+    ]
+   ],
+   [
+    "h3",
+    "Deterministic re-provisioning"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Rebuild a node to known-good and require attestation before rejoin\ndef recover_node(node):\n    flash(node, golden_image(node.role))        # signed, verified image\n    if not attest(node):                         # must prove firmware match\n        quarantine(node); return FAIL\n    issue_cert(node)                             # short-lived identity\n    rejoin_segment(node)                         # default-deny still applies\n    return OK\n"
+    ]
+   ],
+   [
+    "h3",
+    "Backups must be trustworthy too"
+   ],
+   [
+    "p",
+    "A backup an attacker can tamper with is a liability. Backups are integrity-checked on restore, and restoring never bypasses verification: a restored image still passes signature and <a href=./remote-attestation-fpga.html>attestation</a> checks before it runs. The <a href=./digital-twin-security.html>twin</a> can validate a recovered configuration by replaying known decisions before the plant returns to service."
+   ],
+   [
+    "p",
+    "Design status: golden-image management, offline immutable backups, and deterministic re-provisioning run in the twin/staging environment and are drilled during <a href=./penetration-testing-red-team.html>red-team exercises</a>. Live recovery drills on plant hardware are FOAK-era; no operating reactor has yet been recovered under this procedure."
+   ]
+  ],
+  "related": [
+   [
+    "incident-response-ot",
+    "OT Incident Response"
+   ],
+   [
+    "firmware-signing-update",
+    "Firmware Signing and Update"
+   ],
+   [
+    "immutable-audit-log",
+    "Immutable Audit Log"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

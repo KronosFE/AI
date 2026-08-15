@@ -1,0 +1,2527 @@
+[
+ {
+  "slug": "mlops-lifecycle-overview",
+  "title": "MLOps Lifecycle for Fusion Control",
+  "cat": "mlops",
+  "lede": "MLOps at Kronos is the disciplined pipeline that carries a model from L0 training to a validated, revertible artifact allowed to influence the two machines.",
+  "body": [
+   [
+    "h2",
+    "Why fusion needs hard MLOps"
+   ],
+   [
+    "p",
+    "A model that mispredicts a plasma equilibrium or a plug-density trajectory is not a bad recommendation, it is a candidate machine fault. Kronos treats every model that can touch the breeder (Hyperion) or the burner (Aegis / MetroVolt) as a safety-relevant artifact with a full lifecycle: sourced data, versioned training, offline validation, staged deployment, monitoring, and a guaranteed rollback. Nothing reaches an actuator by accident."
+   ],
+   [
+    "p",
+    "The lifecycle mirrors the eight-layer S.M.A.R.T. stack. Training and heavy simulation live on <a href=./offline-retraining-on-l0.html>L0</a>; the resulting artifacts are compiled toward the real-time layers only after passing <a href=./pre-deployment-validation-gates.html>validation gates</a>. The control plane (L1) never learns online; it executes only artifacts that MLOps has certified."
+   ],
+   [
+    "h3",
+    "The seven stages"
+   ],
+   [
+    "ul",
+    [
+     "Curate: assemble and version a training set from the L0 pulse archive with full lineage.",
+     "Train: reproducible, seeded runs producing a signed model artifact.",
+     "Register: enter the artifact into the <a href=./model-registry-promotion-states.html>model registry</a> with a promotion state.",
+     "Validate: run offline gates, backtests, and uncertainty checks.",
+     "Shadow: run inference alongside production without authority to act.",
+     "Canary: grant limited authority under tight bounds, then widen.",
+     "Monitor and revert: watch drift and degradation; roll back on breach."
+    ]
+   ],
+   [
+    "h3",
+    "Both machines, one pipeline"
+   ],
+   [
+    "p",
+    "The breeder needs equilibrium, shape, and disruption-avoidance models; the burner needs ambipolar-potential and end-plug models. The physics differs but the governance is identical. This uniformity is deliberate: one auditable pipeline, one registry, one rollback discipline, so that a reviewer certifying a burner controller and a reviewer certifying a breeder surrogate follow the same checklist."
+   ],
+   [
+    "p",
+    "Because the machines are still <b>design and simulation studies</b> with breeder construction beginning Q2 2027 and first-of-a-kind first tritium targeted near 2030, most of this pipeline runs today against the digital twin and L0 simulations, not hardware. That is the point: the MLOps discipline is built and exercised before any model is ever allowed near a coil supply."
+   ]
+  ],
+  "related": [
+   [
+    "offline-retraining-on-l0",
+    "Offline Retraining on L0"
+   ],
+   [
+    "model-registry-promotion-states",
+    "Model Registry"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "continual-learning-loop",
+  "title": "The Continual Learning Loop",
+  "cat": "mlops",
+  "lede": "Kronos closes a data-to-model loop that continually re-grounds every predictive object against new pulse evidence without ever letting the machine learn online.",
+  "body": [
+   [
+    "h2",
+    "Learning offline, acting online"
+   ],
+   [
+    "p",
+    "Continual learning at Kronos is strictly a <b>batch</b> discipline. Each pulse or campaign on the breeder or burner writes labeled evidence into the L0 archive; periodically that evidence retrains or refines the surrogates, controllers, and anomaly detectors; the improved artifacts are validated and staged back out. The online layers never update their own weights. This separation is what lets the failsafe path be certified independently of any learning component."
+   ],
+   [
+    "p",
+    "The loop is deliberately asymmetric in speed. The control plane acts in microseconds; the learning loop turns in hours to weeks. Coupling them tightly would make control behavior non-reproducible. Decoupling them means every deployed controller corresponds to a frozen, hash-identified artifact you can point to after the fact."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Continual learning loop (batch, offline) — conceptual\nwhile True:\n    evidence = L0.collect_new_pulses(since=last_watermark)\n    dataset  = curate(evidence, dedupe=True, provenance=True)\n    if drift_detected(dataset) or scheduled_retrain():\n        model = retrain(base=registry.current('breeder/equilibrium'),\n                        data=dataset, seed=FIXED_SEED)\n        report = validate_offline(model, holdout, backtests)\n        if report.passes_all_gates:\n            registry.register(model, state='STAGING', lineage=report)\n    last_watermark = evidence.max_time"
+    ]
+   ],
+   [
+    "h3",
+    "What gets refined"
+   ],
+   [
+    "ul",
+    [
+     "Grad-Shafranov and MHD surrogates for the breeder twin",
+     "Ambipolar-potential and plug-density surrogates for the burner twin",
+     "Anomaly and disruption-precursor detectors on both machines",
+     "Diagnostic calibration models tracking sensor drift"
+    ]
+   ],
+   [
+    "p",
+    "The loop feeds directly into <a href=./digital-twin-refinement.html>digital-twin refinement</a> and reads its retraining triggers from <a href=./drift-detection-covariate-shift.html>drift detection</a>. It is the connective tissue between L0 and the twin. See also the <a href=./mlops-lifecycle-overview.html>lifecycle overview</a> for how a refined artifact is then staged."
+   ]
+  ],
+  "related": [
+   [
+    "digital-twin-refinement",
+    "Digital-Twin Refinement"
+   ],
+   [
+    "offline-retraining-on-l0",
+    "Offline Retraining on L0"
+   ],
+   [
+    "drift-detection-covariate-shift",
+    "Drift Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "offline-retraining-on-l0",
+  "title": "Offline Retraining on L0",
+  "cat": "mlops",
+  "lede": "L0 is where every model is retrained: a slow, expansive, reproducible compute substrate that regenerates ground truth before any artifact is compiled toward the machine.",
+  "body": [
+   [
+    "h2",
+    "L0 as the retraining substrate"
+   ],
+   [
+    "p",
+    "Retraining is intentionally exiled to the L0 Foundation layer, the non-real-time compute base of the stack. L0 is allowed to be slow and thorough: multi-physics Monte Carlo neutronics, GPU-cluster PINN training, and petabyte-scale replay of pulse histories all run here. No retraining job ever runs on the L1 control plane, which must stay deterministic."
+   ],
+   [
+    "p",
+    "Every retraining job is a first-class, reproducible unit of work. It pins its dataset version, its base-model version, its random seeds, its container image, and its hardware profile, then emits a signed artifact plus a lineage record. Two runs of the same job on the same inputs must produce byte-identical or tolerance-identical models; this is enforced, not hoped for. See <a href=./reproducible-training-runbooks.html>reproducible training runbooks</a>."
+   ],
+   [
+    "h3",
+    "Retraining triggers"
+   ],
+   [
+    "ul",
+    [
+     "Scheduled cadence (e.g. after each breeder campaign block)",
+     "Drift breach flagged by <a href=./drift-detection-covariate-shift.html>drift monitors</a>",
+     "New physics regime explored (breeder TBR lever 1.1/1.5/1.8, burner plug-density scan)",
+     "Incident-driven retrain after a postmortem",
+     "Active-learning request for high-value samples"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Retraining job manifest (pinned for reproducibility)\njob = RetrainJob(\n  base_model = 'burner/ambipolar-potential@3.2.1',\n  dataset    = 'l0://datasets/burner_pulses@2027Q2.v14',   # content-addressed\n  seed       = 20270415,\n  image      = 'kronos/train:cuda12-pinn-0.9@sha256:...',\n  budget     = {'gpu_hours': 4096, 'nodes': 32},\n  emits      = ['model.safetensors','lineage.json','card.md'])"
+    ]
+   ],
+   [
+    "p",
+    "Because the machines are not yet built, L0 retraining today runs largely against simulation and twin-generated data. Once the breeder reaches first tritium near 2030, real pulse evidence begins to dominate the datasets, but the substrate and the discipline stay the same. L0 remains the only place weights change."
+   ]
+  ],
+  "related": [
+   [
+    "mlops-lifecycle-overview",
+    "MLOps Lifecycle"
+   ],
+   [
+    "reproducible-training-runbooks",
+    "Reproducible Training Runbooks"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "digital-twin-refinement",
+  "title": "Digital-Twin Refinement",
+  "cat": "mlops",
+  "lede": "Twin refinement is the periodic re-grounding of the digital twin's surrogates against measured pulse data so its predictions stay faithful to the real machine.",
+  "body": [
+   [
+    "h2",
+    "Keeping the twin honest"
+   ],
+   [
+    "p",
+    "The Kronos digital twin runs reduced-order and neural-operator surrogates fast enough for the real-time layers, but a surrogate is only as good as the physics it was trained on. Refinement is the MLOps process that closes the gap between what the twin predicts and what diagnostics actually measured, then folds that gap back into the surrogates on L0."
+   ],
+   [
+    "p",
+    "Refinement is not recalibration of a single scalar; it is targeted retraining. Residuals between twin prediction and measurement are accumulated per module (MHD stability, neutronics, thermomechanics, power systems), and modules whose residuals exceed tolerance are queued for surrogate retraining with the newly labeled data. Modules within tolerance are left frozen so refinement stays surgical and auditable."
+   ],
+   [
+    "h3",
+    "The refinement cycle"
+   ],
+   [
+    "ul",
+    [
+     "Collect prediction-vs-measurement residuals per twin module",
+     "Score fidelity against tolerance bands (see twin fidelity metrics)",
+     "Flag modules that breach and assemble a labeled refinement set",
+     "Retrain those surrogates on <a href=./offline-retraining-on-l0.html>L0</a>",
+     "Validate, register, and re-inject via the <a href=./model-registry-promotion-states.html>registry</a>"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def refine_twin(twin, pulses, tol):\n    residuals = {m: [] for m in twin.modules}\n    for p in pulses:\n        pred = twin.replay(p.inputs)          # surrogate prediction\n        for m in twin.modules:\n            residuals[m].append(rmse(pred[m], p.measured[m]))\n    to_retrain = [m for m in twin.modules\n                  if mean(residuals[m]) > tol[m]]\n    return to_retrain    # queue only breaching modules for L0 retrain"
+    ]
+   ],
+   [
+    "p",
+    "For the breeder this means re-grounding equilibrium and negative-triangularity shape surrogates against magnetic and Thomson diagnostics; for the burner it means re-grounding ambipolar-potential and plug-density surrogates. Refinement feeds and is fed by <a href=./drift-detection-plasma-regime.html>regime drift detection</a>: a persistent residual is drift, and drift schedules refinement."
+   ]
+  ],
+  "related": [
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ],
+   [
+    "drift-detection-plasma-regime",
+    "Regime Drift Detection"
+   ],
+   [
+    "twin-fidelity-scoring-mlops",
+    "Twin Fidelity Scoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "drift-detection-covariate-shift",
+  "title": "Drift Detection: Covariate Shift",
+  "cat": "mlops",
+  "lede": "Covariate-shift monitors watch the input distributions feeding every deployed model and raise a retraining flag when the live data drifts away from the training set.",
+  "body": [
+   [
+    "h2",
+    "When the world moves under the model"
+   ],
+   [
+    "p",
+    "A model trained on one distribution of plasma conditions silently degrades when the machine operates in conditions it never saw. Covariate-shift detection measures the divergence between the feature distribution a model was trained on and the feature distribution it is now receiving from the breeder or burner, independent of whether labels are yet available."
+   ],
+   [
+    "p",
+    "Kronos monitors shift on the engineered features that feed each model: for the breeder, quantities such as normalized plasma current, elongation, triangularity, and edge density; for the burner, plug field ratio, mirror ratio, and injected-power fractions. Each feature carries a reference histogram captured at training time; live windows are compared against it continuously."
+   ],
+   [
+    "h3",
+    "Statistics used"
+   ],
+   [
+    "ul",
+    [
+     "Population Stability Index (PSI) per feature",
+     "Kolmogorov-Smirnov and energy-distance tests for continuous signals",
+     "Maximum Mean Discrepancy (MMD) on multivariate feature vectors",
+     "Kullback-Leibler divergence against the reference density"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def psi(reference, live, bins):\n    r,_ = np.histogram(reference, bins); r = r/r.sum()\n    l,_ = np.histogram(live,      bins); l = l/l.sum()\n    eps = 1e-6\n    return float(np.sum((l - r) * np.log((l+eps)/(r+eps))))\n\n# PSI < 0.1 stable ; 0.1-0.25 watch ; > 0.25 -> flag retrain"
+    ]
+   ],
+   [
+    "p",
+    "A breach does not touch the machine. It raises a flag that (a) lowers the affected model's <a href=./twin-fidelity-scoring-mlops.html>confidence weighting</a> in the twin and (b) queues a retraining job on L0. Covariate shift is distinct from <a href=./concept-drift-detection.html>concept drift</a>, where the input-output relationship itself changes; Kronos monitors both, because a fusion machine can drift in either dimension as components age and campaigns explore new regimes."
+   ]
+  ],
+  "related": [
+   [
+    "concept-drift-detection",
+    "Concept Drift Detection"
+   ],
+   [
+    "drift-detection-plasma-regime",
+    "Regime Drift Detection"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "concept-drift-detection",
+  "title": "Concept Drift Detection",
+  "cat": "mlops",
+  "lede": "Concept-drift monitors detect when the relationship a model learned between inputs and outputs stops holding, even if the inputs themselves look familiar.",
+  "body": [
+   [
+    "h2",
+    "When the mapping changes, not the inputs"
+   ],
+   [
+    "p",
+    "Covariate shift is a change in what inputs arrive; concept drift is a change in what those inputs mean. A breeder disruption-precursor model may see familiar-looking magnetics yet the precursor-to-disruption mapping shifts as first-wall conditioning changes. A burner plug model's inputs may look nominal while the potential-to-confinement relationship moves as coil performance ages. Concept drift is the more dangerous of the two because the inputs give no warning."
+   ],
+   [
+    "p",
+    "Detecting it requires labels, which arrive late: the outcome of a pulse is known only after the pulse. Kronos therefore runs concept-drift detection as a backward-looking process on the L0 archive, comparing rolling model error against a stable baseline error rather than comparing input distributions."
+   ],
+   [
+    "h3",
+    "Methods"
+   ],
+   [
+    "ul",
+    [
+     "DDM / EDDM style error-rate trackers with warning and drift thresholds",
+     "ADWIN adaptive windowing over the residual stream",
+     "Page-Hinkley test on cumulative prediction error",
+     "Sliding-window AUC / calibration decay for classifiers"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "class PageHinkley:\n    def __init__(self, delta=0.005, lam=50):\n        self.delta, self.lam = delta, lam\n        self.mean = 0.0; self.n = 0; self.mT = 0.0\n    def update(self, error):\n        self.n += 1\n        self.mean += (error - self.mean)/self.n\n        self.mT += error - self.mean - self.delta\n        return self.mT > self.lam      # True -> concept drift"
+    ]
+   ],
+   [
+    "p",
+    "A confirmed concept-drift event is high priority: it means a deployed model's core assumption is stale. It triggers immediate <a href=./drift-detection-covariate-shift.html>cross-checking against covariate shift</a>, a confidence downgrade in the twin, and a prioritized L0 retrain. If the drifting model holds actuation authority, the <a href=./controller-rollback-safe-state.html>rollback</a> path is armed so control can fall back to the last certified artifact."
+   ]
+  ],
+  "related": [
+   [
+    "drift-detection-covariate-shift",
+    "Covariate Shift Detection"
+   ],
+   [
+    "drift-detection-plasma-regime",
+    "Regime Drift Detection"
+   ],
+   [
+    "controller-rollback-safe-state",
+    "Rollback and Safe State"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "drift-detection-plasma-regime",
+  "title": "Regime Drift Detection on Plasma State",
+  "cat": "mlops",
+  "lede": "Regime monitors detect when the machine crosses into a plasma operating regime outside a model's validated envelope and gate that model accordingly.",
+  "body": [
+   [
+    "h2",
+    "Staying inside the validated envelope"
+   ],
+   [
+    "p",
+    "Every deployed model has an explicit validity envelope: the region of operating space over which it was trained and validated. Regime drift detection watches the live plasma state vector and asks a single question each cycle: is the machine still inside the envelope of the model currently relying on this state? Outside it, the model's predictions are extrapolations and must not carry authority."
+   ],
+   [
+    "p",
+    "For the breeder this envelope is expressed in confinement and stability coordinates (normalized beta, q95, Greenwald fraction, triangularity around the canonical negative delta -0.30). For the burner it is expressed in mirror-confinement coordinates (plug field toward the 26.49 T design point, mirror ratio, ambipolar potential). Crossing a boundary is not an error; it is expected as campaigns explore. The response is to gate, not to force the model."
+   ],
+   [
+    "h3",
+    "Envelope representation"
+   ],
+   [
+    "ul",
+    [
+     "Convex hull / one-class SVM around training-set operating points",
+     "Mahalanobis distance from the training centroid in state space",
+     "Per-axis hard limits derived from physics constraints",
+     "Density estimate flagging low-support regions"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def in_envelope(state, mu, cov_inv, d_max):\n    d = mahalanobis(state, mu, cov_inv)\n    return d <= d_max          # else: model output is extrapolation\n\n# On breach: model.authority = 0 ; fall to certified fallback ;\n# log operating point as an active-learning candidate for L0"
+    ]
+   ],
+   [
+    "p",
+    "Regime breaches are gold for <a href=./active-learning-experiment-design.html>active learning</a>: they mark exactly the operating points where the model is weakest and new data is most valuable. The breach both protects the machine now and schedules the L0 work that will extend the envelope later, closing the <a href=./continual-learning-loop.html>continual-learning loop</a>."
+   ]
+  ],
+  "related": [
+   [
+    "drift-detection-covariate-shift",
+    "Covariate Shift Detection"
+   ],
+   [
+    "active-learning-experiment-design",
+    "Active Learning"
+   ],
+   [
+    "digital-twin-refinement",
+    "Digital-Twin Refinement"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-versioning-lineage",
+  "title": "Data Versioning and Lineage",
+  "cat": "mlops",
+  "lede": "Every training set is content-addressed and traceable: which raw pulses, which transforms, and which labels produced it, so any model can be reproduced from its data.",
+  "body": [
+   [
+    "h2",
+    "Immutable datasets, traceable to raw signal"
+   ],
+   [
+    "p",
+    "A model is a function of its data, so an untracked dataset is an unreproducible model. Kronos treats every training set as an immutable, content-addressed object: hash the exact rows, transforms, and label revisions, and that hash becomes the dataset's identity. Retraining pins the hash; two jobs citing the same hash are guaranteed the same data."
+   ],
+   [
+    "p",
+    "Lineage runs deeper than the dataset. Each engineered feature vector traces back through its transform graph to the specific raw diagnostic channels and pulse identifiers on the breeder or burner that produced it. When a diagnostic is later found to have been miscalibrated, lineage answers immediately which datasets and therefore which models are contaminated."
+   ],
+   [
+    "h3",
+    "What lineage records"
+   ],
+   [
+    "ul",
+    [
+     "Source pulse IDs and machine (breeder / burner) and campaign",
+     "Raw channel list with calibration revision at read time",
+     "Transform DAG: filters, resampling, feature definitions, versions",
+     "Label source and revision (see <a href=./label-quality-provenance.html>label provenance</a>)",
+     "Splits: train/validation/holdout membership by hash"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "dataset = {\n  'id': 'sha256:9f2c...',            # content hash = identity\n  'machine': 'breeder',\n  'pulses': ['H-2029-0441', ...],\n  'features': 'featdef@v7',\n  'labels':  'disruption-labels@v3',\n  'splits':  {'train':'sha256:...','holdout':'sha256:...'},\n  'derived_from': ['sha256:...prev']  # append-only lineage chain\n}"
+    ]
+   ],
+   [
+    "p",
+    "This lineage feeds directly into <a href=./model-versioning-lineage.html>model lineage</a> and the broader <a href=./metadata-governance.html>metadata governance</a> layer. It is also the mechanism behind incident forensics: after any anomaly, lineage lets an auditor walk from the deployed controller back to the exact raw signals it was born from, with no gaps."
+   ]
+  ],
+  "related": [
+   [
+    "model-versioning-lineage",
+    "Model Versioning and Lineage"
+   ],
+   [
+    "label-quality-provenance",
+    "Label Quality and Provenance"
+   ],
+   [
+    "training-data-curation",
+    "Training-Data Curation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-versioning-lineage",
+  "title": "Model Versioning and Lineage",
+  "cat": "mlops",
+  "lede": "Each model artifact carries a full provenance chain — data, code, seed, environment, and parent model — so any deployed controller can be reconstructed and audited exactly.",
+  "body": [
+   [
+    "h2",
+    "A model is more than weights"
+   ],
+   [
+    "p",
+    "A deployable Kronos model is a bundle: the weights, the exact training code revision, the pinned dataset hash, the random seeds, the container image digest, the hyperparameters, and a pointer to its parent model. Version the bundle, not just the weights. This is what lets a reviewer certify not a black box but a fully specified, rebuildable object."
+   ],
+   [
+    "p",
+    "Versioning follows semantic rules tied to behavior, not to file changes. A patch bump is a retrain on the same architecture and feature set; a minor bump changes features or adds data regimes; a major bump changes architecture, output contract, or safety envelope. Any major bump forces a full re-validation and a fresh <a href=./shadow-deployment-controllers.html>shadow</a> and <a href=./canary-controller-rollout.html>canary</a> cycle before it can act."
+   ],
+   [
+    "h3",
+    "The lineage chain"
+   ],
+   [
+    "ul",
+    [
+     "artifact hash and semantic version",
+     "dataset hash (see <a href=./data-versioning-lineage.html>data lineage</a>)",
+     "code commit, container digest, seed, hardware profile",
+     "parent model version and diff of behavior on the shared holdout",
+     "validation report hash and registry promotion history"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "model_card_meta = {\n  'name': 'breeder/equilibrium-surrogate',\n  'version': '4.1.0',\n  'parent': '4.0.2',\n  'dataset': 'sha256:9f2c...',\n  'code': 'git:8ad91c', 'image': 'sha256:...', 'seed': 20291103,\n  'validation': 'report:sha256:...',\n  'state': 'STAGING'      # PROD only after gates + canary\n}"
+    ]
+   ],
+   [
+    "p",
+    "Every artifact in the <a href=./model-registry-promotion-states.html>registry</a> carries this chain, and the chain is append-only. When a model is rolled back, the record is not deleted; the superseding event is appended, so the operational history of which model held authority at which time on which machine is permanently reconstructable."
+   ]
+  ],
+  "related": [
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ],
+   [
+    "model-registry-promotion-states",
+    "Model Registry"
+   ],
+   [
+    "model-cards-datasheets",
+    "Model Cards and Datasheets"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-registry-promotion-states",
+  "title": "Model Registry and Promotion States",
+  "cat": "mlops",
+  "lede": "The registry is the single source of truth for every model: its version, lineage, validation status, and a promotion state that governs whether it may act on a machine.",
+  "body": [
+   [
+    "h2",
+    "One registry, explicit states"
+   ],
+   [
+    "p",
+    "Every model artifact lives in one registry keyed by name and version. The registry is authoritative: the online layers resolve which artifact to load by querying the registry's promotion state, never by pulling a file from a directory. This makes the question who is in control right now answerable at any instant for both the breeder and the burner."
+   ],
+   [
+    "h3",
+    "Promotion states"
+   ],
+   [
+    "ul",
+    [
+     "REGISTERED — artifact exists with full lineage; no authority",
+     "STAGING — passing offline validation; eligible for shadow",
+     "SHADOW — running alongside production, zero actuation authority",
+     "CANARY — limited, bounded authority under tight envelopes",
+     "PROD — full authority within its validated envelope",
+     "DEPRECATED — superseded; retained for audit and rollback",
+     "QUARANTINED — failed a gate or a monitor; blocked from promotion"
+    ]
+   ],
+   [
+    "p",
+    "Transitions are one-directional through the gates and reversible only via explicit rollback. A model cannot jump from STAGING to PROD; it must pass shadow, then canary, then a promotion review. Any monitor breach in production can force a model to QUARANTINED and trigger fallback to the previous PROD version in a bounded time."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "ALLOWED = {\n 'REGISTERED': {'STAGING','QUARANTINED'},\n 'STAGING':    {'SHADOW','QUARANTINED'},\n 'SHADOW':     {'CANARY','STAGING','QUARANTINED'},\n 'CANARY':     {'PROD','SHADOW','QUARANTINED'},\n 'PROD':       {'DEPRECATED','QUARANTINED'},\n}\ndef transition(m, to, approvals):\n    assert to in ALLOWED[m.state]\n    assert gates_passed(m, to) and quorum(approvals, to)\n    registry.log(m, m.state, to, approvals); m.state = to"
+    ]
+   ],
+   [
+    "p",
+    "Promotion into or out of CANARY and PROD requires an approval quorum, tying the registry to the <a href=./governance-approval-workflow.html>governance workflow</a>. The registry also underpins the <a href=./digital-twin-fleet-registry.html>fleet registry</a>: as breeder units move FOAK to NOAK to BOAK, each unit records which model version it is running so no two units silently diverge."
+   ]
+  ],
+  "related": [
+   [
+    "mlops-lifecycle-overview",
+    "MLOps Lifecycle"
+   ],
+   [
+    "governance-approval-workflow",
+    "Governance Workflow"
+   ],
+   [
+    "model-versioning-lineage",
+    "Model Versioning and Lineage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "feature-store-plasma-signals",
+  "title": "Feature Store for Plasma and Diagnostic Signals",
+  "cat": "mlops",
+  "lede": "A shared feature store guarantees that the features a model saw in training are the exact features it sees in production, eliminating training-serving skew.",
+  "body": [
+   [
+    "h2",
+    "One definition, two read paths"
+   ],
+   [
+    "p",
+    "The most common silent failure in deployed ML is training-serving skew: a feature computed one way offline and a subtly different way online. Kronos eliminates it with a feature store that defines each plasma or diagnostic feature once, then serves it through two backends: a batch path for L0 training and a low-latency path for the online layers. Both execute the same definition."
+   ],
+   [
+    "p",
+    "Features are versioned objects. A change to how normalized plasma current or plug field ratio is computed produces a new feature version; models pin the feature versions they were trained on, so a redefinition never silently changes what a deployed model consumes. Backfills recompute historical values so training sets stay internally consistent."
+   ],
+   [
+    "h3",
+    "Example feature definitions"
+   ],
+   [
+    "ul",
+    [
+     "Breeder: q95, normalized beta, Greenwald fraction, elongation, triangularity vs delta -0.30 target",
+     "Burner: mirror ratio, plug field toward 26.49 T, ambipolar potential estimate, neutron fraction vs 5.44% design",
+     "Shared: coil temperature margins, diagnostic health flags, control error integrals"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "@feature(name='breeder.greenwald_fraction', version=3,\n         inputs=['ip_MA','a_minor_m','n_e_line_1e20'])\ndef greenwald_fraction(ip_MA, a_minor_m, n_e_line_1e20):\n    n_gw = ip_MA / (math.pi * a_minor_m**2)   # 1e20 m^-3 units\n    return n_e_line_1e20 / n_gw\n# same code path: batch (L0 train) and online (twin serving)"
+    ]
+   ],
+   [
+    "p",
+    "The store is the boundary object between <a href=./data-versioning-lineage.html>data lineage</a> and live serving; feature versions become part of the model's <a href=./model-versioning-lineage.html>lineage</a>. It also gives <a href=./drift-detection-covariate-shift.html>drift monitors</a> a natural place to attach reference histograms, since every monitored quantity is already a named, versioned feature."
+   ]
+  ],
+  "related": [
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ],
+   [
+    "drift-detection-covariate-shift",
+    "Covariate Shift Detection"
+   ],
+   [
+    "training-serving-skew",
+    "Training-Serving Skew"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "training-serving-skew",
+  "title": "Preventing Training-Serving Skew",
+  "cat": "mlops",
+  "lede": "Skew — any difference between how a feature or model behaves in training versus production — is treated as a defect and caught by contract tests before deployment.",
+  "body": [
+   [
+    "h2",
+    "The quiet killer of deployed models"
+   ],
+   [
+    "p",
+    "A model can score perfectly offline and still misbehave on the machine if the production pipeline computes its inputs differently, orders them differently, or handles missing values differently than the training pipeline did. Kronos classifies every such divergence as skew and treats it as a release-blocking defect, not a tolerable quirk."
+   ],
+   [
+    "h3",
+    "Three sources of skew"
+   ],
+   [
+    "ul",
+    [
+     "Feature skew: a feature computed differently offline vs online",
+     "Distribution skew: production inputs from a different regime (see <a href=./drift-detection-covariate-shift.html>covariate shift</a>)",
+     "Serving skew: differences in batching, dtype, quantization, or timing"
+    ]
+   ],
+   [
+    "p",
+    "The <a href=./feature-store-plasma-signals.html>feature store</a> removes most feature skew by construction. Serving skew is caught by a mandatory contract test: a fixed set of recorded machine states is passed through both the offline model and the compiled online artifact, and the outputs must match within tolerance. A mismatch quarantines the artifact."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def parity_check(offline_model, online_artifact, probes, tol):\n    for s in probes:                       # recorded machine states\n        a = offline_model.predict(s)\n        b = online_artifact.infer(s)       # compiled edge form\n        assert max_abs(a - b) <= tol, f'serving skew on {s.id}'\n    return 'PARITY_OK'   # required gate before SHADOW"
+    ]
+   ],
+   [
+    "p",
+    "Serving skew matters most where an artifact is <a href=./edge-model-compilation.html>compiled and quantized</a> for the L1 edge, because quantization can shift outputs. The parity check runs on the exact compiled form that will execute on the machine, so what is validated is what runs. This gate sits inside the broader <a href=./pre-deployment-validation-gates.html>validation gate</a> set."
+   ]
+  ],
+  "related": [
+   [
+    "feature-store-plasma-signals",
+    "Feature Store"
+   ],
+   [
+    "edge-model-compilation",
+    "Edge Model Compilation"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shadow-deployment-controllers",
+  "title": "Shadow Deployment of Controllers",
+  "cat": "mlops",
+  "lede": "A shadow controller runs on live machine data and computes what it would command, but its outputs go nowhere near an actuator — pure observation before authority.",
+  "body": [
+   [
+    "h2",
+    "Watching without touching"
+   ],
+   [
+    "p",
+    "Before any controller or predictive model earns authority over the breeder or burner, it runs in shadow: it receives the same live state vector as the production controller, computes its full command trajectory each cycle, and logs it, but its outputs are discarded. Shadow answers the essential question would this model have done something sane, on real conditions, with zero risk."
+   ],
+   [
+    "p",
+    "Shadow is more informative than offline backtesting because it runs against the true, live data path including real latency, real sensor noise, and real missing-data handling. It also exposes the model to conditions no offline test set contained, since campaigns generate novel operating points continuously."
+   ],
+   [
+    "h3",
+    "What shadow measures"
+   ],
+   [
+    "ul",
+    [
+     "Agreement with the incumbent controller on nominal operation",
+     "Divergence magnitude and its timing relative to events",
+     "Frequency of would-be envelope or rate-limit violations",
+     "Inference latency and jitter on the real edge budget",
+     "Behavior during disturbances and near-fault conditions"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def shadow_cycle(state, prod_ctrl, shadow_ctrl, log):\n    u_prod   = prod_ctrl.act(state)        # applied to machine\n    u_shadow = shadow_ctrl.act(state)      # DISCARDED, logged only\n    log.record(state.t, u_prod, u_shadow,\n               div=norm(u_prod - u_shadow),\n               violations=check_envelope(u_shadow, state))\n    apply(u_prod)                          # only prod acts"
+    ]
+   ],
+   [
+    "p",
+    "Persistent large divergence is not automatically bad; the shadow model may be better. It is a signal to investigate, using the twin to replay both trajectories. A model that survives shadow with well-understood divergence and no envelope violations becomes eligible for <a href=./canary-controller-rollout.html>canary</a>. Shadow divergence tooling overlaps with <a href=./shadow-divergence-detection.html>divergence detection</a> in the twin layer."
+   ]
+  ],
+  "related": [
+   [
+    "canary-controller-rollout",
+    "Canary Controller Rollout"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "model-registry-promotion-states",
+    "Model Registry"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "canary-controller-rollout",
+  "title": "Canary Rollout of Control Policies",
+  "cat": "mlops",
+  "lede": "A canary policy gains narrow, bounded authority — small setpoint deltas inside tight envelopes — that widens only as monitored performance holds, with instant revert on breach.",
+  "body": [
+   [
+    "h2",
+    "Authority in small, reversible increments"
+   ],
+   [
+    "p",
+    "A controller that survives shadow has proven it would not obviously misbehave; it has not proven the machine responds as the model expects when it actually acts. Canary bridges that gap by granting minimal authority: the new policy may command only small deviations from the incumbent's setpoints, inside envelopes far tighter than the machine's true limits, and only during nominal operation."
+   ],
+   [
+    "p",
+    "The canary's authority is a scalar that ramps. It begins near zero, and each monitoring window that passes without a breach widens the allowed deviation and the operating regimes it covers. Any breach collapses the scalar to zero instantly, handing control back to the certified incumbent. This is a continuous, reversible handover, not a switch."
+   ],
+   [
+    "h3",
+    "Canary guardrails"
+   ],
+   [
+    "ul",
+    [
+     "Bounded command delta blended with the incumbent output",
+     "Restricted to a subset of the validated envelope",
+     "Tight rate limits and hard clamps at the L1 edge",
+     "Armed <a href=./controller-rollback-safe-state.html>rollback</a> to the incumbent at all times",
+     "Human oversight for each authority-widening step"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def canary_command(state, incumbent, candidate, alpha, env):\n    u_i = incumbent.act(state)\n    u_c = candidate.act(state)\n    u   = u_i + alpha * clip(u_c - u_i, -env.max_delta, env.max_delta)\n    if not env.contains(state) or candidate.confidence(state) < env.c_min:\n        return u_i          # candidate mute outside its regime\n    return u                 # alpha in [0,1], ramped by monitors"
+    ]
+   ],
+   [
+    "p",
+    "On the breeder, canary might first touch only slow shape corrections around delta -0.30, never disruption-critical control. On the burner, given the honest gates, canary authority over plug and DEC systems stays extremely narrow. Widening to full PROD requires the <a href=./governance-approval-workflow.html>approval quorum</a>. This is the machine-facing analogue of a progressive rollout, adapted to hardware where a bad step is not a bad user session but a fault."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-deployment-controllers",
+    "Shadow Deployment"
+   ],
+   [
+    "controller-rollback-safe-state",
+    "Rollback and Safe State"
+   ],
+   [
+    "governance-approval-workflow",
+    "Governance Workflow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pre-deployment-validation-gates",
+  "title": "Validation Gates Before a Model Touches the Machine",
+  "cat": "mlops",
+  "lede": "No model gains any authority without clearing a fixed sequence of gates — accuracy, calibration, safety-envelope, parity, and uncertainty — each of which can hard-block promotion.",
+  "body": [
+   [
+    "h2",
+    "Gates, not vibes"
+   ],
+   [
+    "p",
+    "Promotion at Kronos is not a judgment call; it is a checklist of automated gates, each with a numeric threshold that either passes or fails. A model that fails any gate is quarantined, and the failure is logged with the evidence. The gates are identical for the breeder and burner so certification is uniform across the two machines."
+   ],
+   [
+    "h3",
+    "The gate sequence"
+   ],
+   [
+    "ul",
+    [
+     "Accuracy gate: error on the frozen holdout below threshold, no regression vs incumbent",
+     "Calibration gate: predicted uncertainty matches observed error (reliability curve within band)",
+     "Safety-envelope gate: model never proposes a command outside hardware limits on adversarial probes",
+     "Parity gate: compiled edge artifact matches offline model (see <a href=./training-serving-skew.html>skew</a>)",
+     "Uncertainty gate: model abstains or lowers confidence outside its <a href=./drift-detection-plasma-regime.html>validated regime</a>",
+     "Reproducibility gate: retraining the artifact reproduces it within tolerance"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def promotion_gate(model, holdout, probes, incumbent):\n    checks = {\n     'accuracy':   rmse(model, holdout) <= TH.rmse and\n                   rmse(model, holdout) <= rmse(incumbent, holdout),\n     'calibration':ece(model, holdout) <= TH.ece,\n     'safety':     no_envelope_breach(model, probes.adversarial),\n     'parity':     parity_ok(model),\n     'uncertainty':abstains_outside_regime(model, probes.ood),\n     'repro':      reproduces(model, tol=TH.repro)}\n    return all(checks.values()), checks   # any False -> QUARANTINE"
+    ]
+   ],
+   [
+    "p",
+    "The safety-envelope gate is adversarial by design: it does not test whether the model behaves on typical inputs but whether it can be made to propose something dangerous. For the burner, gates are read against the four honest constraints — the plug stress (3 to 3.9x over-stress at design bore), the un-post-dictable operating regime (166 to 830x beyond any device), the He-3 supply gap (about 400x domestic supply per commercial unit), and availability (0.86 to 0.995 vs hyperscale 0.99982) — so a model is never validated into implying a capability the physics does not support. Passing all gates moves a model to STAGING and eligibility for <a href=./shadow-deployment-controllers.html>shadow</a>."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-deployment-controllers",
+    "Shadow Deployment"
+   ],
+   [
+    "controller-rollback-safe-state",
+    "Rollback and Safe State"
+   ],
+   [
+    "honest-gates-in-mlops",
+    "Honest Gates in MLOps"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "controller-rollback-safe-state",
+  "title": "Rollback and Safe-State Fallback",
+  "cat": "mlops",
+  "lede": "Every deployed model has a certified predecessor and a physics-based safe state it can fall to within a bounded time, so a bad model is always reversible.",
+  "body": [
+   [
+    "h2",
+    "Reversibility as a precondition of deployment"
+   ],
+   [
+    "p",
+    "A model is only allowed to act if there is a defined, tested way to stop it acting. Kronos maintains two fallback targets for every model that holds authority: the previous certified model version, and a model-free safe state driven entirely by the deterministic L1 control plane. Rollback to either is bounded in time and does not depend on the failing model behaving well."
+   ],
+   [
+    "p",
+    "Rollback is triggered automatically by monitor breaches — an uncertainty spike, an envelope violation attempt, a drift alarm, or a divergence beyond threshold — and can also be triggered manually by an operator at any time. Because the L1 failsafe path is certified independently of any ML component, the safe-state fallback holds even if every model is wrong at once."
+   ],
+   [
+    "h3",
+    "The fallback ladder"
+   ],
+   [
+    "ul",
+    [
+     "Level 0: revert to previous PROD model version (same task, known-good)",
+     "Level 1: hand control to model-free deterministic controller",
+     "Level 2: L1 safe-state sequence (breeder controlled ramp-down; burner beam-notch / plug de-energize)",
+     "All levels: append rollback event to the registry, do not delete history"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def guard(model, state, monitors):\n    if monitors.breach(state):\n        registry.log_rollback(model, cause=monitors.first_breach())\n        if registry.prev_prod(model.name):\n            return activate(registry.prev_prod(model.name))\n        return L1.safe_state()          # model-free, certified path\n    return model.act(state)"
+    ]
+   ],
+   [
+    "p",
+    "Rollback is never a data-loss event: the quarantined model, the inputs that tripped it, and the full timeline are preserved for the postmortem that drives the next <a href=./incident-driven-retraining.html>incident-driven retrain</a>. The existence of a guaranteed rollback is precisely what makes <a href=./canary-controller-rollout.html>canarying</a> a new controller acceptable at all."
+   ]
+  ],
+  "related": [
+   [
+    "canary-controller-rollout",
+    "Canary Controller Rollout"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "incident-driven-retraining",
+    "Incident-Driven Retraining"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rlhf-operator-copilots",
+  "title": "RLHF for Operator Copilots",
+  "cat": "mlops",
+  "lede": "Operator copilots are tuned with reinforcement learning from human feedback so their suggestions match how expert Kronos operators actually reason — never to grant them control.",
+  "body": [
+   [
+    "h2",
+    "Aligning advice, not authority"
+   ],
+   [
+    "p",
+    "Kronos copilots are language-and-telemetry assistants that help operators interpret machine state, draft procedures, and reason about anomalies. They advise; they never actuate. RLHF is used to make their advice trustworthy: preference data from expert operators shapes a reward model, and the copilot policy is optimized against it so its outputs align with expert judgment about what is correct, safe, and appropriately hedged."
+   ],
+   [
+    "p",
+    "The feedback is collected in the loop: operators rank or correct copilot responses to real breeder and burner situations, flag hallucinated numbers, and mark unsafe suggestions. Crucially, factual grounding about the machines comes from the retrieved canonical record, not from RLHF; RLHF shapes reasoning style, calibration of confidence, and refusal behavior, not the physics constants."
+   ],
+   [
+    "h3",
+    "What the reward model rewards"
+   ],
+   [
+    "ul",
+    [
+     "Correct, cited grounding in the canonical machine record",
+     "Explicit uncertainty when the data is thin",
+     "Refusal to invent numbers or overstate capability",
+     "Respect for the honest gates when discussing the burner",
+     "Actionable, procedurally-correct guidance for operators"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# RLHF pipeline for the copilot (offline, on L0)\nprefs   = collect_operator_preferences(copilot_logs)\nreward  = train_reward_model(prefs)          # r_phi(prompt, response)\npolicy  = ppo_optimize(base=copilot, reward=reward,\n                       kl_penalty=beta)       # stay near base = safety\n# hard constraint: numeric claims must be retrieval-grounded, not RL'd"
+    ]
+   ],
+   [
+    "p",
+    "A KL penalty keeps the tuned policy close to the base model so RLHF cannot drift the copilot into confident nonsense. Every copilot response is still subject to the same audit and provenance rules as any output, and none of this grants the copilot a path to a machine. See <a href=./reward-modeling-control.html>reward modeling</a> for how the reward model itself is validated, and <a href=./rlhf-control-policies.html>RLHF for control policies</a> for the far more constrained actuation case."
+   ]
+  ],
+  "related": [
+   [
+    "reward-modeling-control",
+    "Reward Modeling"
+   ],
+   [
+    "rlhf-control-policies",
+    "RLHF for Control Policies"
+   ],
+   [
+    "preference-data-collection",
+    "Preference Data Collection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rlhf-control-policies",
+  "title": "Preference-Based RL for Control Policies",
+  "cat": "mlops",
+  "lede": "Human preference feedback shapes control-policy behavior where a scalar reward is hard to specify, but only in simulation and only behind the full validation and canary chain.",
+  "body": [
+   [
+    "h2",
+    "When reward is easier to judge than to write"
+   ],
+   [
+    "p",
+    "Some control objectives are hard to encode as a clean scalar: a good breeder shape trajectory or a graceful burner ramp is partly a matter of expert judgment about smoothness, margin, and robustness. Preference-based RL lets experts compare pairs of simulated trajectories and rank them; a reward model learns the implicit objective; and a policy is optimized against it. This complements, it does not replace, the physics-based cost terms."
+   ],
+   [
+    "p",
+    "This is used with extreme caution. Human-preference-shaped control policies are trained and evaluated <b>only in simulation and on the digital twin</b>. They inherit the entire deployment chain — validation gates, shadow, canary, rollback — before any authority, and the physics safety envelope always dominates the learned reward. A learned preference can shape behavior inside the envelope; it can never widen it."
+   ],
+   [
+    "h3",
+    "Guardrails specific to control RLHF"
+   ],
+   [
+    "ul",
+    [
+     "Preferences over simulated / twin trajectories only, never live rollouts",
+     "Physics constraints as hard barriers, not soft reward terms",
+     "Reward model uncertainty penalized to avoid reward hacking",
+     "Conservative offline-RL objective (see <a href=./offline-batch-rl.html>offline RL</a>)",
+     "Full gate + shadow + canary before authority, per the standard pipeline"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Preference-based reward, constrained\nr_pref = reward_model(traj)                     # learned from rankings\nr_safe = -LARGE if envelope_violated(traj) else 0\nr_unc  = -lambda_u * reward_model.epistemic_std(traj)  # anti-hacking\nreturn r_pref + r_safe + r_unc     # safety term dominates by design"
+    ]
+   ],
+   [
+    "p",
+    "For the burner especially, the honest gates cap what any policy can be trained to claim: a policy cannot be rewarded into operating a plug regime that is 166 to 830x beyond any existing device, because such trajectories cannot be validated and are barred by the <a href=./honest-gates-in-mlops.html>honest-gate</a> checks. RLHF here is a tool for polishing behavior inside proven bounds, not for reaching past them."
+   ]
+  ],
+  "related": [
+   [
+    "rlhf-operator-copilots",
+    "RLHF for Operator Copilots"
+   ],
+   [
+    "offline-batch-rl",
+    "Offline Batch RL"
+   ],
+   [
+    "reward-modeling-control",
+    "Reward Modeling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reward-modeling-control",
+  "title": "Reward Modeling for Control and Copilots",
+  "cat": "mlops",
+  "lede": "The reward model that RLHF optimizes against is itself a versioned, validated artifact — miscalibrated reward is a hazard, so it passes its own gates.",
+  "body": [
+   [
+    "h2",
+    "The reward model is a model too"
+   ],
+   [
+    "p",
+    "In any RLHF system the reward model is the objective. If it is wrong, the policy optimized against it is confidently wrong. Kronos therefore treats the reward model as a first-class MLOps artifact: versioned, lineage-tracked, and gated, exactly like a controller or surrogate. A reward model that overfits or is miscalibrated is a defect that can propagate into every policy trained on it."
+   ],
+   [
+    "p",
+    "Reward models are validated on held-out human preferences and, critically, on their uncertainty. A reward model must know where it is unsure, because RL optimizers exploit exactly the regions where the reward is high but wrong. Reward hacking is the failure mode where a policy finds inputs the reward model scores highly but humans would reject; penalizing reward-model uncertainty is the primary defense."
+   ],
+   [
+    "h3",
+    "Reward-model validation"
+   ],
+   [
+    "ul",
+    [
+     "Held-out preference accuracy and agreement with expert consensus",
+     "Calibration of reward and of its epistemic uncertainty",
+     "Robustness to adversarial / out-of-distribution trajectories",
+     "Stability across reward-model seeds (ensemble disagreement)",
+     "Sanity on golden pairs where the correct ranking is known"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Bradley-Terry reward model loss over preference pairs\ndef reward_loss(r, better, worse):\n    return -torch.log(torch.sigmoid(r(better) - r(worse))).mean()\n\n# Deploy as ensemble; use disagreement as epistemic signal\ndef reward_with_uncertainty(models, x):\n    rs = torch.stack([m(x) for m in models])\n    return rs.mean(0), rs.std(0)     # std -> penalty in RL objective"
+    ]
+   ],
+   [
+    "p",
+    "Reward models feed both <a href=./rlhf-operator-copilots.html>copilot RLHF</a> and <a href=./rlhf-control-policies.html>control-policy RLHF</a>, but the bar is higher for control because the consequences are physical. A reward model used anywhere near control is ensembled and its disagreement is treated as a first-class uncertainty that flows into the <a href=./pre-deployment-validation-gates.html>validation gates</a>."
+   ]
+  ],
+  "related": [
+   [
+    "rlhf-operator-copilots",
+    "RLHF for Operator Copilots"
+   ],
+   [
+    "rlhf-control-policies",
+    "RLHF for Control Policies"
+   ],
+   [
+    "preference-data-collection",
+    "Preference Data Collection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "preference-data-collection",
+  "title": "Preference Data Collection and Curation",
+  "cat": "mlops",
+  "lede": "Human preference data is collected with the same lineage rigor as machine data — who judged, on what, when — so RLHF rests on an auditable, versioned foundation.",
+  "body": [
+   [
+    "h2",
+    "Preferences are data, treated as data"
+   ],
+   [
+    "p",
+    "RLHF is only as trustworthy as the preferences it learns from. Kronos collects operator and expert preferences through structured interfaces that record not just the ranking but its full context: the machine situation shown, the two responses or trajectories compared, the judge's role and expertise, timestamp, and any rationale. This is versioned and lineage-tracked like any dataset."
+   ],
+   [
+    "p",
+    "Judgments come from qualified operators and physicists, and are weighted by domain: a reactor physicist's ranking of a plug-stability explanation carries more weight than a generalist's, and vice versa for procedural UX. Inter-rater agreement is measured; low-agreement items are flagged for review rather than fed blindly into the reward model, because noisy preferences produce a noisy objective."
+   ],
+   [
+    "h3",
+    "What each preference record holds"
+   ],
+   [
+    "ul",
+    [
+     "Context snapshot: machine (breeder / burner), state, prompt",
+     "The compared items and the chosen ranking",
+     "Judge identity, role, and expertise weighting",
+     "Rationale text and any correction supplied",
+     "Agreement with other judges on the same item"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "pref = {\n  'id':'pref:sha256:...','machine':'burner',\n  'context':'state:sha256:...',\n  'items':['resp_a:...','resp_b:...'],'chosen':'resp_a',\n  'judge':{'id':'op-114','role':'reactor-physicist','w':1.4},\n  'rationale':'cites plug stress gate correctly; hedges He-3 supply',\n  'agreement':0.82\n}   # append-only; feeds reward-model training set with lineage"
+    ]
+   ],
+   [
+    "p",
+    "Because preferences can encode bias, the dataset is audited for systematic skew before it trains a <a href=./reward-modeling-control.html>reward model</a>. Golden items with known-correct answers are seeded in to catch judge drift over time. This collection discipline is the human-feedback analogue of the <a href=./label-quality-provenance.html>label provenance</a> applied to machine data."
+   ]
+  ],
+  "related": [
+   [
+    "reward-modeling-control",
+    "Reward Modeling"
+   ],
+   [
+    "rlhf-operator-copilots",
+    "RLHF for Operator Copilots"
+   ],
+   [
+    "label-quality-provenance",
+    "Label Quality and Provenance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "offline-batch-rl",
+  "title": "Offline Batch RL from Logged Pulses",
+  "cat": "mlops",
+  "lede": "Control policies are learned from the logged L0 pulse archive using conservative offline RL, never by exploring on the live machine, where exploration is a fault.",
+  "body": [
+   [
+    "h2",
+    "No exploration on hardware"
+   ],
+   [
+    "p",
+    "Classical reinforcement learning explores by trying actions and observing outcomes. On a fusion machine, an exploratory action is a candidate disruption or a coil overstress. Kronos therefore uses <b>offline</b> RL exclusively: policies are learned from the fixed dataset of logged breeder and burner pulses, plus twin-generated rollouts, with no live exploration whatsoever."
+   ],
+   [
+    "p",
+    "Offline RL has a characteristic hazard: the policy can favor actions that are rare or absent in the data, where value estimates are unfounded optimism. Kronos uses conservative algorithms (such as CQL and implicit-Q-learning style objectives) that penalize out-of-distribution actions, keeping the learned policy near the support of the logged behavior. The policy is pulled toward what has actually been observed to be safe."
+   ],
+   [
+    "h3",
+    "Offline-RL safeguards"
+   ],
+   [
+    "ul",
+    [
+     "Conservative value estimation penalizing OOD actions",
+     "Behavior-cloning regularization toward logged policies",
+     "Uncertainty-aware action selection; abstain when unsure",
+     "Twin-based evaluation before any real-data claim",
+     "Standard gate + shadow + canary chain before authority"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Conservative Q-learning objective (schematic)\n# minimize TD error + push down Q on OOD actions,\n# pull up Q on actions actually seen in the dataset\nL = td_error(Q, batch) \\\n  + alpha * (logsumexp(Q(s, all_actions))         # OOD penalty\n             - Q(s, batch.action).mean())         # in-data bonus\n# policy stays within logged support -> safe to evaluate"
+    ]
+   ],
+   [
+    "p",
+    "Offline RL is where preference-shaped rewards from <a href=./rlhf-control-policies.html>control-policy RLHF</a> are actually optimized into a policy. Everything learned here is evaluated first on the <a href=./digital-twin-refinement.html>twin</a>, then walked through the same validation and canary chain as any controller. The dataset it learns from carries the full <a href=./data-versioning-lineage.html>data lineage</a>, so the provenance of a learned policy reaches back to specific pulses."
+   ]
+  ],
+  "related": [
+   [
+    "rlhf-control-policies",
+    "RLHF for Control Policies"
+   ],
+   [
+    "sim-to-real-transfer",
+    "Sim-to-Real Transfer"
+   ],
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sim-to-real-transfer",
+  "title": "Sim-to-Real Transfer and Domain Randomization",
+  "cat": "mlops",
+  "lede": "Because the machines are not yet built, most policies are born in simulation; domain randomization and calibrated twins narrow the gap so they survive first contact with hardware.",
+  "body": [
+   [
+    "h2",
+    "Learning before there is a machine"
+   ],
+   [
+    "p",
+    "Breeder construction begins Q2 2027 and first tritium is targeted near 2030, so today every control policy is trained against simulation and the digital twin, not hardware. The central risk is the reality gap: a policy that is optimal in simulation can fail on a real machine whose behavior differs in ways the simulator got subtly wrong. Sim-to-real MLOps exists to shrink and characterize that gap."
+   ],
+   [
+    "p",
+    "Domain randomization is the primary tool: rather than training against one nominal simulator, policies train across a distribution of simulators with randomized physics parameters, sensor noise, latencies, and actuator responses. A policy that performs across the whole distribution is far likelier to perform on the one real instance, which is treated as another draw from the distribution."
+   ],
+   [
+    "h3",
+    "Techniques"
+   ],
+   [
+    "ul",
+    [
+     "Domain randomization over uncertain physics and hardware parameters",
+     "Twin calibration to real diagnostics as data arrives (breeder from ~2030)",
+     "System-identification to tighten the simulator toward the true machine",
+     "Robustness margins: require performance at distribution tails, not just the mean",
+     "Explicit reality-gap metrics tracked over commissioning"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def randomized_env():\n    return Sim(\n      tau_E   = sample(0.9, 1.1) * TAU_E_NOMINAL,   # confinement\n      delay   = sample(0, 3) * CYCLE,               # actuation lag\n      noise   = sample_noise_model(),\n      # burner: plug field spread bounded by 26.49 T design point\n      # breeder: triangularity jitter around delta -0.30\n    )\n# train policy across many draws -> robust to the real one"
+    ]
+   ],
+   [
+    "p",
+    "Sim-to-real is inseparable from <a href=./digital-twin-refinement.html>twin refinement</a>: the same measured-vs-predicted residuals that refine the twin also tighten the simulator distribution. For the burner, honest limits apply — the plug regime is 166 to 830x beyond any device, so there is no near-term hardware to transfer to, and burner policies remain simulation studies validated only within provable bounds."
+   ]
+  ],
+  "related": [
+   [
+    "offline-batch-rl",
+    "Offline Batch RL"
+   ],
+   [
+    "digital-twin-refinement",
+    "Digital-Twin Refinement"
+   ],
+   [
+    "reproducible-training-runbooks",
+    "Reproducible Training Runbooks"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "surrogate-retraining-cadence",
+  "title": "Surrogate Retraining Cadence",
+  "cat": "mlops",
+  "lede": "Twin surrogates are retrained on a governed cadence — scheduled, drift-triggered, and regime-triggered — so acceleration never comes at the cost of stale physics.",
+  "body": [
+   [
+    "h2",
+    "Fast surrogates need fresh grounding"
+   ],
+   [
+    "p",
+    "The twin's neural operators and reduced-order models trade fidelity for speed so the real-time layers can run. That trade is only safe if the surrogates are re-grounded often enough to track the true machine. Retraining cadence is the policy that decides how often each surrogate is refreshed, balancing compute against the risk of a surrogate drifting away from physics."
+   ],
+   [
+    "p",
+    "Cadence is not one number. Fast-changing subsystems (edge conditions, first-wall state) are refreshed more often than slow ones (bulk neutronics response). Each surrogate declares a cadence policy combining a scheduled floor, a drift trigger, and a regime trigger, whichever fires first. The registry tracks the age of each surrogate against its policy so an overdue surrogate is visible."
+   ],
+   [
+    "h3",
+    "Cadence drivers"
+   ],
+   [
+    "ul",
+    [
+     "Scheduled floor: retrain at least every N campaign blocks",
+     "Drift trigger: retrain on <a href=./drift-detection-covariate-shift.html>shift</a> or <a href=./concept-drift-detection.html>concept drift</a> breach",
+     "Regime trigger: retrain when new operating space is explored",
+     "Fidelity trigger: retrain when twin residuals exceed tolerance",
+     "Compute budget: batch overdue surrogates efficiently on L0"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def due_for_retrain(sur, now, monitors):\n    return (now - sur.trained_at > sur.max_age\n            or monitors.drift(sur.name)\n            or monitors.new_regime(sur.name)\n            or monitors.fidelity(sur.name) > sur.tol)\n# batch all due surrogates into one L0 sweep to amortize compute"
+    ]
+   ],
+   [
+    "p",
+    "Cadence connects the <a href=./continual-learning-loop.html>continual-learning loop</a> to compute scheduling: retraining is expensive, so overdue surrogates are batched into efficient L0 sweeps rather than retrained one at a time. Every refreshed surrogate re-enters through the <a href=./pre-deployment-validation-gates.html>validation gates</a>; no surrogate is swapped into the live twin without clearing them."
+   ]
+  ],
+  "related": [
+   [
+    "digital-twin-refinement",
+    "Digital-Twin Refinement"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "active-learning-experiment-design",
+  "title": "Active Learning and Experiment Design",
+  "cat": "mlops",
+  "lede": "Active learning turns model uncertainty into experiment proposals, so scarce machine time is spent where new data most improves the models that run the machines.",
+  "body": [
+   [
+    "h2",
+    "Spending pulses where they teach the most"
+   ],
+   [
+    "p",
+    "Machine time is the scarcest resource, and not all pulses are equally informative. Active learning closes the loop from model uncertainty to experiment design: the operating points where models are least certain, or where <a href=./drift-detection-plasma-regime.html>regime monitors</a> flagged extrapolation, become candidate experiments. The goal is maximum information per pulse, subject to safety."
+   ],
+   [
+    "p",
+    "Candidate points are scored by expected model improvement — high epistemic uncertainty, high leverage on a validation gate, or coverage of an under-sampled region of operating space — then filtered hard through the safety envelope so no proposed experiment risks the machine. What survives is ranked and offered to physicists as a prioritized experiment queue, not executed autonomously."
+   ],
+   [
+    "h3",
+    "Acquisition criteria"
+   ],
+   [
+    "ul",
+    [
+     "Epistemic uncertainty (ensemble disagreement / BALD)",
+     "Coverage gaps in the operating-space density estimate",
+     "Leverage on a currently-failing validation gate",
+     "Regime-boundary points that would extend a model's envelope",
+     "Breeder: TBR levers 1.1 / 1.5 / 1.8; burner: plug-density scan points"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def acquisition(candidates, ensemble, coverage, envelope):\n    scored = []\n    for x in candidates:\n        if not envelope.safe(x):        # hard safety filter first\n            continue\n        info = ensemble.disagreement(x) + coverage.gap(x)\n        scored.append((info, x))\n    return sorted(scored, reverse=True) # ranked experiment queue"
+    ]
+   ],
+   [
+    "p",
+    "On L0, active learning also steers pure-simulation sweeps, choosing which expensive multi-physics runs to spend compute on. For the burner, active learning is bounded by physics: it cannot propose exploring the plug regime that is 166 to 830x beyond any device, so its proposals stay inside the region where results are interpretable. Selected experiments feed straight back into <a href=./training-data-curation.html>curation</a> and the retraining loop."
+   ]
+  ],
+  "related": [
+   [
+    "drift-detection-plasma-regime",
+    "Regime Drift Detection"
+   ],
+   [
+    "training-data-curation",
+    "Training-Data Curation"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hyperparameter-optimization",
+  "title": "Hyperparameter Optimization and Architecture Search",
+  "cat": "mlops",
+  "lede": "HPO and architecture search run as governed L0 campaigns whose winning configuration is a versioned, reproducible artifact — never an unrecorded manual tweak.",
+  "body": [
+   [
+    "h2",
+    "Tuning as an auditable campaign"
+   ],
+   [
+    "p",
+    "Model quality depends heavily on hyperparameters and architecture, but ad-hoc tuning produces models nobody can reproduce. Kronos runs hyperparameter optimization and neural architecture search as first-class L0 campaigns: a defined search space, a fixed objective on a frozen validation split, a reproducible search algorithm, and a recorded winner with full lineage."
+   ],
+   [
+    "p",
+    "The objective is never accuracy alone. For models destined for the machine, the search objective is multi-term: predictive error, calibration quality, inference latency against the L1 edge budget, and robustness across the domain-randomization distribution. A model that is marginally more accurate but violates the latency budget or is poorly calibrated does not win."
+   ],
+   [
+    "h3",
+    "Search methods and constraints"
+   ],
+   [
+    "ul",
+    [
+     "Bayesian optimization / TPE over continuous and categorical spaces",
+     "Successive halving / Hyperband to kill weak trials early",
+     "Multi-objective Pareto search (error vs latency vs calibration)",
+     "Hard constraints: edge latency, memory, quantization tolerance",
+     "Every trial logged with seed, config, and result for lineage"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def objective(trial):\n    cfg   = suggest(trial, SEARCH_SPACE)\n    model = train(cfg, dataset, seed=trial.seed)      # reproducible\n    if latency(model, EDGE_BUDGET) > EDGE_BUDGET:\n        raise Pruned                                  # infeasible\n    return (rmse(model, val), ece(model, val),\n            -robustness(model, randomized_envs))      # multi-objective"
+    ]
+   ],
+   [
+    "p",
+    "HPO campaigns share the L0 compute substrate with retraining and are scheduled against the same budget. The winning configuration is registered and becomes the pinned recipe for future <a href=./offline-retraining-on-l0.html>retraining</a>, so a scheduled retrain reproduces the tuned architecture rather than re-searching. The whole campaign, not just the winner, is retained under <a href=./experiment-tracking-metadata.html>experiment tracking</a>."
+   ]
+  ],
+  "related": [
+   [
+    "offline-retraining-on-l0",
+    "Offline Retraining on L0"
+   ],
+   [
+    "experiment-tracking-metadata",
+    "Experiment Tracking"
+   ],
+   [
+    "edge-model-compilation",
+    "Edge Model Compilation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "training-data-curation",
+  "title": "Training-Data Curation from the L0 Archive",
+  "cat": "mlops",
+  "lede": "Curation turns raw pulse history into clean, balanced, deduplicated, and labeled training sets, because a model inherits every defect of the data it is fed.",
+  "body": [
+   [
+    "h2",
+    "Raw pulses are not a training set"
+   ],
+   [
+    "p",
+    "The L0 archive holds petabyte-scale raw pulse history from the breeder and burner, but raw history is not a training set. Curation is the disciplined process that selects, cleans, balances, deduplicates, and labels that history into datasets fit for training. Skipping curation lets sensor faults, duplicated near-identical pulses, and class imbalance leak straight into models."
+   ],
+   [
+    "p",
+    "Curation is versioned and reversible. Each curation decision — a pulse excluded for a diagnostic fault, a segment reweighted for rarity, a label revision applied — is recorded so the resulting dataset carries full lineage back to raw signal. A later discovery that an excluded pulse was actually valid can be undone and the dataset regenerated deterministically."
+   ],
+   [
+    "h3",
+    "Curation steps"
+   ],
+   [
+    "ul",
+    [
+     "Quality filtering: drop segments with flagged diagnostic faults",
+     "Deduplication: collapse near-identical pulses to avoid over-weighting",
+     "Balancing: reweight or resample rare regimes (disruptions, off-normal)",
+     "Labeling: attach outcomes and annotations with provenance",
+     "Split assignment: stratified train/validation/holdout by hash"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def curate(pulses, diag_health, dedupe_thresh):\n    keep = [p for p in pulses if diag_health.ok(p)]\n    keep = deduplicate(keep, sim_thresh=dedupe_thresh)\n    keep = rebalance(keep, target_regime_dist)\n    ds   = attach_labels(keep, label_store)\n    return hash_and_freeze(ds)     # content-addressed, immutable"
+    ]
+   ],
+   [
+    "p",
+    "Rare but critical events — breeder disruptions, burner off-normal transients — are the hardest and most valuable to curate, since they are exactly what safety-relevant models must learn yet are scarce in the data. <a href=./active-learning-experiment-design.html>Active learning</a> feeds curation with the highest-value new samples, and every curated set inherits <a href=./data-versioning-lineage.html>full lineage</a> and <a href=./label-quality-provenance.html>label provenance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ],
+   [
+    "label-quality-provenance",
+    "Label Quality and Provenance"
+   ],
+   [
+    "active-learning-experiment-design",
+    "Active Learning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "label-quality-provenance",
+  "title": "Label Quality and Provenance",
+  "cat": "mlops",
+  "lede": "Labels are versioned artifacts with recorded source and confidence, because a mislabeled disruption or off-normal event teaches a safety model exactly the wrong lesson.",
+  "body": [
+   [
+    "h2",
+    "Wrong labels are worse than no labels"
+   ],
+   [
+    "p",
+    "Supervised models are only as correct as their labels. A breeder pulse mislabeled as non-disruptive teaches a precursor detector to ignore a real precursor; a burner transient mislabeled as nominal teaches a monitor to stay quiet during an off-normal event. Kronos treats labels as versioned artifacts with explicit provenance and confidence, never as ground truth taken on faith."
+   ],
+   [
+    "p",
+    "Labels come from several sources of differing reliability: automated derivation from physics signals, expert human annotation, and consensus across multiple annotators. Each label records its source, the labeler, a confidence, and any disagreement. Low-confidence and disputed labels are surfaced for review rather than silently used, and their influence in training can be down-weighted."
+   ],
+   [
+    "h3",
+    "Label metadata"
+   ],
+   [
+    "ul",
+    [
+     "Source: automated rule, single expert, or multi-annotator consensus",
+     "Labeler identity and, for humans, expertise weighting",
+     "Confidence and inter-annotator agreement",
+     "Revision history — labels can be corrected, never overwritten silently",
+     "Link to the exact pulse segment and features labeled"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "label = {\n  'pulse':'B-2032-0187','segment':[t0,t1],\n  'value':'off-normal','source':'consensus',\n  'annotators':['phys-07','phys-12','phys-19'],\n  'agreement':0.67,'confidence':0.8,\n  'rev':4,'supersedes':'rev:3'    # append-only correction trail\n}"
+    ]
+   ],
+   [
+    "p",
+    "Rare, safety-critical classes get the most annotation care: breeder disruption onset times and burner off-normal boundaries are annotated by multiple experts because a one-cycle error in the labeled onset shifts what a precursor detector learns to fire on. Automated rule-derived labels are treated as provisional until an expert confirms or the physics twin corroborates them."
+   ],
+   [
+    "p",
+    "Label provenance is what makes an incident postmortem tractable: when a model misses an event, the first question is whether the training labels were correct. Because labels are versioned, a label correction is itself an event that can <a href=./incident-driven-retraining.html>trigger retraining</a> of every model that consumed the old label, discoverable through <a href=./data-versioning-lineage.html>data lineage</a>."
+   ]
+  ],
+  "related": [
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ],
+   [
+    "training-data-curation",
+    "Training-Data Curation"
+   ],
+   [
+    "incident-driven-retraining",
+    "Incident-Driven Retraining"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reproducible-training-runbooks",
+  "title": "Reproducible Training Runbooks",
+  "cat": "mlops",
+  "lede": "Every training run is deterministic and re-executable: pin the data, seed, code, and container, and two runs produce the same model — reproducibility is a hard gate.",
+  "body": [
+   [
+    "h2",
+    "If you cannot reproduce it, you cannot certify it"
+   ],
+   [
+    "p",
+    "A model that cannot be regenerated cannot be trusted to run a fusion machine, because there is no way to prove what it is. Kronos enforces reproducibility as a hard gate: a registered training job, re-executed from its pinned inputs, must reproduce the model within a declared tolerance. Non-reproducible training is a defect, not an inconvenience."
+   ],
+   [
+    "p",
+    "Reproducibility is engineered end to end. The dataset is content-addressed; random seeds are fixed for every source of nondeterminism; the code is a specific commit; the environment is a container image pinned by digest; and hardware nondeterminism (nondeterministic GPU kernels, reduction order) is either disabled or bounded by the tolerance. A two-tier standard applies: byte-identical where achievable, tolerance-identical otherwise."
+   ],
+   [
+    "h3",
+    "What a runbook pins"
+   ],
+   [
+    "ul",
+    [
+     "Dataset hash and split hashes",
+     "All seeds: init, shuffling, augmentation, dropout, framework RNGs",
+     "Code commit and container image digest",
+     "Deterministic kernel flags where available",
+     "Declared reproduction tolerance (Tier-1 byte / Tier-2 numeric)"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def make_deterministic(seed):\n    random.seed(seed); np.random.seed(seed)\n    torch.manual_seed(seed)\n    torch.use_deterministic_algorithms(True)\n    torch.backends.cudnn.benchmark = False\n\n# repro gate: retrain from manifest, compare to registered artifact\nassert diff(retrained, registered) <= REPRO_TOL"
+    ]
+   ],
+   [
+    "p",
+    "A two-tier reproduction standard is applied because full bit-identity is not always achievable on accelerators: Tier-1 requires byte-identical artifacts where deterministic kernels exist, and Tier-2 requires numeric agreement within a declared tolerance where reduction order or vendor libraries introduce bounded nondeterminism. Each model records which tier it met."
+   ],
+   [
+    "p",
+    "This runbook discipline is what makes <a href=./offline-retraining-on-l0.html>scheduled retraining</a> trustworthy and what lets the <a href=./pre-deployment-validation-gates.html>reproducibility gate</a> pass or fail objectively. It also underpins forensic replay: after any incident, the exact model that held authority can be rebuilt from its manifest and interrogated."
+   ]
+  ],
+  "related": [
+   [
+    "offline-retraining-on-l0",
+    "Offline Retraining on L0"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "experiment-tracking-metadata",
+    "Experiment Tracking"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "experiment-tracking-metadata",
+  "title": "Experiment Tracking and Metadata",
+  "cat": "mlops",
+  "lede": "Every training run, sweep, and evaluation is logged with its config, metrics, and artifacts, so the history of how a model came to be is fully queryable.",
+  "body": [
+   [
+    "h2",
+    "The lab notebook for models"
+   ],
+   [
+    "p",
+    "Model development generates thousands of runs; without systematic tracking, the knowledge of what was tried and what worked evaporates. Kronos logs every run — training, HPO trial, evaluation, backtest — with its configuration, metrics, environment, and output artifacts into a central tracking store. This is the queryable lab notebook behind every model in the registry."
+   ],
+   [
+    "p",
+    "Tracking is distinct from the registry: the registry holds artifacts eligible to act on a machine; tracking holds the full experimental history, including the failures. A promoted model links back to the exact tracked run that produced it, and that run links to its HPO campaign, its dataset, and its code. The chain is unbroken from a deployed controller to the first exploratory experiment."
+   ],
+   [
+    "h3",
+    "Tracked per run"
+   ],
+   [
+    "ul",
+    [
+     "Config and hyperparameters, seed, code commit, container digest",
+     "Metrics over training: loss, validation error, calibration",
+     "Dataset and feature versions consumed",
+     "Output artifacts and their hashes",
+     "Links to parent campaign and to registry entry if promoted"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "with tracker.run(project='breeder/equilibrium') as run:\n    run.log_params(cfg); run.log_data(dataset.id, features='v7')\n    for epoch in range(E):\n        run.log_metrics(epoch, train_loss, val_rmse, val_ece)\n    run.log_artifact(model, hash=sha256(model))\n    run.link(parent_campaign='hpo:2029Q3-eqsurr')"
+    ]
+   ],
+   [
+    "p",
+    "Tracking retains failed and abandoned runs deliberately, not only successes, because the record of what did not work is what stops a team from re-running dead ends and is often the fastest route to diagnosing a new failure. Runs are immutable once closed, so the history cannot be rewritten after the fact."
+   ],
+   [
+    "p",
+    "Experiment tracking is the substrate for meta-analysis: which architectures generalize, which features carry weight, where models systematically fail. It connects to <a href=./model-versioning-lineage.html>model lineage</a> upstream and to <a href=./model-cards-datasheets.html>model cards</a> downstream, since a model card is largely a human-readable summary of the tracked run that produced the model."
+   ]
+  ],
+  "related": [
+   [
+    "reproducible-training-runbooks",
+    "Reproducible Training Runbooks"
+   ],
+   [
+    "model-versioning-lineage",
+    "Model Versioning and Lineage"
+   ],
+   [
+    "hyperparameter-optimization",
+    "Hyperparameter Optimization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-cards-datasheets",
+  "title": "Model Cards and Dataset Datasheets",
+  "cat": "mlops",
+  "lede": "Every deployable model ships a card stating its purpose, validated envelope, metrics, and known limits — an honest, machine-readable statement of what it can and cannot do.",
+  "body": [
+   [
+    "h2",
+    "Documenting what a model is for"
+   ],
+   [
+    "p",
+    "A model card is a structured document that travels with a model artifact, stating in plain terms what the model does, the machine and subsystem it serves, the operating envelope it was validated on, its measured performance and calibration, and its known limitations. It is generated from the tracked run and lineage, not written from memory, so it cannot drift from the artifact."
+   ],
+   [
+    "p",
+    "Cards are honest by mandate. A breeder equilibrium surrogate's card states the exact regime it was validated on and where it extrapolates. A burner model's card states the honest gates plainly: that the plug is over-stressed 3 to 3.9x at the design bore, that the operating regime is 166 to 830x beyond any device and cannot be post-dicted today, that He-3 demand is about 400x domestic supply per commercial unit, and that availability is 0.86 to 0.995 against a hyperscale requirement of 0.99982. A card never implies a capability the physics does not support."
+   ],
+   [
+    "h3",
+    "Card contents"
+   ],
+   [
+    "ul",
+    [
+     "Purpose, machine, subsystem, and intended use",
+     "Validated operating envelope and out-of-envelope behavior",
+     "Metrics: accuracy, calibration, latency, robustness",
+     "Training data datasheet reference and lineage hashes",
+     "Known limitations and honest gates where applicable"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "card = generate_card(model, run, lineage)\nassert card.envelope   is not None\nassert card.limitations is not None      # no empty limits section\nassert card.metrics.calibration_ece <= TH.ece\n# burner cards must reference honest_gates registry entry\nif model.machine == 'burner':\n    assert 'honest_gates' in card.references"
+    ]
+   ],
+   [
+    "p",
+    "Dataset datasheets are the data-side analogue: they state a dataset's composition, collection conditions, known biases, and curation decisions. Together, cards and datasheets make a model self-describing to reviewers and to the AI systems that consume this repository, and they are a required output of the <a href=./pre-deployment-validation-gates.html>validation gates</a>."
+   ]
+  ],
+  "related": [
+   [
+    "honest-gates-in-mlops",
+    "Honest Gates in MLOps"
+   ],
+   [
+    "model-versioning-lineage",
+    "Model Versioning and Lineage"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ci-cd-model-pipelines",
+  "title": "CI/CD for Model Pipelines",
+  "cat": "mlops",
+  "lede": "Model changes flow through automated pipelines that build, test, validate, and stage artifacts — the same rigor as software delivery, adapted to models and machines.",
+  "body": [
+   [
+    "h2",
+    "Continuous integration for models"
+   ],
+   [
+    "p",
+    "A change to training code, a feature definition, or a dataset should not require a human to remember every downstream check. Kronos runs model changes through CI/CD pipelines that automatically rebuild the affected artifacts, run the full test and validation suite, and stage what passes. The pipeline is the mechanism that makes the MLOps lifecycle repeatable rather than heroic."
+   ],
+   [
+    "p",
+    "Model CI extends software CI with data- and model-specific stages. Beyond unit tests on transforms and feature code, the pipeline runs reproducibility checks, the full <a href=./pre-deployment-validation-gates.html>validation gate</a> suite, parity checks against the compiled edge form, and regression tests against a frozen benchmark of recorded machine states. A regression against the incumbent blocks the pipeline."
+   ],
+   [
+    "h3",
+    "Pipeline stages"
+   ],
+   [
+    "ul",
+    [
+     "Lint and unit-test transform / feature / training code",
+     "Rebuild affected datasets and features (with lineage)",
+     "Reproducible retrain; reproducibility gate",
+     "Validation gates + parity + calibration",
+     "Regression vs incumbent on frozen state benchmark",
+     "Register artifact to STAGING on full pass"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Pipeline definition (declarative)\nstages:\n  - test:      run unit + property tests\n  - build:     rebuild data + features, emit lineage\n  - train:     deterministic retrain from manifest\n  - validate:  gates(accuracy,calibration,safety,parity,repro)\n  - regress:   compare vs incumbent on benchmark; fail on regression\n  - stage:     registry.register(state='STAGING')   # never PROD here"
+    ]
+   ],
+   [
+    "p",
+    "CI/CD never promotes to PROD automatically; it can only reach STAGING. The machine-facing promotions — SHADOW, CANARY, PROD — require the deliberate, human-gated steps in the <a href=./governance-approval-workflow.html>governance workflow</a>. Automation removes toil and enforces consistency; it does not remove the human decision to grant a model authority over the breeder or burner."
+   ]
+  ],
+  "related": [
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "model-registry-promotion-states",
+    "Model Registry"
+   ],
+   [
+    "governance-approval-workflow",
+    "Governance Workflow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "production-model-monitoring",
+  "title": "Production Model Monitoring",
+  "cat": "mlops",
+  "lede": "A model with authority is watched every cycle — inputs, outputs, uncertainty, latency, and agreement with physics — so degradation is caught before it becomes a fault.",
+  "body": [
+   [
+    "h2",
+    "Deployment is the start, not the end"
+   ],
+   [
+    "p",
+    "Once a model holds authority over the breeder or burner, monitoring is continuous and non-negotiable. Every cycle, monitors observe the model's inputs, outputs, self-reported uncertainty, inference latency, and agreement with independent physics checks. Monitoring exists to catch the moment a model that passed all gates begins to fail in the field, and to arm rollback before failure becomes fault."
+   ],
+   [
+    "p",
+    "Monitoring is layered. Input monitors watch for <a href=./drift-detection-covariate-shift.html>covariate shift</a> and out-of-envelope operation. Output monitors watch for physically implausible commands, sudden distribution changes, and rate-limit approaches. Behavioral monitors compare the model against a cheap independent predictor and against the physics-based twin; large, sustained disagreement is a red flag even when each individual output looks plausible."
+   ],
+   [
+    "h3",
+    "Monitored signals"
+   ],
+   [
+    "ul",
+    [
+     "Input distribution and envelope membership",
+     "Output plausibility, saturation, and rate-limit proximity",
+     "Model self-reported uncertainty and abstention rate",
+     "Inference latency and jitter against the edge budget",
+     "Agreement with physics twin and with the incumbent shadow"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def monitor_cycle(model, state, out, twin, log):\n    flags = {\n     'ood':       not model.envelope.contains(state),\n     'implausible': not physics_plausible(out, state),\n     'unc_spike': model.uncertainty(state) > TH.unc,\n     'latency':   model.last_latency > EDGE_BUDGET,\n     'twin_div':  norm(out - twin.expected(state)) > TH.div}\n    log.record(state.t, out, flags)\n    if any(flags.values()): arm_rollback(model, flags)"
+    ]
+   ],
+   [
+    "p",
+    "Monitoring feeds three consumers: <a href=./controller-rollback-safe-state.html>rollback</a>, which acts immediately on a breach; the <a href=./continual-learning-loop.html>continual-learning loop</a>, which schedules retraining on slow degradation; and the human operators, who see monitor state in the control room. A model in production is never trusted blindly; it is trusted while watched."
+   ]
+  ],
+  "related": [
+   [
+    "controller-rollback-safe-state",
+    "Rollback and Safe State"
+   ],
+   [
+    "model-degradation-detection",
+    "Model Degradation Detection"
+   ],
+   [
+    "drift-detection-covariate-shift",
+    "Covariate Shift Detection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-degradation-detection",
+  "title": "Detecting Model Degradation in Production",
+  "cat": "mlops",
+  "lede": "Degradation — a slow decline in a deployed model's accuracy or calibration — is caught by tracking performance against delayed ground truth and independent references.",
+  "body": [
+   [
+    "h2",
+    "The slow failure"
+   ],
+   [
+    "p",
+    "Some production failures are sudden and caught instantly by output monitors. Degradation is the opposite: a gradual erosion of accuracy or calibration as the machine ages, components condition, and operating regimes shift. It rarely trips a single-cycle alarm, so it is detected by tracking performance trends over time against ground truth that arrives with delay."
+   ],
+   [
+    "p",
+    "Because the outcome of a pulse is known only after the pulse, degradation detection is inherently retrospective. As labels arrive into L0, the model's realized error and calibration are recomputed over rolling windows and compared to its validated baseline. A statistically significant, sustained decline is degradation, distinct from noise or a single bad pulse."
+   ],
+   [
+    "h3",
+    "Degradation indicators"
+   ],
+   [
+    "ul",
+    [
+     "Rising rolling error against delayed ground truth",
+     "Calibration decay: predicted uncertainty no longer matches realized error",
+     "Rising abstention or out-of-envelope frequency",
+     "Growing disagreement with the physics twin over time",
+     "Increasing correction magnitude applied by downstream L1 limiters"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def degradation_score(model, window, baseline):\n    err  = rolling_error(model, window)      # vs delayed labels\n    cal  = rolling_ece(model, window)\n    dz_e = zscore(err, baseline.err)\n    dz_c = zscore(cal, baseline.cal)\n    return max(dz_e, dz_c)   # > threshold, sustained -> flag retrain"
+    ]
+   ],
+   [
+    "p",
+    "Confirmed degradation lowers the model's confidence weighting in the twin and schedules a prioritized L0 retrain; if it crosses a hard threshold, it can force <a href=./controller-rollback-safe-state.html>rollback</a> to the previous certified version. Degradation is a normal, expected fact of running real machines over years, which is exactly why the <a href=./continual-learning-loop.html>continual-learning loop</a> exists — to refresh models faster than they decay."
+   ]
+  ],
+  "related": [
+   [
+    "production-model-monitoring",
+    "Production Model Monitoring"
+   ],
+   [
+    "concept-drift-detection",
+    "Concept Drift Detection"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "champion-challenger-evaluation",
+  "title": "Champion-Challenger Evaluation",
+  "cat": "mlops",
+  "lede": "A challenger model is continuously compared against the reigning champion on identical live data, so promotion is decided by evidence, not by offline hope.",
+  "body": [
+   [
+    "h2",
+    "Continuous, evidence-based competition"
+   ],
+   [
+    "p",
+    "The model currently holding authority is the champion; any candidate to replace it is a challenger. Kronos runs challengers permanently in <a href=./shadow-deployment-controllers.html>shadow</a> against the champion, on identical live breeder or burner data, accumulating a head-to-head record. Promotion is then a decision backed by weeks of matched, real-conditions evidence rather than by an offline test-set score alone."
+   ],
+   [
+    "p",
+    "The comparison is matched-pairs: on every cycle both models see the same state, so their outputs are directly comparable and confounders are removed. The evaluation tracks not just average performance but performance in the situations that matter most — disturbances, regime edges, near-fault conditions — where an average can hide a dangerous weakness."
+   ],
+   [
+    "h3",
+    "Comparison dimensions"
+   ],
+   [
+    "ul",
+    [
+     "Matched-pairs accuracy and calibration on identical live data",
+     "Performance in tail situations, not just nominal operation",
+     "Would-be envelope violations and rate-limit approaches",
+     "Uncertainty honesty: does the challenger know when it is wrong",
+     "Inference latency and jitter on the real edge budget"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def champion_challenger(state, champ, chall, ledger):\n    u_c, u_x = champ.act(state), chall.act(state)  # x is shadow only\n    ledger.update(\n      champ_err = later_error(u_c, state),\n      chall_err = later_error(u_x, state),\n      chall_violations = check_envelope(u_x, state),\n      tail = is_tail_situation(state))\n    # promote only if challenger wins overall AND in tail cases"
+    ]
+   ],
+   [
+    "p",
+    "A challenger is promoted to <a href=./canary-controller-rollout.html>canary</a> only if it beats the champion overall and does not lose in the tail. This guards against the common trap of a model that is better on average but worse exactly when it matters. Champion-challenger is the engine behind <a href=./ab-interleaving-offline.html>offline A/B evaluation</a> and feeds the <a href=./governance-approval-workflow.html>promotion decision</a>."
+   ]
+  ],
+  "related": [
+   [
+    "shadow-deployment-controllers",
+    "Shadow Deployment"
+   ],
+   [
+    "ab-interleaving-offline",
+    "A/B and Interleaving Offline"
+   ],
+   [
+    "canary-controller-rollout",
+    "Canary Controller Rollout"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ab-interleaving-offline",
+  "title": "A/B and Interleaving Evaluation Offline",
+  "cat": "mlops",
+  "lede": "Since live A/B on a single machine is unsafe, Kronos compares models by counterfactual replay on the twin and by matched shadow evaluation, not by splitting live traffic.",
+  "body": [
+   [
+    "h2",
+    "No live traffic split on one machine"
+   ],
+   [
+    "p",
+    "In software, A/B testing splits live traffic between two versions. A fusion machine is a single physical system where you cannot run two controllers on two halves of the plasma. Kronos therefore replaces live A/B with two safe substitutes: counterfactual replay on the digital twin, and matched-pairs shadow evaluation on the real data path."
+   ],
+   [
+    "p",
+    "Counterfactual replay takes recorded machine states and rolls each candidate forward through the calibrated twin, producing a comparable outcome for each without touching hardware. Because both candidates start from identical recorded initial conditions, the comparison is a clean paired experiment. Its validity rests entirely on twin fidelity, so replay results are always cross-checked against shadow evidence on the real machine."
+   ],
+   [
+    "h3",
+    "The two methods"
+   ],
+   [
+    "ul",
+    [
+     "Twin counterfactual replay: same initial states, compare rolled-out outcomes",
+     "Matched shadow evaluation: both models see identical live inputs",
+     "Interleaving for copilots: alternate suggestions, collect operator preference",
+     "Statistical care: paired tests, sequential analysis, stopping rules",
+     "Cross-validation: twin replay must agree with shadow evidence"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def counterfactual(twin, states, A, B):\n    dA, dB = [], []\n    for s0 in states:                    # identical starts -> paired\n        dA.append(twin.rollout(s0, policy=A))\n        dB.append(twin.rollout(s0, policy=B))\n    return paired_test(score(dA), score(dB))   # e.g. Wilcoxon"
+    ]
+   ],
+   [
+    "p",
+    "For copilots, which do not actuate, a gentler interleaving is possible: alternate which model's suggestion is shown and record operator preference, feeding <a href=./preference-data-collection.html>preference data</a>. For controllers, replay plus <a href=./champion-challenger-evaluation.html>champion-challenger</a> shadow is the standard, and both depend on a well-refined twin, tying this method back to <a href=./digital-twin-refinement.html>twin refinement</a>."
+   ]
+  ],
+  "related": [
+   [
+    "champion-challenger-evaluation",
+    "Champion-Challenger Evaluation"
+   ],
+   [
+    "digital-twin-refinement",
+    "Digital-Twin Refinement"
+   ],
+   [
+    "preference-data-collection",
+    "Preference Data Collection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "edge-model-compilation",
+  "title": "Edge Model Compilation and Deployment",
+  "cat": "mlops",
+  "lede": "A validated model is compiled, quantized, and pinned to the L1 edge hardware, and the compiled form is re-validated for parity because what runs must be what was certified.",
+  "body": [
+   [
+    "h2",
+    "From training artifact to edge binary"
+   ],
+   [
+    "p",
+    "A model trained on L0 in full precision cannot run as-is on the L1 control plane, where latency and jitter are bounded and hardware is fixed FPGA and edge accelerators. Deployment compiles the validated artifact into an edge form: graph optimization, operator fusion, and quantization to the target's numeric format, then pinning to specific hardware. Compilation is a transformation of the model, so it must be re-validated."
+   ],
+   [
+    "p",
+    "The central rule is parity: the compiled edge binary must produce the same outputs as the certified offline model within tolerance, on the exact recorded states used for validation. Quantization and fusion can shift outputs subtly, and a shift that is invisible on average can matter at a regime boundary. The parity check runs on the deployable binary, not on a proxy."
+   ],
+   [
+    "h3",
+    "Compilation steps"
+   ],
+   [
+    "ul",
+    [
+     "Graph optimization and operator fusion for the target",
+     "Quantization to the edge numeric format (see <a href=./quantization-pruning-edge.html>quantization</a>)",
+     "Static memory and latency analysis against the L1 budget",
+     "Parity re-validation on recorded machine states",
+     "Hardware pinning and cryptographic signing of the binary"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "binary = compile_edge(model, target='fpga-v3', quantize='int8')\nassert latency_wc(binary) <= EDGE_BUDGET     # worst-case, not mean\nassert parity(binary, model, probes) <= PARITY_TOL\nbinary.sign(key=deploy_key)                  # only signed forms load\nregistry.attach_edge_artifact(model, binary)"
+    ]
+   ],
+   [
+    "p",
+    "Only signed, parity-passing binaries are loadable by the L1 layer, and the L1 edge still wraps every model output in deterministic range and rate limits regardless of what the model says. Compilation is where MLOps hands off to the control plane, and the parity requirement is a specific instance of preventing <a href=./training-serving-skew.html>training-serving skew</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quantization-pruning-edge",
+    "Quantization and Pruning"
+   ],
+   [
+    "training-serving-skew",
+    "Training-Serving Skew"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantization-pruning-edge",
+  "title": "Quantization and Pruning for the Edge",
+  "cat": "mlops",
+  "lede": "Models are shrunk to meet the L1 latency budget through quantization and pruning, with accuracy and calibration re-verified so compression never silently degrades safety.",
+  "body": [
+   [
+    "h2",
+    "Meeting the microsecond budget"
+   ],
+   [
+    "p",
+    "The L1 control plane runs on a bounded time budget; a model that is accurate but too slow cannot deploy. Quantization (reducing numeric precision) and pruning (removing redundant weights and structure) shrink models to fit that budget. Both are lossy, so the governing rule is that compression is only acceptable if the compressed model still passes the same accuracy, calibration, and safety gates as the original."
+   ],
+   [
+    "p",
+    "Quantization is done with awareness of the target. Post-training quantization is fast; quantization-aware training bakes the numeric format into training so the model learns to tolerate it, and is used where post-training quantization loses too much at the regime boundaries that matter. Pruning is structured where possible so the sparsity actually translates to speed on the edge hardware, not just to fewer nominal parameters."
+   ],
+   [
+    "h3",
+    "Compression with guardrails"
+   ],
+   [
+    "ul",
+    [
+     "Quantization-aware training for accuracy-critical models",
+     "Structured pruning that maps to real hardware speedups",
+     "Re-check accuracy, calibration, and safety-envelope after compression",
+     "Watch tail behavior: compression can hurt rare regimes most",
+     "Parity gate on the final compiled form"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "q = quantize_aware_train(model, fmt='int8', data=calib_set)\nfor gate in ['accuracy','calibration','safety']:\n    assert passes(q, gate), f'compression broke {gate}'\n# rare-regime check: error on tail subset must not regress\nassert tail_error(q) <= tail_error(model) * (1 + TAIL_TOL)"
+    ]
+   ],
+   [
+    "p",
+    "The subtlety Kronos guards against is that compression often degrades exactly the rare, tail situations — disruptions on the breeder, off-normal transients on the burner — that safety models exist to handle, while leaving average accuracy untouched. Every compressed model is therefore re-evaluated on its tail subset before <a href=./edge-model-compilation.html>compilation</a> proceeds to the <a href=./pre-deployment-validation-gates.html>parity gate</a>."
+   ]
+  ],
+  "related": [
+   [
+    "edge-model-compilation",
+    "Edge Model Compilation"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "production-model-monitoring",
+    "Production Model Monitoring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "governance-approval-workflow",
+  "title": "Governance and Approval Workflow",
+  "cat": "mlops",
+  "lede": "Granting a model authority over a machine requires a recorded, multi-party approval quorum — never a single click — with distinct sign-offs for the breeder and burner.",
+  "body": [
+   [
+    "h2",
+    "Authority is granted, not defaulted"
+   ],
+   [
+    "p",
+    "No model reaches CANARY or PROD by automation. Every promotion that grants or widens authority over the breeder or burner requires an explicit approval quorum: multiple qualified reviewers sign off against the model's validation report, card, and monitoring plan. The approval is recorded, attributable, and append-only, so the question who authorized this model to act is always answerable."
+   ],
+   [
+    "p",
+    "The quorum composition depends on risk. A low-authority canary on a slow breeder shape correction may need fewer sign-offs than granting a burner model authority near the plug systems. Higher-risk promotions require reactor-physics review in addition to controls and safety review. A single reviewer can never self-approve their own model."
+   ],
+   [
+    "h3",
+    "What reviewers check"
+   ],
+   [
+    "ul",
+    [
+     "All <a href=./pre-deployment-validation-gates.html>validation gates</a> passed with evidence",
+     "Shadow and champion-challenger record supports promotion",
+     "Model card is complete and honest, including limits and gates",
+     "Rollback path is armed and tested",
+     "Monitoring plan defines breach thresholds and responses"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def promote(model, to, approvals):\n    req = QUORUM[model.machine][to]     # role -> count\n    assert satisfies(approvals, req)\n    assert no_self_approval(model.author, approvals)\n    assert gates_passed(model) and rollback_armed(model)\n    registry.log_approval(model, to, approvals)  # append-only\n    registry.transition(model, to)"
+    ]
+   ],
+   [
+    "p",
+    "For the burner, governance explicitly requires that no promotion imply a capability past the honest gates — a reviewer cannot approve a model whose card or behavior suggests operating the plug regime as feasible when it is 166 to 830x beyond any device. Governance ties the <a href=./model-registry-promotion-states.html>registry</a> transitions to human accountability and is the backbone of the audit trail across the whole fleet."
+   ]
+  ],
+  "related": [
+   [
+    "model-registry-promotion-states",
+    "Model Registry"
+   ],
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "honest-gates-in-mlops",
+    "Honest Gates in MLOps"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "incident-driven-retraining",
+  "title": "Incident-Driven Retraining and Postmortems",
+  "cat": "mlops",
+  "lede": "Every anomaly becomes a labeled learning example: the postmortem produces corrected labels and a retraining mandate, so the fleet gets safer after each event.",
+  "body": [
+   [
+    "h2",
+    "Turning events into improvements"
+   ],
+   [
+    "p",
+    "When a model misbehaves, a monitor fires, or an unexpected machine event occurs, the response is not only to roll back but to learn. Kronos runs a structured postmortem on every incident that produces a permanent record, corrected labels for the pulses involved, and an explicit retraining mandate for the affected models. The loop from incident to improved model is closed and tracked."
+   ],
+   [
+    "p",
+    "The postmortem is data-first. Using <a href=./data-versioning-lineage.html>lineage</a>, it reconstructs the exact model that held authority, the inputs it saw, and why it acted as it did. It determines whether the root cause was stale data, mislabeled examples, an unmodeled regime, or a genuine model defect, and each root cause implies a different fix — recurate, relabel, extend the envelope, or redesign."
+   ],
+   [
+    "h3",
+    "Postmortem outputs"
+   ],
+   [
+    "ul",
+    [
+     "Timeline reconstructed from the immutable audit trail",
+     "Root-cause classification (data / label / regime / model)",
+     "Corrected labels for involved pulses (see <a href=./label-quality-provenance.html>label provenance</a>)",
+     "Retraining mandate with priority and scope",
+     "Regression test added so the failure cannot silently recur"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def postmortem(incident):\n    ctx  = lineage.reconstruct(incident)     # model, inputs, decision\n    root = classify_root_cause(ctx)\n    fixes = {'label':relabel, 'regime':extend_envelope,\n             'data':recurate, 'model':redesign}[root](ctx)\n    add_regression_test(incident.states)     # lock in the lesson\n    return RetrainMandate(models=ctx.affected, priority='high',\n                          fixes=fixes)"
+    ]
+   ],
+   [
+    "p",
+    "Every incident also adds a regression test to the frozen benchmark used in <a href=./ci-cd-model-pipelines.html>CI/CD</a>, so no future model can regress on that exact situation without the pipeline catching it. As breeder units progress FOAK to NOAK to BOAK, lessons from one unit propagate to all through the <a href=./fleet-model-propagation.html>fleet propagation</a> process, so an incident anywhere strengthens every machine."
+   ]
+  ],
+  "related": [
+   [
+    "controller-rollback-safe-state",
+    "Rollback and Safe State"
+   ],
+   [
+    "label-quality-provenance",
+    "Label Quality and Provenance"
+   ],
+   [
+    "fleet-model-propagation",
+    "Fleet Model Propagation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostic-calibration-drift",
+  "title": "Diagnostic Calibration Drift and Recalibration",
+  "cat": "mlops",
+  "lede": "Sensors drift, and a drifting diagnostic silently corrupts every model that reads it, so Kronos tracks and models sensor calibration as part of the MLOps loop.",
+  "body": [
+   [
+    "h2",
+    "When the instrument, not the plasma, moves"
+   ],
+   [
+    "p",
+    "Models read the machine through diagnostics, and diagnostics drift: gains change, offsets creep, detectors age. A drifting sensor is uniquely insidious because it makes a stable plasma look like it is changing, corrupting every model downstream while the plasma itself is fine. Kronos treats diagnostic calibration drift as a distinct monitored quantity, separate from plasma-regime drift."
+   ],
+   [
+    "p",
+    "Calibration drift is detected by cross-checking redundant and physically-related diagnostics against each other and against the physics twin. If two independent measurements of the same quantity diverge over time, or a diagnostic diverges from a well-grounded twin prediction while its neighbors do not, the diagnostic — not the plasma — is the likely culprit. A learned calibration model estimates and corrects the drift."
+   ],
+   [
+    "h3",
+    "Detection and correction"
+   ],
+   [
+    "ul",
+    [
+     "Cross-diagnostic consistency: redundant sensors should agree",
+     "Twin residuals isolated to one channel, not the whole state",
+     "Drift trend on calibration reference shots",
+     "Learned calibration correction with uncertainty",
+     "Flag affected historical data for relabeling via lineage"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def calib_drift(channel, redundant, twin, hist):\n    d_cross = disagreement(channel, redundant)\n    d_twin  = residual(channel, twin.expected)\n    if d_cross > TH.x and d_twin > TH.t and neighbors_ok(channel):\n        corr = fit_calibration(hist[channel])   # gain/offset over time\n        return corr, affected_datasets(channel)  # -> recurate + retrain\n    return None, []"
+    ]
+   ],
+   [
+    "p",
+    "Confirmed calibration drift has two consequences: online, it corrects the channel before it feeds models; offline, it flags every historical dataset that read the miscalibrated channel for <a href=./training-data-curation.html>recuration</a> and dependent-model retraining, discoverable through <a href=./data-versioning-lineage.html>lineage</a>. This is why lineage tracks calibration revision at read time — so a drift discovered in 2032 can trace back to exactly which 2030 data it contaminated."
+   ]
+  ],
+  "related": [
+   [
+    "drift-detection-covariate-shift",
+    "Covariate Shift Detection"
+   ],
+   [
+    "training-data-curation",
+    "Training-Data Curation"
+   ],
+   [
+    "data-versioning-lineage",
+    "Data Versioning and Lineage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fleet-model-propagation",
+  "title": "Fleet Model Propagation Across Units",
+  "cat": "mlops",
+  "lede": "As breeder units progress FOAK to NOAK to BOAK, models and lessons propagate across the fleet through the registry, with per-unit validation before any shared model acts.",
+  "body": [
+   [
+    "h2",
+    "Many units, one learning system"
+   ],
+   [
+    "p",
+    "The breeder program is a fleet: a first-of-a-kind unit followed by next-of-a-kind and best-of-a-kind units. A lesson learned on one unit should benefit all, but no two units are identical, so a model validated on one cannot be assumed valid on another. Fleet propagation is the MLOps process that shares models and data across units while re-validating per unit before granting authority."
+   ],
+   [
+    "p",
+    "Each unit carries its own entry in the <a href=./digital-twin-fleet-registry.html>fleet registry</a> recording exactly which model version runs where. A model proven on the FOAK unit is offered to a NOAK unit as a challenger, not as an immediate champion: it enters that unit's shadow and canary chain, validated against that unit's own diagnostics and quirks, before it can act there."
+   ],
+   [
+    "h3",
+    "What propagates and how"
+   ],
+   [
+    "ul",
+    [
+     "Data: pulses from all units enrich the shared L0 archive",
+     "Models: a validated model becomes a per-unit challenger, not an auto-champion",
+     "Lessons: regression tests from one unit's incidents guard all units",
+     "Divergence tracking: no two units silently run different behavior unknowingly",
+     "Per-unit envelopes: shared model, unit-specific validated regime"
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def propagate(model, from_unit, to_unit):\n    assert registry.is_prod(model, from_unit)\n    # never auto-promote across units; enter target's own chain\n    registry.register_for(model, to_unit, state='SHADOW')\n    # validate against to_unit's diagnostics + twin before canary\n    return f'{model} entered {to_unit} shadow'"
+    ]
+   ],
+   [
+    "p",
+    "Fleet propagation compounds the value of the <a href=./continual-learning-loop.html>continual-learning loop</a>: more units mean more data, more regimes explored, and faster model maturation, while the per-unit re-validation ensures scale never erodes safety. Incidents propagate as regression tests through <a href=./incident-driven-retraining.html>incident-driven retraining</a>, so the whole fleet inherits every unit's hard lessons."
+   ]
+  ],
+  "related": [
+   [
+    "digital-twin-fleet-registry",
+    "Fleet Registry"
+   ],
+   [
+    "incident-driven-retraining",
+    "Incident-Driven Retraining"
+   ],
+   [
+    "continual-learning-loop",
+    "Continual Learning Loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "honest-gates-in-mlops",
+  "title": "Honest Gates in the MLOps Pipeline",
+  "cat": "mlops",
+  "lede": "The four burner physics gates are encoded as hard checks in the pipeline, so no model can be trained, validated, documented, or promoted into implying a capability the physics denies.",
+  "body": [
+   [
+    "h2",
+    "Encoding honesty as machine-checkable rules"
+   ],
+   [
+    "p",
+    "Kronos states the burner's limits plainly as design-and-simulation findings, and the MLOps pipeline enforces them so no model can overstate the machine. The four honest gates are registered constraints that training objectives, validation gates, model cards, and promotion approvals all reference. They are physics facts, never translated into economics, and they are never softened."
+   ],
+   [
+    "h3",
+    "The four gates as pipeline constraints"
+   ],
+   [
+    "ul",
+    [
+     "Plug stress: the plug coil is over-stressed 3 to 3.9x at the design bore — infeasible as specified. No model may be validated as operating that bore.",
+     "Operating regime: the plug regime is 166 to 830x beyond any existing device — un-post-dictable today. Models must abstain there; none may claim predictive authority in it.",
+     "Fuel supply: He-3 demand is about 400x domestic supply per commercial unit — gated on a supply that does not exist at terrestrial scale, which is why breeder-bred and lunar He-3 matter.",
+     "Availability: 0.86 to 0.995 vs hyperscale Tier III 0.99982 — 30 to 100x short on downtime; not a sole Tier-III source today."
+    ]
+   ],
+   [
+    "p",
+    "In practice these become assertions. A control policy's reward cannot be maximized by trajectories inside the barred plug regime, because such trajectories are flagged and excluded. A model card for any burner artifact must reference the honest-gates registry entry or it fails the card gate. A promotion approval that would imply operating past a gate is blocked at the governance step."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "HONEST_GATES = {\n 'plug_stress':    (3.0, 3.9),      # x over-stress at design bore\n 'regime_beyond':  (166, 830),      # x beyond any device\n 'he3_demand':     400,             # x domestic supply per unit\n 'availability':   (0.86, 0.995)}   # vs 0.99982 required\n\ndef honest_gate_check(model):\n    if model.machine != 'burner': return True\n    assert model.card.references('honest_gates')\n    assert model.abstains_in(regime='plug_beyond_device')\n    assert not model.claims_operability(gate='plug_stress')\n    return True"
+    ]
+   ],
+   [
+    "p",
+    "These gates are why the breeder is framed as a supported platform breeding tritium and He-3 while the burner remains plug-gated and fuel-gated. The MLOps pipeline makes that honesty structural: it is checked, logged, and enforced at <a href=./pre-deployment-validation-gates.html>validation</a> and <a href=./governance-approval-workflow.html>governance</a>, not left to good intentions. See also <a href=./model-cards-datasheets.html>model cards</a>, which surface the gates to every reader."
+   ]
+  ],
+  "related": [
+   [
+    "pre-deployment-validation-gates",
+    "Validation Gates"
+   ],
+   [
+    "governance-approval-workflow",
+    "Governance Workflow"
+   ],
+   [
+    "model-cards-datasheets",
+    "Model Cards and Datasheets"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

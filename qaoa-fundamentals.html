@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="QAOA: Quantum Approximate Optimization · Kronos Fusion Energy"><meta property="og:description" content="QAOA is the leading gate-model approach to combinatorial optimization; Kronos evaluates it for scheduling and layout, with no advantage assumed."><meta property="og:url" content="https://kronosfusionenergy.com/ai/qaoa-fundamentals.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -429,7 +429,7 @@ H_B = sum_i X_i             # mixer (transverse field)
 <ul><li>The cost-operator phase separation marks good bit strings; the mixer spreads amplitude toward them.</li><li>Depth p controls expressivity: p -> infinity recovers the adiabatic optimum, but depth is limited by noise.</li><li>A classical optimizer tunes the 2p angles using measured expectation values.</li></ul>
 <h3>The honest verdict</h3>
 <p>QAOA has no proven advantage over classical heuristics for the problem sizes and depths reachable on current hardware. At shallow depth it is often matched or beaten by classical solvers like simulated annealing and specialized branch-and-bound. Kronos treats it as a candidate to be benchmarked, never as a default. See the concrete mappings for <a href=./qaoa-maintenance-scheduling.html>maintenance scheduling</a> and <a href=./qaoa-experiment-campaign-scheduling.html>campaign scheduling</a>, the required <a href=./ising-qubo-mappings-fusion.html>QUBO/Ising encodings</a>, and the <a href=./quantum-annealing-vs-gate-model.html>annealing comparison</a>.</p>
-<p>Crucially, none of this runs in operations. Scheduling for the real machines is done by classical solvers with hard safety constraints; QAOA is an L0 research track that must first beat the classical baseline on Kronos-shaped instances before it earns any production role.</p><div class="related"><h3>Related</h3><a href="./ising-qubo-mappings-fusion.html">QUBO/Ising mappings &rarr;</a><a href="./qaoa-maintenance-scheduling.html">Maintenance scheduling &rarr;</a><a href="./quantum-annealing-vs-gate-model.html">Annealing vs gate model &rarr;</a></div></main></div><div class="kfe-embed">
+<p>Crucially, none of this runs in operations. Scheduling for the real machines is done by classical solvers with hard safety constraints; QAOA is an L0 research track that must first beat the classical baseline on Kronos-shaped instances before it earns any production role.</p><div class="related"><h3>Related</h3><a href="./ising-qubo-mappings-fusion.html">QUBO/Ising mappings &rarr;</a><a href="./qaoa-maintenance-scheduling.html">Maintenance scheduling &rarr;</a><a href="./quantum-annealing-vs-gate-model.html">Annealing vs gate model &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

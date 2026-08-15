@@ -1,0 +1,2498 @@
+[
+{
+"slug": "toric-code-and-homology",
+"title": "The Toric Code and Homology",
+"cat": "quantum-error-correction",
+"lede": "Kitaev's toric code places qubits on a torus and encodes logical information in topologically nontrivial loops, connecting error correction to homology.",
+"body": [
+[
+"h2",
+"A code on a surface"
+],
+[
+"p",
+"The toric code is defined by putting one physical qubit on every edge of a square lattice drawn on a torus. Two families of stabilizers are used: a vertex operator A(v), the product of Pauli X on the four edges meeting at a vertex, and a plaquette operator B(p), the product of Pauli Z on the four edges bounding a face. Every A(v) commutes with every B(p) because any vertex and plaquette share either zero or two edges, so the Pauli operators anticommute an even number of times."
+],
+[
+"p",
+"The simultaneous +1 eigenspace of all A(v) and B(p) is the code space. On an L-by-L torus there are 2L^2 qubits and 2L^2 stabilizers, but two constraints are redundant (the product of all A equals identity, likewise all B), leaving two logical qubits."
+],
+[
+"h3",
+"Loops and homology"
+],
+[
+"p",
+"Logical operators are Pauli strings that commute with every stabilizer but are not themselves products of stabilizers. Geometrically these are closed loops of Z along lattice edges, or closed loops of X on the dual lattice, that wind around the torus. A loop that bounds a region is a product of plaquettes and acts trivially; only loops in nontrivial homology classes act as logical X and Z. This is exactly the first homology group of the torus, which has two generators."
+],
+[
+"ul",
+[
+"Code distance equals the shortest noncontractible loop, which is L.",
+"Logical operators can be deformed freely as long as their homology class is fixed.",
+"Errors create pairs of excitations (violated stabilizers) at the endpoints of open strings.",
+"Correction succeeds when the applied string plus the error string forms a contractible loop."
+]
+],
+[
+"p",
+"The toric code is the archetype of topological quantum error correction. Its planar cousin, the <a href=./surface-code.html>surface code</a>, replaces periodic boundaries with edges so the code can be built on a real chip, at the cost of encoding one logical qubit instead of two."
+]
+],
+"related": [
+[
+"surface-code",
+"Surface Code"
+],
+[
+"anyons-and-topological-order",
+"Anyons and Topological Order"
+],
+[
+"planar-vs-toric-boundaries",
+"Planar vs Toric Boundaries"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "anyons-and-topological-order",
+"title": "Anyons and Topological Order",
+"cat": "quantum-error-correction",
+"lede": "Excitations of topological codes behave as anyons whose braiding statistics underlie both the robustness of the code and its logical operations.",
+"body": [
+[
+"h2",
+"Excitations as particles"
+],
+[
+"p",
+"When a stabilizer of the toric code is violated it can be viewed as a localized particle sitting on that vertex or plaquette. Violated vertex operators are called electric charges (e), violated plaquettes are magnetic fluxes (m). A single Pauli error creates a pair of like particles at the ends of its string; moving one particle costs no energy along the string, only at the endpoints."
+],
+[
+"h3",
+"Braiding statistics"
+],
+[
+"p",
+"These particles are anyons: they are neither bosons nor fermions. Carrying an e charge all the way around an m flux and back multiplies the joint state by -1, a phase that no local measurement near either particle can detect. This mutual statistics is the physical signature of topological order. The bound state of an e and an m, written epsilon, behaves as a fermion."
+],
+[
+"ul",
+[
+"Topological order means ground-state degeneracy that depends on the surface's genus, not on any local symmetry.",
+"No local operator can distinguish the degenerate logical states, which is why stored information resists local noise.",
+"Anyon type is a conserved charge: e and m particles can only be created and destroyed in pairs.",
+"The nontrivial braiding phase is the resource that a topological quantum computer would exploit."
+]
+],
+[
+"p",
+"Because the encoded information lives in global, topological features, it is invisible to any local perturbation weaker than the code's energy gap in the physical Hamiltonian, or below its distance in the purely code-based picture. This is the conceptual root of why surface and toric codes tolerate high error rates."
+],
+[
+"p",
+"Anyon models more exotic than the toric code's abelian e and m, such as non-abelian Fibonacci anyons, could in principle perform universal computation by braiding alone, but no abelian code including the toric code achieves universality from braiding without additional resources."
+]
+],
+"related": [
+[
+"toric-code-and-homology",
+"The Toric Code and Homology"
+],
+[
+"anyon-braiding-logical-gates",
+"Anyon Braiding and Logical Gates"
+],
+[
+"z2-gauge-theory-and-toric-code",
+"Z2 Gauge Theory and the Toric Code"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "anyon-braiding-logical-gates",
+"title": "Anyon Braiding and Logical Gates",
+"cat": "quantum-error-correction",
+"lede": "Moving code excitations around one another and around code boundaries implements logical operations, the picture behind braiding and code deformation.",
+"body": [
+[
+"h2",
+"Gates from motion"
+],
+[
+"p",
+"In a topological code a logical operation can be realized by physically dragging anyonic excitations, or by moving the holes and boundaries that define encoded qubits. Because the outcome depends only on the topology of the paths, small imprecisions in the path do not change the gate. This geometric robustness is what makes braiding-based operations attractive."
+],
+[
+"h3",
+"Abelian limits"
+],
+[
+"p",
+"The toric code's anyons are abelian, meaning braiding multiplies the state by a phase rather than rotating within a degenerate space. Phases alone cannot generate a universal gate set, so pure braiding in the toric code yields only a limited group of logical operations. Practical surface-code machines therefore use code deformation and lattice surgery to move and merge logical qubits, and inject magic states to complete a universal set."
+],
+[
+"ul",
+[
+"Braiding two defects can implement a logical CNOT between the qubits they encode.",
+"Deforming boundaries moves logical operators without ever measuring the encoded data.",
+"The braiding result is invariant under continuous deformation of the worldlines.",
+"Non-Clifford gates still require magic-state injection because abelian braiding is Clifford at most."
+]
+],
+[
+"p",
+"The spacetime picture is powerful: worldlines of defects trace a braid in three dimensions (two space, one time), and the logical operation is a topological invariant of that braid. This viewpoint unifies braiding, <a href=./code-deformation-and-braiding.html>code deformation</a>, and lattice surgery as different ways of drawing the same kind of spacetime diagram."
+],
+[
+"p",
+"Genuinely universal braiding would require non-abelian anyons such as Fibonacci anyons, which no simple stabilizer code hosts. Current fault-tolerant proposals stay with abelian codes and accept the extra cost of magic states."
+]
+],
+"related": [
+[
+"anyons-and-topological-order",
+"Anyons and Topological Order"
+],
+[
+"code-deformation-and-braiding",
+"Code Deformation and Braiding"
+],
+[
+"magic-states-and-t-gate",
+"Magic States and the T Gate"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "z2-gauge-theory-and-toric-code",
+"title": "Z2 Gauge Theory and the Toric Code",
+"cat": "quantum-error-correction",
+"lede": "The toric code is the ground-state sector of a Z2 lattice gauge theory, a link that explains its stabilizers, charges, and fluxes in physical terms.",
+"body": [
+[
+"h2",
+"Gauge theory on a lattice"
+],
+[
+"p",
+"A Z2 gauge theory assigns a two-valued gauge field to each lattice edge. Gauss's law is enforced at every vertex, and magnetic flux is measured around every plaquette. Translating these two conditions into qubit language gives exactly the vertex operators A(v) and plaquette operators B(p) of the toric code. The code space is the physical, gauge-invariant Hilbert space of the theory."
+],
+[
+"h3",
+"Charges and fluxes"
+],
+[
+"p",
+"In the gauge-theory reading, a violated vertex operator is a static electric charge that breaks Gauss's law, and a violated plaquette is a unit of magnetic flux, a vortex. The deconfined phase of the Z2 gauge theory, where charges cost only a constant energy no matter how far apart, corresponds to the topologically ordered phase that protects the code."
+],
+[
+"ul",
+[
+"Gauss's law at a vertex is the stabilizer condition A(v)=+1.",
+"Magnetic flux through a plaquette is measured by B(p).",
+"Deconfinement of charges is the same statement as a finite code distance surviving.",
+"Confinement, the opposite phase, would destroy the topological protection."
+]
+],
+[
+"p",
+"This dictionary is more than an analogy. It explains why the toric code is stable against weak perturbations: the deconfined phase is a genuine phase of matter with a spectral gap, and phases of matter are robust to small changes of parameters. It also motivates generalizations. Replacing the group Z2 with a larger or non-abelian group yields qudit and non-abelian codes with richer anyon content."
+],
+[
+"p",
+"For simulation work, lattice gauge theories are themselves a leading target for quantum computers, so the same mathematics appears twice: as the structure of the error-correcting code and as the physics one hopes to simulate."
+]
+],
+"related": [
+[
+"toric-code-and-homology",
+"The Toric Code and Homology"
+],
+[
+"anyons-and-topological-order",
+"Anyons and Topological Order"
+],
+[
+"stabilizer-formalism",
+"Stabilizer Formalism"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "planar-vs-toric-boundaries",
+"title": "Planar vs Toric Boundaries",
+"cat": "quantum-error-correction",
+"lede": "Turning the toric code into a chip-buildable surface code requires open boundaries of two types, which set how many logical qubits a patch encodes.",
+"body": [
+[
+"h2",
+"From torus to plane"
+],
+[
+"p",
+"The toric code needs a torus, a periodic boundary in two directions that no planar chip provides. The surface code keeps the same local stabilizers but ends the lattice with real edges. Two kinds of boundary are used: a rough boundary, where plaquette-type stabilizers are truncated, and a smooth boundary, where vertex-type stabilizers are truncated."
+],
+[
+"h3",
+"Counting logical qubits"
+],
+[
+"p",
+"A single square patch with two opposite rough edges and two opposite smooth edges encodes exactly one logical qubit. The logical Z is a Z-string connecting the two rough boundaries, and the logical X is an X-string connecting the two smooth boundaries. These strings cannot be removed by stabilizers because their endpoints terminate on the boundary rather than closing into contractible loops."
+],
+[
+"ul",
+[
+"Rough boundary: e-type charges can be absorbed there.",
+"Smooth boundary: m-type fluxes can be absorbed there.",
+"Distance equals the shortest string from one like-boundary to the other.",
+"Extra logical qubits come from adding holes or extra boundary segments, not from the bulk."
+]
+],
+[
+"p",
+"Boundaries are also the raw material for logical operations. By growing, shrinking, or merging patches along their boundaries, a processor performs <a href=./lattice-surgery.html>lattice surgery</a>: measuring a joint logical operator of two patches by temporarily fusing them along a shared boundary. This is the mainstream route to two-qubit logical gates on planar hardware."
+],
+[
+"p",
+"The trade is explicit: the torus gives two logical qubits for free but is unbuildable, while the plane gives one qubit per patch but runs on a flat array of qubits with only nearest-neighbor coupling, the connectivity superconducting and neutral-atom devices actually offer."
+]
+],
+"related": [
+[
+"surface-code",
+"Surface Code"
+],
+[
+"toric-code-and-homology",
+"The Toric Code and Homology"
+],
+[
+"lattice-surgery",
+"Lattice Surgery"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "subsystem-codes-gauge-qubits",
+"title": "Subsystem Codes and Gauge Qubits",
+"cat": "quantum-error-correction",
+"lede": "Subsystem codes split the Hilbert space into logical, gauge, and error factors, trading some encoding rate for simpler, lower-weight measurements.",
+"body": [
+[
+"h2",
+"Three kinds of degrees of freedom"
+],
+[
+"p",
+"An ordinary stabilizer code divides its Hilbert space into a code space and an error space. A subsystem code adds a third factor: gauge qubits. The protected logical qubits live in one tensor factor, the gauge qubits in another, and the gauge qubits carry no information. Any operation that acts only on the gauge factor is harmless, so the code has extra freedom."
+],
+[
+"h3",
+"The gauge group"
+],
+[
+"p",
+"Subsystem codes are defined by a gauge group G, which need not be abelian. The stabilizer group S is the center of G (up to phases): the elements of G that commute with all of G. Logical operators are those that commute with S but lie outside G. Because gauge operators can be measured directly and are often low weight, syndrome extraction can use small, local measurements even when the stabilizers themselves are high weight."
+],
+[
+"ul",
+[
+"Gauge qubits absorb errors that would otherwise need correcting.",
+"Stabilizers are inferred from products of gauge-operator measurements.",
+"Non-commuting gauge generators are allowed and are the source of the simplification.",
+"The rate is generally lower than an equivalent stabilizer code, the tradeoff for simpler measurement."
+]
+],
+[
+"p",
+"The canonical examples are the <a href=./bacon-shor-code.html>Bacon-Shor code</a>, whose gauge operators are weight-two, and subsystem surface codes that reduce the surface code's weight-four checks to weight-three. Gauge freedom can also be used to convert between codes on the fly through gauge fixing."
+],
+[
+"p",
+"Subsystem codes matter in practice because measurement weight, not just qubit count, limits real hardware. A code whose checks are all weight two or three can be measured with fewer entangling gates per round, which lowers the error injected during syndrome extraction."
+]
+],
+"related": [
+[
+"subsystem-codes",
+"Subsystem Codes"
+],
+[
+"bacon-shor-code",
+"The Bacon-Shor Code"
+],
+[
+"gauge-fixing-in-subsystem-codes",
+"Gauge Fixing in Subsystem Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "bacon-shor-code",
+"title": "The Bacon-Shor Code",
+"cat": "quantum-error-correction",
+"lede": "The Bacon-Shor code is a subsystem code on an n-by-n grid whose gauge operators are all weight two, making syndrome extraction unusually simple.",
+"body": [
+[
+"h2",
+"Construction"
+],
+[
+"p",
+"The Bacon-Shor code arranges n^2 qubits on an n-by-n square lattice. Its gauge group is generated by weight-two operators: XX on horizontally adjacent qubits and ZZ on vertically adjacent qubits. Products of these weight-two gauge operators along full rows and columns give the stabilizers, which are high weight, but the operators actually measured are only nearest-neighbor two-qubit terms."
+],
+[
+"h3",
+"Logical operators"
+],
+[
+"p",
+"The code encodes one logical qubit. Logical X is a product of X down any single column, logical Z is a product of Z along any single row. Because these can be slid to any row or column using gauge operators, the code has flexible logical representatives. For the n-by-n code the distance is n, correcting up to (n-1)/2 errors of each type."
+],
+[
+"ul",
+[
+"All directly measured operators are weight two, the smallest nontrivial checks possible.",
+"It descends from Shor's nine-qubit code, the 3-by-3 case.",
+"Gauge freedom removes the need to measure the high-weight stabilizers directly.",
+"It tolerates a geometrically local, nearest-neighbor layout."
+]
+],
+[
+"p",
+"A key practical property is that Bacon-Shor syndrome extraction is naturally fault tolerant for small distances without flag qubits: a single faulty two-qubit measurement produces a distinctive, correctable pattern. This simplicity made Bacon-Shor codes attractive for early demonstrations on ion-trap and superconducting hardware."
+],
+[
+"p",
+"The limitation is scaling. The Bacon-Shor code does not have a threshold in the usual sense; its distance-to-size scaling and the growth of gauge-operator products mean that beyond modest distances its logical error rate stops improving. It is best understood as an excellent small code and a clear teaching example of subsystem structure rather than a candidate for large-scale fault tolerance."
+]
+],
+"related": [
+[
+"subsystem-codes-gauge-qubits",
+"Subsystem Codes and Gauge Qubits"
+],
+[
+"nine-qubit-shor-code",
+"The Nine-Qubit Shor Code"
+],
+[
+"gauge-fixing-in-subsystem-codes",
+"Gauge Fixing in Subsystem Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "gauge-fixing-in-subsystem-codes",
+"title": "Gauge Fixing in Subsystem Codes",
+"cat": "quantum-error-correction",
+"lede": "Choosing definite values for gauge qubits converts a subsystem code into a stabilizer code and lets a processor switch between codes without moving data.",
+"body": [
+[
+"h2",
+"Fixing the gauge"
+],
+[
+"p",
+"In a subsystem code the gauge qubits carry no information, so their state is free. Gauge fixing means measuring a chosen set of gauge operators and treating their outcomes as new stabilizers. This promotes part of the gauge group into the stabilizer group, converting the subsystem code into a stabilizer code with a larger stabilizer and no remaining gauge freedom in that sector."
+],
+[
+"h3",
+"Switching between codes"
+],
+[
+"p",
+"Because different choices of which gauge operators to fix yield different stabilizer codes on the same qubits, gauge fixing is a way to move between codes without physically relocating the encoded information. A processor can fix the gauge one way to get a code with a convenient transversal gate, apply that gate, then fix it another way to recover a code with a good decoder or better distance."
+],
+[
+"ul",
+[
+"Measuring a gauge operator projects the gauge qubit and adds a stabilizer.",
+"No logical information moves, only the code's definition changes.",
+"Different gauge fixes trade off transversality, distance, and measurement weight.",
+"Failed or noisy fixes are detected as unexpected syndrome changes."
+]
+],
+[
+"p",
+"This idea is the engine behind several proposals for universal fault tolerance, including switching between two color codes to obtain a transversal T gate that neither code has alone. It also connects to <a href=./code-deformation-and-braiding.html>code deformation</a>, which is gauge fixing applied continuously across a lattice."
+],
+[
+"p",
+"The catch is that gauge fixing can temporarily lower the distance during the transition, so the schedule of measurements must be designed so that no error occurring mid-switch escapes detection. Careful ordering keeps the effective distance high throughout the operation."
+]
+],
+"related": [
+[
+"subsystem-codes-gauge-qubits",
+"Subsystem Codes and Gauge Qubits"
+],
+[
+"code-deformation-and-braiding",
+"Code Deformation and Braiding"
+],
+[
+"color-codes",
+"Color Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "operator-quantum-error-correction",
+"title": "Operator Quantum Error Correction",
+"cat": "quantum-error-correction",
+"lede": "The operator, or subsystem, framework generalizes the standard correction conditions to allow part of the encoded space to be discarded rather than protected.",
+"body": [
+[
+"h2",
+"Correcting a subsystem"
+],
+[
+"p",
+"Standard quantum error correction demands that a recovery map restore the full encoded state. Operator quantum error correction relaxes this: the logical information lives in a tensor factor A of the code space, written as A tensor B, and only A must be recovered. The factor B, the gauge subsystem, may be corrupted freely because it holds no data."
+],
+[
+"h3",
+"Generalized correction conditions"
+],
+[
+"p",
+"The Knill-Laflamme conditions become weaker. For errors E_i and E_j and the projector P onto the code space, the requirement is that P E_i^dagger E_j P act trivially on the A factor while being allowed to act arbitrarily on B. This is easier to satisfy than the full stabilizer condition, which is why subsystem codes can correct with lower-weight measurements."
+],
+[
+"ul",
+[
+"The logical factor A must be recoverable; the gauge factor B need not be.",
+"Errors that act only on B require no correction at all.",
+"The framework contains stabilizer codes as the special case where B is trivial.",
+"It gives a unified language for noiseless subsystems and decoherence-free subspaces."
+]
+],
+[
+"p",
+"Operator quantum error correction also clarifies passive protection. A decoherence-free subspace is the special case where the noise never leaves the code space, so no active recovery is needed at all. Noiseless subsystems generalize this to a gauge factor that soaks up symmetric noise."
+],
+[
+"p",
+"The practical payoff is design freedom. By deciding in advance which degrees of freedom to protect and which to sacrifice, code designers can match a code to the dominant noise of a device, for example letting the gauge subsystem absorb correlated or collective errors that would be expensive to correct directly."
+]
+],
+"related": [
+[
+"subsystem-codes-gauge-qubits",
+"Subsystem Codes and Gauge Qubits"
+],
+[
+"quantum-error-correction-conditions",
+"Quantum Error Correction Conditions"
+],
+[
+"subsystem-codes",
+"Subsystem Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "quantum-reed-muller-codes",
+"title": "Quantum Reed-Muller Codes",
+"cat": "quantum-error-correction",
+"lede": "Built from classical Reed-Muller codes, this family yields CSS codes with useful transversal non-Clifford gates, at the cost of a low encoding rate.",
+"body": [
+[
+"h2",
+"From classical to quantum"
+],
+[
+"p",
+"Classical Reed-Muller codes RM(r,m) are built from low-degree Boolean polynomials sampled over all bit strings. They form a nested family in which RM(r,m) contains RM(r-1,m), and this nesting is exactly what the CSS construction needs: one code supplies the X-checks, its subcode supplies the Z-checks. The result is a family of quantum CSS codes indexed by r and m."
+],
+[
+"h3",
+"Transversal non-Clifford gates"
+],
+[
+"p",
+"The reason these codes are studied is their gate structure. The 15-qubit quantum Reed-Muller code encodes one logical qubit with distance three and admits a transversal T gate, applied as a T or T-dagger on each physical qubit. Transversal T is forbidden in the surface code and most CSS codes, so this property is rare and valuable."
+],
+[
+"ul",
+[
+"The construction relies on the self-orthogonality guaranteed by Reed-Muller nesting.",
+"The 15-qubit code has parameters [[15,1,3]] and transversal T.",
+"Its dual-like partner, the Steane code, has transversal Clifford gates instead.",
+"Together such codes support code switching to reach a universal set."
+]
+],
+[
+"p",
+"No single stabilizer code can have a transversal universal gate set, a fact fixed by the <a href=./eastin-knill-theorem.html>Eastin-Knill theorem</a>. Quantum Reed-Muller codes sidestep this by pairing with a complementary code: one supplies transversal Clifford gates, the other supplies transversal T, and gauge fixing or code switching moves between them."
+],
+[
+"p",
+"The drawback is rate and distance. To get transversal T at larger distance, the codes grow quickly in qubit count, and their thresholds are modest. They are therefore used as building blocks, especially inside magic-state distillation circuits, rather than as the top-level memory of a large machine."
+]
+],
+"related": [
+[
+"reed-muller-transversal-t",
+"Reed-Muller and Transversal T"
+],
+[
+"css-codes",
+"CSS Codes"
+],
+[
+"magic-state-distillation",
+"Magic State Distillation"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "reed-muller-transversal-t",
+"title": "Reed-Muller and Transversal T",
+"cat": "quantum-error-correction",
+"lede": "The 15-qubit Reed-Muller code's transversal T gate makes it a natural core for magic-state distillation and code-switching schemes.",
+"body": [
+[
+"h2",
+"Why transversal T is special"
+],
+[
+"p",
+"The T gate, a pi/4 phase rotation, is the standard non-Clifford gate that lifts the Clifford group to universality. Applying it fault tolerantly is the hardest part of building a universal quantum computer, because in the surface code it must be teleported in through a distilled magic state. A code where T is simply applied qubit by qubit removes one layer of that machinery."
+],
+[
+"h3",
+"The 15-qubit code"
+],
+[
+"p",
+"The [[15,1,3]] quantum Reed-Muller code has exactly this property. Applying T-dagger to each of the 15 physical qubits implements a logical T. The code is a CSS code whose X and Z checks come from nested Reed-Muller codes, and its structure ensures the physical T operations combine into a single clean logical T with no leftover Clifford correction beyond a known Pauli frame update."
+],
+[
+"ul",
+[
+"Transversal gates cannot spread a single error into an uncorrectable one, the core of fault tolerance.",
+"The 15-qubit code trades transversal Clifford gates away to gain transversal T.",
+"Its distance is only three, so it corrects single errors, adequate inside distillation.",
+"Pairing it with the Steane code covers the full Clifford-plus-T set."
+]
+],
+[
+"p",
+"This code sits at the heart of the classic 15-to-1 magic-state distillation routine, which takes fifteen noisy T states and outputs one much cleaner T state by using the code's structure to detect the most likely errors. It also enables code switching, where information moves between a code with transversal Clifford gates and this code to apply T."
+],
+[
+"p",
+"The lesson generalizes: <a href=./eastin-knill-theorem.html>Eastin-Knill</a> forbids any one code from having a transversal universal set, so real machines assemble universality from complementary codes and distillation, and the Reed-Muller code is a workhorse for the T portion."
+]
+],
+"related": [
+[
+"quantum-reed-muller-codes",
+"Quantum Reed-Muller Codes"
+],
+[
+"magic-state-distillation",
+"Magic State Distillation"
+],
+[
+"eastin-knill-theorem",
+"The Eastin-Knill Theorem"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "quantum-hamming-bound-and-perfect-codes",
+"title": "The Quantum Hamming Bound and Perfect Codes",
+"cat": "quantum-error-correction",
+"lede": "A counting argument limits how many logical qubits a distance-d code can protect, and codes that meet it with equality are called perfect.",
+"body": [
+[
+"h2",
+"Counting correctable errors"
+],
+[
+"p",
+"For a nondegenerate code on n qubits correcting t errors, every distinct correctable error must map the code space to a distinct orthogonal subspace. Each qubit admits three nontrivial Pauli errors (X, Y, Z), so the number of weight-up-to-t Pauli errors is the sum over j from 0 to t of C(n,j) times 3^j. Multiplying by the code-space dimension 2^k and requiring the total to fit inside 2^n gives the quantum Hamming bound."
+],
+[
+"h3",
+"The bound"
+],
+[
+"p",
+"Written compactly, a nondegenerate [[n,k,d]] code with t = floor((d-1)/2) must satisfy 2^k times the sum of C(n,j) 3^j for j=0..t, at most 2^n. Codes achieving equality pack the Hilbert space exactly and are called perfect quantum codes."
+],
+[
+"matrix",
+[
+"Five-qubit code parameters (n,k,d)",
+[
+[
+"5",
+"1"
+],
+[
+"3",
+"-"
+]
+]
+]
+],
+[
+"ul",
+[
+"The bound applies to nondegenerate codes; degenerate codes can beat it.",
+"The [[5,1,3]] perfect code saturates the bound: 2*(1 + 5*3) = 32 = 2^5.",
+"No other single-error-correcting perfect quantum code with these parameters exists beyond the family it defines.",
+"Degeneracy, where different errors act identically on the code space, is a purely quantum loophole."
+]
+],
+[
+"p",
+"The quantum Hamming bound is a first sanity check on any proposed code and explains why the five-qubit code is the smallest possible single-error-correcting code. It also highlights a genuinely quantum feature: degenerate codes, including the surface code, can and do exceed the nondegenerate bound because several errors can share a syndrome and correction."
+],
+[
+"p",
+"Other bounds, such as the quantum Singleton bound d at most (n-k)/2 + 1, constrain distance directly. Codes meeting the Singleton bound are called quantum MDS codes. Together these bounds map the feasible region of code parameters."
+]
+],
+"related": [
+[
+"five-qubit-perfect-code",
+"The Five-Qubit Perfect Code"
+],
+[
+"distance-rate-tradeoffs",
+"Distance and Rate Tradeoffs"
+],
+[
+"code-distance",
+"Code Distance"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "quantum-ldpc-codes-overview",
+"title": "Quantum LDPC Codes: Overview",
+"cat": "quantum-error-correction",
+"lede": "Low-density parity-check quantum codes keep every check and every qubit involved in only a few others, promising high rate with bounded measurement weight.",
+"body": [
+[
+"h2",
+"What low-density means"
+],
+[
+"p",
+"A quantum LDPC code is a stabilizer code whose parity-check (stabilizer) matrix is sparse: every stabilizer acts on a bounded number of qubits and every qubit participates in a bounded number of stabilizers, independent of the code size. The surface code is technically LDPC, since its checks are weight four, but the term usually refers to codes that keep this locality while achieving a constant encoding rate."
+],
+[
+"h3",
+"Why they are wanted"
+],
+[
+"p",
+"The surface code protects one logical qubit per patch, so a machine with thousands of logical qubits needs an enormous number of physical qubits. Good quantum LDPC codes aim for a constant ratio of logical to physical qubits and a distance that grows with size, which would cut the qubit overhead of fault tolerance by a large factor."
+],
+[
+"ul",
+[
+"Bounded check weight keeps syndrome-extraction circuits shallow.",
+"Constant rate means logical qubits scale with physical qubits, not slower.",
+"The challenge is connectivity: good LDPC codes need non-local qubit coupling.",
+"Decoding is harder than matching because the code is not planar."
+]
+],
+[
+"p",
+"The theoretical breakthrough was the construction of good quantum LDPC codes, families with both constant rate and distance proportional to the number of qubits. These are built from <a href=./hypergraph-product-codes.html>hypergraph products</a> and their generalizations such as lifted and balanced products."
+],
+[
+"p",
+"The practical obstacle is hardware. Unlike the surface code, these codes require each qubit to interact with partners that are not geometric neighbors, which suits architectures with reconfigurable connectivity, such as neutral atoms that can be moved, or photonic and modular systems, better than a fixed 2D superconducting grid. Bridging that gap is an active engineering frontier."
+]
+],
+"related": [
+[
+"ldpc-quantum-codes",
+"LDPC Quantum Codes"
+],
+[
+"hypergraph-product-codes",
+"Hypergraph-Product Codes"
+],
+[
+"good-quantum-ldpc-codes",
+"Good Quantum LDPC Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "hypergraph-product-codes",
+"title": "Hypergraph-Product Codes",
+"cat": "quantum-error-correction",
+"lede": "The hypergraph product turns any pair of classical codes into a quantum CSS code, the first general recipe for high-rate quantum LDPC codes.",
+"body": [
+[
+"h2",
+"A product of two classical codes"
+],
+[
+"p",
+"Given two classical parity-check matrices H1 and H2, the hypergraph product builds a quantum CSS code whose X and Z checks are assembled from H1, H2, and their transposes. If the inputs are sparse, so is the output, so the construction preserves the LDPC property. The toric code is the special case where both inputs are the parity-check matrix of the classical repetition code."
+],
+[
+"h3",
+"Parameters"
+],
+[
+"p",
+"If the classical codes have parameters [n_i, k_i, d_i], the hypergraph product has roughly n = n1 n2 + m1 m2 physical qubits and k = k1 k2 logical qubits, with distance equal to the minimum of the classical distances. Choosing good classical codes with constant rate makes the quantum code have constant rate as well, something no product of surface codes can achieve."
+],
+[
+"ul",
+[
+"Any classical LDPC code can serve as an input.",
+"The construction guarantees the CSS commutation condition automatically.",
+"Rate is the product of the two classical rates, so it stays constant.",
+"Distance scales like the square root of the block length, weaker than the best modern codes."
+]
+],
+[
+"p",
+"The hypergraph product was the first construction to break the surface code's square-root distance and low rate simultaneously in a general way. It sparked the search for even better families and provided the template that later constructions refined."
+],
+[
+"p",
+"Its main limitation is distance scaling: the distance grows only like the square root of the number of qubits, the same order as the surface code, so the win is in rate rather than distance. <a href=./good-quantum-ldpc-codes.html>Good quantum LDPC codes</a> and <a href=./lifted-product-codes.html>lifted products</a> push distance to grow linearly, closing that gap."
+]
+],
+"related": [
+[
+"quantum-ldpc-codes-overview",
+"Quantum LDPC Codes: Overview"
+],
+[
+"good-quantum-ldpc-codes",
+"Good Quantum LDPC Codes"
+],
+[
+"lifted-product-codes",
+"Lifted-Product Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "good-quantum-ldpc-codes",
+"title": "Good Quantum LDPC Codes",
+"cat": "quantum-error-correction",
+"lede": "Good quantum LDPC codes achieve constant rate and distance proportional to block length at once, the asymptotically optimal scaling long thought hard to reach.",
+"body": [
+[
+"h2",
+"What good means"
+],
+[
+"p",
+"A family of codes is asymptotically good if, as the block length n grows, both the rate k/n and the relative distance d/n stay bounded below by positive constants. Classical good LDPC codes have existed for decades. Whether quantum good LDPC codes existed was open for years, because the CSS commutation constraint makes it hard to keep distance large while keeping checks sparse."
+],
+[
+"h3",
+"The resolution"
+],
+[
+"p",
+"A sequence of constructions in the early 2020s settled the question affirmatively. Building on balanced and lifted products of classical codes with expansion properties, these families provably achieve constant rate and linear distance with bounded-weight stabilizers. The proofs use expander-graph arguments to lower-bound the distance."
+],
+[
+"ul",
+[
+"Constant rate: the number of logical qubits is a fixed fraction of physical qubits.",
+"Linear distance: d grows proportionally to n, not merely as its square root.",
+"Bounded check weight: every stabilizer stays low weight at all sizes.",
+"Existence is proven; efficient decoders and hardware layouts are still being developed."
+]
+],
+[
+"p",
+"The significance is that, in principle, the overhead of fault tolerance can be made a constant multiplier rather than a growing one. This is a sharp contrast with the surface code, whose overhead per logical qubit grows with the target logical error rate."
+],
+[
+"p",
+"Two gaps separate theory from machines. First, decoding these codes efficiently and accurately is harder than matching, so <a href=./belief-propagation-decoder.html>belief propagation</a> with added heuristics is the leading approach. Second, the required qubit connectivity is non-local, which suits reconfigurable-atom and modular architectures more than a fixed planar grid. Closing both gaps is where much current effort is focused."
+]
+],
+"related": [
+[
+"hypergraph-product-codes",
+"Hypergraph-Product Codes"
+],
+[
+"lifted-product-codes",
+"Lifted-Product Codes"
+],
+[
+"expander-codes-and-quantum-ldpc",
+"Expander Codes and Quantum LDPC"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "lifted-product-codes",
+"title": "Lifted-Product Codes",
+"cat": "quantum-error-correction",
+"lede": "Lifting a classical protograph over a group, then taking a product, yields quantum LDPC codes with better distance than the plain hypergraph product.",
+"body": [
+[
+"h2",
+"Protographs and lifts"
+],
+[
+"p",
+"A lifted code starts from a small base graph, a protograph, whose edges are labeled by elements of a group, often a cyclic group. Lifting replaces each labeled edge with a permutation matrix, expanding the small template into a large, structured code. This is the quantum analog of quasi-cyclic classical LDPC codes, which power modern communication standards."
+],
+[
+"h3",
+"The lifted product"
+],
+[
+"p",
+"Applying the CSS/hypergraph product to lifted classical codes gives the lifted-product construction. The added algebraic structure lets the distance grow faster than in the plain hypergraph product, in the best cases nearly linearly, while keeping the checks sparse and the code highly structured."
+],
+[
+"ul",
+[
+"The group label turns a tiny protograph into a large regular code.",
+"Structure aids both analysis of distance and hardware scheduling.",
+"Lifted products were among the first to break the square-root distance barrier.",
+"Quasi-cyclic structure can simplify the syndrome-extraction schedule."
+]
+],
+[
+"p",
+"Lifted-product codes are attractive for engineering because their regularity translates into repeatable wiring and measurement patterns. Recent hardware proposals for high-rate memories on neutral-atom and superconducting-with-couplers platforms often use lifted-product or closely related bicycle codes precisely for this structured connectivity."
+],
+[
+"p",
+"They sit on the path from the <a href=./hypergraph-product-codes.html>hypergraph product</a> to fully <a href=./good-quantum-ldpc-codes.html>good codes</a>: enough structure to reason about and build, enough distance to be a serious alternative to the surface code for the memory portion of a machine, where high rate matters most and logical gates can be handled separately."
+]
+],
+"related": [
+[
+"hypergraph-product-codes",
+"Hypergraph-Product Codes"
+],
+[
+"good-quantum-ldpc-codes",
+"Good Quantum LDPC Codes"
+],
+[
+"tanner-graphs-quantum",
+"Tanner Graphs for Quantum Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "expander-codes-and-quantum-ldpc",
+"title": "Expander Codes and Quantum LDPC",
+"cat": "quantum-error-correction",
+"lede": "Expander graphs, which stay well connected while remaining sparse, are the mathematical engine that guarantees large distance in good quantum LDPC codes.",
+"body": [
+[
+"h2",
+"What an expander is"
+],
+[
+"p",
+"An expander graph is sparse, every vertex has bounded degree, yet strongly connected: any not-too-large set of vertices has many edges leaving it. This expansion property means information and errors spread predictably, which is exactly what a code designer needs to prove that no low-weight logical operator can hide."
+],
+[
+"h3",
+"Expansion and distance"
+],
+[
+"p",
+"In classical coding, expander codes achieve linear distance and can be decoded by a simple local flip rule. The quantum analog is subtler because CSS codes have two check types that must commute, but the same intuition holds: strong expansion in the underlying graph or chain complex forces every logical operator to have large support, giving linear distance."
+],
+[
+"ul",
+[
+"Bounded degree keeps the code LDPC.",
+"High edge expansion lower-bounds the code distance.",
+"Expansion also supports fast, local decoding algorithms.",
+"The quantum case needs a two-sided or coboundary expansion notion."
+]
+],
+[
+"p",
+"The proofs of good quantum LDPC codes rest on generalized expansion of chain complexes, sometimes called cosystolic or coboundary expansion. These are the higher-dimensional cousins of ordinary graph expansion, and establishing them was the key mathematical advance."
+],
+[
+"p",
+"Expansion is not only a proof tool. It suggests linear-time decoders analogous to the classical flip decoder, and small-set-flip decoders for quantum expander codes come with provable correction guarantees up to a constant fraction of the distance. This connects the abstract guarantee of large distance to a concrete, fast recovery procedure, which is essential for <a href=./real-time-decoding-latency.html>real-time decoding</a>."
+]
+],
+"related": [
+[
+"good-quantum-ldpc-codes",
+"Good Quantum LDPC Codes"
+],
+[
+"tanner-graphs-quantum",
+"Tanner Graphs for Quantum Codes"
+],
+[
+"classical-linear-codes",
+"Classical Linear Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "tanner-graphs-quantum",
+"title": "Tanner Graphs for Quantum Codes",
+"cat": "quantum-error-correction",
+"lede": "A Tanner graph draws qubits and checks as two sets of nodes joined by edges, the picture that both defines LDPC codes and drives message-passing decoders.",
+"body": [
+[
+"h2",
+"Qubits and checks as a bipartite graph"
+],
+[
+"p",
+"A Tanner graph has two kinds of nodes: variable nodes for the qubits and check nodes for the stabilizers. An edge connects a qubit to a check whenever that stabilizer acts nontrivially on that qubit. For a quantum CSS code there are two Tanner graphs, one for the X checks and one for the Z checks, or a combined graph with typed edges."
+],
+[
+"h3",
+"Sparsity made visual"
+],
+[
+"p",
+"The LDPC condition is simply that both node degrees are bounded: each check touches few qubits and each qubit touches few checks. Low degree keeps the graph sparse no matter how large the code grows, which is what keeps syndrome-extraction circuits shallow."
+],
+[
+"ul",
+[
+"Variable nodes are qubits; check nodes are stabilizer generators.",
+"Edge = the check acts on that qubit.",
+"Node degree = check weight and qubit involvement.",
+"Short cycles in the graph hurt message-passing decoders."
+]
+],
+[
+"p",
+"The Tanner graph is also the data structure a decoder runs on. <a href=./belief-propagation-decoder.html>Belief propagation</a> passes probability messages along the edges, each check node combining incoming beliefs and each variable node updating its estimate. The graph's girth, the length of its shortest cycle, controls how well this converges, which is why designers avoid short cycles."
+],
+[
+"p",
+"For quantum codes the two check types create an obstacle: the X and Z Tanner graphs share qubits, so decoding one can spoil the other, and degeneracy creates many equivalent solutions. This is why plain belief propagation often needs an extra ordered-statistics or matching post-step for quantum LDPC codes, unlike the classical case where it works directly."
+]
+],
+"related": [
+[
+"quantum-ldpc-codes-overview",
+"Quantum LDPC Codes: Overview"
+],
+[
+"belief-propagation-decoder",
+"Belief Propagation Decoder"
+],
+[
+"classical-linear-codes",
+"Classical Linear Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "gkp-bosonic-codes",
+"title": "GKP Bosonic Codes",
+"cat": "quantum-error-correction",
+"lede": "The Gottesman-Kitaev-Preskill code stores a qubit in a single oscillator using a grid of position and momentum, correcting small shifts in phase space.",
+"body": [
+[
+"h2",
+"A qubit in an oscillator"
+],
+[
+"p",
+"Bosonic codes encode a qubit into the infinite-dimensional Hilbert space of a harmonic oscillator, a mode of light or a mechanical or microwave resonator. The GKP code does this with a lattice: the ideal code states are superpositions of position eigenstates spaced periodically, forming a grid in the phase space of position q and momentum p."
+],
+[
+"h3",
+"Correcting small shifts"
+],
+[
+"p",
+"The dominant noise on an oscillator is small random displacements in q and p. GKP stabilizers are the two commuting displacement operators that translate by a full lattice period. Measuring them modulo the lattice reveals how far the state has drifted within a unit cell, and the correction pushes it back to the nearest grid point. Shifts smaller than half a lattice spacing are corrected."
+],
+[
+"ul",
+[
+"The code lives in one mode, so no multi-qubit entanglement is needed to protect it.",
+"Stabilizers are periodic displacements; syndromes are the fractional part of the shift.",
+"Clifford gates are Gaussian operations, relatively easy on oscillators.",
+"Ideal GKP states are unphysical (infinite energy); real states are finitely squeezed approximations."
+]
+],
+[
+"p",
+"GKP is powerful because it turns the hardest analog error, a continuous displacement, into a digitizable one, and because a single well-made GKP qubit already has a nonzero distance. This makes it a strong inner code: a lattice of GKP qubits fed into a surface code can outperform a surface code built from ordinary qubits, since the GKP layer supplies analog information about how confident each syndrome is."
+],
+[
+"p",
+"The engineering challenge is preparing and maintaining highly squeezed grid states, since finite squeezing sets the residual error floor. Superconducting-cavity and trapped-ion experiments have demonstrated GKP states and rounds of correction, making it one of the more mature bosonic approaches."
+]
+],
+"related": [
+[
+"gkp-error-correction-and-gates",
+"GKP Error Correction and Gates"
+],
+[
+"bosonic-codes-overview",
+"Bosonic Codes Overview"
+],
+[
+"cat-codes-biased-noise",
+"Cat Codes and Biased Noise"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "gkp-error-correction-and-gates",
+"title": "GKP Error Correction and Gates",
+"cat": "quantum-error-correction",
+"lede": "Running the GKP code means repeatedly measuring lattice displacements and steering the state back, while analog syndrome information sharpens an outer code.",
+"body": [
+[
+"h2",
+"The correction cycle"
+],
+[
+"p",
+"A GKP correction round measures the two stabilizer displacements modulo the lattice, typically by coupling the data mode to an ancilla (a qubit or another mode) and reading a phase. The measured fractional shift is fed back as a counter-displacement. Because the measurement is analog, the outcome carries not just a discrete syndrome but a real-valued estimate of the error size."
+],
+[
+"h3",
+"Analog information for the outer code"
+],
+[
+"p",
+"That real-valued estimate is the key advantage. When GKP qubits form the physical layer of a surface code, each syndrome comes with a confidence, a soft flag saying how close the shift was to the correction boundary. A matching or belief-propagation decoder that uses this soft information corrects better than one seeing only hard 0/1 syndromes, raising the effective threshold."
+],
+[
+"ul",
+[
+"Gaussian operations (beamsplitters, squeezers, displacements) give Clifford gates.",
+"A non-Gaussian resource, such as a cubic phase state or photon counting, is needed for a non-Clifford gate.",
+"Ancilla measurement noise and finite squeezing set the residual error.",
+"Soft syndrome data improves the outer decoder measurably."
+]
+],
+[
+"p",
+"Gate implementation splits along the Clifford/non-Clifford line familiar from qubit codes. Clifford gates are Gaussian transformations of the modes, which cavities and ion motions perform natively. The non-Clifford gate needs an injected non-Gaussian state, the bosonic counterpart of a magic state."
+],
+[
+"p",
+"The practical picture is a two-layer machine: GKP inside, a topological or LDPC code outside. The inner layer converts continuous oscillator noise into digital syndromes plus confidences; the outer layer provides scalable distance. This concatenation is among the most credible near-term routes to a low logical error rate per physical hardware unit."
+]
+],
+"related": [
+[
+"gkp-bosonic-codes",
+"GKP Bosonic Codes"
+],
+[
+"measurement-errors-and-repeated-measurement",
+"Measurement Errors and Repeated Measurement"
+],
+[
+"bosonic-codes-overview",
+"Bosonic Codes Overview"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "cat-codes-biased-noise",
+"title": "Cat Codes and Biased Noise",
+"cat": "quantum-error-correction",
+"lede": "Cat codes store a qubit in superpositions of coherent states, engineering the hardware so that one type of error becomes exponentially rare.",
+"body": [
+[
+"h2",
+"Coherent-state code words"
+],
+[
+"p",
+"A cat code encodes a logical qubit into superpositions of coherent states of an oscillator, such as |alpha> plus |-alpha> and |alpha> minus |-alpha>. As the amplitude alpha grows, the two coherent states become nearly orthogonal and well separated in phase space. A stabilizing mechanism, typically two-photon dissipation or a Kerr nonlinearity, confines the state to this cat manifold."
+],
+[
+"h3",
+"Engineered noise bias"
+],
+[
+"p",
+"The point of cat codes is bias. In a well-designed cat qubit, phase-flip errors (Z) occur at a rate that only grows linearly with alpha^2, while bit-flip errors (X) are suppressed exponentially in alpha^2 because flipping between the two far-apart coherent states requires a large jump. Real devices have shown bit-flip times orders of magnitude longer than phase-flip times."
+],
+[
+"ul",
+[
+"Bit-flip suppression is exponential in the mean photon number.",
+"Phase flips remain and must be corrected by an outer code.",
+"Two-photon dissipation autonomously stabilizes the cat manifold.",
+"The dominant error becomes essentially one-dimensional, simplifying the outer code."
+]
+],
+[
+"p",
+"This bias reshapes the whole error-correction stack. Instead of correcting X and Z symmetrically, one can pick an outer code tuned for a single dominant error type. A repetition code against phase flips, layered on bit-flip-protected cat qubits, needs far fewer qubits than an unbiased surface code for the same protection, because it only has to fight one error."
+],
+[
+"p",
+"The catch is that the bias must survive the gates. A two-qubit gate that reintroduces bit flips as a side effect would destroy the advantage, so bias-preserving gate design is central to the cat-code program, and is the subject of active experimental work on superconducting cavities."
+]
+],
+"related": [
+[
+"repetition-cat-codes",
+"Repetition-Cat Codes"
+],
+[
+"bosonic-codes-overview",
+"Bosonic Codes Overview"
+],
+[
+"error-models",
+"Error Models"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "repetition-cat-codes",
+"title": "Repetition-Cat Codes",
+"cat": "quantum-error-correction",
+"lede": "Stacking a classical repetition code on bit-flip-protected cat qubits corrects the remaining phase flips, giving a lean path to a logical qubit.",
+"body": [
+[
+"h2",
+"A biased-noise architecture"
+],
+[
+"p",
+"A repetition-cat code combines two ideas. The inner layer is a set of cat qubits whose bit-flip rate is exponentially suppressed by the coherent-state amplitude. The outer layer is a simple classical repetition code that corrects the one error type the cat qubits still suffer, phase flips. Because only one error type remains, a one-dimensional repetition code suffices where a full two-dimensional surface code would otherwise be required."
+],
+[
+"h3",
+"Why one dimension is enough"
+],
+[
+"p",
+"A repetition code against phase flips has distance equal to the number of cat qubits in the chain. As long as the inner bit-flip rate stays negligible, the logical error rate falls exponentially with chain length. The whole scheme has an effective threshold on the phase-flip rate, and the qubit count grows linearly with the desired distance rather than quadratically."
+],
+[
+"ul",
+[
+"Inner cat qubits suppress bit flips exponentially in photon number.",
+"Outer repetition code handles the surviving phase flips.",
+"Overhead scales linearly with distance, not quadratically.",
+"Correctness depends on gates preserving the noise bias."
+]
+],
+[
+"p",
+"The appeal is overhead. If the bias is strong and stable, a modest chain of cat qubits reaches a low logical error rate with far fewer physical modes than an unbiased 2D code. This is one of the most concrete proposals for reducing the resource cost of a first useful logical qubit."
+],
+[
+"p",
+"The risks are all about the assumptions. If gates leak bit-flip error back in, or if the achievable amplitude is limited, the bias weakens and the one-dimensional shortcut no longer holds, forcing a fallback to a two-dimensional code. The engineering effort therefore concentrates on bias-preserving CNOT and measurement operations."
+]
+],
+"related": [
+[
+"cat-codes-biased-noise",
+"Cat Codes and Biased Noise"
+],
+[
+"three-qubit-phase-flip-code",
+"The Three-Qubit Phase-Flip Code"
+],
+[
+"bosonic-codes-overview",
+"Bosonic Codes Overview"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "bosonic-codes-overview",
+"title": "Bosonic Codes Overview",
+"cat": "quantum-error-correction",
+"lede": "Bosonic codes protect a qubit inside the many levels of a single oscillator, converting hardware-efficient encoding into a first line of error correction.",
+"body": [
+[
+"h2",
+"Hardware-efficient encoding"
+],
+[
+"p",
+"A single harmonic oscillator, a microwave cavity mode or an ion's motion, has infinitely many energy levels. Bosonic codes use this large space to store one logical qubit in a way that is robust against the oscillator's dominant error, single-photon loss. Because one physical component already provides redundancy, no array of qubits is needed for the innermost layer."
+],
+[
+"h3",
+"The main families"
+],
+[
+"p",
+"Three families dominate. GKP codes use a grid of position and momentum and correct small displacements. Cat codes use superpositions of coherent states and engineer a strong noise bias. Binomial and other Fock-state codes use carefully weighted superpositions of photon-number states so that photon loss maps code words to detectable, correctable error words."
+],
+[
+"ul",
+[
+"GKP: grid states, corrects small phase-space shifts, supplies soft syndromes.",
+"Cat: coherent-state superpositions, exponentially biased noise.",
+"Binomial: Fock-state superpositions tuned against a fixed number of photon losses.",
+"All trade oscillator control complexity for reduced qubit count."
+]
+],
+[
+"p",
+"Bosonic codes shine as inner codes. A bosonic qubit with a nonzero distance can be the physical unit of an outer topological or LDPC code, so the outer code starts from an already-protected component. The break-even point, where an encoded bosonic qubit outlives its unencoded counterpart, has been demonstrated in superconducting cavities, a milestone the qubit-array codes reached later."
+],
+[
+"p",
+"The limitation is control. Preparing non-classical oscillator states and performing gates on them requires an auxiliary nonlinearity, usually a transmon qubit, whose errors can propagate into the cavity. Managing that ancilla-induced error is the central experimental challenge of the bosonic approach."
+]
+],
+"related": [
+[
+"gkp-bosonic-codes",
+"GKP Bosonic Codes"
+],
+[
+"cat-codes-biased-noise",
+"Cat Codes and Biased Noise"
+],
+[
+"binomial-and-numerical-bosonic-codes",
+"Binomial and Numerical Bosonic Codes"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "binomial-and-numerical-bosonic-codes",
+"title": "Binomial and Numerical Bosonic Codes",
+"cat": "quantum-error-correction",
+"lede": "Binomial codes use weighted photon-number superpositions to catch photon loss exactly, and numerical optimization extends the idea to tailored noise.",
+"body": [
+[
+"h2",
+"Photon loss as the enemy"
+],
+[
+"p",
+"The leading error in a bosonic mode is loss of a photon, the annihilation operator acting on the state. A code word made of a superposition of Fock (photon-number) states can be designed so that losing one, or a fixed number, of photons maps every code word onto a distinct, orthogonal error space that a measurement can identify and undo."
+],
+[
+"h3",
+"The binomial construction"
+],
+[
+"p",
+"Binomial codes use binomial coefficients as the weights of the Fock-state superposition. By spacing the occupied photon numbers correctly, the code guarantees that up to L photon losses, plus dephasing up to some order, keep the logical information recoverable. The name comes directly from those binomial weights, which balance the state so error words stay orthogonal."
+],
+[
+"ul",
+[
+"Code words are finite superpositions of evenly spaced Fock states.",
+"Loss of a photon is detected as a change in the photon-number parity structure.",
+"Parameters can be tuned to protect against a chosen number of losses and dephasing events.",
+"Unlike GKP, states are finite-energy and normalizable exactly."
+]
+],
+[
+"p",
+"Numerical, or optimized, bosonic codes take this further. Rather than fixing an analytic form, one specifies the actual noise channel of a device and numerically searches for the code words that best resist it. This can outperform any closed-form family for a specific, well-characterized oscillator."
+],
+[
+"p",
+"The trade is generality versus tailoring. Binomial codes are clean, analytic, and easy to reason about, while numerically optimized codes squeeze out extra performance at the cost of being device-specific and harder to interpret. Both share the practical requirement of precise oscillator state preparation and parity measurement, typically via a coupled ancilla qubit."
+]
+],
+"related": [
+[
+"bosonic-codes-overview",
+"Bosonic Codes Overview"
+],
+[
+"gkp-bosonic-codes",
+"GKP Bosonic Codes"
+],
+[
+"error-models",
+"Error Models"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "flag-qubits",
+"title": "Flag Qubits",
+"cat": "quantum-error-correction",
+"lede": "A flag qubit is a small ancilla that raises an alarm when a syndrome measurement itself faults, giving fault tolerance with very few extra qubits.",
+"body": [
+[
+"h2",
+"The problem flags solve"
+],
+[
+"p",
+"When a single ancilla measures a high-weight stabilizer, one fault on that ancilla during the sequence of entangling gates can spread into several correlated data errors, more than the code can correct. The brute-force fix, Shor-style cat-state ancillas, uses many extra qubits. Flag qubits achieve the same protection with as little as one extra qubit per check."
+],
+[
+"h3",
+"How a flag works"
+],
+[
+"p",
+"A flag qubit is entangled with the measurement ancilla at the start and end of the syndrome circuit. If a dangerous fault occurs partway through, it flips the flag as well as corrupting the data. The flag outcome then tells the decoder that a special, higher-weight error may have occurred, so the decoder can look for exactly that pattern rather than trusting the naive syndrome."
+],
+[
+"ul",
+[
+"A raised flag signals a potentially dangerous mid-circuit fault.",
+"The decoder switches to a conditional error hypothesis when flagged.",
+"Overhead is one or a few ancilla qubits, not a full cat state.",
+"Circuit ordering must ensure every dangerous fault triggers the flag."
+]
+],
+[
+"p",
+"The design principle is that any fault which would create an error too big for the code to handle must first trip the flag. Verifying this requires enumerating the fault paths through the specific syndrome circuit, which is why flag-circuit design is careful and code-specific."
+],
+[
+"p",
+"Flag-based fault tolerance made small codes practical on hardware with tight qubit budgets, and it underlies several early logical-qubit demonstrations on ion-trap and superconducting devices. It is now a standard tool for keeping syndrome extraction fault tolerant without paying the large ancilla overhead of the original constructions."
+]
+],
+"related": [
+[
+"flag-fault-tolerant-syndrome-extraction",
+"Flag Fault-Tolerant Syndrome Extraction"
+],
+[
+"fault-tolerant-syndrome-extraction",
+"Fault-Tolerant Syndrome Extraction"
+],
+[
+"fault-tolerance",
+"Fault Tolerance"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "flag-fault-tolerant-syndrome-extraction",
+"title": "Flag Fault-Tolerant Syndrome Extraction",
+"cat": "quantum-error-correction",
+"lede": "Flag-based syndrome extraction schedules a few ancilla qubits so that any harmful measurement fault is detected, keeping the effective distance intact.",
+"body": [
+[
+"h2",
+"Putting flags into a full cycle"
+],
+[
+"p",
+"A fault-tolerant syndrome-extraction cycle must guarantee that no single fault, whether on data, ancilla, or a gate, produces an uncorrectable error. Flag-based schemes reach this guarantee by pairing each measurement ancilla with one or more flag qubits and ordering the entangling gates so that the specific faults which would spread into high-weight data errors always flip a flag."
+],
+[
+"h3",
+"Two-stage decoding"
+],
+[
+"p",
+"Decoding then proceeds in two stages. First the flags are read: if no flag fired, the ordinary syndrome is trusted and decoded normally. If a flag fired, the decoder consults a precomputed table of which data-error patterns are consistent with that flag pattern and syndrome, and corrects accordingly. This conditional logic recovers the code's full distance despite mid-circuit faults."
+],
+[
+"ul",
+[
+"Each check is measured with an ancilla plus flag qubits.",
+"Gate order is chosen so harmful faults necessarily raise a flag.",
+"Unflagged rounds decode with the standard syndrome.",
+"Flagged rounds decode against a conditional error hypothesis."
+]
+],
+[
+"p",
+"The number of flags needed grows with the check weight and the target distance, but stays far below the cat-state cost. For distance-three codes a single flag per check often suffices; higher distances need more careful multi-flag circuits, and general constructions exist for arbitrary distance."
+],
+[
+"p",
+"Flag schemes must be combined with <a href=./measurement-errors-and-repeated-measurement.html>repeated measurement</a> because a measurement outcome can itself be wrong. Repeating syndrome extraction across several rounds and decoding the whole spacetime history, with flags marking suspicious rounds, is how real machines keep both data and measurement faults under control."
+]
+],
+"related": [
+[
+"flag-qubits",
+"Flag Qubits"
+],
+[
+"fault-tolerant-syndrome-extraction",
+"Fault-Tolerant Syndrome Extraction"
+],
+[
+"repeated-syndrome-extraction-3d",
+"Repeated Syndrome Extraction in 3D"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "syndrome-extraction-circuit-design",
+"title": "Syndrome-Extraction Circuit Design",
+"cat": "quantum-error-correction",
+"lede": "How the entangling gates in a stabilizer measurement are ordered and scheduled determines whether errors stay local and the code keeps its distance.",
+"body": [
+[
+"h2",
+"More than measuring a parity"
+],
+[
+"p",
+"Measuring a stabilizer means entangling an ancilla with the data qubits the stabilizer touches, then reading the ancilla. The naive circuit is correct on paper but dangerous in practice: the order of the entangling gates, timing collisions, and idle periods all change how a single fault propagates. Good circuit design keeps every likely fault correctable."
+],
+[
+"h3",
+"Scheduling on a 2D grid"
+],
+[
+"p",
+"In the surface code each data qubit is shared by up to four checks, so its four CNOTs to neighboring ancillas must be scheduled in a fixed order across the whole lattice. A poor order can let one ancilla fault create a pair of data errors aligned along a logical operator, halving the effective distance. The standard N or Z shaped schedule avoids this by construction."
+],
+[
+"ul",
+[
+"Gate order controls how a single fault spreads into data errors.",
+"Idle qubits accumulate error and should be minimized.",
+"Hook errors, where an ancilla fault becomes a weight-two data error, must align harmlessly.",
+"The schedule must respect the hardware's connectivity and parallelism."
+]
+],
+[
+"p",
+"Two failure modes dominate. Hook errors are ancilla faults that turn into two-qubit data errors; the schedule is chosen so hooks lie perpendicular to the logical operator they could otherwise shorten. Idling errors accumulate on qubits waiting their turn, so schedules pack gates to keep every qubit busy and shorten the cycle."
+],
+[
+"p",
+"Modern tooling treats the whole cycle as a spacetime circuit and searches over gate orders to maximize the circuit-level distance, the smallest number of physical faults that causes a logical error. This circuit-level view, rather than the idealized code distance, is what actually predicts hardware performance."
+]
+],
+"related": [
+[
+"surface-code-syndrome-extraction",
+"Surface Code Syndrome Extraction"
+],
+[
+"fault-tolerant-syndrome-extraction",
+"Fault-Tolerant Syndrome Extraction"
+],
+[
+"flag-fault-tolerant-syndrome-extraction",
+"Flag Fault-Tolerant Syndrome Extraction"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "fault-tolerant-state-preparation",
+"title": "Fault-Tolerant State Preparation",
+"cat": "quantum-error-correction",
+"lede": "Encoding a fresh logical state must itself resist faults, or the errors introduced during preparation defeat the code before computation begins.",
+"body": [
+[
+"h2",
+"Why preparation is dangerous"
+],
+[
+"p",
+"A logical computation starts by preparing encoded states, usually the logical |0> and logical |+>. The encoding circuit entangles many physical qubits, and a single fault during it can spread into a high-weight error on the fresh logical qubit. If preparation is not fault tolerant, the state enters the computation already corrupted beyond what the code can fix."
+],
+[
+"h3",
+"Verification and repetition"
+],
+[
+"p",
+"The standard remedy is prepare-and-verify. The state is encoded, then a non-destructive check measures whether a dangerous error is present. If the check fires, the state is thrown away and preparation is retried. Because faulty preparations are discarded, only clean states proceed, at the cost of some repetitions. This is a form of postselection restricted to the preparation stage."
+],
+[
+"ul",
+[
+"Logical |0> is prepared by measuring all Z-type stabilizers and the logical Z.",
+"A verification round detects encoding faults that survived the projection.",
+"Flagged or failed preparations are discarded and retried.",
+"For CSS codes, transversal preparation of |0> and |+> is naturally fault tolerant."
+]
+],
+[
+"p",
+"For CSS codes there is a clean route: logical |0> can be prepared by measuring the Z stabilizers, since |0> is already a +1 eigenstate of all Z operators, and the process spreads X errors in a way the X stabilizers catch. Verification adds robustness against the measurement faults themselves."
+],
+[
+"p",
+"Fault-tolerant preparation of ordinary logical states is comparatively cheap; the expensive case is preparing the non-stabilizer magic states needed for the T gate, which cannot be made transversally and require <a href=./magic-state-distillation.html>distillation</a>. The distinction between easy stabilizer-state preparation and costly magic-state preparation drives much of a machine's resource budget."
+]
+],
+"related": [
+[
+"fault-tolerant-measurement",
+"Fault-Tolerant Measurement"
+],
+[
+"magic-state-distillation",
+"Magic State Distillation"
+],
+[
+"verification-and-postselection-ft",
+"Verification and Postselection"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "fault-tolerant-measurement",
+"title": "Fault-Tolerant Measurement",
+"cat": "quantum-error-correction",
+"lede": "Reading out a logical qubit reliably requires measuring many physical qubits and reconciling the results against the code, not trusting any single readout.",
+"body": [
+[
+"h2",
+"Logical readout"
+],
+[
+"p",
+"To measure a logical Z, one measures every physical qubit in the logical Z operator's support in the Z basis and takes the parity of the outcomes. But individual physical measurements are noisy, and a data error present at readout time can flip the parity. A fault-tolerant measurement must be robust to both measurement faults and residual data errors."
+],
+[
+"h3",
+"Using the stabilizers"
+],
+[
+"p",
+"The trick is that a transversal Z-basis measurement also reveals the values of all Z stabilizers, because each stabilizer is a product of the same single-qubit Z outcomes. The decoder uses these stabilizer values to correct the raw bit string before extracting the logical parity, exactly as it corrects a syndrome. A few wrong physical readouts are then fixed rather than believed."
+],
+[
+"ul",
+[
+"Measure every qubit in the logical operator's support, then take parity.",
+"The same outcomes give the stabilizer eigenvalues for error correction.",
+"Decode the classical outcome string, then read off the corrected logical bit.",
+"Repeated rounds guard against the measurement faults themselves."
+]
+],
+[
+"p",
+"Destructive transversal measurement is the simplest fault-tolerant readout and is used at the end of a computation. During a computation, one instead measures logical operators non-destructively, for example by lattice surgery, which measures a joint logical parity of two patches without collapsing them individually."
+],
+[
+"p",
+"Measurement fault tolerance closes the loop with preparation and gates: a full fault-tolerant cycle is prepare, compute, and measure, each stage designed so that no single physical fault corrupts the logical result. Getting the measurement stage right is essential because every syndrome-extraction round is itself a measurement subject to the same reliability requirements."
+]
+],
+"related": [
+[
+"fault-tolerant-state-preparation",
+"Fault-Tolerant State Preparation"
+],
+[
+"measurement-errors-and-repeated-measurement",
+"Measurement Errors and Repeated Measurement"
+],
+[
+"lattice-surgery",
+"Lattice Surgery"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "verification-and-postselection-ft",
+"title": "Verification and Postselection",
+"cat": "quantum-error-correction",
+"lede": "Checking a freshly prepared encoded state and discarding it when a check fires trades extra attempts for higher-quality inputs to a computation.",
+"body": [
+[
+"h2",
+"Trading attempts for quality"
+],
+[
+"p",
+"Postselection means running a subroutine, testing its output, and keeping the result only when the test passes. In fault tolerance this appears mainly in state preparation and magic-state distillation. A verification circuit measures whether a dangerous error is present; if it is, the state is thrown away and the routine restarts. The kept states are cleaner than the raw ones."
+],
+[
+"h3",
+"Where it is used and where it is not"
+],
+[
+"p",
+"Postselection is acceptable at preparation time because discarding a fresh ancilla costs only time, not encoded data. It cannot be used on the main computational qubits during an algorithm, because throwing away a logical qubit mid-computation would destroy the running state. The art is confining postselection to offline, restartable stages."
+],
+[
+"ul",
+[
+"Verification detects encoding or distillation faults before use.",
+"Failed checks trigger a discard-and-retry, never a mid-computation abort.",
+"Acceptance probability sets the average number of attempts.",
+"Heralded errors are far cheaper to handle than silent ones."
+]
+],
+[
+"p",
+"The efficiency of a postselected routine is governed by its acceptance rate. If most attempts pass, overhead is small; if the check rejects too often, the routine stalls. Distillation circuits are engineered so that clean inputs pass almost always and only genuinely faulty runs are rejected."
+],
+[
+"p",
+"Heralding, the general idea of turning a silent error into a flagged, detectable event, connects postselection to <a href=./flag-qubits.html>flag qubits</a> and to erasure-style noise. A machine that can convert many of its errors into heralded losses gains a large advantage, because heralded errors are located for free and are far easier to correct than unknown Pauli errors."
+]
+],
+"related": [
+[
+"fault-tolerant-state-preparation",
+"Fault-Tolerant State Preparation"
+],
+[
+"magic-state-distillation",
+"Magic State Distillation"
+],
+[
+"flag-qubits",
+"Flag Qubits"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "neural-network-decoders",
+"title": "Neural-Network Decoders",
+"cat": "quantum-error-correction",
+"lede": "Machine-learning decoders learn to map syndromes to corrections from data, capturing correlated noise that hand-built decoders assume away.",
+"body": [
+[
+"h2",
+"Decoding as a learned map"
+],
+[
+"p",
+"A decoder's job is to turn a syndrome into the most likely correction. Classical algorithms like matching assume a simple, independent noise model. A neural-network decoder instead learns the syndrome-to-correction map from examples, either simulated or measured, so it can absorb the real device's correlated and non-uniform noise without an explicit model."
+],
+[
+"h3",
+"Architectures"
+],
+[
+"p",
+"Because the surface-code lattice is a grid, convolutional networks are a natural fit, and recurrent or transformer models handle the time dimension of repeated syndrome rounds. Some designs predict the logical correction directly; others predict a residual on top of a fast classical decoder, letting the network fix only the cases where the classical decoder is likely wrong."
+],
+[
+"ul",
+[
+"Learns from data, so it can model leakage, crosstalk, and drift.",
+"Grid structure suits convolutional and graph neural networks.",
+"Recurrent or transformer layers process multi-round syndrome histories.",
+"Training requires representative data and must be refreshed as hardware drifts."
+]
+],
+[
+"p",
+"Demonstrations have shown learned decoders matching or beating matching-based decoders on real superconducting-device data, precisely because they exploit correlations that the idealized noise model ignores. The gains are largest where the true noise is far from the independent-error assumption."
+],
+[
+"p",
+"The open issues are generalization and speed. A network trained on one code distance or one device may not transfer to another, and inference must finish inside the tight <a href=./real-time-decoding-latency.html>real-time latency</a> budget. Recent work compiles trained decoders to specialized hardware to meet the microsecond-scale deadlines that fast qubits impose."
+]
+],
+"related": [
+[
+"decoders-overview",
+"Decoders Overview"
+],
+[
+"tensor-network-decoders",
+"Tensor-Network Decoders"
+],
+[
+"real-time-decoding-latency",
+"Real-Time Decoding Latency"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "tensor-network-decoders",
+"title": "Tensor-Network Decoders",
+"cat": "quantum-error-correction",
+"lede": "Tensor-network decoders approximate the true maximum-likelihood correction by contracting a network that sums over all error configurations.",
+"body": [
+[
+"h2",
+"Maximum likelihood by contraction"
+],
+[
+"p",
+"The optimal decoder chooses the logical correction whose total probability, summed over all physical errors consistent with the syndrome, is largest. This sum has exponentially many terms. A tensor-network decoder expresses that sum as a two-dimensional network of tensors whose contraction yields the coset probabilities exactly in principle."
+],
+[
+"h3",
+"Controlled approximation"
+],
+[
+"p",
+"Exact contraction of a 2D tensor network is itself hard, so the decoder truncates the bond dimension, the size of the indices connecting tensors, to make contraction tractable. Increasing the bond dimension increases accuracy and cost, giving a tunable knob that interpolates between a fast approximate decoder and the true maximum-likelihood decoder."
+],
+[
+"ul",
+[
+"Sums over error cosets rather than picking a single most-likely error.",
+"Bond dimension trades accuracy against runtime.",
+"Approaches optimal accuracy as the bond dimension grows.",
+"Naturally incorporates degeneracy, which matching-style decoders handle only crudely."
+]
+],
+[
+"p",
+"The main value of tensor-network decoders is as a benchmark: they define the best achievable logical error rate for a given code and noise model, against which faster decoders like matching, union-find, and belief propagation are measured. They also handle correlated errors, such as the correlation between X and Z from a Y error, that simpler decoders split apart."
+],
+[
+"p",
+"The cost is speed. Full tensor-network decoding is generally too slow for real-time use on fast hardware, so it is run offline to calibrate and validate. That said, low-bond-dimension variants and clever schedules have been pushed toward practical speeds, and the method remains the reference point for decoder accuracy."
+]
+],
+"related": [
+[
+"maximum-likelihood-decoding",
+"Maximum-Likelihood Decoding"
+],
+[
+"decoders-overview",
+"Decoders Overview"
+],
+[
+"minimum-weight-perfect-matching",
+"Minimum-Weight Perfect Matching"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "maximum-likelihood-decoding",
+"title": "Maximum-Likelihood Decoding",
+"cat": "quantum-error-correction",
+"lede": "The optimal decoder picks the logical class with the highest total probability, correcting the equivalence class of errors rather than one error.",
+"body": [
+[
+"h2",
+"Degeneracy changes the goal"
+],
+[
+"p",
+"In a quantum code many distinct physical errors act identically on the encoded state because they differ by a stabilizer. These form an equivalence class, or coset. The right question is not which single error is most likely, but which logical coset is most likely, since any member of the correct coset yields a successful correction. This is maximum-likelihood decoding."
+],
+[
+"h3",
+"Summing over a coset"
+],
+[
+"p",
+"For a given syndrome there are typically four cosets, corresponding to the trivial logical operator and the logical X, Z, and Y. The optimal decoder computes the total probability of each coset by summing the probabilities of all errors in it, then applies a correction from the most probable coset. This coset sum is what makes optimal decoding computationally expensive."
+],
+[
+"ul",
+[
+"Errors differing by a stabilizer are equivalent, forming a coset.",
+"Optimal decoding compares coset probabilities, not single-error probabilities.",
+"This is generally computationally hard in the worst case.",
+"Degeneracy lets the code beat the nondegenerate Hamming bound."
+]
+],
+[
+"p",
+"Minimum-weight decoding, which picks the single lowest-weight error, is a common approximation to maximum-likelihood decoding. They agree when one error dominates its coset, but diverge when many comparable-weight errors add up, which is exactly the regime where the optimal decoder wins. <a href=./tensor-network-decoders.html>Tensor-network decoders</a> approximate the true coset sum."
+],
+[
+"p",
+"Because exact maximum-likelihood decoding is intractable at scale, practical machines use fast approximations (matching, union-find, belief propagation) and reserve optimal decoding for setting the accuracy benchmark. The gap between a fast decoder and the optimal one is a direct measure of how much performance is left on the table."
+]
+],
+"related": [
+[
+"tensor-network-decoders",
+"Tensor-Network Decoders"
+],
+[
+"decoders-overview",
+"Decoders Overview"
+],
+[
+"quantum-error-correction-conditions",
+"Quantum Error Correction Conditions"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "decoder-accuracy-vs-speed",
+"title": "Decoder Accuracy vs Speed",
+"cat": "quantum-error-correction",
+"lede": "Every practical decoder sits on a curve trading correction quality against runtime, and the right choice depends on the hardware's error rate and clock.",
+"body": [
+[
+"h2",
+"The trade-off curve"
+],
+[
+"p",
+"Decoders range from very fast and approximate to slow and near-optimal. Union-find is extremely fast and near-linear time but slightly less accurate. Minimum-weight matching is more accurate but slower. Tensor-network and full maximum-likelihood decoders are the most accurate and the slowest. A machine must pick a point on this curve that fits its qubit speed and target logical error rate."
+],
+[
+"h3",
+"Why speed is a hard constraint"
+],
+[
+"p",
+"Syndromes arrive every cycle, often every microsecond on superconducting hardware. If the decoder cannot keep up, unprocessed syndromes pile up, a backlog that grows without bound and stalls the computation. This backlog problem means a slightly less accurate decoder that keeps pace can outperform a more accurate one that falls behind."
+],
+[
+"ul",
+[
+"Union-find: near-linear time, small accuracy penalty.",
+"Matching: higher accuracy, higher runtime, still practical.",
+"Tensor-network: best accuracy, generally offline only.",
+"Falling behind the syndrome rate causes an unbounded backlog."
+]
+],
+[
+"p",
+"Accuracy also interacts with distance. A better decoder effectively raises the code's threshold and lowers the logical error rate at fixed distance, which can mean a smaller code reaches the same protection. So decoder quality trades against qubit count, not just against runtime."
+],
+[
+"p",
+"The current consensus is a layered strategy: a fast local decoder handles the common cases in real time, escalating rare, ambiguous cases to a slower, more accurate decoder, and using windowing so the fast path never stalls. This keeps average latency low while preserving accuracy where it matters most."
+]
+],
+"related": [
+[
+"decoders-overview",
+"Decoders Overview"
+],
+[
+"real-time-decoding-latency",
+"Real-Time Decoding Latency"
+],
+[
+"union-find-decoder",
+"Union-Find Decoder"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "real-time-decoding-latency",
+"title": "Real-Time Decoding Latency",
+"cat": "quantum-error-correction",
+"lede": "Decoders must return corrections fast enough to keep up with the syndrome stream, or the unprocessed backlog grows and computation stalls.",
+"body": [
+[
+"h2",
+"The clock sets the deadline"
+],
+[
+"p",
+"Syndrome measurement rounds repeat on the timescale of physical gate and measurement times, roughly a microsecond on superconducting qubits and longer on ion traps. Each round produces a fresh syndrome that must be incorporated. If decoding one round takes longer than one round period on average, work accumulates faster than it can be cleared."
+],
+[
+"h3",
+"The backlog problem"
+],
+[
+"p",
+"This accumulation is the backlog, or exponential-slowdown, problem. Whenever a logical operation depends on a decoding result, for example a T gate whose correction is conditioned on measured syndromes, the computation must wait for the decoder. A decoder that is even slightly too slow forces exponentially growing waits as the algorithm proceeds, negating the speed of the quantum hardware."
+],
+[
+"ul",
+[
+"Average decoding time per round must stay below the round period.",
+"Feed-forward operations force the computation to wait on the decoder.",
+"A persistent shortfall grows the backlog without bound.",
+"Latency, not just throughput, matters when gates are conditioned on results."
+]
+],
+[
+"p",
+"Solutions attack both throughput and latency. Windowed and streaming decoders process a sliding block of rounds so results emit continuously. Parallel and hardware decoders, implemented on FPGAs or ASICs placed close to the qubits, cut latency to the microsecond range. Predecoders strip out the easy, common errors so the main decoder handles a smaller, harder residual."
+],
+[
+"p",
+"Latency also shapes code choice. Codes and schedules that reduce how often a gate must wait for a decode, or that allow corrections to be tracked in a Pauli frame and applied later in software, relax the real-time deadline. Managing when a decode result is actually needed is as important as making the decoder fast."
+]
+],
+"related": [
+[
+"sliding-window-decoding",
+"Sliding-Window Decoding"
+],
+[
+"decoder-accuracy-vs-speed",
+"Decoder Accuracy vs Speed"
+],
+[
+"union-find-decoder",
+"Union-Find Decoder"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "sliding-window-decoding",
+"title": "Sliding-Window Decoding",
+"cat": "quantum-error-correction",
+"lede": "Decoding a moving window of syndrome rounds lets a decoder emit corrections continuously instead of waiting for a computation to finish.",
+"body": [
+[
+"h2",
+"Why not decode everything at once"
+],
+[
+"p",
+"A quantum computation may run for millions of syndrome rounds. Waiting until the end to decode the whole spacetime history is impossible: the data would be enormous and no feed-forward gate could ever get its correction in time. Sliding-window decoding solves this by decoding a fixed-size window of recent rounds and advancing it as new rounds arrive."
+],
+[
+"h3",
+"Commit and overlap"
+],
+[
+"p",
+"Within each window the decoder makes a decision, but only commits the corrections in the older part of the window, leaving a fresh region undecided because errors near the window's leading edge may connect to future rounds. The window then slides forward, overlapping the previous one, so every round is eventually decoded with enough context on both sides. The committed region is final; the buffer region is revisited."
+],
+[
+"ul",
+[
+"A fixed window bounds memory and latency regardless of total runtime.",
+"Only the settled, older part of each window is committed.",
+"Overlap between windows preserves accuracy at the seams.",
+"Window size trades latency against the risk of splitting a long error chain."
+]
+],
+[
+"p",
+"The window size is the key parameter. Too small a window can cut through a long error string and misdecode it; too large a window increases latency and memory. In practice a window a few times the code distance, with an overlap of about one distance, retains near-batch accuracy while keeping latency bounded."
+],
+[
+"p",
+"Sliding-window decoding is what makes decoders like matching and union-find usable in real time on an ongoing computation. It pairs naturally with parallel hardware decoders, since separate windows or spatial regions can be decoded concurrently and stitched together, distributing the load and meeting the per-round deadline."
+]
+],
+"related": [
+[
+"real-time-decoding-latency",
+"Real-Time Decoding Latency"
+],
+[
+"repeated-syndrome-extraction-3d",
+"Repeated Syndrome Extraction in 3D"
+],
+[
+"decoder-accuracy-vs-speed",
+"Decoder Accuracy vs Speed"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "logical-gate-implementation",
+"title": "Logical Gate Implementation",
+"cat": "quantum-error-correction",
+"lede": "Operating on encoded qubits without decoding them requires gate methods that keep errors correctable, from transversal gates to surgery and injection.",
+"body": [
+[
+"h2",
+"Gates on encoded data"
+],
+[
+"p",
+"A fault-tolerant machine never decodes a logical qubit to operate on it, because decoding would expose the fragile bare state. Instead it applies logical gates directly to the encoded qubits in ways that do not let a single fault spread into an uncorrectable error. Different gates in the universal set are implemented by different techniques."
+],
+[
+"h3",
+"The toolbox"
+],
+[
+"p",
+"Transversal gates, applied qubit-by-qubit, are the cleanest and cover part of the Clifford group for most codes. Lattice surgery and code deformation move and entangle logical patches to realize CNOT and measurements on planar hardware. Magic-state injection supplies the non-Clifford T gate that no efficient transversal method provides in the surface code."
+],
+[
+"ul",
+[
+"Transversal: physical gate on each qubit, cannot spread errors within a block.",
+"Lattice surgery: merge and split patches to measure joint logical operators.",
+"Code deformation: reshape the code to move logical operators around.",
+"Magic-state injection: teleport in a distilled state to apply T."
+]
+],
+[
+"p",
+"The <a href=./eastin-knill-theorem.html>Eastin-Knill theorem</a> guarantees no single code can implement a universal set transversally, so every real scheme mixes methods. The surface code, for instance, gets Clifford gates from surgery and the T gate from injected magic states, while color codes can get more gates transversally at other costs."
+],
+[
+"p",
+"Gate cost is dominated by the non-Clifford gate. Clifford operations are comparatively cheap; the T gate requires distilled magic states, and the number of T gates, the T-count, is the standard measure of an algorithm's fault-tolerant cost. Compilers therefore work hard to minimize T-count, since it directly sets how much distillation the machine must perform."
+]
+],
+"related": [
+[
+"transversal-gates",
+"Transversal Gates"
+],
+[
+"lattice-surgery",
+"Lattice Surgery"
+],
+[
+"magic-states-and-t-gate",
+"Magic States and the T Gate"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "code-deformation-and-braiding",
+"title": "Code Deformation and Braiding",
+"cat": "quantum-error-correction",
+"lede": "Reshaping a code's stabilizers over time moves logical qubits and braids defects, implementing gates as spacetime operations on the lattice.",
+"body": [
+[
+"h2",
+"Changing the code as you go"
+],
+[
+"p",
+"Code deformation means turning some stabilizers off and others on over successive rounds, gradually reshaping the region of the lattice that carries a logical qubit. Because the change is made by measuring new stabilizers rather than by decoding, the information stays protected throughout. Grown, shrunk, and moved patches let logical qubits travel and interact."
+],
+[
+"h3",
+"Braiding defects"
+],
+[
+"p",
+"One classic form uses defects, holes punched in the code by not measuring certain stabilizers. Each pair of holes encodes a logical qubit. Dragging one hole around another traces a braid in spacetime, and the topology of that braid determines the logical operation, in the surface code a logical CNOT. The result depends only on the braid's topology, giving geometric robustness."
+],
+[
+"ul",
+[
+"Deformation switches stabilizer sets round by round, never decoding.",
+"Defects (holes) encode logical qubits whose braids give gates.",
+"The operation is a spacetime topological invariant.",
+"Distance must be maintained throughout the deformation schedule."
+]
+],
+[
+"p",
+"Braiding-based surface-code computation was the original blueprint, but <a href=./lattice-surgery.html>lattice surgery</a> has largely replaced it because surgery uses qubits more efficiently for the same operations. Both are instances of the same principle: logical gates as controlled, fault-tolerant changes to which stabilizers are measured over time."
+],
+[
+"p",
+"The essential safety condition is that the effective distance never drops during the schedule. A poorly designed deformation could momentarily create a short logical operator through which an error slips. Deformation schedules are therefore designed and verified so that the minimum spacetime distance stays at the target value at every step."
+]
+],
+"related": [
+[
+"code-deformation",
+"Code Deformation"
+],
+[
+"lattice-surgery",
+"Lattice Surgery"
+],
+[
+"anyon-braiding-logical-gates",
+"Anyon Braiding and Logical Gates"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "transversality-across-code-families",
+"title": "Transversality Across Code Families",
+"cat": "quantum-error-correction",
+"lede": "Which gates a code can apply transversally depends on its structure, and comparing families shows why no single code gives a universal transversal set.",
+"body": [
+[
+"h2",
+"Transversality is code-specific"
+],
+[
+"p",
+"A transversal gate applies an independent physical gate to each qubit of a code block, so a single fault stays confined to one qubit and cannot spread into an uncorrectable error. Which logical gates a given code realizes this way is fixed by its algebraic structure, and it varies sharply from one code family to another."
+],
+[
+"h3",
+"A comparison"
+],
+[
+"p",
+"CSS codes automatically have transversal CNOT between two identical blocks, and often transversal Hadamard and phase gates. The Steane code gives the full transversal Clifford group. The 15-qubit Reed-Muller code gives transversal T but not the full Clifford group. Two-dimensional color codes give all Clifford gates transversally, while the surface code gives essentially none beyond Pauli operations."
+],
+[
+"matrix",
+[
+"Transversal reach by family (Clifford, T)",
+[
+[
+"1",
+"0"
+],
+[
+"0",
+"1"
+]
+]
+]
+],
+[
+"ul",
+[
+"CSS structure guarantees transversal CNOT between blocks.",
+"Steane [[7,1,3]]: transversal Clifford, no transversal T.",
+"Reed-Muller [[15,1,3]]: transversal T, partial Clifford.",
+"2D color codes: full transversal Clifford; surface code: almost none."
+]
+],
+[
+"p",
+"The pattern is a consequence of the <a href=./eastin-knill-theorem.html>Eastin-Knill theorem</a>: a code with a transversal universal gate set cannot detect errors, so every useful code is missing at least one gate transversally. The Steane and Reed-Muller codes are complementary, each supplying what the other lacks, which is why code switching between them can reach universality."
+],
+[
+"p",
+"This complementarity guides architecture. A machine can pick a code with cheap transversal Cliffords and obtain the T gate by switching codes, distilling magic states, or gauge fixing. The choice of code family is therefore inseparable from the choice of how to implement the non-Clifford gate."
+]
+],
+"related": [
+[
+"transversal-gates",
+"Transversal Gates"
+],
+[
+"eastin-knill-theorem",
+"The Eastin-Knill Theorem"
+],
+[
+"reed-muller-transversal-t",
+"Reed-Muller and Transversal T"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "surface-code-threshold-estimates",
+"title": "Surface-Code Threshold Estimates",
+"cat": "quantum-error-correction",
+"lede": "The surface code tolerates physical error rates of roughly one percent under realistic circuit noise, the number that makes it a leading candidate.",
+"body": [
+[
+"h2",
+"What the threshold means"
+],
+[
+"p",
+"The threshold is the physical error rate below which increasing the code distance decreases the logical error rate. Above it, adding qubits makes things worse. The surface code's high threshold is the main reason it dominates near-term fault-tolerance plans: real hardware error rates are close to it, whereas most other codes demand far lower physical error rates."
+],
+[
+"h3",
+"The numbers"
+],
+[
+"p",
+"Under an idealized model where only data qubits suffer independent X and Z errors, the surface code's threshold is near ten percent. Under a realistic circuit-level model that includes faulty gates, faulty measurements, and repeated syndrome rounds, the threshold drops to roughly one percent, with the exact value depending on the noise model, decoder, and gate schedule."
+],
+[
+"ul",
+[
+"Code-capacity model (data errors only): threshold near 10 percent.",
+"Phenomenological model (data plus measurement errors): a few percent.",
+"Circuit-level model (everything faulty): about 1 percent.",
+"Better decoders and schedules push the circuit-level number modestly higher."
+]
+],
+[
+"p",
+"The gap between these numbers is a caution: quoting the code-capacity threshold overstates real performance by an order of magnitude. The circuit-level threshold is the one that matters, because it accounts for the fact that the syndrome-extraction circuit itself injects errors every round."
+],
+[
+"p",
+"Below threshold, the logical error rate falls roughly as (p over p_threshold) raised to half the distance, so being a factor of a few below threshold yields fast improvement with each added row of qubits. This steep suppression, combined with a threshold near what hardware achieves, is exactly why the surface code sets the pace, even though its qubit overhead per logical qubit is large."
+]
+],
+"related": [
+[
+"threshold-theorem",
+"The Threshold Theorem"
+],
+[
+"surface-code",
+"Surface Code"
+],
+[
+"logical-error-rate",
+"Logical Error Rate"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "concatenated-code-threshold",
+"title": "Concatenated-Code Threshold",
+"cat": "quantum-error-correction",
+"lede": "Nesting a code inside itself suppresses errors doubly-exponentially with levels, the original route by which the threshold theorem was proved.",
+"body": [
+[
+"h2",
+"Codes inside codes"
+],
+[
+"p",
+"Concatenation encodes each physical qubit of a code using the same code again, and repeats. A distance-three code concatenated to L levels uses a number of physical qubits growing as its block size to the power L, and protects against increasingly high-weight errors. This recursive structure was the setting of the first proofs that arbitrarily reliable quantum computation is possible."
+],
+[
+"h3",
+"Double-exponential suppression"
+],
+[
+"p",
+"If one level of the code reduces an error rate p to roughly C times p squared, then below the pseudo-threshold p_th = 1/C each added level squares the suppression. After L levels the logical error rate falls as p_th times (p over p_th) raised to 2 to the power L. Because the exponent itself grows exponentially in L, the suppression is doubly exponential in the number of levels."
+],
+[
+"ul",
+[
+"Each level squares the effective error rate when below the pseudo-threshold.",
+"Qubit count grows exponentially in the number of levels.",
+"The pseudo-threshold depends on the base code and its fault-tolerant gadgets.",
+"Concatenation gives the cleanest proof of the threshold theorem."
+]
+],
+[
+"p",
+"The catch is overhead. To reach a target logical error rate, concatenation needs only a modest number of levels, but each level multiplies the qubit count by the base block size, so the total can be large. Topological codes like the surface code often reach the same protection with fewer qubits because their overhead grows only polynomially in the distance."
+],
+[
+"p",
+"Concatenation remains conceptually central and practically useful in hybrid designs, for example placing a bosonic or small code at the inner level and a topological code outside. It is also the clearest way to understand why a threshold exists at all: below it, recursion drives the error rate down as fast as one is willing to spend qubits."
+]
+],
+"related": [
+[
+"concatenated-codes",
+"Concatenated Codes"
+],
+[
+"threshold-theorem",
+"The Threshold Theorem"
+],
+[
+"overhead-of-fault-tolerance",
+"Overhead of Fault Tolerance"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "distance-rate-tradeoffs",
+"title": "Distance and Rate Tradeoffs",
+"cat": "quantum-error-correction",
+"lede": "A code cannot maximize protection, efficiency, and locality at once, and where a family sits among these competing goals decides where it is useful.",
+"body": [
+[
+"h2",
+"Three competing quantities"
+],
+[
+"p",
+"A code's parameters [[n,k,d]] capture the tension directly: n physical qubits carry k logical qubits with distance d. Rate is k/n, the encoding efficiency. Distance d sets how many errors are corrected. Designers want high rate and high distance from few qubits, but the two pull against each other and against a third goal, geometric locality of the checks."
+],
+[
+"h3",
+"How the families line up"
+],
+[
+"p",
+"The surface code has rate that falls to zero as it grows (one logical qubit per patch) and distance scaling like the square root of n, but its checks are local on a 2D grid, ideal for planar hardware. Good quantum LDPC codes hold rate constant and make distance grow linearly with n, but require non-local checks. Concatenated codes sit in between with tunable but overhead-heavy scaling."
+],
+[
+"ul",
+[
+"Rate = k/n, the fraction of qubits that carry logical information.",
+"Distance sets the number of correctable errors, floor((d-1)/2).",
+"Locality of checks determines which hardware can run the code.",
+"No family maximizes rate, distance, and 2D-locality simultaneously."
+]
+],
+[
+"p",
+"A theorem of Bravyi, Poulin, and Terhal makes the tension precise for local codes: a code whose stabilizers are geometrically local in two dimensions obeys k times d squared, at most a constant times n. So in strict 2D, high rate and high distance cannot coexist, which is exactly why high-rate LDPC codes need long-range connectivity."
+],
+[
+"p",
+"The practical reading is that no single code is best for everything. A machine may use a high-rate LDPC memory to store many idle logical qubits cheaply, and move data into surface-code patches for gates, choosing each code for the job where its point on the trade-off surface is strongest."
+]
+],
+"related": [
+[
+"code-distance",
+"Code Distance"
+],
+[
+"quantum-hamming-bound-and-perfect-codes",
+"The Quantum Hamming Bound and Perfect Codes"
+],
+[
+"overhead-of-fault-tolerance",
+"Overhead of Fault Tolerance"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "repeated-syndrome-extraction-3d",
+"title": "Repeated Syndrome Extraction in 3D",
+"cat": "quantum-error-correction",
+"lede": "Because measurements themselves fault, syndromes are extracted over many rounds and decoded as a three-dimensional spacetime history.",
+"body": [
+[
+"h2",
+"Why one round is not enough"
+],
+[
+"p",
+"A single round of syndrome extraction cannot be trusted, because the measurement of a stabilizer can itself return the wrong value. If a decoder acted on one faulty round, it would apply a correction that creates a real error where there was none. The remedy is to repeat syndrome extraction many times and compare rounds to separate true data errors from measurement faults."
+],
+[
+"h3",
+"The spacetime lattice"
+],
+[
+"p",
+"Stacking successive rounds turns the decoding problem into three dimensions: two of space (the code lattice) and one of time (the round index). A data error persists across rounds and shows up as a vertical line of consistent syndrome changes; a measurement fault appears as an isolated blip that flips a syndrome in one round and flips back the next. Decoders match defects in this 3D volume."
+],
+[
+"ul",
+[
+"Measurement faults create transient, single-round syndrome blips.",
+"Data errors create persistent syndrome changes across rounds.",
+"Decoding matches defects in a 2D-space-plus-1D-time volume.",
+"About d rounds are needed to protect a distance-d code's readout."
+]
+],
+[
+"p",
+"The number of rounds matters. To keep the effective distance equal to the code distance d, roughly d rounds of syndrome extraction are performed between logical operations, so that a chain of measurement faults long enough to fool the decoder is as unlikely as a data error chain of length d. This is why time is treated on the same footing as space."
+],
+[
+"p",
+"The 3D picture is what <a href=./sliding-window-decoding.html>sliding-window decoding</a> operates on, decoding a moving slab of rounds. It also explains why the circuit-level threshold is lower than the code-capacity one: every round adds a layer of potentially faulty measurements to the volume the decoder must get right."
+]
+],
+"related": [
+[
+"measurement-errors-and-repeated-measurement",
+"Measurement Errors and Repeated Measurement"
+],
+[
+"sliding-window-decoding",
+"Sliding-Window Decoding"
+],
+[
+"surface-code-threshold-estimates",
+"Surface-Code Threshold Estimates"
+]
+],
+"seo_type": "TechArticle"
+},
+{
+"slug": "the-overhead-problem",
+"title": "The Overhead Problem",
+"cat": "quantum-error-correction",
+"lede": "Turning noisy physical qubits into reliable logical ones costs a large multiplier in qubits and time, the central practical barrier to scaling.",
+"body": [
+[
+"h2",
+"The multiplier"
+],
+[
+"p",
+"Fault tolerance is not free. Each logical qubit reliable enough to run a long algorithm requires many physical qubits, and each logical gate requires many physical operations and syndrome rounds. For the surface code at realistic error rates, a single logical qubit can need on the order of a thousand physical qubits, and useful algorithms need many logical qubits, so the physical qubit counts run into the millions in leading estimates."
+],
+[
+"h3",
+"Where the cost concentrates"
+],
+[
+"p",
+"Two costs dominate. The first is the memory overhead: the number of physical qubits per logical qubit, set by the code distance needed to hit the target logical error rate. The second is the T-gate overhead: non-Clifford gates require distilled magic states, and magic-state distillation factories can occupy a large fraction of the machine's qubits and runtime."
+],
+[
+"ul",
+[
+"Memory overhead grows with the distance required for the target error rate.",
+"Magic-state distillation dominates the cost of non-Clifford gates.",
+"Slow or inaccurate decoders add time overhead through backlog.",
+"High-rate LDPC codes and better magic-state protocols aim to shrink the multiplier."
+]
+],
+[
+"p",
+"The whole research program of the last decade has been to shrink this multiplier. High-rate <a href=./good-quantum-ldpc-codes.html>quantum LDPC codes</a> attack the memory overhead by packing many logical qubits per physical qubit. Improved and cheaper magic-state protocols, including cultivation and better distillation, attack the T-gate cost. Biased-noise architectures like <a href=./repetition-cat-codes.html>repetition-cat codes</a> attack both by needing fewer qubits per logical qubit."
+],
+[
+"p",
+"The overhead problem is why fault-tolerant quantum computing is a scaling challenge as much as a physics one. The physical error rates are now near threshold on several platforms; the open question is whether the qubit and time multipliers can be brought down far enough, and the hardware scaled far enough, to run algorithms that classical computers cannot."
+]
+],
+"related": [
+[
+"overhead-of-fault-tolerance",
+"Overhead of Fault Tolerance"
+],
+[
+"magic-state-distillation",
+"Magic State Distillation"
+],
+[
+"good-quantum-ldpc-codes",
+"Good Quantum LDPC Codes"
+]
+],
+"seo_type": "TechArticle"
+}
+]

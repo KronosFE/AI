@@ -1,0 +1,2864 @@
+[
+ {
+  "slug": "l6-experience-overview",
+  "title": "L6 Experience: The Human Interface to Two Fusion Machines",
+  "cat": "l6-experience",
+  "lede": "Layer 6 is where operators see, trust, and act on everything the lower layers compute — for the breeder (Hyperion) and the burner (Aegis / MetroVolt).",
+  "body": [
+   [
+    "h2",
+    "What Layer 6 is responsible for"
+   ],
+   [
+    "p",
+    "Layer 6 (L6) is the human-facing surface of the KRONOS AI-Native stack. It consumes state estimates, forecasts, confidence scores and provenance from L3 (twin modeling), orchestration status from L4, and copilot reasoning from L5, and renders them into control-room displays, plant-floor SCADA/HMI, mobile engineering views, and alerting workflows. L6 owns no physics and no actuation authority: the L1 Control Plane and its hardware failsafes remain the sole real-time authority. L6's job is <b>situational awareness</b> and <b>decision support</b> — making the machine legible to a human on a timescale humans can act on (roughly 0.5 s to minutes)."
+   ],
+   [
+    "p",
+    "Because these are design-and-simulation machines not yet built (breeder construction begins Q2 2027, first-of-a-kind first tritium ~2030), L6 today is being co-designed against the digital twin. Every display is wired to the twin's simulated state first, so operator workflows are exercised long before first plasma. Commissioning then swaps the twin's synthetic telemetry for live diagnostics with no change to the operator's mental model."
+   ],
+   [
+    "h3",
+    "The two machines behind one interface"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30, tritium breeding ratio treated as a design lever (1.1 / 1.5 / 1.8). Its operator views center on equilibrium, the ELM-free shape, and disruption avoidance. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator: 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. Its views center on end-plug density, the ambipolar potential, and DEC grid modulation."
+   ],
+   [
+    "ul",
+    [
+     "In: L3 state/forecast/confidence, L4 job status, L5 copilot narratives",
+     "Core: 3D twin overlays, SCADA/HMI, dashboards, alerting, incident replay",
+     "Out: operator intents (advisory), acknowledgements, override requests",
+     "Never: direct hard-real-time actuation — that stays in L1"
+    ]
+   ],
+   [
+    "p",
+    "The pages in this category specify how the twin is drawn over the plant, how uncertainty and model provenance are made visible, how alarms are rationalized to prevent floods, and how the control room is laid out to keep cognitive load survivable during a disruption countdown or a plug-density excursion. See <a href=./control-room-3d-twin-overlay.html>the 3D twin overlay</a> and <a href=./uncertainty-visualization.html>uncertainty visualization</a> to start."
+   ]
+  ],
+  "related": [
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-room-3d-twin-overlay",
+  "title": "Control-Room 3D Digital-Twin Overlay",
+  "cat": "l6-experience",
+  "lede": "A live 3D rendering of the machine with L3 twin state painted onto real geometry — flux surfaces, thermal fields, and neutron flux where an operator expects to find them.",
+  "body": [
+   [
+    "h2",
+    "Geometry as the primary coordinate system"
+   ],
+   [
+    "p",
+    "The control-room centerpiece is a real-scale 3D model of the machine — the breeder's spherical-torus vessel or the burner's tandem-mirror axis — onto which the KRONOS-CTRL twin projects its state vector. Rather than forcing operators to read strip charts and reconstruct geometry in their heads, the overlay puts every field where it physically lives: last-closed flux surface on the plasma boundary, temperature on the first wall, neutron fluence on the blanket, strain on the REBCO magnet windings."
+   ],
+   [
+    "p",
+    "The overlay is a render of twin output, not an independent physics model. It subscribes to the twin's ~1-10 ms state stream and re-skins geometry at display rate (30-60 fps). Because it is downstream of the twin, it inherits the twin's confidence scores and can dim, hatch, or flag any region the twin is uncertain about — see <a href=./uncertainty-visualization.html>uncertainty visualization</a>."
+   ],
+   [
+    "h3",
+    "Layer compositing"
+   ],
+   [
+    "p",
+    "Each physical quantity is a toggleable layer with its own color grammar (thermal in orange, structural/magnet in gray-blue, plasma in the flux palette). Operators compose the scene they need: during shape control the breeder view foregrounds the flux-surface layer and the negative-triangularity boundary; during a plug excursion the burner view foregrounds end-plug density and ambipolar potential contours along the axis."
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"overlay_layers\": {\n    \"flux_surfaces\":   {\"source\":\"twin.mhd.psi\",   \"rate_hz\":50, \"palette\":\"flux\"},\n    \"wall_temperature\":{\"source\":\"twin.thermo.T_wall\",\"rate_hz\":10,\"palette\":\"thermal\"},\n    \"neutron_flux\":    {\"source\":\"twin.neutronics.phi_n\",\"rate_hz\":2,\"palette\":\"neutron\"},\n    \"magnet_strain\":   {\"source\":\"twin.thermo.eps_rebco\",\"rate_hz\":10,\"palette\":\"structural\"}\n  },\n  \"confidence_channel\": \"twin.confidence.per_region\"\n}"
+    ]
+   ],
+   [
+    "p",
+    "Selecting any surface opens a detail card with the twin's local estimate, its confidence, and the diagnostics that constrained it (a link back to model provenance). This keeps the 3D scene glanceable while making one click of drill-down always available. The same overlay runs in <a href=./training-simulator-mode.html>training-simulator mode</a> against replayed or synthetic shots so operators build the same spatial intuition before first plasma."
+   ]
+  ],
+  "related": [
+   [
+    "twin-overlay-flux-surface-rendering",
+    "Flux-Surface Rendering"
+   ],
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ],
+   [
+    "breeder-control-room-view",
+    "Breeder Control View"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "twin-overlay-flux-surface-rendering",
+  "title": "Rendering Flux Surfaces and Fields on Real Geometry",
+  "cat": "l6-experience",
+  "lede": "How the twin's psi(R,Z) field, wall temperatures, and neutron flux are turned into a legible, confidence-aware 3D scene at display frame rate.",
+  "body": [
+   [
+    "h2",
+    "From psi(R,Z) to a drawable surface"
+   ],
+   [
+    "p",
+    "The twin's MHD module publishes the poloidal flux function psi on an (R,Z) grid. The overlay extracts iso-psi contours — the flux surfaces — and lofts them around the toroidal or axial direction to form 3D shells. The last-closed flux surface (LCFS) is the plasma boundary; for the breeder it must display the canonical negative triangularity delta -0.30, so the renderer measures triangularity from the reconstructed boundary and shows it numerically beside the shape, preventing a stylized D from masking the real geometry."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def flux_shells(psi, R, Z, levels, phi_segments=64):\n    # levels: normalized psi_n values, 0 (axis) -> 1 (LCFS)\n    shells = []\n    for pn in levels:\n        contour = marching_squares(psi_norm(psi), R, Z, pn)  # (R,Z) polyline\n        shell = revolve(contour, phi_segments)               # sweep around axis\n        shells.append(shell)\n    tri = triangularity(shells[-1])   # measured delta from LCFS, expect ~ -0.30\n    return shells, tri"
+    ]
+   ],
+   [
+    "h3",
+    "Field mapping and color grammar"
+   ],
+   [
+    "p",
+    "Scalar fields are mapped to vertex colors through perceptually uniform ramps so equal color steps mean equal physical steps. Thermal fields use the orange thermal ramp; neutron flux uses a distinct neutron ramp; magnet strain uses the structural gray-blue ramp. Ramps are colorblind-safe and consistent with the site-wide color grammar so a color never means two things across displays — see <a href=./color-grammar-in-hmi.html>color grammar in the HMI</a>."
+   ],
+   [
+    "p",
+    "For the burner, the axial view lofts mirror flux tubes between the 26.49 T plug and 17 T throat, and paints the ambipolar potential profile along the axis. The DEC collector geometry is a separate segment where the 5.44%-neutron-fraction blanket load and the direct-conversion grid voltage are shown together."
+   ],
+   [
+    "h3",
+    "Confidence-aware shading"
+   ],
+   [
+    "p",
+    "Every vertex carries a confidence weight from the twin. Low-confidence regions are rendered with reduced saturation and a diagonal hatch so operators never mistake an interpolated guess for a measured value. When a diagnostic drops and the twin falls back to a GNN-imputed estimate, the affected region visibly changes texture. This is the visual half of the trust contract; the numeric half lives in <a href=./confidence-provenance-display.html>confidence and provenance display</a>."
+   ],
+   [
+    "p",
+    "The renderer is stateless with respect to physics: if the twin stream stalls, shells freeze and a staleness badge appears rather than extrapolating — see <a href=./latency-and-staleness-indicators.html>staleness indicators</a>."
+   ]
+  ],
+  "related": [
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "color-grammar-in-hmi",
+    "Color Grammar in the HMI"
+   ],
+   [
+    "latency-and-staleness-indicators",
+    "Staleness Indicators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "scada-hmi-plant-floor",
+  "title": "Plant-Floor SCADA and HMI",
+  "cat": "l6-experience",
+  "lede": "The supervisory control and data acquisition surface for balance-of-plant: pumps, cryogenics, vacuum, tritium handling, and power supplies, rendered for floor operators.",
+  "body": [
+   [
+    "h2",
+    "Supervisory layer, not control authority"
+   ],
+   [
+    "p",
+    "The plant-floor SCADA/HMI supervises the balance-of-plant systems that surround the fusion core: cryogenic plant for the REBCO magnets, high-vacuum pumping, gas and pellet fueling, tritium handling for the breeder, coolant loops, and the power-supply banks driving the 9.86 MA plasma current (breeder) or the 26.49 T plug (burner). It presents state and lets operators issue supervisory setpoints, but interlocks and fast trips are enforced in hardware by L1. The HMI can request a state change; it can never bypass an interlock."
+   ],
+   [
+    "h3",
+    "P&ID-anchored screens"
+   ],
+   [
+    "p",
+    "Screens follow the piping-and-instrumentation diagram (P&ID) topology so a floor operator navigates by the plant they already know. Each element (valve, pump, heat exchanger, feedthrough) shows live value, setpoint, mode, and health, sourced from the L2 data fabric with the same units and tags used everywhere else in the stack. Consistency of tag names across SCADA, dashboards, and incident replay removes a whole class of translation errors during upsets."
+   ],
+   [
+    "ul",
+    [
+     "Cryogenics: magnet temperature margins, helium inventory, cold-box status",
+     "Vacuum: chamber pressure, pump speed, leak-rate trend",
+     "Fueling: gas-puff servo-valve position, pellet timing queue",
+     "Tritium (breeder): inventory accountancy, containment pressure, TBR context",
+     "Power supplies: bank voltage/current, switching state, thermal margin"
+    ]
+   ],
+   [
+    "h3",
+    "Modes, permissives, and mimic color"
+   ],
+   [
+    "p",
+    "Every subsystem carries an explicit mode (off / standby / conditioning / operating / fault) and a permissive chain that shows exactly which conditions are still blocking a requested transition. Instead of a failed command silently doing nothing, the HMI names the missing permissive. Color follows the plant color grammar: energized/flowing lines are distinct from de-energized, and alarms use the reserved alert palette so an operator never confuses a normal state with a fault."
+   ],
+   [
+    "p",
+    "SCADA feeds the same alerting pipeline as the physics layers, so a cryo margin excursion and a plasma anomaly arrive through one rationalized alarm system — see <a href=./alarm-management-eemua191.html>alarm management</a> — and are captured together for <a href=./incident-replay.html>incident replay</a>."
+   ]
+  ],
+  "related": [
+   [
+    "alarm-management-eemua191",
+    "Alarm Management"
+   ],
+   [
+    "mobile-engineering-access",
+    "Mobile Engineering Access"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mobile-engineering-access",
+  "title": "Mobile Engineering Access",
+  "cat": "l6-experience",
+  "lede": "Read-first, strongly authenticated mobile and tablet views that let on-call engineers triage from anywhere without weakening the control room's authority.",
+  "body": [
+   [
+    "h2",
+    "Why mobile is read-first"
+   ],
+   [
+    "p",
+    "On-call engineers need to assess a machine at 3 a.m. from outside the control room. The mobile surface gives them the full observability picture — dashboards, alerts, the 3D twin overlay, incident timelines — but grants no hard-real-time control. Actuation authority stays with the L1 Control Plane and physically-present operators. This is a deliberate asymmetry: observability should be ubiquitous; authority should be concentrated and accountable."
+   ],
+   [
+    "h3",
+    "What mobile can and cannot do"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Capability",
+      "On mobile?"
+     ],
+     [
+      [
+       "View dashboards / KPIs",
+       "yes"
+      ],
+      [
+       "View 3D twin overlay + confidence",
+       "yes"
+      ],
+      [
+       "Acknowledge / triage / annotate alerts",
+       "yes"
+      ],
+      [
+       "Replay an incident",
+       "yes"
+      ],
+      [
+       "Request an advisory setpoint (queued for control room)",
+       "yes, with approval"
+      ],
+      [
+       "Issue hard-real-time actuation",
+       "no"
+      ],
+      [
+       "Override an interlock",
+       "no"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "A subset of supervisory actions (acknowledging an alert, requesting a non-safety setpoint change) is permitted but always routed as a request that a control-room operator confirms, with both identities logged. Anything touching safety is unavailable off-console by design."
+   ],
+   [
+    "h3",
+    "Design for the mobile context"
+   ],
+   [
+    "p",
+    "Mobile views assume glare, one hand, and interruption. They lead with a single triage verdict (what is wrong, how confident, how urgent), collapse detail behind progressive disclosure, and keep tap targets large. The 3D overlay degrades gracefully to a 2D cross-section on small screens while preserving the same color grammar and confidence hatching so the mental model does not change between console and phone."
+   ],
+   [
+    "ul",
+    [
+     "Strong auth: device attestation plus per-session identity, short-lived",
+     "Least privilege: read by default, request-and-confirm for the narrow write set",
+     "Full audit: every view and action attributed and time-stamped",
+     "Offline-safe: shows last-known state with an explicit staleness badge"
+    ]
+   ],
+   [
+    "p",
+    "Because the mobile view is downstream of the same L2 fabric and L3 twin, its numbers always agree with the control room. See <a href=./alerting-triage-ux.html>alerting and triage UX</a> for the workflow that drives most mobile sessions, and <a href=./latency-and-staleness-indicators.html>staleness indicators</a> for how connectivity gaps are shown honestly."
+   ]
+  ],
+  "related": [
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "escalation-and-on-call",
+    "Escalation and On-Call"
+   ],
+   [
+    "audit-and-compliance-view",
+    "Audit and Compliance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "alerting-triage-ux",
+  "title": "Alerting and Triage UX",
+  "cat": "l6-experience",
+  "lede": "Turning anomaly detections, precursors, and interlock events into a ranked, deduplicated, actionable stream an operator can work top-down under pressure.",
+  "body": [
+   [
+    "h2",
+    "From detections to decisions"
+   ],
+   [
+    "p",
+    "The lower layers emit many signals: L3 anomaly ensembles flag sub-threshold quench and disruption precursors, SCADA reports process excursions, L1 logs interlock events. Left raw, this is a flood. The alerting pipeline deduplicates, correlates, and ranks these into a single triage stream so an operator always knows the one thing that most needs attention now."
+   ],
+   [
+    "h3",
+    "Ranking by expected consequence and lead time"
+   ],
+   [
+    "p",
+    "Each alert carries a severity, a confidence from the detecting model, and — critically — a lead time: how long until the operator must act. A high-confidence disruption precursor with 40 ms of lead time outranks a low-confidence cryo drift with minutes of slack. Ranking blends these rather than sorting by raw severity, so a genuinely urgent, actionable item is never buried under chronic nuisances."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def triage_score(alert):\n    # higher = surface sooner\n    urgency   = 1.0 / max(alert.lead_time_s, 1e-3)   # less time -> more urgent\n    stake     = alert.severity                        # potential consequence\n    trust     = alert.model_confidence                # 0..1 from detector\n    actionable= 1.0 if alert.has_recommended_action else 0.4\n    return stake * urgency * trust * actionable"
+    ]
+   ],
+   [
+    "h3",
+    "The triage card"
+   ],
+   [
+    "p",
+    "Each alert renders as a card that answers four questions at a glance: <b>what</b> (the anomaly and where on the machine), <b>how sure</b> (model confidence and provenance), <b>how long</b> (lead time, counting down), and <b>what now</b> (the recommended response and who owns it). For the breeder a disruption-precursor card links straight to the <a href=./disruption-countdown-ui.html>disruption countdown</a>; for the burner a plug-density excursion card links to the plug view."
+   ],
+   [
+    "ul",
+    [
+     "Deduplicate: many detections of one event collapse to one card",
+     "Correlate: causally linked alerts group under a root-cause header",
+     "Acknowledge: ack stops re-notification but keeps the card live until resolved",
+     "Handoff: any card can be assigned, annotated, and carried across shifts"
+    ]
+   ],
+   [
+    "p",
+    "Nuisance suppression is governed by the alarm-management rules so triage never degrades into an ignored red wall — see <a href=./alarm-flood-suppression.html>alarm flood suppression</a>. Every alert and action is recorded for <a href=./incident-replay.html>incident replay</a>."
+   ]
+  ],
+  "related": [
+   [
+    "alarm-management-eemua191",
+    "Alarm Management"
+   ],
+   [
+    "alarm-flood-suppression",
+    "Alarm Flood Suppression"
+   ],
+   [
+    "attention-and-notification-design",
+    "Attention and Notification Design"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "operator-situational-awareness",
+  "title": "Operator Situational Awareness",
+  "cat": "l6-experience",
+  "lede": "Designing displays around Endsley's three levels — perception, comprehension, and projection — so operators of both machines always know what is, what it means, and what comes next.",
+  "body": [
+   [
+    "h2",
+    "Three levels of awareness"
+   ],
+   [
+    "p",
+    "Situational awareness (SA) has a well-established structure: Level 1 is perceiving the raw state, Level 2 is comprehending what it means, Level 3 is projecting what happens next. A control room that only shows numbers serves Level 1 and leaves comprehension and projection to the operator's memory — exactly the load that fails during an upset. Kronos L6 explicitly designs a surface for each level."
+   ],
+   [
+    "truth",
+    [
+     [
+      "SA level",
+      "Question",
+      "L6 answer"
+     ],
+     [
+      [
+       "1 Perception",
+       "What is the state?",
+       "Live twin overlay + KPIs from L2/L3"
+      ],
+      [
+       "2 Comprehension",
+       "What does it mean?",
+       "Anomaly context, envelope margins, confidence"
+      ],
+      [
+       "3 Projection",
+       "What happens next?",
+       "Predictive shadow + precursor lead times"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Projection is the differentiator"
+   ],
+   [
+    "p",
+    "The twin runs a 50-100 ms predictive shadow ahead of the real plant, and the anomaly ensembles quote lead times before an event. L6 turns both into a projection surface: the operator sees not just that plasma current is 9.86 MA now, but the twin's forecast trajectory and how close it is drifting to the safe operating envelope. For the burner, the same surface projects end-plug density and ambipolar potential forward so an operator can see a plug excursion forming before it trips. See <a href=./predictive-shadow-visualization.html>predictive shadow visualization</a>."
+   ],
+   [
+    "h3",
+    "Keeping the envelope visible"
+   ],
+   [
+    "p",
+    "Comprehension collapses when constraints are invisible. Every key variable is drawn against its certified envelope with the current margin explicit, so the operator reads distance-to-limit, not just value. Margins shrinking is the earliest honest signal that attention is needed, well before an alarm threshold trips."
+   ],
+   [
+    "ul",
+    [
+     "Perception without comprehension is a number wall — avoided",
+     "Comprehension needs margins and confidence shown, not implied",
+     "Projection uses the twin shadow and precursor lead times, labeled as forecasts",
+     "SA is measured in training with SAGAT-style probes and fed back into layout"
+    ]
+   ],
+   [
+    "p",
+    "SA is fragile under cognitive load, so display density is tuned against the load budget — see <a href=./human-factors-cognitive-load.html>human factors and cognitive load</a> — and forecasts always show their uncertainty via <a href=./uncertainty-visualization.html>uncertainty visualization</a>."
+   ]
+  ],
+  "related": [
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ],
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ],
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dashboards-and-kpis",
+  "title": "Dashboards and Operating KPIs",
+  "cat": "l6-experience",
+  "lede": "How the top-level operating dashboards are composed and which indicators define a good shot for the breeder and steady operation for the burner.",
+  "body": [
+   [
+    "h2",
+    "One dashboard, layered depth"
+   ],
+   [
+    "p",
+    "The operating dashboard is the default control-room view: a compact set of key performance indicators (KPIs) with the machine's health readable in one glance and full depth one click away. Each KPI shows value, trend, confidence, and margin-to-limit. The design goal is that a healthy machine looks calm and a degrading one is visibly, monotonically less calm — no bistable green-until-red surprises."
+   ],
+   [
+    "h3",
+    "Breeder (Hyperion) indicators"
+   ],
+   [
+    "ul",
+    [
+     "Q_sci trajectory vs the 3.424 design point, with confidence band",
+     "Fusion power vs 88.7 MW reference; plasma current vs 9.86 MA",
+     "Shape fidelity: measured triangularity vs delta -0.30, ELM-free status",
+     "Disruption risk index and precursor lead time",
+     "Tritium breeding context (TBR lever 1.1 / 1.5 / 1.8) and fuel-cycle balance",
+     "Magnet health: REBCO strain and quench margin at 16.84 T peak field"
+    ]
+   ],
+   [
+    "h3",
+    "Burner (Aegis / MetroVolt) indicators"
+   ],
+   [
+    "ul",
+    [
+     "End-plug density vs setpoint; ambipolar potential well depth",
+     "Plug field 26.49 T and throat field 17 T margins",
+     "Neutron-fraction load (5.44%) on the blanket and DEC collector",
+     "Direct-energy-conversion grid voltage and modulation stability",
+     "Confinement quality and mirror-ratio health"
+    ]
+   ],
+   [
+    "p",
+    "No dashboard carries economics — no cost, price, or financial KPI ever appears on an operating surface. KPIs are physical and operational only. This keeps the operator's attention on the machine and keeps the display honest about what it actually measures."
+   ],
+   [
+    "h3",
+    "Composition rules"
+   ],
+   [
+    "p",
+    "Tiles are sized by consequence, not by data availability, so the most decision-relevant indicators dominate. Color follows the shared grammar; a tile that loses its data source shows a staleness badge rather than a stale-but-plausible number. Drilling into any tile reveals the contributing diagnostics and the twin module behind it — provenance is always one click away. See <a href=./kpi-availability-and-breeding.html>availability and breeding KPIs</a> and <a href=./confidence-provenance-display.html>confidence and provenance display</a>."
+   ]
+  ],
+  "related": [
+   [
+    "kpi-availability-and-breeding",
+    "Availability and Breeding KPIs"
+   ],
+   [
+    "kpi-burner-net-power-dec",
+    "Burner Net-Power and DEC KPIs"
+   ],
+   [
+    "operator-situational-awareness",
+    "Operator Situational Awareness"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "incident-replay",
+  "title": "Incident Replay and Post-Event Reconstruction",
+  "cat": "l6-experience",
+  "lede": "Every shot and every upset is fully reconstructable: synchronized telemetry, twin state, model confidence, alerts, and operator actions replayed on one timeline.",
+  "body": [
+   [
+    "h2",
+    "Deterministic reconstruction"
+   ],
+   [
+    "p",
+    "When something goes wrong — a breeder disruption, a burner plug excursion, an interlock trip — the team must be able to replay exactly what happened and what the machine, the models, and the operators each knew at every instant. Incident replay reconstructs a bounded window from the L2 petabyte telemetry archive, the twin's recorded state stream, the anomaly ensemble outputs, and the operator action log, aligned to a single PTP-disciplined clock."
+   ],
+   [
+    "h3",
+    "What a replay contains"
+   ],
+   [
+    "ul",
+    [
+     "Raw diagnostics at native rate (down to the sub-microsecond sampling)",
+     "Twin state and its per-region confidence at each step",
+     "Every alert: when it fired, its lead time, its recommended action",
+     "Operator actions and acknowledgements, attributed and time-stamped",
+     "Interlock and failsafe events from L1 with hardware timestamps"
+    ]
+   ],
+   [
+    "p",
+    "The replay is scrubbed on a timeline that drives the same 3D twin overlay used live, so an investigator watches the flux surfaces, wall temperatures, or plug density evolve exactly as they did — with the same confidence hatching that was shown at the time. Crucially, replay distinguishes what was <b>knowable</b> (in the data) from what was <b>known</b> (surfaced to the operator), which is how alerting and display gaps are found."
+   ],
+   [
+    "h3",
+    "Counterfactual replay"
+   ],
+   [
+    "p",
+    "Because the twin is a model, replay can branch: re-run the recorded inputs through an updated model or a different MPC policy to ask whether an event would have been caught earlier or avoided. This is a controlled offline exercise — it never touches the live machine — and it feeds the L0 retraining loop and MPC tuning. For the breeder, counterfactual replay is how disruption-precursor lead times are validated; for the burner, how plug-density controllers are compared."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "replay = archive.window(shot_id, t0, t1)          # aligned multi-source pull\nreplay.attach(twin_state, confidence, alerts, ops)  # one PTP timeline\nfor t in replay.scrub(step=1e-3):                    # 1 ms scrub\n    overlay.render(replay.twin_at(t), replay.conf_at(t))\n# branch: what would a candidate model have flagged?\ncf = replay.rerun(model=candidate_v)                 # offline only"
+    ]
+   ],
+   [
+    "p",
+    "Replays are the raw material for shift handover, root-cause analysis, and the compliance record — see <a href=./shift-handover-briefing.html>shift handover</a> and <a href=./audit-and-compliance-view.html>audit and compliance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "shift-handover-briefing",
+    "Shift Handover"
+   ],
+   [
+    "audit-and-compliance-view",
+    "Audit and Compliance"
+   ],
+   [
+    "what-if-scenario-console",
+    "What-If Scenario Console"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "uncertainty-visualization",
+  "title": "Visualizing Uncertainty So Operators Can Judge It",
+  "cat": "l6-experience",
+  "lede": "The AI's confidence is never hidden behind a single number: distributions, bands, and hatching let operators see how much to trust each estimate on both machines.",
+  "body": [
+   [
+    "h2",
+    "Uncertainty is first-class, not a footnote"
+   ],
+   [
+    "p",
+    "An estimate without its uncertainty is a trap: it looks equally authoritative whether the twin is confident or guessing. Every quantitative L6 surface therefore carries visible uncertainty. The twin's surrogate models and PINNs produce both a value and an uncertainty (via ensembles, dropout, or predictive variance), and L6 renders that uncertainty in a form matched to the display."
+   ],
+   [
+    "h3",
+    "Encodings by context"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Where",
+      "Uncertainty encoding"
+     ],
+     [
+      [
+       "Time series / trends",
+       "shaded confidence band around the line"
+      ],
+      [
+       "3D twin overlay",
+       "desaturation + diagonal hatch on low-confidence regions"
+      ],
+      [
+       "KPI tiles",
+       "margin-to-limit shown with a band, not a point"
+      ],
+      [
+       "Forecasts (predictive shadow)",
+       "fan chart widening with horizon"
+      ],
+      [
+       "Anomaly alerts",
+       "explicit model confidence 0..1 on the card"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Aleatoric uncertainty (irreducible measurement noise) and epistemic uncertainty (the model being out of its training distribution) are shown differently, because they demand different responses. Wide aleatoric bands mean a noisy sensor; growing epistemic uncertainty means the machine has drifted into a regime the model has not seen — a cue to weight the AI less and physics/operator judgment more."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ensemble gives value + both uncertainty kinds for display\npreds = [m(x) for m in ensemble]        # K surrogate members\nmu    = mean(preds)\nepi   = var(preds)                       # spread across members -> epistemic\nalea  = mean([m.noise_var(x) for m in ensemble])  # per-member noise -> aleatoric\nreturn dict(value=mu, band=sqrt(epi+alea), epistemic=epi, aleatoric=alea)"
+    ]
+   ],
+   [
+    "h3",
+    "Calibration matters more than magnitude"
+   ],
+   [
+    "p",
+    "A confidence display is only useful if it is calibrated — if 80% confidence is right about 80% of the time. Calibration is tracked continuously (reliability diagrams computed offline) and a miscalibrated model's confidence is visibly flagged so operators do not over-trust it. This ties directly to <a href=./trust-and-override-ux.html>trust and override UX</a>: the whole point of showing uncertainty is to make the override decision well-informed."
+   ],
+   [
+    "p",
+    "The encoding is also matched to how fast a decision must be made. A wide band on a slow process trend invites investigation; a wide band on the disruption-risk forecast demands immediate weighting of the human's own read of the plasma. Uncertainty is never rendered as a single scalar tucked in a corner, because a corner number is ignored under load. It is drawn on the same axes as the value it qualifies, at the same visual weight, so the operator cannot read the estimate without also reading its doubt. Provenance completes the picture — see <a href=./confidence-provenance-display.html>confidence and provenance display</a>."
+   ]
+  ],
+  "related": [
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ],
+   [
+    "model-provenance-badges",
+    "Model Provenance Badges"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "confidence-provenance-display",
+  "title": "Confidence and Provenance Display",
+  "cat": "l6-experience",
+  "lede": "For any estimate an operator can see how sure the model is, which model produced it, on what data, and which live diagnostics currently constrain it.",
+  "body": [
+   [
+    "h2",
+    "Two questions behind every number"
+   ],
+   [
+    "p",
+    "Trust in an AI estimate needs two answers: <b>how sure</b> (confidence) and <b>why should I believe this instance</b> (provenance). L6 answers both on demand for every value on screen. Confidence comes from the twin's uncertainty machinery; provenance is a compact record of the model version, its training/validation lineage, and the specific live diagnostics feeding this estimate right now."
+   ],
+   [
+    "h3",
+    "The provenance card"
+   ],
+   [
+    "ul",
+    [
+     "Model identity and version (e.g. equilibrium PINN, release hash)",
+     "Training-data lineage and validation status (V&V pass/fail, when)",
+     "Live inputs: which diagnostics are contributing and their health",
+     "Fallbacks active: is any input GNN-imputed rather than measured?",
+     "Calibration status: is this model's confidence currently trustworthy?"
+    ]
+   ],
+   [
+    "p",
+    "This makes the difference between a fully-measured estimate and one propped up by imputation immediately visible. If a breeder equilibrium reconstruction is running with three Mirnov coils dropped and their signals imputed by the GNN, the provenance card says so and the confidence reflects it — the operator is never surprised by a degraded input after the fact."
+   ],
+   [
+    "h3",
+    "Provenance under diagnostic loss"
+   ],
+   [
+    "p",
+    "Fusion diagnostics degrade under neutron and thermal load, so provenance is dynamic. As live inputs drop, the card updates in real time and the corresponding overlay regions shift to hatched/low-confidence. For the burner, if plug-density diagnostics thin out, the ambipolar-potential estimate's provenance shows the reduced constraint set and its confidence widens accordingly."
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"estimate\": \"psi_boundary\",\n  \"model\": {\"name\":\"equilibrium-pinn\",\"version\":\"1.4.2\",\"vv\":\"passed 2027-Qx\"},\n  \"confidence\": 0.71,\n  \"calibrated\": true,\n  \"inputs\": [{\"tag\":\"mirnov_04\",\"status\":\"ok\"},\n             {\"tag\":\"mirnov_11\",\"status\":\"imputed_gnn\"},\n             {\"tag\":\"flux_loop_02\",\"status\":\"ok\"}],\n  \"fallback_active\": true\n}"
+    ]
+   ],
+   [
+    "p",
+    "Provenance is also what makes an override defensible: an operator who overrides the AI can see and record exactly what the AI was working from — see <a href=./trust-and-override-ux.html>trust and override UX</a> and the machine-readable <a href=./model-provenance-badges.html>provenance badges</a> that summarize this card at a glance."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ],
+   [
+    "model-provenance-badges",
+    "Model Provenance Badges"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "model-provenance-badges",
+  "title": "Model Provenance Badges",
+  "cat": "l6-experience",
+  "lede": "A compact, glanceable badge system that tells an operator at a glance whether an AI output is trained, validated, calibrated, and running on healthy inputs.",
+  "body": [
+   [
+    "h2",
+    "Provenance you can read in one glance"
+   ],
+   [
+    "p",
+    "The full provenance card answers everything but takes attention to read. During an upset an operator needs the summary instantly, so each AI-derived value also carries a small badge encoding its trust state. The badge is deliberately coarse — it exists to tell the operator whether to lean on this number or scrutinize it, not to replace the detail one click away."
+   ],
+   [
+    "h3",
+    "Badge dimensions"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Dimension",
+      "Meaning"
+     ],
+     [
+      [
+       "Validated",
+       "the producing model passed V&V and is released"
+      ],
+      [
+       "Calibrated",
+       "its confidence is currently trustworthy"
+      ],
+      [
+       "Inputs healthy",
+       "no critical diagnostic is imputed or dead"
+      ],
+      [
+       "In distribution",
+       "the machine state is within the model's training regime"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "A value with all four green is a value to act on. Any amber or red dimension is a cue to open the provenance card and understand the limitation before trusting the number. Out-of-distribution is the most important flag: it means the machine has entered a regime the model was never trained on, which is exactly when an unbadged AI is most dangerous and most confident-looking."
+   ],
+   [
+    "h3",
+    "Badges follow the value everywhere"
+   ],
+   [
+    "p",
+    "The same badge rides with a quantity across the dashboard, the 3D overlay detail card, the mobile view, and incident replay, so trust state is consistent no matter where an operator encounters the number. In replay, badges are historical — you see the trust state as it actually was at that instant, which is how post-event reviews catch cases where a stale-but-green-looking value misled a decision."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def badge(estimate):\n    return {\n      'validated':   estimate.model.vv_passed,\n      'calibrated':  estimate.calibration_ok,\n      'inputs_ok':   not estimate.any_input_imputed_critical,\n      'in_dist':     estimate.ood_score < OOD_THRESHOLD,\n    }  # 4 booleans -> green/amber/red glyphs, detail one click away"
+    ]
+   ],
+   [
+    "p",
+    "Badges are the machine-readable face of the trust contract; the reasoning behind them lives in <a href=./confidence-provenance-display.html>confidence and provenance display</a>, and the decision they inform is covered in <a href=./trust-and-override-ux.html>trust and override UX</a>."
+   ]
+  ],
+  "related": [
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ],
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "trust-and-override-ux",
+  "title": "Trust and Override: Keeping the Human in Command",
+  "cat": "l6-experience",
+  "lede": "How the interface lets an operator accept, question, or overrule the AI — with the context to do so well and a record of why.",
+  "body": [
+   [
+    "h2",
+    "The AI advises; the human commands"
+   ],
+   [
+    "p",
+    "Kronos L6 is built on a firm hierarchy: the L1 hardware failsafe is always authoritative, and above it the human operator can accept or overrule any advisory the AI produces. The UX's job is to make override a well-informed, low-friction, fully-recorded action rather than a panicked stab at a button. Good override design is what makes automation safe to deploy at all."
+   ],
+   [
+    "h3",
+    "Three responses to any AI recommendation"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Operator action",
+      "What the UX provides"
+     ],
+     [
+      [
+       "Accept",
+       "one confirming action; confidence + provenance shown first"
+      ],
+      [
+       "Question",
+       "drill into inputs, forecast, and the model's reasoning"
+      ],
+      [
+       "Override",
+       "substitute the operator's decision, with a reason captured"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Every recommendation arrives with its confidence, its provenance badge, and — from L5 copilots — a short rationale. The operator is never asked to accept a black-box command. When they override, the UX asks for a brief reason (chosen from common categories plus free text), which becomes part of the incident record and, later, training signal for where the model and human disagreed."
+   ],
+   [
+    "h3",
+    "Matching automation level to trust"
+   ],
+   [
+    "p",
+    "Not everything should demand the same human involvement. The interface exposes the current automation level per control loop and makes changing it deliberate. Fast, well-characterized loops (breeder vertical stability, burner plug density) run closed-loop in L1 with the operator supervising; slower, higher-consequence decisions default to human-in-the-loop. When a model's badges go amber (out of distribution, miscalibrated, degraded inputs), the UX proactively suggests lowering the automation level."
+   ],
+   [
+    "ul",
+    [
+     "Override is always available and never punished by the interface",
+     "Override requires context to be shown, and a reason to be recorded",
+     "Automation level is visible, per-loop, and deliberately changed",
+     "Disagreements (human vs AI) are logged as first-class training data"
+    ]
+   ],
+   [
+    "p",
+    "This is only trustworthy because uncertainty and provenance are honest — see <a href=./uncertainty-visualization.html>uncertainty visualization</a> and <a href=./confidence-provenance-display.html>provenance display</a>. Every accept/override is captured for <a href=./audit-and-compliance-view.html>audit</a> and <a href=./incident-replay.html>replay</a>."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ],
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "audit-and-compliance-view",
+    "Audit and Compliance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "human-factors-cognitive-load",
+  "title": "Human Factors and Cognitive Load in the Control Room",
+  "cat": "l6-experience",
+  "lede": "Designing the fusion control room around the limits of human attention and working memory so operators stay effective during the worst minutes, not just the calm ones.",
+  "body": [
+   [
+    "h2",
+    "Design for the worst minute"
+   ],
+   [
+    "p",
+    "A control room that is comfortable during steady operation can still fail during a disruption countdown or a plug-density excursion, because that is when information rate, stakes, and stress all peak. Kronos L6 is designed against that worst minute. The governing principle is that human working memory and attention are hard limits, and every display either respects them or degrades operator performance exactly when it matters most."
+   ],
+   [
+    "h3",
+    "Managing intrinsic and extraneous load"
+   ],
+   [
+    "p",
+    "Cognitive load splits into intrinsic (the irreducible difficulty of controlling a fusion plasma) and extraneous (load added by poor presentation). L6 cannot lower the intrinsic difficulty of holding the breeder's negative-triangularity shape or the burner's ambipolar potential, so it attacks extraneous load ruthlessly: consistent color grammar, stable layouts, geometry-anchored data, and a single rationalized alarm stream instead of scattered indicators."
+   ],
+   [
+    "ul",
+    [
+     "Stable layouts: elements do not move between modes, so muscle memory holds",
+     "One color grammar: a color never means two things across screens",
+     "Geometry anchoring: data appears where it physically lives, not in a table to decode",
+     "Progressive disclosure: summary first, detail on demand, never all at once",
+     "Alarm rationalization: one ranked stream, not a wall of equal reds"
+    ]
+   ],
+   [
+    "h3",
+    "Vigilance and automation complacency"
+   ],
+   [
+    "p",
+    "Two failure modes are designed against explicitly. <b>Vigilance decrement</b>: humans miss rare events during long calm periods, so the interface uses the predictive shadow and precursor lead times to re-engage attention before an event, not after. <b>Automation complacency</b>: humans over-trust automation, so uncertainty and provenance are always visible and the interface actively flags when the AI is out of its depth."
+   ],
+   [
+    "p",
+    "Load is measured, not assumed. In the training simulator, operator load is estimated (task rate, error rate, response latency, optionally physiological proxies) and layouts that spike load during scripted upsets are revised. See <a href=./control-room-layout-ergonomics.html>control-room layout</a>, <a href=./attention-and-notification-design.html>attention and notification design</a>, and <a href=./training-simulator-mode.html>training-simulator mode</a>."
+   ]
+  ],
+  "related": [
+   [
+    "control-room-layout-ergonomics",
+    "Control-Room Layout"
+   ],
+   [
+    "attention-and-notification-design",
+    "Attention and Notification Design"
+   ],
+   [
+    "operator-situational-awareness",
+    "Operator Situational Awareness"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-room-layout-ergonomics",
+  "title": "Control-Room Layout and Ergonomics",
+  "cat": "l6-experience",
+  "lede": "The physical arrangement of the video wall, operator consoles, and roles — designed so information reaches the right eyes at the right distance.",
+  "body": [
+   [
+    "h2",
+    "Shared picture, individual depth"
+   ],
+   [
+    "p",
+    "The control room is organized around two viewing distances. A large shared video wall carries the common operating picture that every role must agree on — the 3D twin overlay, top KPIs, and the active alert. Individual consoles carry role-specific depth an operator works at reading distance. The wall keeps the team synchronized on one truth; the consoles let each role go deep without desynchronizing the room."
+   ],
+   [
+    "h3",
+    "Roles and their views"
+   ],
+   [
+    "ul",
+    [
+     "Session leader: whole-machine state, envelope margins, go/no-go authority",
+     "Plasma operator: equilibrium and shape (breeder) or plug/ambipolar (burner)",
+     "Plant operator: SCADA balance-of-plant (cryo, vacuum, fueling, power)",
+     "Diagnostics/physics: signal health, twin confidence and provenance",
+     "Safety operator: interlock chain, failsafe status, override authority"
+    ]
+   ],
+   [
+    "p",
+    "Layout follows the information the role acts on. The plasma operator faces the shape/equilibrium console; the plant operator faces the P&ID-anchored SCADA; the safety operator has an unobstructed line to both the interlock display and the shared wall. Sightlines are arranged so the session leader can read every operator's primary console and the wall without turning away from the team."
+   ],
+   [
+    "h3",
+    "Distance, contrast, and legibility"
+   ],
+   [
+    "p",
+    "Type sizes and contrast are set for their viewing distance: wall glyphs are legible across the room; console text at desk range. Displays are theme-aware and readable under both bright and dimmed lighting, because control-room lighting changes across shifts. The reserved alert palette stays distinguishable at wall distance so an alarm is never lost against the ambient picture."
+   ],
+   [
+    "p",
+    "The physical room mirrors the digital hierarchy: the shared picture is authoritative and singular, exactly like the L1 control plane it supervises. This arrangement is validated in <a href=./training-simulator-mode.html>simulator mode</a> against scripted breeder disruptions and burner excursions, and tuned against the <a href=./human-factors-cognitive-load.html>cognitive-load budget</a>. Off-console roles reach the same picture through <a href=./mobile-engineering-access.html>mobile access</a>."
+   ]
+  ],
+  "related": [
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ],
+   [
+    "large-format-video-wall",
+    "Large-Format Video Wall"
+   ],
+   [
+    "mobile-engineering-access",
+    "Mobile Engineering Access"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "breeder-control-room-view",
+  "title": "Breeder (Hyperion) Control-Room View",
+  "cat": "l6-experience",
+  "lede": "The operator surface tuned to the spherical tokamak's hard problems: equilibrium reconstruction, the ELM-free negative-triangularity shape, and disruption avoidance.",
+  "body": [
+   [
+    "h2",
+    "What the breeder operator watches"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, and 16.84 T peak field. Its control-room view foregrounds the three problems that dominate its operation: holding equilibrium, maintaining the ELM-free negative-triangularity boundary at delta -0.30, and avoiding disruptions. The 3D overlay centers the spherical-torus flux surfaces; the console strips carry current, shape, and stability margins."
+   ],
+   [
+    "h3",
+    "Equilibrium and shape"
+   ],
+   [
+    "p",
+    "The reconstructed equilibrium is drawn live on the vessel geometry, with the last-closed flux surface highlighted and its measured triangularity displayed numerically beside the target -0.30 — so shape drift is read as a number, not inferred from a picture. PF-coil currents and their headroom are shown as the actuators that hold the shape. Vertical and radial position errors are drawn against their stability limits, since vertical stability is a fast, safety-relevant loop."
+   ],
+   [
+    "ul",
+    [
+     "LCFS with measured vs target triangularity (-0.30) and ELM-free status",
+     "Plasma current vs 9.86 MA reference, with ramp phase",
+     "Vertical/radial position error against stability envelope",
+     "PF/CS coil currents and remaining headroom",
+     "Q_sci trajectory vs 3.424 and fusion power vs 88.7 MW, with confidence"
+    ]
+   ],
+   [
+    "h3",
+    "Disruption avoidance front and center"
+   ],
+   [
+    "p",
+    "The disruption-risk index from the anomaly ensembles and its lead time are permanently visible, not buried. As risk rises, the view escalates: the predictive shadow's forecast trajectory is emphasized, the driving precursors are named, and the operator is offered the mitigation path. If avoidance fails, the view hands off cleanly to the <a href=./disruption-countdown-ui.html>disruption countdown</a>. Magnet health (REBCO strain, quench margin at 16.84 T) sits alongside, since a magnet fault and a plasma fault can co-occur."
+   ],
+   [
+    "p",
+    "Tritium-cycle context — the breeding ratio lever (1.1 / 1.5 / 1.8) and fuel balance — is present but secondary to real-time stability. Contrast this surface with the burner's in <a href=./burner-control-room-view.html>the burner control view</a>, and see how forecasts are shown in <a href=./predictive-shadow-visualization.html>predictive shadow visualization</a>."
+   ]
+  ],
+  "related": [
+   [
+    "burner-control-room-view",
+    "Burner Control View"
+   ],
+   [
+    "disruption-countdown-ui",
+    "Disruption Countdown UI"
+   ],
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-control-room-view",
+  "title": "Burner (Aegis / MetroVolt) Control-Room View",
+  "cat": "l6-experience",
+  "lede": "The operator surface for the D-3He tandem mirror: end-plug density, the ambipolar potential well, and direct energy conversion of a 5.44%-neutron-fraction output.",
+  "body": [
+   [
+    "h2",
+    "What the burner operator watches"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat, a 5.44% neutron fraction, and direct energy conversion (DEC). Its control-room view is organized along the machine axis rather than around a torus. The dominant problems are sustaining end-plug density, holding the ambipolar potential well that confines the central-cell ions, and keeping DEC grid modulation stable. Aegis and MetroVolt are two housings of the same machine (fixed defense installations and data-center generation, respectively) and share this view."
+   ],
+   [
+    "h3",
+    "Axial state along the mirror"
+   ],
+   [
+    "p",
+    "The overlay lofts mirror flux tubes between the plug and throat and paints two axial profiles operators live by: end-plug density and the ambipolar potential. The potential-well depth is what confines the central cell, so it is shown against the depth required for confinement, with margin explicit. Plug field (26.49 T) and throat field (17 T) margins are drawn alongside, since the confinement geometry depends on them."
+   ],
+   [
+    "ul",
+    [
+     "End-plug density vs setpoint, both ends, with balance indicator",
+     "Ambipolar potential profile and well depth vs confinement requirement",
+     "Plug field 26.49 T and throat field 17 T margins",
+     "Mirror ratio and central-cell confinement quality",
+     "Neutron-fraction (5.44%) blanket load and DEC collector state"
+    ]
+   ],
+   [
+    "h3",
+    "Direct energy conversion"
+   ],
+   [
+    "p",
+    "The DEC segment shows collector grid voltages and the modulation loop that converts escaping charged-particle energy directly. Grid-voltage stability and fault-ride-through status are foregrounded because DEC is the burner's power path. An end-plug density excursion is the burner's analogue of a breeder disruption precursor: it is surfaced early through the alerting stream with lead time, and the predictive shadow projects the density and potential forward so the operator can correct before confinement degrades."
+   ],
+   [
+    "p",
+    "Honest framing applies as everywhere: these are design-and-simulation studies, and no hardware net-gain claim is made before the breeder FOAK (~2030). Compare with <a href=./breeder-control-room-view.html>the breeder view</a> and see <a href=./kpi-burner-net-power-dec.html>burner net-power and DEC KPIs</a>."
+   ]
+  ],
+  "related": [
+   [
+    "breeder-control-room-view",
+    "Breeder Control View"
+   ],
+   [
+    "kpi-burner-net-power-dec",
+    "Burner Net-Power and DEC KPIs"
+   ],
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "alarm-management-eemua191",
+  "title": "Alarm Management and Rationalization",
+  "cat": "l6-experience",
+  "lede": "Applying established alarm-management principles so every alarm is meaningful, prioritized, and actionable — never a wall of noise an operator learns to ignore.",
+  "body": [
+   [
+    "h2",
+    "An alarm is a request for operator action"
+   ],
+   [
+    "p",
+    "The governing definition, drawn from established process-industry alarm-management practice, is that an alarm exists only to demand a specific operator response within a specific time. Anything that does not require action is information, not an alarm. Kronos applies this strictly across both machines: the fastest, highest-consequence protections are automated in L1 hardware; alarms are reserved for what genuinely needs a human."
+   ],
+   [
+    "h3",
+    "Rationalization"
+   ],
+   [
+    "p",
+    "Every candidate alarm is rationalized before it ships: it must have a cause, a consequence if ignored, a defined operator response, and enough lead time for that response to matter. Alarms failing any test are demoted to information or removed. This is what prevents the classic failure where operators are trained by experience to dismiss a chronically-crying indicator — and then miss the one time it was real."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Rationalization test",
+      "Must be true"
+     ],
+     [
+      [
+       "Has a clear cause",
+       "yes"
+      ],
+      [
+       "Has a consequence if ignored",
+       "yes"
+      ],
+      [
+       "Has a defined operator response",
+       "yes"
+      ],
+      [
+       "Response has enough lead time to matter",
+       "yes"
+      ],
+      [
+       "Not already handled automatically in L1",
+       "yes"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Priority tied to consequence and time"
+   ],
+   [
+    "p",
+    "Alarm priority is assigned from consequence severity and available response time, not from the loudness of the underlying signal. A breeder disruption precursor with tens of milliseconds of margin and a burner plug excursion with seconds of margin sit at the priorities their response windows demand. Priority distribution is monitored: a healthy system spends most of its time with zero or few active alarms, and a sustained high alarm rate is itself treated as a defect to fix, not a normal condition."
+   ],
+   [
+    "p",
+    "Rationalized alarms feed the ranked triage stream and are protected from floods by dynamic suppression — see <a href=./alerting-triage-ux.html>alerting and triage UX</a> and <a href=./alarm-flood-suppression.html>alarm flood suppression</a>. Alarm-system performance itself is a KPI reviewed on the <a href=./dashboards-and-kpis.html>dashboards</a>."
+   ]
+  ],
+  "related": [
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "alarm-flood-suppression",
+    "Alarm Flood Suppression"
+   ],
+   [
+    "scada-hmi-plant-floor",
+    "Plant-Floor SCADA and HMI"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "alarm-flood-suppression",
+  "title": "Alarm Flood Suppression and Dynamic Shelving",
+  "cat": "l6-experience",
+  "lede": "During an upset one root cause can trigger hundreds of correlated alarms; suppression logic collapses them so the operator sees the cause, not the cascade.",
+  "body": [
+   [
+    "h2",
+    "The flood problem"
+   ],
+   [
+    "p",
+    "A single physical event rarely trips one alarm. A breeder disruption or a cryo failure propagates, and dozens to hundreds of downstream alarms fire within seconds — precisely when the operator has the least spare attention. An unmanaged flood buries the root cause in its own consequences and is a well-documented contributor to control-room incidents across process industries. Kronos suppresses floods so the ranked triage stream stays readable under the worst load."
+   ],
+   [
+    "h3",
+    "Techniques"
+   ],
+   [
+    "ul",
+    [
+     "Cause-and-effect grouping: known consequential alarms fold under their cause",
+     "First-out capture: the first alarm in a cascade is preserved and highlighted",
+     "Dynamic shelving: alarms irrelevant in the current mode are suppressed with an audit trail",
+     "Flood detection: a spike in alarm rate switches the display to root-cause mode",
+     "De-chatter: rapidly toggling alarms are debounced, with the chatter logged"
+    ]
+   ],
+   [
+    "p",
+    "Grouping is model-driven, not just static rules. The anomaly ensembles and the twin's causal structure identify which alarms are consequences of a common root, so the operator gets one root-cause header with the cascade collapsed beneath it and expandable on demand. Nothing is discarded — every suppressed alarm remains in the record for <a href=./incident-replay.html>incident replay</a>."
+   ],
+   [
+    "h3",
+    "Suppression must be honest"
+   ],
+   [
+    "p",
+    "Dynamic shelving is powerful and therefore dangerous: an alarm suppressed for the wrong reason is an alarm that fails silently. So every suppression is auditable — what was shelved, why, in which mode, and for how long — and shelving that hides a safety-relevant alarm is disallowed by rule. When flood mode is active, the interface says so explicitly, so the operator knows they are seeing a rationalized subset, not the full list."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def present(active_alarms, plant_mode, causal_graph):\n    active = drop_shelved(active_alarms, plant_mode)      # audited shelving\n    if rate(active) > FLOOD_THRESHOLD:\n        roots = causal_graph.root_causes(active)          # collapse cascade\n        return grouped_view(roots, expandable=True, flood_mode=True)\n    return ranked_view(active)                            # normal triage"
+    ]
+   ],
+   [
+    "p",
+    "Suppression is only as trustworthy as the rationalization behind it — see <a href=./alarm-management-eemua191.html>alarm management</a> — and it feeds the same <a href=./alerting-triage-ux.html>triage stream</a> operators work every shift."
+   ]
+  ],
+  "related": [
+   [
+    "alarm-management-eemua191",
+    "Alarm Management"
+   ],
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shift-handover-briefing",
+  "title": "Shift Handover and Operating Briefings",
+  "cat": "l6-experience",
+  "lede": "A structured, replayable handover so an incoming crew inherits the machine's full state, open issues, and recent history without loss.",
+  "body": [
+   [
+    "h2",
+    "Handover is a safety-critical transfer"
+   ],
+   [
+    "p",
+    "Continuity of awareness across a shift change is a recognized weak point in any 24/7 operation: knowledge in the outgoing crew's heads that never reaches the incoming crew becomes a latent hazard. Kronos L6 makes handover a structured, recorded step rather than a hallway conversation. The incoming crew inherits not just the current state but the story of how the machine got there."
+   ],
+   [
+    "h3",
+    "What a handover packet contains"
+   ],
+   [
+    "ul",
+    [
+     "Current machine state snapshot from the twin, with confidence",
+     "Open alerts and their triage status, assigned and annotated",
+     "Active shelved alarms and why (from flood suppression)",
+     "Degraded diagnostics and any models running on imputed inputs",
+     "Notable events this shift, each linked to an incident replay",
+     "Planned activities and constraints for the incoming shift"
+    ]
+   ],
+   [
+    "p",
+    "The packet is generated from live systems, not retyped, so it cannot silently drift from reality. The outgoing session leader adds narrative and flags judgment calls; the incoming leader acknowledges receipt. Both are recorded, giving a continuous accountable chain across shifts — which is also what post-event reviews need when an issue spans a handover boundary."
+   ],
+   [
+    "h3",
+    "Briefings before high-consequence operations"
+   ],
+   [
+    "p",
+    "Before a demanding sequence — a breeder shape maneuver near the negative-triangularity edge, or a burner plug-density push — the crew runs a pre-operation briefing off the same surface: expected trajectory from the predictive shadow, the envelope margins in play, the mitigation plan, and role assignments. This is the human analogue of the safe-operating-envelope check the MPC does in software."
+   ],
+   [
+    "p",
+    "Handover leans on the same reconstructions the team uses for analysis — see <a href=./incident-replay.html>incident replay</a> — and every notable event referenced is preserved in the <a href=./audit-and-compliance-view.html>audit record</a>. Off-site crew can review the packet through <a href=./mobile-engineering-access.html>mobile access</a>."
+   ]
+  ],
+  "related": [
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "audit-and-compliance-view",
+    "Audit and Compliance"
+   ],
+   [
+    "escalation-and-on-call",
+    "Escalation and On-Call"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "escalation-and-on-call",
+  "title": "Escalation and On-Call Workflows",
+  "cat": "l6-experience",
+  "lede": "How an unattended or ambiguous condition finds the right human fast — and how the interface makes escalation the easy, recorded default.",
+  "body": [
+   [
+    "h2",
+    "Getting the right human, quickly"
+   ],
+   [
+    "p",
+    "Not every condition needs the whole control room, and not every condition can wait for the next scheduled review. Escalation workflows route a condition to the appropriate responder — plasma physicist, magnet engineer, tritium specialist — based on what the anomaly touches, with a clear, time-bounded path if the first responder does not engage. The design bias is that escalating should be easier than not escalating."
+   ],
+   [
+    "h3",
+    "Escalation triggers"
+   ],
+   [
+    "ul",
+    [
+     "A high-priority alert unacknowledged past its response window",
+     "A model going out of distribution on a safety-relevant loop",
+     "An override that touches the safe operating envelope",
+     "A degraded-diagnostic condition that thins a critical estimate's provenance",
+     "Operator-initiated: any crew member can escalate with one action"
+    ]
+   ],
+   [
+    "p",
+    "Routing is by domain. A REBCO quench-margin excursion at the breeder's 16.84 T peak field pages the magnet engineer; a burner ambipolar-potential anomaly pages the mirror-confinement physicist; a tritium-accountancy flag pages the tritium specialist. The on-call schedule is part of the system, so the interface knows who to reach and shows the operator that contact is in progress rather than leaving them wondering."
+   ],
+   [
+    "h3",
+    "Acknowledgement and dead-man behavior"
+   ],
+   [
+    "p",
+    "Escalations carry acknowledgement deadlines. If the primary on-call does not acknowledge within the window, the escalation automatically widens to the secondary and then the session leader — a dead-man pattern so a single unreachable person never strands a condition. All of this is recorded: who was paged, when, when they acknowledged, and what they did. The control room always sees the live escalation state on the shared picture."
+   ],
+   [
+    "p",
+    "Escalation is deliberately consistent with the trust hierarchy: it brings more human judgment to bear, never less. It feeds from the ranked <a href=./alerting-triage-ux.html>triage stream</a>, reaches responders through <a href=./mobile-engineering-access.html>mobile access</a>, and is preserved in the <a href=./audit-and-compliance-view.html>audit record</a>."
+   ]
+  ],
+  "related": [
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "mobile-engineering-access",
+    "Mobile Engineering Access"
+   ],
+   [
+    "shift-handover-briefing",
+    "Shift Handover"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "attention-and-notification-design",
+  "title": "Attention and Notification Design",
+  "cat": "l6-experience",
+  "lede": "Using visual, auditory, and spatial cues in a disciplined budget so the machine can grab an operator's attention exactly when — and only when — it should.",
+  "body": [
+   [
+    "h2",
+    "Attention is a scarce, protected resource"
+   ],
+   [
+    "p",
+    "Every notification spends operator attention, and attention does not refill on demand. If the interface interrupts too often it trains the operator to tune it out (the alarm-fatigue failure mode); too rarely and it misses the moment to re-engage. Kronos L6 treats attention as a budget and spends it deliberately, matching the intrusiveness of a cue to the urgency and confidence of what triggered it."
+   ],
+   [
+    "h3",
+    "A graded cue hierarchy"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Urgency",
+      "Cue"
+     ],
+     [
+      [
+       "Ambient / informational",
+       "passive change on the shared picture, no interrupt"
+      ],
+      [
+       "Notable",
+       "peripheral highlight; enters the triage stream"
+      ],
+      [
+       "Action needed soon",
+       "distinct tone + persistent card with countdown"
+      ],
+      [
+       "Immediate action",
+       "strong multi-modal cue reserved for this level only"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The strongest cues are reserved and rare, so that when they fire operators respond reflexively instead of second-guessing. Auditory cues are distinct and few — a small vocabulary of sounds an operator can identify without looking — because a room full of similar beeps conveys nothing. Spatial cues matter too: an urgent item is drawn where the responsible operator is already looking, not stranded on a peripheral screen."
+   ],
+   [
+    "h3",
+    "Confidence modulates intrusiveness"
+   ],
+   [
+    "p",
+    "A high-confidence, high-consequence detection earns a strong interrupt; a low-confidence one is surfaced without hijacking the operator, because a strong interrupt on a shaky detection is how trust erodes. This links notification strength directly to the model's own uncertainty and provenance — the same signals shown in <a href=./uncertainty-visualization.html>uncertainty visualization</a>. When a model is out of distribution, its notifications are marked as such so the operator weights them appropriately."
+   ],
+   [
+    "p",
+    "The notification budget is validated in the simulator against scripted breeder disruptions and burner excursions, tuning cue thresholds so operators are re-engaged before events without being worn down between them. See <a href=./human-factors-cognitive-load.html>cognitive load</a> and <a href=./alarm-flood-suppression.html>flood suppression</a>."
+   ]
+  ],
+  "related": [
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ],
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-grammar-in-hmi",
+  "title": "Color Grammar in the HMI",
+  "cat": "l6-experience",
+  "lede": "One disciplined, colorblind-safe color system across every operator surface so a color always means the same thing and alerts are never lost.",
+  "body": [
+   [
+    "h2",
+    "One color system, enforced everywhere"
+   ],
+   [
+    "p",
+    "Color is the fastest channel to an operator's brain and the easiest to abuse. Kronos enforces a single color grammar across the 3D twin overlay, SCADA/HMI, dashboards, and mobile views so that a hue never carries two meanings. The reserved alert palette is used for nothing except alerts, so an alarm can never be camouflaged by decorative color elsewhere on the screen."
+   ],
+   [
+    "h3",
+    "Domain palettes"
+   ],
+   [
+    "ul",
+    [
+     "Thermal fields (wall temperature, reactor/DEC heat): orange ramp",
+     "Structural and magnet (REBCO strain at 16.84 T / 26.49 T): gray-blue ramp",
+     "Plasma / flux surfaces: dedicated flux palette",
+     "Operations and ecosystem status: green family",
+     "Feedback, alerts, and retraining signals: reserved pink/alert palette"
+    ]
+   ],
+   [
+    "p",
+    "These map to the same color grammar used throughout the Kronos architecture, so an engineer moving between the AI-native documentation, the twin, and the live control room reads color consistently. A scalar field is always shown with a perceptually uniform ramp so equal color steps mean equal physical steps, and a divergent quantity (error, margin) uses a divergent ramp centered on its neutral value."
+   ],
+   [
+    "h3",
+    "Colorblind-safe by construction"
+   ],
+   [
+    "p",
+    "Because roughly one in twelve men has a color-vision deficiency, color is never the sole carrier of meaning. Every color distinction is backed by a redundant cue — shape, position, hatching, or a label — so the interface remains fully usable in grayscale. This is verified by simulating common CVD types over every screen; see <a href=./accessibility-colorblind-safe.html>accessibility and colorblind-safe design</a>. Confidence hatching on the twin overlay is a deliberate example: it encodes uncertainty by texture, independent of color."
+   ],
+   [
+    "p",
+    "The grammar is also theme- and lighting-aware, staying legible as control-room lighting shifts across shifts. It underpins the whole visual system — see <a href=./human-factors-cognitive-load.html>cognitive load</a> and the <a href=./control-room-3d-twin-overlay.html>3D twin overlay</a>."
+   ]
+  ],
+  "related": [
+   [
+    "accessibility-colorblind-safe",
+    "Accessibility and Colorblind-Safe Design"
+   ],
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "accessibility-colorblind-safe",
+  "title": "Accessibility and Colorblind-Safe Design",
+  "cat": "l6-experience",
+  "lede": "The control room must work for every operator on every shift: redundant encodings, sufficient contrast, and legibility that does not depend on color vision.",
+  "body": [
+   [
+    "h2",
+    "Accessibility is an operational requirement"
+   ],
+   [
+    "p",
+    "In a safety-critical control room, accessibility is not a courtesy — an operator who cannot reliably read a display is an operational risk. Kronos L6 is built so that no critical information depends on color perception, fine visual acuity, or ideal lighting. The bar is that the interface remains fully usable in grayscale and under degraded viewing conditions."
+   ],
+   [
+    "h3",
+    "Redundant encoding"
+   ],
+   [
+    "p",
+    "Every meaning carried by color is also carried by at least one other channel — shape, position, texture, or an explicit label. An alert is not merely a color; it has an icon, a position in the triage stream, and text. A low-confidence region on the twin is not merely dimmed; it is hatched. This redundancy is what makes color-vision deficiency, which affects roughly one in twelve men, a non-issue rather than a hazard."
+   ],
+   [
+    "ul",
+    [
+     "Color never sole carrier: shape/position/texture/label always back it up",
+     "Contrast meets accessibility thresholds at each display's viewing distance",
+     "Type scales with distance: wall glyphs and console text sized for their range",
+     "CVD simulation over every screen (protan / deutan / tritan) before release",
+     "Motion used sparingly and never as the only cue, to respect motion sensitivity"
+    ]
+   ],
+   [
+    "h3",
+    "Testing, not assuming"
+   ],
+   [
+    "p",
+    "Accessibility is verified, not asserted. Every screen is run through color-vision-deficiency simulation for the common types and checked for contrast at its intended viewing distance. Operators with different visual profiles participate in simulator sessions, and any screen that fails for any of them is revised. The same discipline that keeps the machine's uncertainty honest keeps the interface's legibility honest."
+   ],
+   [
+    "p",
+    "Accessibility and the color grammar are two sides of one system: the grammar defines the colors, and accessibility guarantees they are never load-bearing alone — see <a href=./color-grammar-in-hmi.html>color grammar in the HMI</a>. It underpins the shared <a href=./large-format-video-wall.html>video wall</a> and every console."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-in-hmi",
+    "Color Grammar in the HMI"
+   ],
+   [
+    "large-format-video-wall",
+    "Large-Format Video Wall"
+   ],
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kpi-availability-and-breeding",
+  "title": "Breeder KPIs: Availability, Shape Fidelity, and Breeding Context",
+  "cat": "l6-experience",
+  "lede": "The operational indicators that define a good breeder run — shot quality, shape fidelity, magnet health, and tritium-cycle context — with no economics.",
+  "body": [
+   [
+    "h2",
+    "What 'good operation' means for the breeder"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is judged operationally, never financially. Its KPIs answer whether the machine is running well physically and how much confidence to place in that judgment. Availability here means operational readiness and uptime of the plant and its diagnostics — the fraction of intended operating time the machine is actually able to run — expressed physically, with no cost or financial content of any kind."
+   ],
+   [
+    "h3",
+    "Core breeder KPIs"
+   ],
+   [
+    "ul",
+    [
+     "Shot quality: fraction of shots reaching target parameters without disruption",
+     "Shape fidelity: measured triangularity vs delta -0.30, ELM-free fraction",
+     "Performance: Q_sci vs 3.424, fusion power vs 88.7 MW, current vs 9.86 MA",
+     "Disruption rate and mean precursor lead time achieved",
+     "Diagnostic availability: fraction of the 60+ ports healthy (un-imputed)",
+     "Magnet health: REBCO strain and quench margin at 16.84 T peak field"
+    ]
+   ],
+   [
+    "h3",
+    "Tritium breeding as a design lever, shown honestly"
+   ],
+   [
+    "p",
+    "The tritium breeding ratio (TBR) is treated as a design lever across 1.1 / 1.5 / 1.8, and the operating surface shows the fuel-cycle balance in that context rather than asserting a single settled number. The KPI presents tritium production and consumption balance with the assumed TBR case labeled, so the operator always knows which design assumption the displayed balance rests on. Helium-3 co-production context is shown similarly."
+   ],
+   [
+    "p",
+    "Framing stays honest: these are design-and-simulation studies, so performance KPIs are shown against reference design points with confidence bands, and no hardware net-gain is claimed before first-of-a-kind first tritium (~2030). Diagnostic-availability and disruption-rate KPIs are the most actionable day to day, because they gate the operator's ability to trust every other number. See <a href=./dashboards-and-kpis.html>dashboards and KPIs</a> and the <a href=./burner-control-room-view.html>burner</a> counterpart."
+   ]
+  ],
+  "related": [
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ],
+   [
+    "kpi-burner-net-power-dec",
+    "Burner Net-Power and DEC KPIs"
+   ],
+   [
+    "breeder-control-room-view",
+    "Breeder Control View"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kpi-burner-net-power-dec",
+  "title": "Burner KPIs: Confinement, DEC Stability, and Net-Power Context",
+  "cat": "l6-experience",
+  "lede": "The operational indicators for the tandem mirror — plug density, potential-well depth, DEC grid stability — shown against design references, without economics.",
+  "body": [
+   [
+    "h2",
+    "What 'good operation' means for the burner"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem mirror, and its KPIs track the physics that keeps it confining and converting: end-plug density, the ambipolar potential well, field margins at the 26.49 T plug and 17 T throat, and the stability of direct energy conversion. As with the breeder, every KPI is physical and operational — there is no cost, price, or financial indicator anywhere on the surface."
+   ],
+   [
+    "h3",
+    "Core burner KPIs"
+   ],
+   [
+    "ul",
+    [
+     "End-plug density vs setpoint and end-to-end balance",
+     "Ambipolar potential well depth vs the depth required for confinement",
+     "Field margins: plug 26.49 T, throat 17 T",
+     "Mirror ratio and central-cell confinement quality",
+     "DEC grid-voltage stability and fault-ride-through readiness",
+     "Neutron-fraction (5.44%) blanket load within design limits"
+    ]
+   ],
+   [
+    "h3",
+    "Net-power context, framed honestly"
+   ],
+   [
+    "p",
+    "Direct energy conversion is the burner's power path, so a net-power context indicator compares recovered electrical output against the recirculating power needed to sustain the plugs and fields — shown as a physics ratio against the design reference, with its confidence band. This is presented explicitly as a design-and-simulation figure: the machines are not yet built, and no hardware net-gain is claimed before the breeder FOAK (~2030). The KPI's job is to show margin trends and confidence, not to assert a result."
+   ],
+   [
+    "p",
+    "Because Aegis (fixed defense installations) and MetroVolt (data centers) are two housings of the same machine, they share this KPI set; the difference is in deployment context, not physics. The most actionable day-to-day KPIs are plug-density balance and DEC stability, since a plug excursion is the burner's fast-developing fault. See <a href=./burner-control-room-view.html>the burner control view</a> and the <a href=./kpi-availability-and-breeding.html>breeder</a> counterpart."
+   ]
+  ],
+  "related": [
+   [
+    "kpi-availability-and-breeding",
+    "Breeder KPIs"
+   ],
+   [
+    "burner-control-room-view",
+    "Burner Control View"
+   ],
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "predictive-shadow-visualization",
+  "title": "Predictive Shadow Visualization",
+  "cat": "l6-experience",
+  "lede": "Drawing the twin's 50-100 ms lookahead as a labeled forecast beside the live state so operators see where the machine is going, with its uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Showing the near future honestly"
+   ],
+   [
+    "p",
+    "The KRONOS-CTRL twin runs a predictive shadow 50-100 ms ahead of the real plant. L6 renders that lookahead as a distinct, clearly-labeled forecast alongside the live state — never blended into it. The operator sees two things at once: where the machine is, and where the twin expects it to be shortly, with the uncertainty of that expectation drawn explicitly."
+   ],
+   [
+    "h3",
+    "Forecast, not fact"
+   ],
+   [
+    "p",
+    "The forecast is visually differentiated from measured state — a lighter weight, a leading marker, an explicit horizon label — so it can never be mistaken for data. As the horizon extends, a fan chart widens to show growing uncertainty, honest about the fact that a 100 ms projection is less certain than a 20 ms one. When the forecast's epistemic uncertainty grows large, the display says the twin is extrapolating beyond confident ground."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def draw_shadow(live, shadow):\n    plot(live.t, live.y, style='measured')          # solid, current\n    plot(shadow.t, shadow.mu, style='forecast')      # distinct, leading\n    fan(shadow.t, shadow.mu, shadow.sigma_of_h)      # widening band vs horizon\n    for c in shadow.envelope_limits:\n        mark_crossing(shadow, c)                      # highlight projected breaches"
+    ]
+   ],
+   [
+    "h3",
+    "Projecting toward the envelope"
+   ],
+   [
+    "p",
+    "The shadow's value is in projecting toward constraints. For the breeder it forecasts the equilibrium and shape trajectory and flags a projected approach to a stability limit before it happens — the earliest actionable disruption cue. For the burner it projects end-plug density and the ambipolar potential forward, flagging a plug excursion in formation. In both cases the operator gets lead time, which is the whole point of situational-awareness Level 3 (projection)."
+   ],
+   [
+    "p",
+    "The shadow underpins projection-level awareness and disruption avoidance — see <a href=./operator-situational-awareness.html>operator situational awareness</a> and the <a href=./disruption-countdown-ui.html>disruption countdown</a>. Its forecasts carry the same uncertainty encodings as everything else — see <a href=./uncertainty-visualization.html>uncertainty visualization</a> — because a forecast without its error band would be the most misleading display in the room."
+   ]
+  ],
+  "related": [
+   [
+    "operator-situational-awareness",
+    "Operator Situational Awareness"
+   ],
+   [
+    "disruption-countdown-ui",
+    "Disruption Countdown UI"
+   ],
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "anomaly-precursor-timeline-ux",
+  "title": "Anomaly and Precursor Timeline UX",
+  "cat": "l6-experience",
+  "lede": "A shared timeline that shows precursors emerging, growing, and resolving — turning the anomaly ensembles' outputs into a story an operator can read.",
+  "body": [
+   [
+    "h2",
+    "Anomalies have a history, not just a state"
+   ],
+   [
+    "p",
+    "A single red/green anomaly indicator throws away the most useful information: the trajectory. The L3 anomaly ensembles surface sub-threshold quench and disruption precursors well before any threshold trips, and their value is in the trend. L6 renders anomalies on a timeline so operators see a precursor emerge, strengthen, and either resolve or escalate — reading intent, not just an instantaneous flag."
+   ],
+   [
+    "h3",
+    "The precursor lane"
+   ],
+   [
+    "p",
+    "Each detector contributes a lane on a shared timeline. A lane shows the precursor's strength over recent history and, where the ensemble provides it, a projected lead time to the event. Lanes are ordered by current triage score, so the most consequential emerging precursor is at the top. Sub-threshold activity is visible — not hidden until it crosses a line — which is what gives operators time to act early."
+   ],
+   [
+    "ul",
+    [
+     "Breeder: disruption precursors, quench precursors, magnet delta-T trends",
+     "Burner: plug-density excursion precursors, ambipolar-potential drift",
+     "Cross-machine: diagnostic-health degradation feeding provenance",
+     "Each lane: strength history, confidence, projected lead time, contributing signals"
+    ]
+   ],
+   [
+    "h3",
+    "From precursor to action"
+   ],
+   [
+    "p",
+    "A lane is not just a chart; it is a starting point for action. Selecting a precursor reveals the features driving it (the anomaly ensembles are feature-attributable) and links to the recommended response and, if warranted, the mitigation path. This closes the loop from detection to decision: the operator sees what the model saw, how sure it is, and what to do about it. Confidence and provenance ride along so a precursor from a degraded, imputed input is weighted accordingly."
+   ],
+   [
+    "p",
+    "The timeline is the tissue connecting detection to the countdown and to replay: an escalating breeder lane hands off to the <a href=./disruption-countdown-ui.html>disruption countdown</a>, and every lane is preserved in <a href=./incident-replay.html>incident replay</a> so lead times can be validated after the fact. Emergence cues are tuned per the <a href=./attention-and-notification-design.html>notification budget</a>."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-countdown-ui",
+    "Disruption Countdown UI"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-countdown-ui",
+  "title": "Disruption Countdown and Mitigation UI (Breeder)",
+  "cat": "l6-experience",
+  "lede": "When a breeder disruption becomes likely, the interface collapses to a single decision surface: time remaining, options, and the mitigation path — with hardware still authoritative.",
+  "body": [
+   [
+    "h2",
+    "The one display that matters in the last moments"
+   ],
+   [
+    "p",
+    "A disruption in the breeder (Hyperion) — a rapid loss of the 9.86 MA plasma current — develops on a timescale of milliseconds to tens of milliseconds, faster than a human can compose a plan from scratch. So when disruption risk crosses into the actionable range, the operator view escalates to a purpose-built countdown surface that strips away everything non-essential and shows only what the decision needs. The fast protection itself runs in L1 hardware; this surface supports the human's supervisory choice, it does not replace the failsafe."
+   ],
+   [
+    "h3",
+    "What the countdown shows"
+   ],
+   [
+    "ul",
+    [
+     "Projected time-to-disruption from the predictive shadow, counting down",
+     "The precursors driving the risk, ranked, with confidence",
+     "Available responses: avoidance maneuver vs mitigation (e.g. injection)",
+     "The safe path the MPC recommends, and the envelope margins left",
+     "Failsafe arming status from L1 — what hardware will do if the human does not"
+    ]
+   ],
+   [
+    "p",
+    "The countdown is deliberately calm, not frantic: a clear number, a small number of options, and a recommended action. Panic-inducing design causes errors, so the surface uses the reserved alert palette with restraint and a single distinct tone rather than a cacophony. The recommended action carries its confidence and rationale from the copilot, so the operator can accept it fast or override it knowingly."
+   ],
+   [
+    "h3",
+    "Avoidance before mitigation"
+   ],
+   [
+    "p",
+    "The surface always favors avoidance while there is time to avoid, and shows the crossover point where avoidance is no longer feasible and mitigation (controlled energy dissipation) becomes the right choice. This mirrors the physics: it is far better to steer the plasma away from the instability than to survive it. If the human takes no timely action, the L1 failsafe acts autonomously, and the surface shows exactly what it will do so the outcome is never a surprise."
+   ],
+   [
+    "p",
+    "The countdown is fed by the <a href=./anomaly-precursor-timeline-ux.html>precursor timeline</a> and the <a href=./predictive-shadow-visualization.html>predictive shadow</a>, and every countdown — acted on or not — is captured for <a href=./incident-replay.html>incident replay</a> to validate and improve lead times."
+   ]
+  ],
+  "related": [
+   [
+    "anomaly-precursor-timeline-ux",
+    "Precursor Timeline UX"
+   ],
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "what-if-scenario-console",
+  "title": "What-If Scenario Console",
+  "cat": "l6-experience",
+  "lede": "An offline console where operators and engineers explore how the machine would respond to a change — driven by the twin, never touching the live plant.",
+  "body": [
+   [
+    "h2",
+    "Rehearsing decisions safely"
+   ],
+   [
+    "p",
+    "Operators need to ask 'what if' — what if we push end-plug density, what if we take the breeder shape closer to its stability edge, what if a diagnostic drops mid-shot. The what-if console lets them explore these against the KRONOS-CTRL twin in a strictly offline sandbox. It shares the twin's physics and the live interface's look, but it is firewalled from actuation: nothing done here can reach the real machine."
+   ],
+   [
+    "h3",
+    "How a scenario runs"
+   ],
+   [
+    "p",
+    "A scenario starts from either the current live state (snapshotted) or a saved/recorded state, then applies proposed changes and runs the twin forward. The operator sees the projected trajectory with its uncertainty, the envelope margins it would consume, and any precursors it would raise — the same surfaces they use live, so intuition transfers directly. Because the twin exposes confidence, the console also shows where a scenario pushes the model out of its trained distribution and therefore where the projection is least trustworthy."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "scn = twin.sandbox(from_state=live.snapshot())   # isolated copy, no actuation\nscn.set('plug_density_setpoint', +5e18)            # burner what-if\ntraj = scn.rollout(horizon_ms=500)\nreport(traj.margins, traj.precursors, traj.confidence, traj.ood_regions)\n# firewall invariant: sandbox has no path to L1 actuators"
+    ]
+   ],
+   [
+    "h3",
+    "Where scenarios come from and go"
+   ],
+   [
+    "p",
+    "Scenarios feed pre-operation briefings (rehearse the plan before running it), training (present trainees with situations that would be unsafe to create live), and counterfactual analysis after an incident (would a different action have avoided it?). Useful scenarios are saved to a shared library so the team accumulates a rehearsed playbook for both machines rather than improvising each upset."
+   ],
+   [
+    "p",
+    "The console is the interactive face of the counterfactual replay described in <a href=./incident-replay.html>incident replay</a>, and it is a core tool in <a href=./training-simulator-mode.html>training-simulator mode</a>. Its firewall from live actuation is the same discipline that keeps observability ubiquitous but authority concentrated across all of L6."
+   ]
+  ],
+  "related": [
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "training-simulator-mode",
+    "Training-Simulator Mode"
+   ],
+   [
+    "predictive-shadow-visualization",
+    "Predictive Shadow Visualization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "large-format-video-wall",
+  "title": "Large-Format Video Wall",
+  "cat": "l6-experience",
+  "lede": "The shared control-room display that carries the one common operating picture every role must agree on — legible across the room and resilient to failure.",
+  "body": [
+   [
+    "h2",
+    "One shared truth, visible to all"
+   ],
+   [
+    "p",
+    "The video wall exists so the whole crew shares a single operating picture and never argues from different screens during an upset. It carries the common essentials: the 3D twin overlay, the top KPIs, the active alert or countdown, and the live escalation state. Individual depth lives on consoles; the wall is the synchronized backbone the session leader and every operator reference together."
+   ],
+   [
+    "h3",
+    "Designed for room-scale legibility"
+   ],
+   [
+    "ul",
+    [
+     "Glyph and type sizes set for across-the-room reading, not desk distance",
+     "The reserved alert palette stays distinct at wall distance and off-angle",
+     "Confidence hatching remains visible at scale, so trust state reads from afar",
+     "Layout is stable across modes so the crew's eyes know where to look",
+     "Brightness adapts to control-room lighting across shifts without losing contrast"
+    ]
+   ],
+   [
+    "p",
+    "Content on the wall is curated, not maximal. A wall crammed with every available chart defeats its purpose; it carries only what the whole team must share, with everything else a console away. During a disruption countdown or plug excursion the wall promotes the decision surface so the entire room is oriented to the same clock and the same options."
+   ],
+   [
+    "h3",
+    "Resilience"
+   ],
+   [
+    "p",
+    "Because the wall is the shared source of truth, it is engineered to degrade gracefully. It is driven redundantly so a single display or feed failure does not blank the common picture, and if a data source stalls, the affected panel shows a staleness badge rather than a frozen-but-plausible image. The wall renders twin output and never holds control authority, so even a total wall failure does not affect the L1 control plane — it costs shared awareness, which the consoles and mobile views can backstop."
+   ],
+   [
+    "p",
+    "The wall is the room-scale expression of the <a href=./control-room-3d-twin-overlay.html>3D twin overlay</a> and the <a href=./dashboards-and-kpis.html>dashboards</a>, laid out per <a href=./control-room-layout-ergonomics.html>control-room ergonomics</a> and held to the same <a href=./accessibility-colorblind-safe.html>accessibility</a> bar."
+   ]
+  ],
+  "related": [
+   [
+    "control-room-layout-ergonomics",
+    "Control-Room Layout"
+   ],
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "latency-and-staleness-indicators",
+    "Staleness Indicators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "latency-and-staleness-indicators",
+  "title": "Latency and Data-Staleness Indicators",
+  "cat": "l6-experience",
+  "lede": "Operators must always know how fresh what they are looking at is; the interface shows data age and freezes rather than extrapolating when a feed stalls.",
+  "body": [
+   [
+    "h2",
+    "A number without an age is a hazard"
+   ],
+   [
+    "p",
+    "Every value on an operator surface has an age — the time since it was actually measured or computed — and a stale value that looks live is one of the most dangerous things an interface can show. Kronos L6 makes freshness explicit. Each panel knows the timestamp of its underlying data (from the PTP-disciplined L2 fabric) and surfaces staleness the moment it exceeds what that panel's decisions tolerate."
+   ],
+   [
+    "h3",
+    "Freshness budgets per surface"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Surface",
+      "Tolerated age before staleness shown"
+     ],
+     [
+      [
+       "3D twin overlay / shape",
+       "tens of milliseconds"
+      ],
+      [
+       "Fast KPIs (current, plug density)",
+       "tens to hundreds of ms"
+      ],
+      [
+       "Slow process KPIs (cryo, vacuum trend)",
+       "seconds"
+      ],
+      [
+       "Mobile / off-console views",
+       "seconds, with connectivity note"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "When a feed stalls, the panel freezes its last-known value and marks it stale rather than extrapolating a plausible-looking continuation — because a confident-looking guess is worse than an honest gap. The staleness badge shows how old the data is and, where relevant, why (source down, network gap, diagnostic dropped). On mobile, a connectivity gap always shows as staleness, never as a silently frozen dashboard."
+   ],
+   [
+    "h3",
+    "Latency of the pipeline itself"
+   ],
+   [
+    "p",
+    "Beyond per-value age, the interface exposes end-to-end latency of the observability path so the crew knows how far behind reality the picture inherently is. This is distinct from the hard-real-time control latency, which lives in L1; the L6 latency is the human-observation lag. Showing it keeps operators calibrated: a 50 ms-old overlay is fine for supervision but is not a substitute for the microsecond loops L1 runs."
+   ],
+   [
+    "p",
+    "Staleness ties directly into confidence and provenance — an imputed or stale input lowers an estimate's confidence — see <a href=./confidence-provenance-display.html>provenance display</a>. It also protects the shared <a href=./large-format-video-wall.html>video wall</a> and <a href=./mobile-engineering-access.html>mobile views</a> from showing frozen truth."
+   ]
+  ],
+  "related": [
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "large-format-video-wall",
+    "Large-Format Video Wall"
+   ],
+   [
+    "mobile-engineering-access",
+    "Mobile Engineering Access"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "audit-and-compliance-view",
+  "title": "Audit and Compliance View",
+  "cat": "l6-experience",
+  "lede": "Every operator action, alert, override, and model version is recorded in an attributable, tamper-evident timeline that supports regulators, reviews, and trust.",
+  "body": [
+   [
+    "h2",
+    "An accountable record of everything that happened"
+   ],
+   [
+    "p",
+    "A fusion plant handling tritium (breeder) and operating under a nuclear-adjacent regulatory framework must be able to show, after the fact, exactly what happened and who did what. The audit view is the operator-facing window into that record: a searchable, attributable, tamper-evident timeline of alerts, acknowledgements, overrides, mode changes, escalations, and the model versions in effect at each moment."
+   ],
+   [
+    "h3",
+    "What is recorded"
+   ],
+   [
+    "ul",
+    [
+     "Every alert: when it fired, its confidence, its recommended action",
+     "Every operator action: who, what, when, and the reason if it was an override",
+     "Model provenance: which model version produced each acted-upon estimate",
+     "Escalations: who was paged, when acknowledged, what was decided",
+     "Mode and automation-level changes, with the authorizing identity",
+     "Shelved alarms and the justification for shelving"
+    ]
+   ],
+   [
+    "p",
+    "The record is generated automatically from the live systems, not curated by hand, so it cannot be edited by hand into a cleaner story — and it is tamper-evident so any alteration is detectable. Attribution ties every action to an identity, which is why mobile and console actions alike carry strong authentication: an unattributable action would be a hole in the record."
+   ],
+   [
+    "h3",
+    "From audit to improvement"
+   ],
+   [
+    "p",
+    "The audit record is not only for compliance; it is the substrate for learning. Overrides recorded with reasons show where humans and the AI disagreed, feeding the L0 retraining loop. Escalation timings show where response paths were slow. Alarm statistics show where rationalization needs another pass. In this sense the honest record closes the loop between operation and the models that support it."
+   ],
+   [
+    "p",
+    "The audit view shares its raw material with <a href=./incident-replay.html>incident replay</a> and <a href=./shift-handover-briefing.html>shift handover</a>, and it is the accountability backstop behind <a href=./trust-and-override-ux.html>trust and override</a>. Handling of any sensitive content follows the plant's security and access rules; the audit surface enforces least-privilege access just as the mobile surface does."
+   ]
+  ],
+  "related": [
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ],
+   [
+    "shift-handover-briefing",
+    "Shift Handover"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "training-simulator-mode",
+  "title": "Training-Simulator Mode",
+  "cat": "l6-experience",
+  "lede": "The same interface, driven by the twin instead of live diagnostics, so operators rehearse both machines — including unsafe-to-create upsets — before and between real runs.",
+  "body": [
+   [
+    "h2",
+    "Rehearse on the real interface, not a mock-up"
+   ],
+   [
+    "p",
+    "Operators build reliable intuition only by practicing on the interface they will actually use. Training-simulator mode runs the full control-room surface — 3D twin overlay, dashboards, alerting, countdown — driven by the KRONOS-CTRL twin instead of live diagnostics. Nothing about the operator's mental model changes between training and operation, which is why the twin-first approach is central while the machines are still being built toward first-of-a-kind first tritium (~2030)."
+   ],
+   [
+    "h3",
+    "Scripted scenarios, including the unsafe ones"
+   ],
+   [
+    "p",
+    "The simulator can present situations that would be reckless to create on real hardware: a breeder disruption sequence, a cascading diagnostic failure that forces the twin onto imputed inputs, a burner plug-density excursion, a magnet quench precursor at the 16.84 T peak field. Operators rehearse the recognition, the triage, and the countdown decision under realistic time pressure, and learn where the AI's confidence should and should not be trusted."
+   ],
+   [
+    "ul",
+    [
+     "Breeder: disruption avoidance, vertical-stability loss, shape drift off delta -0.30",
+     "Burner: plug-density excursion, ambipolar-potential collapse, DEC grid fault",
+     "Cross-cutting: diagnostic loss and imputation, alarm floods, out-of-distribution models",
+     "Scenarios reuse the what-if console and recorded real shots as seeds"
+    ]
+   ],
+   [
+    "h3",
+    "Measuring and closing the loop"
+   ],
+   [
+    "p",
+    "The simulator is also where the interface itself is tested. Operator situational awareness is probed with SAGAT-style freezes, cognitive load is estimated during scripted upsets, and any display that spikes load or degrades awareness is revised. Notification thresholds, alarm rationalization, and layout are all tuned against simulator evidence rather than opinion. Trainee performance and the interface's performance improve together."
+   ],
+   [
+    "p",
+    "Training draws directly on the <a href=./what-if-scenario-console.html>what-if scenario console</a> and recorded <a href=./incident-replay.html>incident replays</a> as scenario seeds, and its findings feed <a href=./human-factors-cognitive-load.html>cognitive-load</a> and <a href=./attention-and-notification-design.html>notification</a> design. The same firewall applies: the simulator can never reach live actuation."
+   ]
+  ],
+  "related": [
+   [
+    "what-if-scenario-console",
+    "What-If Scenario Console"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "digital-twin-walkthrough-3d",
+  "title": "3D Twin Walkthrough and Inspection Mode",
+  "cat": "l6-experience",
+  "lede": "An immersive inspect-and-annotate mode that lets engineers move through the machine's geometry to examine twin state, component health, and provenance in place.",
+  "body": [
+   [
+    "h2",
+    "Moving through the machine, not around a chart"
+   ],
+   [
+    "p",
+    "Beyond the fixed control-room overlay, engineers need to inspect specific regions of the machine in depth — a section of the breeder's first wall, a REBCO winding pack, the burner's plug region or DEC collector. The 3D walkthrough mode lets them move through the twin's geometry and examine local state, component health, and history exactly where those things physically are, on desktop and, where available, on stereoscopic displays."
+   ],
+   [
+    "h3",
+    "Inspect, measure, annotate"
+   ],
+   [
+    "p",
+    "Selecting any component reveals the twin's local estimates — temperature, neutron fluence, strain — with confidence and provenance, plus the diagnostics constraining that region. Engineers can take measurements between points, compare a region against its design reference, and leave annotations that persist and are shared with the team. An annotation on a high-strain magnet region, for instance, follows that component into dashboards and incident replay."
+   ],
+   [
+    "ul",
+    [
+     "Breeder: first-wall thermal load, blanket neutron fluence, PF/CS coils, centerpost",
+     "Burner: plug and throat field regions, central cell, DEC collector grid",
+     "Per component: twin estimate + confidence + provenance + contributing diagnostics",
+     "Persistent annotations that travel with the component across surfaces"
+    ]
+   ],
+   [
+    "h3",
+    "A public-safe subset"
+   ],
+   [
+    "p",
+    "The walkthrough respects the same public/private split as the rest of the Kronos 3D model program: detailed CAD and sensitive component data are access-controlled, while a teaser subset can be shown more broadly. The engineering inspection mode shows full detail to authorized operators; less-privileged views show reduced geometry and no protected internals. This is enforced by access rules, not by hiding controls."
+   ],
+   [
+    "p",
+    "The walkthrough is the immersive sibling of the control-room <a href=./control-room-3d-twin-overlay.html>3D overlay</a> and shares its <a href=./confidence-provenance-display.html>confidence and provenance</a> surfaces. Because it renders twin output only, it is inherently offline-safe and holds no control authority — inspection never touches the live plant."
+   ]
+  ],
+  "related": [
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "twin-overlay-flux-surface-rendering",
+    "Flux-Surface Rendering"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "copilot-conversation-surface",
+  "title": "Copilot Conversation Surface",
+  "cat": "l6-experience",
+  "lede": "The window through which L5 copilots explain, recommend, and answer — always advisory, always with citations and confidence, never issuing commands on their own.",
+  "body": [
+   [
+    "h2",
+    "Where the copilot meets the operator"
+   ],
+   [
+    "p",
+    "The L5 copilots reason over the machine, the documentation, and the shot database; L6 is where their output reaches a human. The conversation surface lets an operator ask 'why is the disruption-risk index rising?' or 'what changed since the last good shot?' and get a grounded answer. Crucially, the copilot advises and explains — it never actuates. Any action it recommends flows through the same trust-and-override path as any other AI recommendation."
+   ],
+   [
+    "h3",
+    "Grounded, cited, and honest about uncertainty"
+   ],
+   [
+    "p",
+    "Every copilot answer is grounded in retrievable sources — specific diagnostics, twin estimates, documentation pages, prior shots — and shows its citations so the operator can verify rather than trust blindly. Answers carry the copilot's confidence, and the surface distinguishes what is measured from what is inferred. When the copilot is uncertain or the question falls outside what it can ground, it says so plainly instead of fabricating, because a confident wrong answer in a control room is worse than an honest 'I don't know.'"
+   ],
+   [
+    "ul",
+    [
+     "Explain: why an alert fired, what precursors drive it, what changed",
+     "Recommend: a response, with rationale, confidence, and citations — advisory only",
+     "Retrieve: relevant procedures, prior similar shots, documentation",
+     "Never: issue a command directly; recommendations go through human approval"
+    ]
+   ],
+   [
+    "h3",
+    "Integrated, not a separate app"
+   ],
+   [
+    "p",
+    "The conversation surface is woven into the operator's context. Asking about the current alert automatically scopes the copilot to that alert's data; a recommendation links to the exact provenance and envelope margins involved. During an upset the copilot's role is to compress the situation into a clear rationale for the decision surface, not to add another thing to read — its output is filtered through the same attention budget as any notification."
+   ],
+   [
+    "p",
+    "The copilot surface depends on the honesty machinery around it — see <a href=./confidence-provenance-display.html>provenance display</a> and <a href=./trust-and-override-ux.html>trust and override</a> — and its recommendations are captured, like all actions, for <a href=./audit-and-compliance-view.html>audit</a>."
+   ]
+  ],
+  "related": [
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ],
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "audit-and-compliance-view",
+    "Audit and Compliance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cross-machine-fleet-view",
+  "title": "Cross-Machine and Fleet View",
+  "cat": "l6-experience",
+  "lede": "A single surface to supervise more than one machine at once — breeder and burner side by side, and multiple units of a kind — without diluting per-machine depth.",
+  "body": [
+   [
+    "h2",
+    "Supervising more than one machine"
+   ],
+   [
+    "p",
+    "Kronos operates one architecture across two machine types, and units of each kind follow (breeder first-of-a-kind, then next-of-a-kind and beyond). Operators and engineers will need to watch several at once. The fleet view presents a compact health row per machine — the essential KPIs, the worst active alert, and confidence — so a supervisor sees the state of everything at a glance and drills into any one machine for full depth."
+   ],
+   [
+    "h3",
+    "Comparable, not identical"
+   ],
+   [
+    "p",
+    "The breeder and burner have different physics, so the fleet row shows each machine's own most-decision-relevant indicators (breeder: shape fidelity, disruption risk, Q_sci vs 3.424; burner: plug-density balance, potential-well depth, DEC stability) under a common health summary. Same-type units are directly comparable, which is how a supervisor spots that one breeder unit is drifting relative to its siblings — an early, cheap signal."
+   ],
+   [
+    "ul",
+    [
+     "Per machine: health summary, top KPI set, worst active alert, confidence",
+     "Breeder rows: shape/disruption/performance indicators",
+     "Burner rows: plug/potential/DEC indicators",
+     "Cross-unit comparison to surface a single drifting unit early",
+     "One click to the full single-machine control view"
+    ]
+   ],
+   [
+    "h3",
+    "Attention routing across the fleet"
+   ],
+   [
+    "p",
+    "With several machines in view, attention discipline matters even more. The fleet view ranks machines by triage score so the one that most needs attention rises to the top, and it never lets a fleet overview replace per-machine authority: control of any machine still happens in that machine's control room, with its own crew and its own L1 failsafe. The fleet surface is supervisory awareness, not remote control."
+   ],
+   [
+    "p",
+    "The fleet view is the multi-machine expression of the <a href=./dashboards-and-kpis.html>dashboards</a> and shares the ranking logic of the <a href=./alerting-triage-ux.html>triage stream</a>. It is honest about status the same way single-machine surfaces are — units still in design and simulation are labeled as such, and no cross-fleet net-gain claim is made before the breeder FOAK (~2030)."
+   ]
+  ],
+  "related": [
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ],
+   [
+    "alerting-triage-ux",
+    "Alerting and Triage UX"
+   ],
+   [
+    "breeder-control-room-view",
+    "Breeder Control View"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "annotation-and-collaboration",
+  "title": "Annotation and Collaborative Markup",
+  "cat": "l6-experience",
+  "lede": "Shared, persistent annotations let the crew point at the same thing, capture judgment, and hand off context across shifts and between control room and mobile.",
+  "body": [
+   [
+    "h2",
+    "Making the team's knowledge visible"
+   ],
+   [
+    "p",
+    "A great deal of what keeps a machine safe lives in operators' heads: 'this diagnostic reads low after conditioning', 'watch this region during ramp-up'. Left tacit, that knowledge is lost at every shift change. L6 lets the crew annotate live surfaces — the 3D overlay, a KPI trend, an alert, a component — with notes that persist, are attributed, and are shared across the control room, mobile, and replay."
+   ],
+   [
+    "h3",
+    "Annotations that travel"
+   ],
+   [
+    "p",
+    "An annotation is bound to what it describes, not to a screen. A note left on a REBCO winding region in the 3D walkthrough appears when anyone inspects that component, shows up in the relevant dashboard tile, and is present in incident replay of that period. This binding is what makes annotations useful rather than clutter: context reaches the person who needs it because it lives on the thing it is about."
+   ],
+   [
+    "ul",
+    [
+     "Bound to a component, region, signal, or time window — not to a screen",
+     "Attributed and time-stamped, part of the accountable record",
+     "Visible across control room, mobile, walkthrough, and replay",
+     "Types: observation, caution, follow-up action, resolved"
+    ]
+   ],
+   [
+    "h3",
+    "Collaboration under pressure"
+   ],
+   [
+    "p",
+    "During an upset, annotation becomes lightweight pointing: a session leader can flag the region of concern so every operator's view highlights the same spot, aligning the room without a spoken description that could be misheard. This shared deixis — everyone literally looking at the same marked thing — is a small feature that pays off most in the worst minute."
+   ],
+   [
+    "p",
+    "Annotations feed <a href=./shift-handover-briefing.html>shift handover</a> (open follow-ups carry forward), enrich <a href=./incident-replay.html>incident replay</a> (what the crew noted as it happened), and become part of the <a href=./audit-and-compliance-view.html>audit record</a>. Persistent component notes also surface in the <a href=./digital-twin-walkthrough-3d.html>3D walkthrough</a>."
+   ]
+  ],
+  "related": [
+   [
+    "shift-handover-briefing",
+    "Shift Handover"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ],
+   [
+    "digital-twin-walkthrough-3d",
+    "3D Twin Walkthrough"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "theming-and-shift-lighting",
+  "title": "Theming and Shift-Aware Lighting",
+  "cat": "l6-experience",
+  "lede": "Displays that stay legible and low-fatigue as control-room lighting changes across day and night shifts, without altering the meaning of any color.",
+  "body": [
+   [
+    "h2",
+    "The room's light changes; the meaning must not"
+   ],
+   [
+    "p",
+    "A control room runs around the clock, and its ambient lighting is not constant: bright during day operations, dimmed at night to reduce fatigue. Displays must remain legible and comfortable across that range without ever changing what a color means. Kronos L6 supports light and dark presentations of the same interface, tied to a stable color grammar so a hue's meaning is invariant even as its rendering adapts to the room."
+   ],
+   [
+    "h3",
+    "Legibility across lighting"
+   ],
+   [
+    "p",
+    "Contrast is maintained against whatever the ambient condition is: a dark theme for dimmed night operation keeps the alert palette distinct and the confidence hatching visible; a light theme for bright conditions does the same. The reserved alert colors are chosen to remain unmistakable in both themes, because an alarm that washes out under one lighting condition is a latent failure. Type and glyph contrast are checked against accessibility thresholds in both themes and at each viewing distance."
+   ],
+   [
+    "ul",
+    [
+     "Light and dark presentations of one interface, same semantics",
+     "Alert palette remains distinct in both themes and off-angle on the wall",
+     "Confidence hatching and redundant cues survive the theme switch",
+     "Brightness tuned to reduce night-shift fatigue without losing contrast",
+     "Theme change never re-maps a color's meaning"
+    ]
+   ],
+   [
+    "h3",
+    "Fatigue is a safety factor"
+   ],
+   [
+    "p",
+    "Night-shift fatigue degrades vigilance, which is exactly when the interface must work hardest to re-engage attention. Dimmable, low-glare presentation reduces the eye strain that accelerates fatigue, while the predictive shadow and precursor cues carry the load of re-engaging a tiring operator before an event. Theming is therefore not cosmetic; it is part of keeping operators effective through the hours when they are most vulnerable."
+   ],
+   [
+    "p",
+    "Theming sits on top of the <a href=./color-grammar-in-hmi.html>color grammar</a> and is held to the <a href=./accessibility-colorblind-safe.html>accessibility</a> bar in every theme. It applies uniformly to consoles, the <a href=./large-format-video-wall.html>video wall</a>, and mobile views so the crew never faces inconsistent renderings of the same truth."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-in-hmi",
+    "Color Grammar in the HMI"
+   ],
+   [
+    "accessibility-colorblind-safe",
+    "Accessibility and Colorblind-Safe Design"
+   ],
+   [
+    "human-factors-cognitive-load",
+    "Human Factors and Cognitive Load"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostic-health-mosaic",
+  "title": "Diagnostic Health Mosaic",
+  "cat": "l6-experience",
+  "lede": "A single glanceable map of the 60+ diagnostic ports — which are healthy, degraded, dead, or imputed — because everything the operator trusts rests on this.",
+  "body": [
+   [
+    "h2",
+    "The foundation under every other number"
+   ],
+   [
+    "p",
+    "Every estimate, KPI, and forecast on every L6 surface ultimately rests on the diagnostics feeding the twin. If an operator does not know which sensors are healthy, they cannot properly weight anything downstream. The diagnostic health mosaic is a compact map of the machine's 60+ diagnostic ports — Mirnov coils, flux loops, interferometry, Thomson scattering, neutron detectors, REBCO strain gauges, and more — each colored by health so the whole measurement front is readable at a glance."
+   ],
+   [
+    "h3",
+    "Four states per diagnostic"
+   ],
+   [
+    "truth",
+    [
+     [
+      "State",
+      "Meaning for downstream trust"
+     ],
+     [
+      [
+       "Healthy",
+       "measured, full weight"
+      ],
+      [
+       "Degraded",
+       "noisy or drifting; reduced weight, wider bands"
+      ],
+      [
+       "Dead",
+       "no signal; masked, excluded from estimates"
+      ],
+      [
+       "Imputed",
+       "reconstructed by the GNN from neighbors; flagged everywhere"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Fusion diagnostics degrade under neutron and thermal load, so this map is dynamic and consequential. When a Mirnov coil drops and the GNN imputes it, the mosaic shows the port as imputed, and that state propagates: the equilibrium estimate's provenance names the imputation, its confidence widens, and the affected overlay region shows hatching. The mosaic is where the operator first sees the cause of a confidence change elsewhere."
+   ],
+   [
+    "h3",
+    "Trend, not just snapshot"
+   ],
+   [
+    "p",
+    "The mosaic shows not only current state but degradation trend, so an operator can see a diagnostic drifting toward failure and plan around it before it is lost mid-shot. Calibration-drift tracking feeds this view, distinguishing a genuine physics change from an instrument going out of calibration. For both machines, sustained diagnostic-availability is a first-order KPI precisely because it gates trust in everything else."
+   ],
+   [
+    "p",
+    "The mosaic is the operator-facing face of signal validation and GNN imputation from L2/L3, and it directly drives <a href=./confidence-provenance-display.html>confidence and provenance</a> and the hatching in the <a href=./control-room-3d-twin-overlay.html>3D overlay</a>. Its availability metric appears on the <a href=./dashboards-and-kpis.html>dashboards</a>."
+   ]
+  ],
+  "related": [
+   [
+    "confidence-provenance-display",
+    "Confidence and Provenance Display"
+   ],
+   [
+    "control-room-3d-twin-overlay",
+    "3D Twin Overlay"
+   ],
+   [
+    "dashboards-and-kpis",
+    "Dashboards and KPIs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "out-of-distribution-signaling",
+  "title": "Out-of-Distribution Signaling to Operators",
+  "cat": "l6-experience",
+  "lede": "The single most important trust signal: telling the operator plainly when the machine has entered a regime the AI was never trained on.",
+  "body": [
+   [
+    "h2",
+    "When the model is out of its depth"
+   ],
+   [
+    "p",
+    "An AI model is reliable inside the regime it was trained on and unreliable — often confidently so — outside it. For machines still in design and simulation and heading toward first-of-a-kind first tritium (~2030), operators will inevitably push into states no training set covered. The most important thing L6 can tell an operator is: <b>the AI is now extrapolating beyond what it knows.</b> Out-of-distribution (OOD) signaling makes that explicit rather than leaving the operator to discover it through a bad recommendation."
+   ],
+   [
+    "h3",
+    "How OOD is detected and shown"
+   ],
+   [
+    "p",
+    "Each model reports an OOD score — how far the current input is from its training distribution — using density estimates, ensemble disagreement, or reconstruction error. When the score crosses a threshold, the affected estimate's provenance badge flips its in-distribution flag, its confidence widens, and any recommendation built on it is explicitly de-weighted. On the 3D overlay, OOD regions are marked distinctly from merely low-confidence ones, because the operator's response differs: low confidence means noisy; OOD means untrusted."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def ood_flag(x, model):\n    epi   = ensemble_disagreement(x, model)     # members diverge off-distribution\n    dens  = model.density_estimate(x)           # low density -> unfamiliar input\n    recon = model.reconstruction_error(x)       # autoencoder-style novelty\n    score = combine(epi, 1.0 - dens, recon)\n    return score > OOD_THRESHOLD                 # -> badge flips, confidence widens"
+    ]
+   ],
+   [
+    "h3",
+    "The right operator response"
+   ],
+   [
+    "p",
+    "OOD is a cue to shift weight from the AI toward first-principles physics and human judgment, and often to lower the automation level. The interface actively suggests this: when a safety-relevant loop's model goes OOD, the trust-and-override surface recommends more human involvement, and the copilot flags that its reasoning is now less grounded. This is the honest posture the whole stack takes — the AI advises within what it knows and says so clearly when it doesn't."
+   ],
+   [
+    "p",
+    "OOD signaling is the sharp edge of <a href=./uncertainty-visualization.html>uncertainty visualization</a> and the <a href=./model-provenance-badges.html>provenance badges</a>, and it directly shapes <a href=./trust-and-override-ux.html>trust and override</a> decisions during novel operation."
+   ]
+  ],
+  "related": [
+   [
+    "uncertainty-visualization",
+    "Visualizing Uncertainty"
+   ],
+   [
+    "model-provenance-badges",
+    "Model Provenance Badges"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "first-out-and-root-cause",
+  "title": "First-Out and Root-Cause Presentation",
+  "cat": "l6-experience",
+  "lede": "In a cascade, showing the first alarm to fire and the inferred root cause turns a confusing flurry into an actionable diagnosis.",
+  "body": [
+   [
+    "h2",
+    "Finding the cause in the cascade"
+   ],
+   [
+    "p",
+    "When a fault cascades, the alarm that matters is usually the first one — the initiating event — but it is instantly buried under its consequences. First-out logic captures and preserves that initiating alarm, and root-cause presentation infers and foregrounds the underlying cause, so the operator diagnoses instead of firefighting symptoms. This is the diagnostic complement to flood suppression: suppression makes the list readable, root-cause makes it meaningful."
+   ],
+   [
+    "h3",
+    "First-out capture"
+   ],
+   [
+    "p",
+    "At the onset of a cascade, the system latches the first alarm in the causal sequence and marks it distinctly. Even as dozens of downstream alarms follow, the operator can see what started it. For the breeder, the first-out might be a specific stability-margin breach that preceded the disruption cascade; for the burner, a plug-density drop that preceded the confinement and DEC alarms. Knowing the initiator is what makes the response correct rather than merely reactive."
+   ],
+   [
+    "h3",
+    "Root-cause inference"
+   ],
+   [
+    "p",
+    "Beyond the first alarm, the twin's causal structure and the anomaly ensembles infer the most likely root cause and present it as a header over the collapsed cascade, with the evidence that supports it and a confidence. Because inference can be wrong, the root-cause header always shows its confidence and lets the operator expand the full evidence and override the diagnosis. It is a hypothesis offered with support, not a verdict imposed."
+   ],
+   [
+    "ul",
+    [
+     "First-out: the latched initiating alarm, always preserved and highlighted",
+     "Root cause: inferred underlying cause with evidence and confidence",
+     "Cascade: collapsed under the cause, fully expandable, nothing discarded",
+     "Override: the operator can reject the inferred cause and see the raw sequence"
+    ]
+   ],
+   [
+    "p",
+    "First-out and root-cause presentation build on <a href=./alarm-flood-suppression.html>flood suppression</a> and the <a href=./anomaly-precursor-timeline-ux.html>precursor timeline</a>, and every cascade is preserved intact for <a href=./incident-replay.html>incident replay</a> so the inferred cause can be checked against what actually happened."
+   ]
+  ],
+  "related": [
+   [
+    "alarm-flood-suppression",
+    "Alarm Flood Suppression"
+   ],
+   [
+    "anomaly-precursor-timeline-ux",
+    "Precursor Timeline UX"
+   ],
+   [
+    "incident-replay",
+    "Incident Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "from-decision-to-experience",
+  "title": "From Decision to Experience: How L6 Consumes the Stack",
+  "cat": "l6-experience",
+  "lede": "How Layer 6 draws from L1-L5 and where it deliberately holds no authority — the contract that lets observability be everywhere while control stays concentrated.",
+  "body": [
+   [
+    "h2",
+    "L6 is a consumer, not an authority"
+   ],
+   [
+    "p",
+    "Layer 6 sits at the top of the KRONOS stack and depends on every layer beneath it, yet it deliberately holds no physics and no actuation authority. It consumes the outputs of L1-L5 and renders them for humans; it emits only advisory intents that flow back through the trust-and-override path. This clean separation — observability ubiquitous, authority concentrated in L1 — is what lets Kronos put the full picture on a phone without ever putting the machine at risk."
+   ],
+   [
+    "h3",
+    "What L6 consumes from each layer"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Layer",
+      "What L6 renders from it"
+     ],
+     [
+      [
+       "L1 Control Plane",
+       "interlock/failsafe status, actuation state, real-time bounds"
+      ],
+      [
+       "L2 Data Fabric",
+       "validated telemetry, timestamps, diagnostic health, lineage"
+      ],
+      [
+       "L3 Twin Modeling",
+       "state estimates, forecasts, confidence, provenance"
+      ],
+      [
+       "L4 Orchestration",
+       "job/pipeline status, model versions in effect"
+      ],
+      [
+       "L5 Copilots",
+       "explanations, recommendations, citations"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The latency gradient across the stack shows exactly why L6 is where it is: L1 runs microsecond hard-real-time loops, L3 the 1-100 ms twin, and L6 the 0.5 s-to-minutes human loop. L6 must never pretend to be faster than it is — hence the honest staleness and latency indicators — and must never insert itself into the fast paths it renders. It shows the fast world; it does not run it."
+   ],
+   [
+    "h3",
+    "The contract in one sentence"
+   ],
+   [
+    "p",
+    "Everything an operator sees is traceable to a layer below, timestamped, confidence-scored, and provenance-tagged; everything an operator does is advisory, attributed, recorded, and overridable — with the L1 hardware failsafe always authoritative underneath. That contract is what makes the interface trustworthy enough to lean on and safe enough that leaning on it can never bypass the machine's own protections."
+   ],
+   [
+    "p",
+    "This overview ties the L6 pages together: the surfaces (<a href=./control-room-3d-twin-overlay.html>overlay</a>, <a href=./dashboards-and-kpis.html>dashboards</a>, <a href=./alerting-triage-ux.html>triage</a>), the trust machinery (<a href=./uncertainty-visualization.html>uncertainty</a>, <a href=./confidence-provenance-display.html>provenance</a>, <a href=./trust-and-override-ux.html>override</a>), and the human-factors discipline (<a href=./human-factors-cognitive-load.html>cognitive load</a>) all serve the same contract, for both the breeder and the burner."
+   ]
+  ],
+  "related": [
+   [
+    "l6-experience-overview",
+    "L6 Experience Overview"
+   ],
+   [
+    "trust-and-override-ux",
+    "Trust and Override UX"
+   ],
+   [
+    "latency-and-staleness-indicators",
+    "Staleness Indicators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

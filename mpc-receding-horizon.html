@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Receding Horizon and Real-Time Feasibility · Kronos Fusion Energy"><meta property="og:description" content="MPC re-solves every cycle; Kronos chooses horizon length and solver so the plan is both far-sighted enough and fast enough for the control cadence."><meta property="og:url" content="https://kronosfusionenergy.com/ai/mpc-receding-horizon.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -422,7 +422,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <p>Because the problem changes only slightly cycle to cycle, Kronos warm-starts each solve from the previous solution shifted by one step. Combined with a real-time-iteration scheme, taking one Newton-type step per cycle rather than solving to full convergence, this keeps the per-cycle cost bounded and predictable, which is what a real-time controller requires.</p>
 <ul><li>Horizon aligned to the 50-100 ms predictive shadow</li><li>Warm start: shift previous solution, re-solve incrementally</li><li>Real-time iteration: bounded per-cycle compute, deterministic latency</li><li>Surrogate dynamics: PINN/neural-operator f_twin keeps each rollout cheap</li></ul>
 <p>Feasibility guarantees come from the terminal set: if each cycle can steer the horizon into a known safe terminal region, the receding-horizon scheme remains recursively feasible, it will always have a safe plan next cycle. This is the theoretical backbone that lets Kronos trust MPC to stay in the envelope indefinitely, not just for one horizon.</p>
-<p>If a solve ever fails to complete in time, MPC does not stall: it applies the remaining valid moves from the previous plan (a feasible fallback the terminal set guarantees exists) while flagging the miss. Persistent misses trigger a controlled ramp toward a safe state. The deterministic behavior under compute pressure is designed, not incidental.</p><div class="related"><h3>Related</h3><a href="./mpc-formulation.html">MPC Optimization &rarr;</a><a href="./mpc-terminal-set-stability.html">Terminal Set and Stability &rarr;</a><a href="./surrogate-acceleration.html">Surrogate Acceleration &rarr;</a></div></main></div><div class="kfe-embed">
+<p>If a solve ever fails to complete in time, MPC does not stall: it applies the remaining valid moves from the previous plan (a feasible fallback the terminal set guarantees exists) while flagging the miss. Persistent misses trigger a controlled ramp toward a safe state. The deterministic behavior under compute pressure is designed, not incidental.</p><div class="related"><h3>Related</h3><a href="./mpc-formulation.html">MPC Optimization &rarr;</a><a href="./mpc-terminal-set-stability.html">Terminal Set and Stability &rarr;</a><a href="./surrogate-acceleration.html">Surrogate Acceleration &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

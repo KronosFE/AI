@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Trajectory Optimization for Scenario Design · Kronos Fusion Energy"><meta property="og:description" content="A scenario is a time-dependent path in state and actuation; direct collocation turns designing it into a large, structured nonlinear program."><meta property="og:url" content="https://kronosfusionenergy.com/ai/trajectory-optimization-scenario.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -440,7 +440,7 @@ sol = nlp_solve(objective(x,u), cons, bounds)   # SQP / interior-point</code></p
 <h3>Feeding the control loop</h3>
 <p>The optimized trajectory becomes the reference MPC tracks, and its terminal state defines the operating point around which the terminal set and cost are built. For the breeder this plans the negative-triangularity ramp within stability limits; for the burner it explores candidate paths to the ambipolar operating point in simulation, carrying the regime and coil-stress caveats so the plan is understood as a design study, not a schedule for existing hardware.</p>
 <ul><li>Optimizes the full time-dependent path, not one point.</li><li>Direct collocation: constraints at every node, robust NLP.</li><li>Output = MPC reference and terminal ingredients.</li><li>Burner trajectories carry the honest gates as caveats.</li></ul>
-<p>Trajectory optimization sits between Bayesian scenario search (which picks the regime) and MPC (which executes in feedback), completing the optimization stack from design to real-time control.</p><div class="related"><h3>Related</h3><a href="./bayesian-optimization-scenario-design.html">Bayesian Optimization for Scenario Design &rarr;</a><a href="./mpc-optimal-control-formulation.html">MPC Optimal-Control Formulation &rarr;</a><a href="./constrained-optimization-lagrangian.html">Constrained Optimization and Duality &rarr;</a></div></main></div><div class="kfe-embed">
+<p>Trajectory optimization sits between Bayesian scenario search (which picks the regime) and MPC (which executes in feedback), completing the optimization stack from design to real-time control.</p><div class="related"><h3>Related</h3><a href="./bayesian-optimization-scenario-design.html">Bayesian Optimization for Scenario Design &rarr;</a><a href="./mpc-optimal-control-formulation.html">MPC Optimal-Control Formulation &rarr;</a><a href="./constrained-optimization-lagrangian.html">Constrained Optimization and Duality &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

@@ -1,0 +1,831 @@
+[
+{
+  "slug": "fe-1d-bar",
+  "title": "Finite Element Solution of a 1D Bar",
+  "cat": "worked-examples",
+  "lede": "Solve axial displacement of an elastic bar under load using two linear elements and assemble the global stiffness system by hand.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A bar of length L=2, cross-section A=1, Young's modulus E=1, is fixed at x=0 and pulled with force F=1 at x=2. The governing equation is EA u''(x) = 0 with u(0)=0 and EA u'(2)=F. The exact answer is a linear displacement u(x)=x, but we recover it through the finite element machinery so the same steps generalize to hard problems."],
+    ["h3","Element stiffness"],
+    ["p","Split the bar into two equal linear elements of length h=1. Each two-node element has local stiffness matrix k = (EA/h)[[1,-1],[-1,1]]. With EA/h = 1 both element matrices are identical."],
+    ["matrix",["Local element stiffness k",[["1","-1"],["-1","1"]]]],
+    ["h3","Assemble and solve"],
+    ["code",["python","import numpy as np\nh=1.0; EA=1.0; k=(EA/h)*np.array([[1,-1],[-1,1]])\nK=np.zeros((3,3))\nfor e,(a,b) in enumerate([(0,1),(1,2)]):\n    for i,I in enumerate((a,b)):\n        for j,J in enumerate((a,b)):\n            K[I,J]+=k[i,j]\nF=np.array([0.0,0.0,1.0])   # load at node 3\n# apply u0=0: strike row/col 0\nKr=K[1:,1:]; Fr=F[1:]\nu=np.linalg.solve(Kr,Fr)\nprint(np.r_[0.0,u])  # [0. 1. 2.]"]],
+    ["p","The assembled 3x3 stiffness is [[1,-1,0],[-1,2,-1],[0,-1,1]]. After striking the fixed degree of freedom the reduced system gives nodal displacements 0, 1, 2 exactly matching u(x)=x. The reaction at the wall recovers -F, confirming equilibrium."],
+    ["ul",["Linear elements reproduce a linear exact solution exactly; curved solutions need finer meshes or higher-order shape functions.","The global matrix is singular before boundary conditions are applied because rigid-body translation is unconstrained.","This 1D assembly is the same pattern used in 3D structural models of Hyperion magnet supports, just with more nodes and coupled directions."]]
+  ],
+  "related": [["poisson-1d-finite-difference","1D Poisson by Finite Differences"],["conjugate-gradient-solve","Conjugate Gradient Solver"],["pod-reduced-order-model","POD Reduced-Order Model"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "heat-equation-2d",
+  "title": "Solving the 2D Heat Equation",
+  "cat": "worked-examples",
+  "lede": "March a discretized 2D diffusion problem forward in time with an explicit five-point stencil, and check the stability limit that constrains the time step.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The heat equation u_t = alpha (u_xx + u_yy) describes temperature spreading across a plate. We solve it on a unit square with a hot spot in the center and zero temperature on all edges, using a uniform grid and explicit time stepping."],
+    ["h3","Discretization"],
+    ["p","Replace second derivatives with the five-point Laplacian: (u_xx+u_yy) at (i,j) is approximately (u[i+1,j]+u[i-1,j]+u[i,j+1]+u[i,j-1]-4 u[i,j]) / dx^2. An explicit Euler step then updates every interior node from its four neighbors."],
+    ["code",["python","import numpy as np\nn=41; dx=1.0/(n-1); alpha=1.0\ndt=0.2*dx*dx/alpha         # inside stability limit\nu=np.zeros((n,n)); u[n//2,n//2]=1.0/dx/dx\nlap=lambda u:(np.roll(u,1,0)+np.roll(u,-1,0)+np.roll(u,1,1)+np.roll(u,-1,1)-4*u)/dx/dx\nfor _ in range(2000):\n    u[1:-1,1:-1]+=dt*alpha*lap(u)[1:-1,1:-1]\n    u[0,:]=u[-1,:]=u[:,0]=u[:,-1]=0.0\nprint(u.max(), u.sum()*dx*dx)  # peak decays, integral conserved until it reaches edges"]],
+    ["h3","Stability"],
+    ["p","The explicit scheme is stable only when dt <= dx^2 / (4 alpha) in two dimensions. Above that limit small errors grow geometrically and the solution explodes. We chose dt = 0.2 dx^2 / alpha, comfortably inside the bound. Implicit schemes like Crank-Nicolson remove this restriction at the cost of solving a linear system each step."],
+    ["ul",["Total heat is conserved while the profile stays away from the boundaries, then decays as it leaks out the fixed edges.","Halving dx quarters the allowed dt, so explicit 2D diffusion becomes expensive on fine grids.","The same stencil models transient thermal loads on burner first-wall panels; production runs use implicit solvers for the stiff time scales."]]
+  ],
+  "related": [["crank-nicolson-diffusion","Crank-Nicolson for 1D Diffusion"],["poisson-1d-finite-difference","1D Poisson by Finite Differences"],["gauss-seidel-iteration","Gauss-Seidel Iteration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "cnn-toy-images",
+  "title": "Training a Small CNN on Toy Images",
+  "cat": "worked-examples",
+  "lede": "Build and train a compact convolutional network to separate two synthetic image classes, and read the convergence from the loss curve.",
+  "body": [
+    ["h2","Problem"],
+    ["p","We generate small grayscale images: class 0 has a vertical bar, class 1 has a horizontal bar, both with noise. A convolutional network should learn edge-oriented filters that distinguish the two, which is the smallest honest demonstration of what convolutions buy over fully connected layers."],
+    ["h3","Architecture"],
+    ["p","One convolution layer with a few 3x3 filters, a ReLU nonlinearity, global average pooling, then a linear classifier. Parameter sharing across spatial positions means the same filter detects a bar wherever it appears, which a dense layer cannot do without seeing every position in training."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(0)\ndef make(k,n=200):\n    X=rng.normal(0,0.1,(n,8,8)); y=np.zeros(n,int)\n    for i in range(n):\n        if i%2: X[i,3,:]+=1.0; y[i]=1     # horizontal bar\n        else:   X[i,:,3]+=1.0; y[i]=0     # vertical bar\n    return X,y\nXtr,ytr=make(0); \n# a real run uses torch; here the point is the recipe:\n# conv3x3 -> relu -> global-avg-pool -> linear -> softmax, trained by SGD on cross-entropy\nprint(Xtr.shape, ytr[:6])"]],
+    ["h3","Training signal"],
+    ["p","With cross-entropy loss and stochastic gradient descent the loss falls from about ln(2)=0.69 (random guessing on two classes) toward near zero within a few dozen epochs. Learned filters resemble oriented edge detectors: one responds strongly to vertical structure, another to horizontal."],
+    ["ul",["Convolution plus pooling gives translation tolerance for free, the reason CNNs generalize from few examples on structured images.","Watch the gap between training and validation loss; if validation stalls while training keeps dropping, the model is memorizing noise.","Kronos uses similar convolutional encoders on camera and bolometer image data to flag off-normal plasma shapes."]]
+  ],
+  "related": [["backprop-tiny-mlp","Backpropagation Through a Tiny MLP"],["adam-optimizer-step","An Adam Optimizer Step"],["disruption-predictor-roc","Evaluating a Disruption Predictor"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "self-attention-by-hand",
+  "title": "Transformer Self-Attention Computed by Hand",
+  "cat": "worked-examples",
+  "lede": "Work a single self-attention head through query-key scores, softmax weights, and value mixing on three short tokens with tiny vectors.",
+  "body": [
+    ["h2","Setup"],
+    ["p","Self-attention lets each token gather information from every other token, weighted by learned relevance. We take three tokens with 2D embeddings and identity projection matrices so the arithmetic stays transparent: queries, keys, and values equal the inputs."],
+    ["h3","Inputs"],
+    ["p","Let x1=(1,0), x2=(0,1), x3=(1,1). With Q=K=V=x, the raw attention score between token i and token j is the dot product q_i . k_j, scaled by 1/sqrt(d) with d=2."],
+    ["code",["python","import numpy as np\nX=np.array([[1.,0.],[0.,1.],[1.,1.]])\nd=X.shape[1]\nS=X@X.T/np.sqrt(d)                 # scaled scores\nS=S-S.max(1,keepdims=True)\nW=np.exp(S); W/=W.sum(1,keepdims=True)  # softmax rows\nout=W@X\nprint(np.round(W,3))\nprint(np.round(out,3))"]],
+    ["h3","Reading the weights"],
+    ["p","Token 3, whose embedding (1,1) aligns with both others, spreads its attention broadly, while token 1 attends most to itself and to token 3 because (1,0).(1,1)=1 beats (1,0).(0,1)=0. Each output row is a convex combination of the value vectors, so no single token can dominate unless its score is much larger."],
+    ["ul",["The 1/sqrt(d) scaling keeps scores from growing with dimension, which would otherwise push softmax into a near one-hot regime and kill gradients.","Softmax rows sum to one, so attention redistributes information rather than amplifying it.","Real heads use distinct learned Q, K, V matrices; multiple heads run in parallel and their outputs are concatenated."]]
+  ],
+  "related": [["cnn-toy-images","Training a Small CNN"],["backprop-tiny-mlp","Backpropagation Through a Tiny MLP"],["fft-sampled-signal","FFT of a Sampled Signal"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "surface-code-cycle",
+  "title": "One Surface-Code Error-Correction Cycle",
+  "cat": "worked-examples",
+  "lede": "Walk a single stabilizer measurement round of a small surface code, inject one bit-flip error, and show how the syndrome localizes it.",
+  "body": [
+    ["h2","Setup"],
+    ["p","The surface code stores logical information in a 2D lattice of data qubits interleaved with measurement qubits. Each measurement qubit repeatedly measures a stabilizer, a product of Pauli operators on neighboring data qubits, without disturbing the encoded state. A change in a stabilizer outcome flags a nearby error."],
+    ["h3","Stabilizers"],
+    ["p","Consider a small patch with X-type plaquette stabilizers and Z-type vertex stabilizers. In the error-free ground state every stabilizer returns +1. A single X (bit-flip) error on one data qubit anticommutes with the two adjacent Z stabilizers, flipping both their outcomes to -1."],
+    ["code",["python","import numpy as np\n# 5 data qubits in a plus shape; two Z-stabilizers each act on a pair\nstab=[(0,1),(1,2)]           # qubits each Z-stabilizer checks\nstate=np.zeros(3,int)        # no error -> all parities 0\nerr=1                        # X error on data qubit 1\nfor s,(a,b) in enumerate(stab):\n    parity=((a==err)+(b==err))%2\n    print('stabilizer',s,'->',parity)  # both fire: 1,1"]],
+    ["h3","Decoding"],
+    ["p","The pattern of flipped stabilizers is the syndrome. A decoder, often minimum-weight perfect matching, pairs up the defects and infers the shortest error chain that explains them, here a single X on the shared qubit. Applying the inferred correction returns all stabilizers to +1 without ever measuring the logical state."],
+    ["ul",["Errors are detected only through parity changes, so the logical qubit is never directly measured and stays coherent.","A chain of errors spanning the lattice edge to edge is a logical error the code cannot detect; larger distance d suppresses this exponentially.","Kronos control electronics research treats fault-tolerant qubits as a candidate for real-time plasma control co-processors, not current hardware."]]
+  ],
+  "related": [["grover-2-qubit","Simulating a 2-Qubit Grover"],["iterative-phase-estimation","Iterative Quantum Phase Estimation"],["hamming-7-4-decode","Hamming(7,4) Encode and Decode"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "ensemble-kalman-update",
+  "title": "An Ensemble Kalman Filter Update",
+  "cat": "worked-examples",
+  "lede": "Assimilate one noisy observation into a small ensemble, computing the Kalman gain from sample statistics and nudging each member.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The ensemble Kalman filter (EnKF) tracks a distribution over states using a small population of sample states rather than an explicit covariance matrix. This makes it practical for high-dimensional nonlinear systems where storing a full covariance is impossible."],
+    ["h3","Ensemble and observation"],
+    ["p","We have five one-dimensional members with mean near 2 and an observation y=3 with measurement variance R=0.5. The forecast covariance P is estimated from the spread of the ensemble, and the gain K = P H' (H P H' + R)^-1 blends model and data."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(1)\nx=np.array([1.8,2.1,2.4,1.9,2.3])   # forecast ensemble\nH=1.0; R=0.5; y=3.0\nP=x.var(ddof=1)\nK=P*H/(H*P*H+R)\nyp=y+rng.normal(0,np.sqrt(R),x.size)  # perturbed observations\nxa=x+K*(yp-H*x)\nprint('P',round(P,3),'K',round(K,3))\nprint('analysis mean',round(xa.mean(),3))"]],
+    ["h3","Result"],
+    ["p","With P about 0.06 and R=0.5 the gain K is roughly 0.11, so the filter trusts the model far more than this noisy observation and moves the mean only slightly toward 3. Perturbing the observations for each member keeps the updated ensemble spread statistically correct, which a naive shared update would collapse."],
+    ["ul",["The gain automatically weights model against data by their relative uncertainties, no manual tuning of the trade-off.","Small ensembles underestimate covariance, so operational systems use inflation and localization to avoid overconfidence.","EnKF-style assimilation is used in Kronos equilibrium reconstruction studies to fuse magnetic diagnostics with model forecasts."]]
+  ],
+  "related": [["kalman-filter-linear-update","A Linear Kalman Filter Update"],["gaussian-process-posterior","A Gaussian-Process Posterior Update"],["metropolis-hastings-gaussian","Metropolis-Hastings Sampling"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "mpc-one-step",
+  "title": "One MPC Optimization Step",
+  "cat": "worked-examples",
+  "lede": "Solve a single model-predictive-control problem: minimize a quadratic cost over a short horizon, apply only the first control, then repeat.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Model predictive control (MPC) optimizes a sequence of future control inputs over a finite horizon using a model, applies only the first input, then re-solves at the next step with fresh measurements. This receding horizon gives feedback and lets you enforce constraints directly."],
+    ["h3","Setup"],
+    ["p","Take a scalar system x_{k+1} = x_k + u_k with current x0=2 and target 0. Over a horizon N=3 we minimize sum of x_k^2 + 0.1 u_k^2. We solve the small quadratic program for the optimal control sequence and keep only u0."],
+    ["code",["python","import numpy as np\nN=3; x0=2.0; r=0.1\n# build prediction x = x0 + cumulative sum of u\n# minimize ||x||^2 + r||u||^2 over u in R^N\nL=np.tril(np.ones((N,N)))          # x_k depends on u_0..u_{k-1}\nH=2*(L.T@L + r*np.eye(N))\nf=2*(L.T@(x0*np.ones(N)))\nu=np.linalg.solve(H,-f)\nprint('optimal sequence',np.round(u,3))\nprint('applied u0',round(u[0],3))"]],
+    ["h3","Result"],
+    ["p","The optimizer front-loads control effort: the first move is the largest because acting early drives the state toward zero for the rest of the horizon. Only u0 is applied; at the next step the state is remeasured and the whole plan is recomputed, which is what makes MPC robust to model error and disturbances."],
+    ["ul",["Longer horizons give smoother, more anticipatory control but cost more computation each step.","Adding inequality constraints (actuator limits) turns the linear solve into a constrained QP, still solvable in real time for modest sizes.","Kronos coil-current control studies use MPC to respect voltage and ramp-rate limits while tracking a target plasma shape."]]
+  ],
+  "related": [["pid-vs-lqr-mass-spring","PID vs LQR on a Mass-Spring"],["kalman-filter-linear-update","A Linear Kalman Filter Update"],["conjugate-gradient-solve","Conjugate Gradient Solver"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pod-reduced-order-model",
+  "title": "Building a POD Reduced-Order Model",
+  "cat": "worked-examples",
+  "lede": "Compress a set of simulation snapshots into a handful of proper-orthogonal-decomposition modes and quantify the energy each mode captures.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Proper orthogonal decomposition (POD) finds an optimal low-dimensional basis for a collection of high-dimensional snapshots. Projecting the governing equations onto a few dominant modes yields a reduced model that runs orders of magnitude faster than the full simulation."],
+    ["h3","Snapshots to modes"],
+    ["p","Stack snapshot vectors as columns of a matrix A. The singular value decomposition A = U S V' gives POD modes in the columns of U, ranked by singular value. The squared singular values measure how much variance, or energy, each mode captures."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(2)\n# 50-dim field, 30 snapshots dominated by 2 spatial patterns\nt=np.linspace(0,1,30); x=np.linspace(0,1,50)\nm1=np.sin(np.pi*x)[:,None]*np.cos(2*t)[None,:]\nm2=np.sin(2*np.pi*x)[:,None]*np.sin(3*t)[None,:]\nA=m1+0.5*m2+0.01*rng.normal(size=(50,30))\nU,S,Vt=np.linalg.svd(A,full_matrices=False)\nenergy=S**2/np.sum(S**2)\nprint(np.round(energy[:4],4))  # first two dominate"]],
+    ["h3","Result"],
+    ["p","The first two singular values hold nearly all the energy, matching the two physical patterns we planted. Keeping two modes reconstructs the field to within the noise floor, so a reduced model with two coordinates replaces the 50-dimensional state. The reconstruction error equals the sum of the discarded squared singular values."],
+    ["ul",["POD is optimal in the least-squares sense: no linear basis of the same size captures more snapshot energy.","The method is data-driven and blind to physics, so extrapolating outside the snapshot regime is risky.","Kronos uses POD surrogates of expensive transport and equilibrium runs to explore parameter space cheaply before committing to full simulations."]]
+  ],
+  "related": [["pca-small-dataset","PCA on a Small Dataset"],["svd-2x2","SVD of a 2x2 Matrix"],["sobol-sensitivity-indices","Sobol Sensitivity Indices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sobol-sensitivity-indices",
+  "title": "Computing Sobol Sensitivity Indices",
+  "cat": "worked-examples",
+  "lede": "Decompose the variance of a model output among its inputs to rank which parameters actually drive uncertainty.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Sobol indices attribute the variance of a model output to individual inputs and their interactions. The first-order index S_i is the fraction of output variance explained by input i alone; the total index S_Ti also counts every interaction that includes i."],
+    ["h3","Test function"],
+    ["p","Use the Ishigami-style function y = sin(x1) + 7 sin(x2)^2 + 0.1 x3^4 sin(x1) with each x uniform on (-pi, pi). It is a standard benchmark because its Sobol indices have known values: x2 dominates, x3 matters only through interaction with x1, and x3 alone contributes almost nothing."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(3)\nN=200000; a,b=7.0,0.1\ndef f(X):\n    x1,x2,x3=X.T\n    return np.sin(x1)+a*np.sin(x2)**2+b*x3**4*np.sin(x1)\nA=rng.uniform(-np.pi,np.pi,(N,3)); B=rng.uniform(-np.pi,np.pi,(N,3))\nyA=f(A); V=yA.var()\nfor i in range(3):\n    C=A.copy(); C[:,i]=B[:,i]\n    S=np.mean(yA*(f(B)-f(C)))/V + 0  # Jansen-style estimator\n    print('input',i+1,'total-ish index',round(abs(S),3))"]],
+    ["h3","Result"],
+    ["p","The estimator confirms x2 carries the largest share of variance, x1 a moderate share, and x3 negligible first-order effect despite its steep quartic, because that term only acts jointly with x1. Ranking inputs this way tells you where to spend measurement effort and where a parameter can be fixed."],
+    ["ul",["First-order and total indices differ whenever inputs interact; comparing them exposes hidden coupling.","Convergence needs large samples; quasi-random sequences reduce the count for a target accuracy.","Kronos uses Sobol analysis to prioritize which uncertain plasma and material parameters most affect performance predictions."]]
+  ],
+  "related": [["monte-carlo-pi","Monte Carlo Estimate of Pi"],["pod-reduced-order-model","POD Reduced-Order Model"],["importance-sampling-estimate","An Importance Sampling Estimate"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "fft-sampled-signal",
+  "title": "FFT of a Sampled Signal",
+  "cat": "worked-examples",
+  "lede": "Sample a two-tone signal, take its discrete Fourier transform, and read the frequency peaks and bin resolution directly.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The fast Fourier transform (FFT) converts a sampled time series into its frequency content in O(N log N) operations. We build a signal from two sine tones plus noise and recover their frequencies from the magnitude spectrum."],
+    ["h3","Sampling"],
+    ["p","Sample at fs=1000 Hz for N=1000 points, giving a frequency resolution of fs/N = 1 Hz per bin and a Nyquist limit of 500 Hz. The signal contains a 50 Hz and a 120 Hz tone. Real FFT output has N/2+1 usable bins."],
+    ["code",["python","import numpy as np\nfs=1000; N=1000; t=np.arange(N)/fs\nx=np.sin(2*np.pi*50*t)+0.5*np.sin(2*np.pi*120*t)+0.2*np.random.default_rng(4).normal(size=N)\nX=np.fft.rfft(x); f=np.fft.rfftfreq(N,1/fs)\nmag=np.abs(X)/N*2\npeaks=f[np.argsort(mag)[-2:]]\nprint('resolution Hz',fs/N)\nprint('detected peaks',sorted(peaks))  # ~50 and 120"]],
+    ["h3","Result"],
+    ["p","The two largest magnitude bins sit at 50 and 120 Hz, and the amplitude scaling 2/N recovers heights near 1.0 and 0.5, matching the input. A tone that falls between bins would smear across neighbors, an effect called spectral leakage that windowing reduces."],
+    ["ul",["Frequency resolution is set by total record length, not sampling rate: longer records give finer bins.","Any frequency above the Nyquist limit aliases into a false lower frequency, so anti-alias filtering matters before sampling.","Kronos processes magnetic and interferometer diagnostics with FFTs to identify MHD mode frequencies in the plasma."]]
+  ],
+  "related": [["self-attention-by-hand","Self-Attention by Hand"],["simpson-rule-integration","Simpson's Rule Integration"],["metropolis-hastings-gaussian","Metropolis-Hastings Sampling"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dijkstra-trace",
+  "title": "Tracing Dijkstra on a Small Graph",
+  "cat": "worked-examples",
+  "lede": "Follow Dijkstra's shortest-path algorithm node by node on a five-vertex weighted graph, watching the tentative distances settle.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Dijkstra's algorithm finds shortest paths from a source to all nodes in a graph with non-negative edge weights. It repeatedly finalizes the closest unvisited node and relaxes its outgoing edges, which is optimal because non-negative weights guarantee a finalized distance can never improve later."],
+    ["h3","Graph"],
+    ["p","Nodes A..E. Edges: A-B=1, A-C=4, B-C=2, B-D=5, C-D=1, D-E=3. Source is A. The greedy frontier picks the smallest tentative distance each round."],
+    ["code",["python","import heapq\nG={'A':[('B',1),('C',4)],'B':[('C',2),('D',5)],'C':[('D',1)],'D':[('E',3)],'E':[]}\ndist={n:float('inf') for n in G}; dist['A']=0\npq=[(0,'A')]\nwhile pq:\n    d,u=heapq.heappop(pq)\n    if d>dist[u]: continue\n    for v,w in G[u]:\n        if d+w<dist[v]:\n            dist[v]=d+w; heapq.heappush(pq,(dist[v],v))\nprint(dist)  # A0 B1 C3 D4 E7"]],
+    ["h3","Trace"],
+    ["p","A finalizes at 0. B is next at 1, and relaxing B improves C to 1+2=3, beating the direct A-C=4. C finalizes at 3 and improves D to 3+1=4. D finalizes at 4 and sets E to 7. The best A-to-E path is A-B-C-D-E, total 7, which no other route matches."],
+    ["ul",["The priority queue always yields the globally nearest unfinalized node, the crux of correctness.","Negative edges break the algorithm; use Bellman-Ford instead when weights can be negative.","Path-planning variants of this logic route cooling and cabling in Kronos plant-layout studies."]]
+  ],
+  "related": [["a-star-grid-trace","Tracing A* on a Grid"],["knapsack-dynamic-programming","Knapsack via Dynamic Programming"],["huffman-coding-small","Huffman Coding a Small Alphabet"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "knapsack-dynamic-programming",
+  "title": "Knapsack via Dynamic Programming",
+  "cat": "worked-examples",
+  "lede": "Fill the 0/1 knapsack table for four items and a small capacity, then backtrack to recover which items the optimum selects.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The 0/1 knapsack problem asks which subset of items, each with a weight and value, maximizes total value without exceeding a capacity. Dynamic programming solves it in pseudo-polynomial time by building a table indexed by item count and remaining capacity."],
+    ["h3","Items"],
+    ["p","Four items with (weight, value): (1,1), (3,4), (4,5), (5,7), and capacity W=7. The recurrence is dp[i][w] = max(dp[i-1][w], value_i + dp[i-1][w - weight_i]) when the item fits."],
+    ["code",["python","w=[1,3,4,5]; v=[1,4,5,7]; W=7; n=4\ndp=[[0]*(W+1) for _ in range(n+1)]\nfor i in range(1,n+1):\n    for c in range(W+1):\n        dp[i][c]=dp[i-1][c]\n        if w[i-1]<=c:\n            dp[i][c]=max(dp[i][c], v[i-1]+dp[i-1][c-w[i-1]])\nprint('best value',dp[n][W])  # 9\n# backtrack\nc=W; take=[]\nfor i in range(n,0,-1):\n    if dp[i][c]!=dp[i-1][c]:\n        take.append(i-1); c-=w[i-1]\nprint('items',sorted(take))  # 1 and 2 -> (3,4)+(4,5)=9"]],
+    ["h3","Result"],
+    ["p","The optimum is value 9, achieved by taking items (3,4) and (4,5), which fill weight 7 exactly. Backtracking compares each cell to the row above: a difference means the item was included. A greedy value-per-weight heuristic would pick item (5,7) first and get stuck at 8, showing why exact DP matters here."],
+    ["ul",["Runtime is O(n W), efficient only when capacity is modest; large W needs approximation or branch-and-bound.","The table stores optimal sub-solutions so overlapping subproblems are solved once.","This same allocate-under-constraint structure appears in Kronos scheduling of limited test-stand time across experiments."]]
+  ],
+  "related": [["dijkstra-trace","Tracing Dijkstra"],["gradient-boosting-round","One Gradient-Boosting Round"],["a-star-grid-trace","Tracing A* on a Grid"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gradient-boosting-round",
+  "title": "One Gradient-Boosting Round",
+  "cat": "worked-examples",
+  "lede": "Fit a shallow tree to the residuals of a constant predictor and watch a single boosting round shrink the loss.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Gradient boosting builds an additive model by repeatedly fitting a weak learner to the negative gradient of the loss. For squared error the negative gradient is simply the residual, so each round fits a small tree to what the current model gets wrong."],
+    ["h3","First model and residuals"],
+    ["p","Start with the mean of the targets as the base prediction. The residuals are target minus mean. A depth-1 tree (a decision stump) splits the feature to reduce residual variance, and we add a shrunken version of its predictions."],
+    ["code",["python","import numpy as np\nx=np.array([1,2,3,4,5,6]); y=np.array([1,1,2,6,7,7.])\nF=np.full_like(y,y.mean())     # base learner = mean = 4.0\nr=y-F                          # residuals\n# stump: best split threshold minimizing residual SSE\nbest=None\nfor thr in [2.5,3.5,4.5]:\n    l=r[x<=thr].mean() if (x<=thr).any() else 0\n    rr=r[x>thr].mean() if (x>thr).any() else 0\n    pred=np.where(x<=thr,l,rr)\n    sse=((r-pred)**2).sum()\n    if best is None or sse<best[0]: best=(sse,thr,l,rr)\nsse,thr,l,rr=best; lr=0.5\nF=F+lr*np.where(x<=thr,l,rr)\nprint('split at',thr,'new SSE',round(((y-F)**2).sum(),2))"]],
+    ["h3","Result"],
+    ["p","The stump splits between the low group (x<=3) and the high group (x>3), predicting negative residuals below and positive above. Adding half of that correction cuts the sum of squared errors sharply. Repeating the round on the new residuals continues to reduce error, each tree correcting the last."],
+    ["ul",["The learning rate (shrinkage) trades rounds for stability; small rates with many trees usually generalize best.","Because each learner targets residuals, boosting can overfit if run too long without early stopping.","Kronos uses gradient-boosted trees on tabular diagnostic features where they often beat deep nets on small datasets."]]
+  ],
+  "related": [["logistic-regression-gd","Logistic Regression by Gradient Descent"],["disruption-predictor-roc","Evaluating a Disruption Predictor"],["knapsack-dynamic-programming","Knapsack via Dynamic Programming"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pid-vs-lqr-mass-spring",
+  "title": "PID vs LQR on a Mass-Spring",
+  "cat": "worked-examples",
+  "lede": "Control a damped mass-spring to a setpoint with a tuned PID loop and with an optimal LQR gain, and compare the closed-loop behavior.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A mass-spring-damper is the canonical second-order plant. We regulate its position to a target using two controllers: a hand-tuned PID and a linear-quadratic regulator (LQR) that minimizes a weighted sum of state error and control effort. Comparing them shows the difference between heuristic and optimal design."],
+    ["h3","Plant and LQR gain"],
+    ["p","State is position and velocity. The LQR solves the algebraic Riccati equation to find the gain K that minimizes integral of x'Qx + u'Ru. PID instead sums proportional, integral, and derivative terms of the error with gains chosen by tuning rules."],
+    ["code",["python","import numpy as np\nfrom scipy.linalg import solve_continuous_are\nm,k,c=1.0,1.0,0.4\nA=np.array([[0,1],[-k/m,-c/m]]); B=np.array([[0],[1/m]])\nQ=np.diag([10,1]); R=np.array([[1.0]])\nP=solve_continuous_are(A,B,Q,R)\nKlqr=np.linalg.inv(R)@B.T@P\nprint('LQR gain',np.round(Klqr,3))\neig=np.linalg.eigvals(A-B@Klqr)\nprint('closed-loop poles',np.round(eig,3))  # damped, stable"]],
+    ["h3","Comparison"],
+    ["p","The LQR gain places the closed-loop poles for a fast, well-damped response and guarantees stability given a controllable plant. A PID can match the settling time but requires manual balancing of overshoot against integral windup, and it has no built-in optimality. LQR extends to many coupled states where PID tuning becomes intractable."],
+    ["ul",["LQR needs a state model and full state measurement; pair it with a Kalman filter when states are hidden.","PID is model-free and easy to deploy, which is why it still dominates simple industrial loops.","Kronos vertical-stability and shape control studies favor LQR-style multivariable design over independent PID loops."]]
+  ],
+  "related": [["mpc-one-step","One MPC Optimization Step"],["kalman-filter-linear-update","A Linear Kalman Filter Update"],["rk4-orbit-integration","RK4 Orbit Integration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "iterative-phase-estimation",
+  "title": "Iterative Quantum Phase Estimation Numbers",
+  "cat": "worked-examples",
+  "lede": "Extract the phase of an eigenvalue one bit at a time using a single ancilla qubit, and reconstruct the value from the measured bits.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Iterative phase estimation (IPE) determines the eigenphase phi of a unitary U with eigenvalue e^{2 pi i phi}, using just one ancilla qubit reused across rounds instead of the large register of textbook phase estimation. Each round extracts one binary digit of phi, from least to most significant."],
+    ["h3","Target"],
+    ["p","Suppose phi = 0.101 in binary = 0.625. We estimate three bits. Round k applies controlled-U to the power 2^{n-k}, corrects the ancilla phase using bits already found, then measures in the X basis to read the next bit."],
+    ["code",["python","phi=0.625  # = 0.101 binary\nbits=[]\nfor k in range(3):        # bit index from least significant\n    # feedback phase from previously found bits\n    feedback=sum(b*2**-(j+2) for j,b in enumerate(reversed(bits)))\n    val=(2**(2-k))*phi - feedback\n    bit=int(round(val))%2\n    bits.append(bit)\nbits=bits[::-1]\nest=sum(b*2**-(i+1) for i,b in enumerate(bits))\nprint('bits',bits,'estimate',est)  # [1,0,1] -> 0.625"]],
+    ["h3","Result"],
+    ["p","The three measured bits are 1, 0, 1, reconstructing phi = 0.625 exactly because the phase is a clean three-bit fraction. When phi is not a dyadic fraction the bits give the nearest 3-bit approximation, and more rounds add precision. The feedback step is essential: it removes the contribution of already-known lower bits so each measurement is deterministic in the noiseless case."],
+    ["ul",["IPE trades qubit count for circuit depth and classical feedback, ideal for near-term hardware.","Precision of n bits requires controlled-U applied up to 2^n times, the dominant cost.","Phase estimation underlies quantum algorithms for eigenvalue problems relevant to materials modeling of magnet superconductors."]]
+  ],
+  "related": [["vqe-h2-energy-curve","The VQE Energy Curve for H2"],["grover-2-qubit","Simulating a 2-Qubit Grover"],["surface-code-cycle","One Surface-Code Cycle"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "vqe-h2-energy-curve",
+  "title": "The VQE Energy Curve for H2",
+  "cat": "worked-examples",
+  "lede": "Sweep the bond length of the hydrogen molecule and minimize a two-parameter ansatz to trace the ground-state energy well.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The variational quantum eigensolver (VQE) estimates a molecule's ground-state energy by minimizing the expectation value of its Hamiltonian over a parameterized trial state. For H2 in a minimal basis the problem reduces to a small effective Hamiltonian whose ground state a single rotation angle can reach."],
+    ["h3","Reduced model"],
+    ["p","In the minimal (STO-3G, two-orbital) picture the H2 Hamiltonian at a given bond length maps to a 2x2 effective matrix in the relevant symmetry sector. The variational energy is E(theta) = <psi(theta)|H|psi(theta)>, minimized over theta; the true minimum equals the smaller eigenvalue."],
+    ["code",["python","import numpy as np\ndef H_of_R(R):\n    # illustrative 2x2 block: diagonal + coupling that grows near equilibrium\n    d=1.0/R; off=0.3*np.exp(-(R-0.74)**2)\n    return np.array([[ -1.0-d, -off],[-off, -0.5-0.5*d]])\nEs=[]\nfor R in np.linspace(0.4,2.5,15):\n    H=H_of_R(R)\n    thetas=np.linspace(0,np.pi,200)\n    e=[ (np.cos(t/2)**2*H[0,0]+np.sin(t/2)**2*H[1,1]\n         +np.sin(t)*H[0,1]) for t in thetas]\n    Es.append(min(e))\nprint('minimum energy along curve',round(min(Es),3))"]],
+    ["h3","Result"],
+    ["p","Sweeping bond length and minimizing theta at each point traces a curve that falls to a minimum near the equilibrium separation, then rises as the atoms are pulled apart, the familiar molecular potential well. The variational minimum matches the exact ground state because a single rotation spans the two-dimensional sector exactly."],
+    ["ul",["VQE offloads the hard eigenvalue search to a classical optimizer looping over quantum measurements.","Ansatz expressiveness limits accuracy: too few parameters cannot reach the true ground state for larger molecules.","Kronos treats VQE-class methods as a research path for modeling REBCO and structural-material electronic structure, not present capability."]]
+  ],
+  "related": [["iterative-phase-estimation","Iterative Quantum Phase Estimation"],["grover-2-qubit","Simulating a 2-Qubit Grover"],["newton-raphson-system","Newton-Raphson on a Nonlinear System"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "disruption-predictor-roc",
+  "title": "Evaluating a Disruption Predictor (ROC)",
+  "cat": "worked-examples",
+  "lede": "Score a binary classifier that flags impending plasma disruptions, sweep the threshold, and build the ROC curve with its area.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A disruption predictor outputs a risk score; an operator must choose a threshold above which to trigger mitigation. The receiver operating characteristic (ROC) curve plots true-positive rate against false-positive rate across all thresholds, and its area (AUC) summarizes ranking quality independent of any single cutoff."],
+    ["h3","Scores and labels"],
+    ["p","We have model scores and ground-truth labels (1 = disruption). Sorting by score and sweeping the threshold traces the ROC. AUC equals the probability that a random positive scores higher than a random negative."],
+    ["code",["python","import numpy as np\nscores=np.array([0.1,0.4,0.35,0.8,0.7,0.2,0.9,0.6])\ny=np.array([0,0,1,1,1,0,1,0])\norder=np.argsort(-scores); y=y[order]\nP=y.sum(); N=len(y)-P\ntpr=np.cumsum(y)/P; fpr=np.cumsum(1-y)/N\ntpr=np.r_[0,tpr]; fpr=np.r_[0,fpr]\nauc=np.trapz(tpr,fpr)\nprint('AUC',round(auc,3))"]],
+    ["h3","Reading it"],
+    ["p","An AUC of 0.5 means random guessing; 1.0 means perfect separation. For this toy set the AUC comes out around 0.9, indicating the model ranks most disruptions above most safe shots. The operating point is then chosen on the curve to balance missed disruptions (costly) against false alarms (disruptive to operations), a trade-off AUC alone does not decide."],
+    ["ul",["ROC is threshold-free, so it compares models fairly even under class imbalance in ranking, though precision-recall is better when positives are rare.","The chosen operating threshold must reflect the real asymmetry between a missed disruption and a false alarm.","Kronos disruption-prediction studies report AUC alongside warning-time distributions, since a correct-but-late alarm is useless."]]
+  ],
+  "related": [["logistic-regression-gd","Logistic Regression by Gradient Descent"],["gradient-boosting-round","One Gradient-Boosting Round"],["cnn-toy-images","Training a Small CNN"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pic-push-weight",
+  "title": "A Particle-in-Cell Push-and-Weight Step",
+  "cat": "worked-examples",
+  "lede": "Advance one macro-particle with the Boris rotation, deposit its charge to the grid, and see the core loop of a PIC plasma code.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Particle-in-cell (PIC) codes track many macro-particles moving in fields defined on a grid. Each step interpolates fields to particle positions, pushes velocities and positions, then weights (deposits) charge and current back to the grid to update the fields. We work one push-and-weight cycle."],
+    ["h3","Boris push"],
+    ["p","The Boris algorithm advances velocity in a magnetic field by a half electric kick, a magnetic rotation, and a second half kick. It conserves energy in a static B field exactly, which naive integrators do not, making it the standard PIC pusher."],
+    ["code",["python","import numpy as np\nq,m,dt=1.0,1.0,0.1\nx=np.array([0.3]); v=np.array([1.0,0.5,0.0])\nE=np.array([0.1,0.0,0.0]); B=np.array([0.0,0.0,1.0])\nvm=v+ (q*E/m)*(dt/2)                 # half E kick\nt=(q*B/m)*(dt/2); s=2*t/(1+t@t)\nvp=vm+np.cross(vm+np.cross(vm,t),s)  # rotation\nv=vp+(q*E/m)*(dt/2)                  # half E kick\nx=x+v[0]*dt\n# linear weighting to two nearest grid nodes (grid spacing 1)\ni=int(np.floor(x)); f=x-i\nrho={i:q*(1-f)[0], i+1:q*f[0]}\nprint('new v',np.round(v,3),'charge to nodes',{k:round(val,3) for k,val in rho.items()})"]],
+    ["h3","Result"],
+    ["p","The magnetic term rotates the velocity vector without changing its magnitude, while the electric kicks add energy. Linear weighting splits the particle's charge between the two nearest grid nodes in proportion to distance, so a particle at fraction f from node i deposits (1-f) to node i and f to node i+1. Summing over all particles gives the charge density that feeds the field solve."],
+    ["ul",["Consistent weighting for deposition and field interpolation is required to avoid self-forces on particles.","The time step must resolve the cyclotron and plasma periods for stability and accuracy.","Kronos uses PIC and gyrokinetic tools to study edge and scrape-off-layer behavior in the Hyperion spherical tokamak design."]]
+  ],
+  "related": [["rk4-orbit-integration","RK4 Orbit Integration"],["poisson-1d-finite-difference","1D Poisson by Finite Differences"],["monte-carlo-pi","Monte Carlo Estimate of Pi"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "newton-raphson-system",
+  "title": "Newton-Raphson on a Nonlinear System",
+  "cat": "worked-examples",
+  "lede": "Solve two coupled nonlinear equations by iterating the Jacobian-based Newton update, and watch quadratic convergence.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Newton-Raphson extends the scalar root method to systems: given F(x)=0 with x a vector, iterate x_{k+1} = x_k - J^-1 F(x_k), where J is the Jacobian of first derivatives. Near a simple root convergence is quadratic, meaning the number of correct digits roughly doubles each step."],
+    ["h3","System"],
+    ["p","Solve f1 = x^2 + y^2 - 4 = 0 and f2 = x y - 1 = 0. The Jacobian is [[2x, 2y],[y, x]]. A root lies near (1.93, 0.52) where a circle of radius 2 meets the hyperbola xy=1."],
+    ["code",["python","import numpy as np\ndef F(v): x,y=v; return np.array([x*x+y*y-4, x*y-1])\ndef J(v): x,y=v; return np.array([[2*x,2*y],[y,x]])\nv=np.array([2.0,1.0])\nfor k in range(6):\n    dv=np.linalg.solve(J(v),-F(v))\n    v=v+dv\n    print(k,np.round(v,6),'residual',round(np.linalg.norm(F(v)),2e-1*0+9))"]],
+    ["h3","Convergence"],
+    ["p","Starting from (2,1) the residual norm drops from order 1 to below 1e-9 within four or five iterations, the signature of quadratic convergence. Each step solves a linear system with the Jacobian rather than inverting it explicitly, which is both faster and numerically safer. A poor initial guess can converge to the other root or diverge, so Newton is fast but not globally reliable."],
+    ["ul",["The Jacobian must be nonsingular at the root; near-singularity slows or breaks convergence.","When exact derivatives are unavailable, finite-difference or quasi-Newton (Broyden) updates approximate J.","Kronos equilibrium solvers use Newton iteration on the discretized Grad-Shafranov equation for the plasma boundary."]]
+  ],
+  "related": [["bisection-root-find","The Bisection Method"],["conjugate-gradient-solve","Conjugate Gradient Solver"],["vqe-h2-energy-curve","The VQE Energy Curve for H2"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gaussian-process-posterior",
+  "title": "A Gaussian-Process Posterior Update",
+  "cat": "worked-examples",
+  "lede": "Condition a Gaussian process on three observations and compute the predictive mean and variance at a new input by hand.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A Gaussian process (GP) defines a distribution over functions through a kernel that encodes smoothness. Given data, the posterior at any test point is Gaussian with a closed-form mean and variance, giving both a prediction and a calibrated uncertainty, which is why GPs are favored for expensive-to-evaluate models."],
+    ["h3","Kernel and conditioning"],
+    ["p","Use a squared-exponential kernel k(a,b)=exp(-(a-b)^2/(2 l^2)) with length scale l=1. With training inputs X and targets y, the posterior mean at x* is k*' (K + s^2 I)^-1 y and variance is k(x*,x*) - k*' (K + s^2 I)^-1 k*."],
+    ["code",["python","import numpy as np\nX=np.array([0.,1.,2.]); y=np.array([0.,0.8,0.9]); s2=1e-4\nk=lambda a,b: np.exp(-(a[:,None]-b[None,:])**2/2)\nK=k(X,X)+s2*np.eye(3)\nxs=np.array([1.5])\nks=k(xs,X)\nKi=np.linalg.inv(K)\nmu=ks@Ki@y\nvar=1.0-(ks@Ki@ks.T)\nprint('mean',round(float(mu),3),'std',round(float(np.sqrt(var)),3))"]],
+    ["h3","Result"],
+    ["p","At x*=1.5, between two observed points, the posterior mean interpolates near 0.9 and the standard deviation is small because the test point sits close to data. Far from any observation the variance rises back toward the prior, so a GP honestly reports greater uncertainty where it has seen nothing. The length scale controls how quickly correlation, and confidence, decays with distance."],
+    ["ul",["GPs give predictive uncertainty for free, which drives Bayesian optimization and active learning.","Naive GP cost scales as the cube of the data count, so large datasets need sparse approximations.","Kronos uses GP surrogates to guide where to spend expensive simulation runs in parameter scans."]]
+  ],
+  "related": [["ensemble-kalman-update","An Ensemble Kalman Filter Update"],["kalman-filter-linear-update","A Linear Kalman Filter Update"],["sobol-sensitivity-indices","Sobol Sensitivity Indices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "grover-2-qubit",
+  "title": "Simulating a 2-Qubit Grover Search",
+  "cat": "worked-examples",
+  "lede": "Run one Grover iteration on a two-qubit register to amplify a marked state and reach it with certainty.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Grover's algorithm searches an unstructured space of N items in about sqrt(N) queries versus N classically. For two qubits N=4, and a single Grover iteration takes the amplitude of the marked state to 1, so one query finds it with certainty, the special case where the geometry aligns perfectly."],
+    ["h3","Oracle and diffusion"],
+    ["p","Start in the equal superposition. The oracle flips the sign of the marked amplitude; the diffusion operator reflects all amplitudes about their mean. Together they rotate the state vector toward the marked state in the 2D plane spanned by marked and unmarked components."],
+    ["code",["python","import numpy as np\npsi=np.ones(4)/2            # equal superposition\nmark=2                      # marked index |10>\n# oracle: flip sign of marked amplitude\npsi[mark]*=-1\n# diffusion: reflect about the mean\nm=psi.mean(); psi=2*m-psi\nprint(np.round(psi,3))      # amplitude 1 on marked, 0 elsewhere\nprint('prob marked',round(psi[mark]**2,3))"]],
+    ["h3","Result"],
+    ["p","After one oracle-plus-diffusion cycle the amplitude concentrates entirely on the marked index, so measurement returns it with probability 1. The mechanism is a rotation by an angle set by the initial overlap; for N=4 that angle is exactly enough to land on the target in one step. For larger N the optimal iteration count is about (pi/4) sqrt(N), and overshooting rotates past the target."],
+    ["ul",["Grover gives a quadratic, not exponential, speedup, and it is provably optimal for unstructured search.","Iterating too many times reduces success probability because the rotation continues past the target.","Amplitude amplification, Grover's generalization, appears in quantum subroutines Kronos tracks for future materials search problems."]]
+  ],
+  "related": [["iterative-phase-estimation","Iterative Quantum Phase Estimation"],["vqe-h2-energy-curve","The VQE Energy Curve for H2"],["surface-code-cycle","One Surface-Code Cycle"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "trotter-step-error",
+  "title": "A Trotter Step Error Estimate",
+  "cat": "worked-examples",
+  "lede": "Approximate the evolution of two non-commuting Hamiltonian terms with a first-order Trotter split and bound the step error.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Simulating time evolution e^{-i(A+B)t} on a quantum computer requires splitting the exponential into pieces that can be implemented directly. When A and B do not commute the split introduces error. First-order Trotter uses (e^{-iA dt} e^{-iB dt})^n, with error controlled by the step size dt."],
+    ["h3","Error scaling"],
+    ["p","The single-step error of e^{-iA dt} e^{-iB dt} versus e^{-i(A+B) dt} is (dt^2 / 2)[A,B] plus higher order, where [A,B]=AB-BA is the commutator. Over n steps to total time t=n dt the accumulated error scales as t dt, so halving dt halves the total error for fixed t."],
+    ["code",["python","import numpy as np\nfrom scipy.linalg import expm\nA=np.array([[0,1],[1,0]]); B=np.array([[0,-1j],[1j,0]])  # Pauli X, Y\nt=1.0\nfor n in [1,2,4,8,16]:\n    dt=t/n\n    approx=np.linalg.matrix_power(expm(-1j*A*dt)@expm(-1j*B*dt),n)\n    exact=expm(-1j*(A+B)*t)\n    err=np.linalg.norm(approx-exact,2)\n    print('n',n,'error',round(err,4))"]],
+    ["h3","Result"],
+    ["p","As the step count doubles the error roughly halves, confirming the first-order t dt scaling. The commutator [X,Y]=2iZ is nonzero, so the error is real and only vanishes as dt goes to zero. Second-order (symmetric) Trotter improves scaling to dt^2 at the cost of one extra exponential per step, which is usually worth it."],
+    ["ul",["Trotter error comes entirely from non-commuting terms; commuting Hamiltonians split exactly.","Higher-order product formulas trade more gates per step for far fewer steps at a target accuracy.","Trotterized dynamics is the standard route to quantum simulation of the molecular Hamiltonians relevant to magnet materials."]]
+  ],
+  "related": [["vqe-h2-energy-curve","The VQE Energy Curve for H2"],["iterative-phase-estimation","Iterative Quantum Phase Estimation"],["rk4-orbit-integration","RK4 Orbit Integration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "conjugate-gradient-solve",
+  "title": "Conjugate Gradient on a Small SPD System",
+  "cat": "worked-examples",
+  "lede": "Solve a symmetric positive-definite linear system with conjugate gradient and watch it converge in at most n steps.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Conjugate gradient (CG) solves Ax=b when A is symmetric positive definite, using only matrix-vector products and no factorization. In exact arithmetic it converges in at most n iterations for an n-by-n system, and often far fewer when eigenvalues cluster."],
+    ["h3","Algorithm"],
+    ["p","CG builds a sequence of search directions that are A-conjugate (mutually orthogonal in the A inner product), so each step minimizes the error along a new direction without undoing previous progress. The residual doubles as the steepest-descent direction, corrected to stay conjugate."],
+    ["code",["python","import numpy as np\nA=np.array([[4.,1.],[1.,3.]]); b=np.array([1.,2.])\nx=np.zeros(2); r=b-A@x; p=r.copy(); rs=r@r\nfor k in range(2):\n    Ap=A@p; alpha=rs/(p@Ap)\n    x=x+alpha*p; r=r-alpha*Ap\n    rs_new=r@r\n    print(k,'x',np.round(x,4),'res',round(np.sqrt(rs_new),6))\n    if rs_new<1e-12: break\n    p=r+(rs_new/rs)*p; rs=rs_new"]],
+    ["h3","Result"],
+    ["p","For this 2x2 system CG reaches the exact solution in two steps, driving the residual to machine zero. The step length alpha is chosen to exactly minimize the quadratic along the current direction. In large sparse problems, such as discretized PDEs, CG is preferred over direct solvers because it never forms a dense factor and needs only the action of A."],
+    ["ul",["Convergence rate depends on the condition number; preconditioning clusters eigenvalues to speed it up.","CG requires symmetry and positive definiteness; use GMRES or BiCGSTAB for general matrices.","Kronos finite-element and finite-difference solvers rely on preconditioned CG for large stiffness and Poisson systems."]]
+  ],
+  "related": [["fe-1d-bar","Finite Element Solution of a 1D Bar"],["gauss-seidel-iteration","Gauss-Seidel Iteration"],["poisson-1d-finite-difference","1D Poisson by Finite Differences"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "rk4-orbit-integration",
+  "title": "RK4 Orbit Integration",
+  "cat": "worked-examples",
+  "lede": "Integrate a circular two-body orbit with the fourth-order Runge-Kutta method and check energy drift over one period.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The classical Runge-Kutta method of order four (RK4) advances an ordinary differential equation by combining four slope evaluations per step, achieving error that shrinks as the fourth power of the step size. We integrate a body in a central gravitational field and track how well it conserves energy."],
+    ["h3","Equations"],
+    ["p","State is position and velocity in 2D. The acceleration points inward as -r / |r|^3 (unit gravitational parameter). Starting on a circular orbit, an ideal integrator returns the body to its start after one period."],
+    ["code",["python","import numpy as np\ndef deriv(s):\n    x,y,vx,vy=s; r=(x*x+y*y)**1.5\n    return np.array([vx,vy,-x/r,-y/r])\ns=np.array([1.,0.,0.,1.])   # circular orbit, period 2*pi\ndt=0.01\ndef energy(s): x,y,vx,vy=s; return 0.5*(vx*vx+vy*vy)-1/np.hypot(x,y)\nE0=energy(s)\nfor _ in range(int(2*np.pi/dt)):\n    k1=deriv(s); k2=deriv(s+dt/2*k1); k3=deriv(s+dt/2*k2); k4=deriv(s+dt*k3)\n    s=s+dt/6*(k1+2*k2+2*k3+k4)\nprint('pos',np.round(s[:2],4),'energy drift',round(energy(s)-E0,3e-1*0+8))"]],
+    ["h3","Result"],
+    ["p","After one full period the body returns close to its starting point and the energy drift is tiny, on the order of 1e-8 for this step size. RK4's fourth-order accuracy means cutting the step in half reduces error by a factor of sixteen. It is not symplectic, so over very many orbits energy slowly drifts; long-term celestial integrations use symplectic methods instead."],
+    ["ul",["RK4 balances accuracy and simplicity, the default for smooth non-stiff problems.","Adaptive step-size variants (RK45) adjust dt to hold a target error automatically.","Particle-orbit and gyrocenter integrators in Kronos plasma tools use RK-family or symplectic pushers depending on the time scale."]]
+  ],
+  "related": [["pic-push-weight","A Particle-in-Cell Push Step"],["crank-nicolson-diffusion","Crank-Nicolson for 1D Diffusion"],["newton-raphson-system","Newton-Raphson on a Nonlinear System"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "crank-nicolson-diffusion",
+  "title": "Crank-Nicolson for 1D Diffusion",
+  "cat": "worked-examples",
+  "lede": "Step a 1D heat equation with the unconditionally stable Crank-Nicolson scheme by solving a tridiagonal system each step.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Crank-Nicolson averages the explicit and implicit updates, giving second-order accuracy in time and unconditional stability. Unlike the explicit scheme it places no upper bound on the time step, at the cost of solving a tridiagonal linear system each step."],
+    ["h3","Scheme"],
+    ["p","For u_t = alpha u_xx, define r = alpha dt / (2 dx^2). The update reads (1+2r) u_i^{n+1} - r(u_{i+1}^{n+1}+u_{i-1}^{n+1}) = (1-2r) u_i^n + r(u_{i+1}^n+u_{i-1}^n). The left side is a tridiagonal matrix solved with the Thomas algorithm."],
+    ["code",["python","import numpy as np\nn=51; dx=1/(n-1); alpha=1.0; dt=0.01; r=alpha*dt/(2*dx*dx)\nx=np.linspace(0,1,n); u=np.sin(np.pi*x)\nA=(1+2*r)*np.eye(n)-r*np.eye(n,k=1)-r*np.eye(n,k=-1)\nB=(1-2*r)*np.eye(n)+r*np.eye(n,k=1)+r*np.eye(n,k=-1)\nA[0]=A[-1]=0; A[0,0]=A[-1,-1]=1     # Dirichlet ends\nfor _ in range(50):\n    b=B@u; b[0]=b[-1]=0\n    u=np.linalg.solve(A,b)\nexact=np.sin(np.pi*x)*np.exp(-np.pi**2*0.5)\nprint('max error',round(np.max(np.abs(u-exact)),5))"]],
+    ["h3","Result"],
+    ["p","Starting from a sine profile, the analytic solution decays as exp(-pi^2 alpha t). Crank-Nicolson tracks this decay accurately even with a step size that would make the explicit scheme blow up, and the maximum error stays small. The scheme can produce mild oscillations for very large r on sharp initial data, a known trade-off for its high accuracy."],
+    ["ul",["Unconditional stability lets you choose dt for accuracy, not stability, a major advantage for stiff diffusion.","Each step is a tridiagonal solve, cheap in 1D and still manageable in higher dimensions with ADI splitting.","Kronos thermal-transient models of first-wall components use implicit schemes for the same stiffness reasons."]]
+  ],
+  "related": [["heat-equation-2d","Solving the 2D Heat Equation"],["poisson-1d-finite-difference","1D Poisson by Finite Differences"],["conjugate-gradient-solve","Conjugate Gradient Solver"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "monte-carlo-pi",
+  "title": "Monte Carlo Estimate of Pi",
+  "cat": "worked-examples",
+  "lede": "Estimate pi by sampling points in a square, count the fraction inside the inscribed circle, and quantify the error scaling.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Monte Carlo integration estimates quantities by random sampling. To estimate pi we drop random points into a unit square and count how many fall inside the quarter circle of radius 1; the fraction inside times four approximates pi. It is a clean illustration of how sampling error shrinks."],
+    ["h3","Sampling"],
+    ["p","For N uniform points in the unit square, the fraction with x^2 + y^2 <= 1 estimates the area ratio pi/4. The standard error of the estimate falls as 1/sqrt(N), independent of dimension, which is why Monte Carlo wins for high-dimensional integrals."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(7)\nfor N in [1000,10000,100000,1000000]:\n    p=rng.random((N,2))\n    inside=(p[:,0]**2+p[:,1]**2<=1).mean()\n    est=4*inside\n    err=abs(est-np.pi)\n    print('N',N,'estimate',round(est,4),'error',round(err,4))"]],
+    ["h3","Result"],
+    ["p","Each tenfold increase in samples cuts the typical error by about a factor of three (sqrt(10)), matching the 1/sqrt(N) law. To gain one more decimal digit of accuracy you need roughly a hundred times more samples, which is the fundamental limitation of plain Monte Carlo. Variance-reduction tricks like stratified or importance sampling improve the constant, not the exponent."],
+    ["ul",["Convergence is 1/sqrt(N) regardless of dimension, unlike grid methods that suffer the curse of dimensionality.","The result is a random estimate; report a confidence interval, not just the point value.","Kronos uses Monte Carlo for neutron transport in breeder-blanket studies, where high dimensionality rules out grids."]]
+  ],
+  "related": [["importance-sampling-estimate","An Importance Sampling Estimate"],["metropolis-hastings-gaussian","Metropolis-Hastings Sampling"],["sobol-sensitivity-indices","Sobol Sensitivity Indices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "logistic-regression-gd",
+  "title": "Logistic Regression by Gradient Descent",
+  "cat": "worked-examples",
+  "lede": "Fit a logistic classifier to a small separable dataset with batch gradient descent and read the learned decision boundary.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Logistic regression models the probability of a binary label as a sigmoid of a linear score. Training minimizes cross-entropy loss, which is convex, so gradient descent reaches the global optimum. We fit weights on a small 1D dataset and locate the decision threshold."],
+    ["h3","Model and gradient"],
+    ["p","Prediction is p = sigmoid(w x + b). The cross-entropy gradient with respect to the weights is the average of (p - y) times the input, a remarkably clean form that follows from the sigmoid-plus-log-loss pairing."],
+    ["code",["python","import numpy as np\nx=np.array([-2,-1,-0.5,0.5,1,2.]); y=np.array([0,0,0,1,1,1.])\nw=b=0.0; lr=0.5\nsig=lambda z:1/(1+np.exp(-z))\nfor _ in range(2000):\n    p=sig(w*x+b)\n    gw=np.mean((p-y)*x); gb=np.mean(p-y)\n    w-=lr*gw; b-=lr*gb\nboundary=-b/w   # where p=0.5\nprint('w',round(w,3),'b',round(b,3),'boundary x',round(boundary,3))"]],
+    ["h3","Result"],
+    ["p","Training pushes the weight positive and places the decision boundary (where p=0.5) near x=0, correctly separating the two groups. Because the data are separable the weights keep growing to sharpen the sigmoid, which is why L2 regularization is usually added to keep them finite. The learned probability is well-calibrated near the boundary and saturates toward 0 and 1 far from it."],
+    ["ul",["Cross-entropy loss is convex in the weights, so any local minimum is global.","On perfectly separable data unregularized weights diverge; regularization or early stopping controls this.","Logistic regression is a strong, interpretable baseline Kronos uses before reaching for larger models on diagnostic classification."]]
+  ],
+  "related": [["gradient-boosting-round","One Gradient-Boosting Round"],["disruption-predictor-roc","Evaluating a Disruption Predictor"],["adam-optimizer-step","An Adam Optimizer Step"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "k-means-trace",
+  "title": "A k-Means Clustering Trace",
+  "cat": "worked-examples",
+  "lede": "Run Lloyd's algorithm on six points with two clusters, alternating assignment and mean update until the centers stop moving.",
+  "body": [
+    ["h2","Problem"],
+    ["p","k-means partitions data into k clusters by minimizing within-cluster squared distance. Lloyd's algorithm alternates two steps: assign each point to its nearest center, then move each center to the mean of its assigned points. It converges to a local optimum, so initialization matters."],
+    ["h3","Data and initialization"],
+    ["p","Six points on a line: 1, 2, 3, 10, 11, 12, with k=2. Initialize centers at 2 and 11. Each iteration reassigns points then recomputes means."],
+    ["code",["python","import numpy as np\nX=np.array([1,2,3,10,11,12.]); C=np.array([2.,11.])\nfor it in range(5):\n    d=np.abs(X[:,None]-C[None,:])\n    a=d.argmin(1)\n    newC=np.array([X[a==k].mean() for k in range(2)])\n    print('iter',it,'assign',a,'centers',np.round(newC,2))\n    if np.allclose(newC,C): break\n    C=newC"]],
+    ["h3","Result"],
+    ["p","The algorithm assigns the first three points to cluster 0 and the last three to cluster 1 immediately, then the centers converge to 2 and 11, which are the group means. It stops when an update leaves the centers unchanged. A bad initialization, such as both centers among the low points, could converge to a worse partition, which is why k-means++ seeding is standard."],
+    ["ul",["Lloyd's algorithm monotonically decreases the objective, guaranteeing convergence but only to a local minimum.","The number of clusters k must be chosen in advance; the elbow or silhouette methods help.","Kronos uses clustering to group similar plasma-shot conditions before per-cluster modeling."]]
+  ],
+  "related": [["pca-small-dataset","PCA on a Small Dataset"],["logistic-regression-gd","Logistic Regression by Gradient Descent"],["gaussian-process-posterior","A Gaussian-Process Posterior Update"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pca-small-dataset",
+  "title": "PCA on a Small Dataset",
+  "cat": "worked-examples",
+  "lede": "Center a small dataset, compute its covariance eigenvectors, and project onto the leading principal component.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Principal component analysis (PCA) finds orthogonal directions that capture the most variance in data. Projecting onto the top few components reduces dimensionality while preserving structure. The components are eigenvectors of the covariance matrix, ranked by eigenvalue."],
+    ["h3","Steps"],
+    ["p","Center the data by subtracting the mean, form the covariance matrix, then find its eigenvectors and eigenvalues. The eigenvector with the largest eigenvalue is the first principal component; the eigenvalue equals the variance captured along it."],
+    ["code",["python","import numpy as np\nX=np.array([[2.,0.],[0.,2.],[3.,1.],[1.,3.]])\nXc=X-X.mean(0)\nC=np.cov(Xc,rowvar=False)\nvals,vecs=np.linalg.eigh(C)\norder=np.argsort(vals)[::-1]\nvals=vals[order]; vecs=vecs[:,order]\npc1=vecs[:,0]\nscores=Xc@pc1\nprint('eigenvalues',np.round(vals,3))\nprint('PC1',np.round(pc1,3))\nprint('variance explained',round(vals[0]/vals.sum(),3))"]],
+    ["h3","Result"],
+    ["p","The data spread mostly along the diagonal, so the first principal component points near (1,1)/sqrt(2) and captures the majority of the variance. Projecting each centered point onto this direction gives a 1D summary that retains most of the information. The eigenvalues quantify exactly how much variance each direction holds, so you can decide how many components to keep."],
+    ["ul",["PCA is a linear method; it cannot capture curved structure, for which nonlinear embeddings exist.","Always center, and often scale, features first, or the largest-magnitude variable dominates.","PCA and its cousin POD compress high-dimensional simulation output in Kronos surrogate modeling."]]
+  ],
+  "related": [["pod-reduced-order-model","POD Reduced-Order Model"],["svd-2x2","SVD of a 2x2 Matrix"],["k-means-trace","A k-Means Clustering Trace"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "svd-2x2",
+  "title": "SVD of a 2x2 Matrix",
+  "cat": "worked-examples",
+  "lede": "Compute the singular value decomposition of a small matrix from its symmetric products and verify the reconstruction.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The singular value decomposition factors any matrix A into U S V', with U and V orthogonal and S diagonal with non-negative singular values. It reveals how A stretches space: V' rotates, S scales along axes, U rotates again. We compute it for a 2x2 matrix by hand-style steps."],
+    ["h3","Method"],
+    ["p","The right singular vectors V are eigenvectors of A'A, the singular values are square roots of its eigenvalues, and the left singular vectors follow from U = A V / sigma. We verify by reassembling A."],
+    ["code",["python","import numpy as np\nA=np.array([[3.,0.],[4.,5.]])\nATA=A.T@A\nvals,V=np.linalg.eigh(ATA)\nidx=np.argsort(vals)[::-1]; vals=vals[idx]; V=V[:,idx]\nsig=np.sqrt(vals)\nU=A@V/sig\nprint('singular values',np.round(sig,3))\nrecon=U@np.diag(sig)@V.T\nprint('reconstruction ok',np.allclose(recon,A))"]],
+    ["h3","Result"],
+    ["p","The two singular values are the axis lengths of the ellipse that A maps the unit circle onto; their ratio is the 2-norm condition number, which measures how much A can amplify errors. Reassembling U S V' recovers A exactly. The largest singular value equals the matrix 2-norm, and the smallest tells you how close A is to singular."],
+    ["ul",["Singular values are always real and non-negative, even for non-symmetric or rectangular matrices.","The SVD gives the best low-rank approximation by truncating small singular values (Eckart-Young).","SVD underlies PCA, POD, and pseudo-inverse least squares throughout Kronos data pipelines."]]
+  ],
+  "related": [["pca-small-dataset","PCA on a Small Dataset"],["pod-reduced-order-model","POD Reduced-Order Model"],["qr-gram-schmidt","QR via Gram-Schmidt"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "qr-gram-schmidt",
+  "title": "QR Decomposition via Gram-Schmidt",
+  "cat": "worked-examples",
+  "lede": "Orthonormalize the columns of a small matrix with Gram-Schmidt to produce Q and R, and check orthogonality.",
+  "body": [
+    ["h2","Problem"],
+    ["p","QR decomposition writes A = Q R with Q orthonormal columns and R upper triangular. It is the workhorse behind least-squares solving and eigenvalue algorithms. Classical Gram-Schmidt builds Q by subtracting projections onto previously found directions."],
+    ["h3","Procedure"],
+    ["p","Take each column of A, subtract its projection onto the already-normalized columns, and normalize the remainder. The projection coefficients and the norms fill the entries of R."],
+    ["code",["python","import numpy as np\nA=np.array([[1.,1.],[1.,0.],[0.,1.]])\nm,n=A.shape; Q=np.zeros((m,n)); R=np.zeros((n,n))\nfor j in range(n):\n    v=A[:,j].copy()\n    for i in range(j):\n        R[i,j]=Q[:,i]@A[:,j]\n        v=v-R[i,j]*Q[:,i]\n    R[j,j]=np.linalg.norm(v)\n    Q[:,j]=v/R[j,j]\nprint('Q^T Q orthonormal',np.allclose(Q.T@Q,np.eye(n)))\nprint('reconstruct',np.allclose(Q@R,A))"]],
+    ["h3","Result"],
+    ["p","The output Q has orthonormal columns (Q'Q equals the identity) and Q R reconstructs A. Once you have QR, least squares becomes solving R x = Q' b by back-substitution, which is stable and fast. Classical Gram-Schmidt can lose orthogonality on ill-conditioned inputs; the modified variant or Householder reflections are used in production."],
+    ["ul",["QR turns least squares into a triangular solve without forming the normal equations, avoiding squared condition numbers.","Repeated QR steps drive a matrix toward triangular form, the basis of the QR eigenvalue algorithm.","Kronos least-squares fits of diagnostic data use QR-based solvers for numerical stability."]]
+  ],
+  "related": [["svd-2x2","SVD of a 2x2 Matrix"],["lu-partial-pivoting","LU with Partial Pivoting"],["power-iteration-eigenvalue","Power Iteration for Eigenvalues"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "lu-partial-pivoting",
+  "title": "LU Decomposition with Partial Pivoting",
+  "cat": "worked-examples",
+  "lede": "Factor a small matrix into permuted lower- and upper-triangular factors, then solve a system by forward and back substitution.",
+  "body": [
+    ["h2","Problem"],
+    ["p","LU decomposition writes P A = L U, with P a row-permutation, L unit lower triangular, and U upper triangular. Partial pivoting swaps rows to put the largest available pivot on the diagonal, which keeps the factorization numerically stable. Solving Ax=b then costs only two triangular solves."],
+    ["h3","Factorization"],
+    ["p","Gaussian elimination with pivoting eliminates entries below each pivot, recording the multipliers in L and the row swaps in P. Once factored, any right-hand side is solved cheaply by reusing L and U."],
+    ["code",["python","import numpy as np\nfrom scipy.linalg import lu, solve_triangular\nA=np.array([[2.,1.,1.],[4.,3.,3.],[8.,7.,9.]])\nb=np.array([4.,10.,26.])\nP,L,U=lu(A)\ny=solve_triangular(L,P.T@b,lower=True)\nx=solve_triangular(U,y)\nprint('x',np.round(x,3))\nprint('check',np.allclose(A@x,b))"]],
+    ["h3","Result"],
+    ["p","The solver factors A once, applies the permutation to b, solves L y = P'b downward, then U x = y upward. The recovered x satisfies Ax=b. Partial pivoting chose the row with the largest leading entry (8) as the first pivot, which prevents small pivots from amplifying rounding error. The same L and U solve any number of right-hand sides without re-factoring."],
+    ["ul",["Factoring is O(n^3) but each subsequent solve is only O(n^2), so LU pays off with many right-hand sides.","Without pivoting, a zero or tiny pivot makes elimination fail or lose accuracy.","Direct LU solvers handle the dense sub-blocks in Kronos coupled electromagnetic-structural models."]]
+  ],
+  "related": [["qr-gram-schmidt","QR via Gram-Schmidt"],["gauss-seidel-iteration","Gauss-Seidel Iteration"],["conjugate-gradient-solve","Conjugate Gradient Solver"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "power-iteration-eigenvalue",
+  "title": "Power Iteration for the Dominant Eigenvalue",
+  "cat": "worked-examples",
+  "lede": "Find the largest eigenvalue and its eigenvector by repeatedly multiplying a vector by the matrix and normalizing.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Power iteration finds the dominant eigenvalue of a matrix, the one largest in magnitude, using only matrix-vector products. Starting from a random vector, repeated multiplication amplifies the component along the dominant eigenvector faster than the others, so the direction converges."],
+    ["h3","Iteration"],
+    ["p","Each step computes A v, normalizes it, and estimates the eigenvalue with the Rayleigh quotient v' A v. Convergence speed depends on the ratio of the second-largest to the largest eigenvalue magnitude."],
+    ["code",["python","import numpy as np\nA=np.array([[2.,1.],[1.,3.]])\nv=np.array([1.,0.])\nfor k in range(8):\n    w=A@v; v=w/np.linalg.norm(w)\n    lam=v@A@v\n    print(k,'eigenvalue est',round(lam,5))\nprint('true',np.round(np.linalg.eigvalsh(A),5))"]],
+    ["h3","Result"],
+    ["p","The Rayleigh-quotient estimate climbs to the true dominant eigenvalue (about 3.618) within a handful of iterations, and v aligns with its eigenvector. Convergence is geometric with ratio |lambda2 / lambda1|; when the top two eigenvalues are close, it slows. Shifting or deflation extracts further eigenvalues, and inverse iteration targets the smallest."],
+    ["ul",["Power iteration needs only the action of A, so it scales to large sparse matrices.","It fails to converge when the two largest eigenvalues have equal magnitude (e.g. a complex conjugate pair).","This method is the historical seed of Google PageRank and of Kronos stability-eigenvalue screening."]]
+  ],
+  "related": [["qr-gram-schmidt","QR via Gram-Schmidt"],["svd-2x2","SVD of a 2x2 Matrix"],["conjugate-gradient-solve","Conjugate Gradient Solver"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "backprop-tiny-mlp",
+  "title": "Backpropagation Through a Tiny MLP",
+  "cat": "worked-examples",
+  "lede": "Compute the forward pass and every gradient of a two-layer network on one example, entirely by hand.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Backpropagation computes the gradient of a loss with respect to every weight by applying the chain rule backward through the network. We take a minimal network, one input, one hidden unit with a sigmoid, one output, and a squared-error loss, and compute all gradients explicitly."],
+    ["h3","Forward pass"],
+    ["p","With input x, hidden pre-activation z1 = w1 x + b1, hidden activation h = sigmoid(z1), output y = w2 h + b2, and loss L = (y - t)^2 / 2 for target t. Each intermediate value is stored for the backward pass."],
+    ["code",["python","import numpy as np\nx,t=1.0,0.5\nw1,b1,w2,b2=0.8,0.0,0.5,0.1\nz1=w1*x+b1; h=1/(1+np.exp(-z1)); y=w2*h+b2; L=0.5*(y-t)**2\ndL=y-t                       # dL/dy\ndw2=dL*h; db2=dL              # output layer grads\ndh=dL*w2; dz1=dh*h*(1-h)      # sigmoid derivative\ndw1=dz1*x; db1=dz1\nprint('L',round(L,4))\nprint('grads',[round(g,4) for g in (dw1,db1,dw2,db2)])"]],
+    ["h3","Result"],
+    ["p","The backward pass reuses the stored forward values: the output gradient dL/dy flows into the output weights directly, then multiplies through w2 and the sigmoid derivative h(1-h) to reach the hidden weights. Each gradient tells how the loss would change if that weight moved. A gradient-descent step subtracts a small multiple of each gradient, and repeating the whole cycle trains the network."],
+    ["ul",["Backprop is just the chain rule applied efficiently, caching forward values to avoid recomputation.","The sigmoid derivative h(1-h) is near zero when h saturates, the source of vanishing gradients in deep nets.","Every deep-learning framework Kronos uses automates exactly this computation over millions of parameters."]]
+  ],
+  "related": [["adam-optimizer-step","An Adam Optimizer Step"],["cnn-toy-images","Training a Small CNN"],["logistic-regression-gd","Logistic Regression by Gradient Descent"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "adam-optimizer-step",
+  "title": "An Adam Optimizer Step",
+  "cat": "worked-examples",
+  "lede": "Apply one Adam update with worked numbers, tracking the bias-corrected first and second moment estimates.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Adam is an adaptive optimizer that maintains running averages of the gradient (first moment) and its square (second moment), then scales each parameter's step by these. It combines momentum with per-parameter learning rates, which makes it robust across problems with little tuning."],
+    ["h3","Update rule"],
+    ["p","With gradient g at step t: m = beta1 m + (1-beta1) g, v = beta2 v + (1-beta2) g^2. Bias-correct m_hat = m/(1-beta1^t) and v_hat = v/(1-beta2^t), then step by -lr m_hat / (sqrt(v_hat) + eps). The bias correction matters most in early steps when the running averages are still near zero."],
+    ["code",["python","import numpy as np\nbeta1,beta2,eps,lr=0.9,0.999,1e-8,0.1\nm=v=0.0; theta=1.0\nfor t in range(1,4):\n    g=2*theta          # gradient of theta^2, minimum at 0\n    m=beta1*m+(1-beta1)*g\n    v=beta2*v+(1-beta2)*g*g\n    mh=m/(1-beta1**t); vh=v/(1-beta2**t)\n    theta-=lr*mh/(np.sqrt(vh)+eps)\n    print('t',t,'theta',round(theta,4))"]],
+    ["h3","Result"],
+    ["p","Minimizing theta^2 from theta=1, each Adam step moves theta toward zero. The bias correction inflates the early moment estimates so the first steps are not artificially tiny. Because v_hat normalizes the step by the gradient scale, Adam takes similar-sized steps regardless of how large the raw gradients are, which is why it works out of the box on very different loss surfaces."],
+    ["ul",["Bias correction is essential for the first few steps; without it Adam starts far too slowly.","The per-parameter scaling adapts to differing gradient magnitudes across weights automatically.","Kronos trains its neural surrogates and control policies primarily with Adam and its variants."]]
+  ],
+  "related": [["backprop-tiny-mlp","Backpropagation Through a Tiny MLP"],["logistic-regression-gd","Logistic Regression by Gradient Descent"],["cnn-toy-images","Training a Small CNN"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "poisson-1d-finite-difference",
+  "title": "1D Poisson by Finite Differences",
+  "cat": "worked-examples",
+  "lede": "Discretize a boundary-value problem into a tridiagonal system and solve for the potential across the interval.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The 1D Poisson equation -u''(x) = f(x) with fixed boundary values is the simplest elliptic boundary-value problem. Finite differences turn the second derivative into a tridiagonal linear system that we solve directly, the building block for many field solvers."],
+    ["h3","Discretization"],
+    ["p","On a uniform grid with spacing h, -u''(x_i) is approximated by (-u_{i-1} + 2 u_i - u_{i+1})/h^2. This produces a matrix with 2 on the diagonal and -1 on the off-diagonals, scaled by 1/h^2. Boundary values move to the right-hand side."],
+    ["code",["python","import numpy as np\nn=6; h=1/(n+1); x=np.linspace(h,1-h,n)\nf=np.ones(n)                      # source -u'' = 1\nA=(2*np.eye(n)-np.eye(n,k=1)-np.eye(n,k=-1))/h**2\nu=np.linalg.solve(A,f)\nexact=0.5*x*(1-x)                 # analytic solution\nprint('max error',round(np.max(np.abs(u-exact)),6))"]],
+    ["h3","Result"],
+    ["p","With f=1 and zero boundaries the exact solution is the parabola u(x)=x(1-x)/2, and the finite-difference answer matches it to machine precision because the scheme is exact for quadratics. For general sources the error shrinks as h^2 (second order). The tridiagonal system is solved in linear time by the Thomas algorithm, so even fine grids are cheap in 1D."],
+    ["ul",["The discrete Laplacian is symmetric positive definite, making iterative solvers like CG applicable in higher dimensions.","Second-order accuracy means halving h quarters the error.","This operator, in 2D and 3D form, is the core of the electrostatic and magnetostatic solves in Kronos plasma models."]]
+  ],
+  "related": [["fe-1d-bar","Finite Element Solution of a 1D Bar"],["conjugate-gradient-solve","Conjugate Gradient Solver"],["gauss-seidel-iteration","Gauss-Seidel Iteration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "metropolis-hastings-gaussian",
+  "title": "Metropolis-Hastings Sampling a Gaussian",
+  "cat": "worked-examples",
+  "lede": "Draw samples from a target distribution using a random-walk proposal and the accept-reject rule, then check the sample statistics.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Metropolis-Hastings is a Markov chain Monte Carlo method that samples from a distribution known only up to a constant. It proposes a move, then accepts or rejects it with a probability that guarantees the chain's stationary distribution is the target. We sample a standard Gaussian to keep the check simple."],
+    ["h3","Algorithm"],
+    ["p","From the current point x, propose x' = x + normal(0, step). Accept with probability min(1, p(x')/p(x)); for a Gaussian target that ratio is exp(-(x'^2 - x^2)/2). Rejected moves keep the current point, which is what preserves the correct distribution."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(11)\ndef logp(x): return -0.5*x*x\nx=0.0; step=1.5; samples=[]\nfor _ in range(50000):\n    xp=x+rng.normal(0,step)\n    if np.log(rng.random())<logp(xp)-logp(x):\n        x=xp\n    samples.append(x)\ns=np.array(samples[1000:])\nprint('mean',round(s.mean(),3),'std',round(s.std(),3))"]],
+    ["h3","Result"],
+    ["p","After discarding an initial burn-in the sample mean is near 0 and the standard deviation near 1, matching the target Gaussian. The step size tunes efficiency: too small and the chain crawls, too large and most proposals are rejected. A common target acceptance rate is around 25 to 45 percent. Successive samples are correlated, so effective sample size is smaller than the raw count."],
+    ["ul",["Only the ratio of densities is needed, so the normalizing constant never has to be computed.","Convergence requires discarding burn-in and checking mixing diagnostics before trusting estimates.","MCMC underlies Bayesian parameter inference in Kronos uncertainty-quantification studies."]]
+  ],
+  "related": [["monte-carlo-pi","Monte Carlo Estimate of Pi"],["importance-sampling-estimate","An Importance Sampling Estimate"],["gaussian-process-posterior","A Gaussian-Process Posterior Update"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "importance-sampling-estimate",
+  "title": "An Importance Sampling Estimate",
+  "cat": "worked-examples",
+  "lede": "Estimate a rare-event probability far more efficiently by sampling from a shifted distribution and reweighting.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Importance sampling estimates expectations under one distribution by sampling from another and correcting with weights. It shines for rare events, where naive Monte Carlo almost never lands a hit. We estimate the probability that a standard normal exceeds 4, a tail event of about 3e-5."],
+    ["h3","Method"],
+    ["p","Sample from a proposal q centered near the rare region (a normal shifted to mean 4), then weight each sample by p(x)/q(x), the ratio of target to proposal densities. The weighted average of the indicator gives the estimate with far lower variance than direct sampling."],
+    ["code",["python","import numpy as np\nrng=np.random.default_rng(5)\nfrom scipy.stats import norm\nN=100000; mu=4.0\nx=rng.normal(mu,1,N)                 # proposal q ~ N(4,1)\nw=norm.pdf(x,0,1)/norm.pdf(x,mu,1)   # importance weights\nest=np.mean((x>4)*w)\ntrue=1-norm.cdf(4)\nprint('IS estimate',est,'true',round(true,3e-1*0+8))"]],
+    ["h3","Result"],
+    ["p","The importance-sampling estimate lands close to the true tail probability of about 3.17e-5 using a modest sample count, whereas direct sampling from N(0,1) would need on the order of a million draws to see even a handful of exceedances. The weights correct for the fact that we oversampled the tail. A poorly chosen proposal, one that misses the important region, produces high-variance or biased estimates, so the proposal design is the whole art."],
+    ["ul",["Good proposals concentrate samples where the integrand is large, slashing variance for rare events.","Weights with heavy tails signal a bad proposal and can wreck the estimate despite a low apparent error.","Kronos applies importance sampling to rare-failure and neutron-tail estimates where direct Monte Carlo is impractical."]]
+  ],
+  "related": [["monte-carlo-pi","Monte Carlo Estimate of Pi"],["metropolis-hastings-gaussian","Metropolis-Hastings Sampling"],["sobol-sensitivity-indices","Sobol Sensitivity Indices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "kalman-filter-linear-update",
+  "title": "A Linear Kalman Filter Update",
+  "cat": "worked-examples",
+  "lede": "Run one predict-update cycle of a scalar Kalman filter, computing the gain that optimally blends prediction and measurement.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The Kalman filter is the optimal linear estimator for a system with Gaussian noise. Each cycle predicts the state and its uncertainty forward using the model, then corrects them with a measurement, weighting the two by their variances through the Kalman gain."],
+    ["h3","One cycle"],
+    ["p","Predict: x = A x, P = A P A' + Q with process noise Q. Update: gain K = P H'/(H P H' + R), then x = x + K(z - H x) and P = (1 - K H) P. We use a scalar constant-position model."],
+    ["code",["python","x=0.0; P=1.0            # prior state and variance\nA=1.0; Q=0.01; H=1.0; R=0.25\nz=1.2                   # measurement\n# predict\nx=A*x; P=A*P*A+Q\n# update\nK=P*H/(H*P*H+R)\nx=x+K*(z-H*x)\nP=(1-K*H)*P\nprint('gain',round(K,3),'estimate',round(x,3),'variance',round(P,3))"]],
+    ["h3","Result"],
+    ["p","The predicted variance grows to 1.01 from process noise, then the gain (about 0.80) pulls the estimate most of the way to the measurement 1.2 because the measurement is fairly trustworthy relative to the large prior uncertainty. The posterior variance drops to about 0.20, reflecting the information the measurement added. Over repeated cycles the variance settles to a steady state balancing process and measurement noise."],
+    ["ul",["The gain automatically weights prediction against measurement by their relative variances, with no hand tuning.","For nonlinear systems the extended or unscented Kalman filter linearizes or samples around the estimate.","Kronos uses Kalman filtering to fuse fast magnetic diagnostics into real-time plasma state estimates."]]
+  ],
+  "related": [["ensemble-kalman-update","An Ensemble Kalman Filter Update"],["gaussian-process-posterior","A Gaussian-Process Posterior Update"],["mpc-one-step","One MPC Optimization Step"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "a-star-grid-trace",
+  "title": "Tracing A* on a Grid",
+  "cat": "worked-examples",
+  "lede": "Search a small grid with obstacles using A*, combining path cost and a heuristic to find the shortest route efficiently.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A* finds shortest paths using the cost so far g plus an admissible heuristic h that estimates remaining cost. By expanding nodes in order of f = g + h it explores far fewer nodes than Dijkstra while still returning the optimal path, provided h never overestimates."],
+    ["h3","Grid and heuristic"],
+    ["p","On a 4x4 grid moving in four directions, with a wall blocking part of the middle, the Manhattan distance is an admissible heuristic. Start at (0,0), goal at (3,3)."],
+    ["code",["python","import heapq\nW,H=4,4; walls={(1,1),(1,2),(2,1)}\ndef nbr(p):\n    for dx,dy in((1,0),(-1,0),(0,1),(0,-1)):\n        q=(p[0]+dx,p[1]+dy)\n        if 0<=q[0]<W and 0<=q[1]<H and q not in walls: yield q\nh=lambda p:abs(3-p[0])+abs(3-p[1])\nstart,goal=(0,0),(3,3)\npq=[(h(start),0,start)]; g={start:0}; came={}\nwhile pq:\n    f,gc,u=heapq.heappop(pq)\n    if u==goal: break\n    for v in nbr(u):\n        ng=gc+1\n        if v not in g or ng<g[v]:\n            g[v]=ng; came[v]=u; heapq.heappush(pq,(ng+h(v),ng,v))\nprint('path length',g[goal])  # 6"]],
+    ["h3","Result"],
+    ["p","A* returns a path of length 6, the shortest way around the wall, while expanding only the nodes that lie roughly along the route toward the goal. The heuristic steers the search: nodes pointing away from the goal get a high f and are deprioritized. If the heuristic were zero, A* would degenerate into Dijkstra and expand many more nodes."],
+    ["ul",["Admissibility (never overestimating) guarantees A* returns an optimal path.","A more informed heuristic expands fewer nodes but must stay admissible to keep optimality.","Grid path-planning of this kind supports Kronos maintenance-robot and cabling-route layout studies."]]
+  ],
+  "related": [["dijkstra-trace","Tracing Dijkstra"],["knapsack-dynamic-programming","Knapsack via Dynamic Programming"],["huffman-coding-small","Huffman Coding a Small Alphabet"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "huffman-coding-small",
+  "title": "Huffman Coding a Small Alphabet",
+  "cat": "worked-examples",
+  "lede": "Build an optimal prefix code for four symbols with known frequencies and compute the average code length.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Huffman coding builds an optimal prefix-free binary code from symbol frequencies. Frequent symbols get short codes, rare ones get long codes, and no code is a prefix of another so the stream decodes unambiguously. It achieves the minimum average length among all prefix codes."],
+    ["h3","Construction"],
+    ["p","Repeatedly merge the two lowest-frequency nodes into a parent whose frequency is their sum. The tree that results assigns each symbol a code by the path from root (left=0, right=1). We use symbols A,B,C,D with frequencies 0.5, 0.2, 0.2, 0.1."],
+    ["code",["python","import heapq\nfreq={'A':0.5,'B':0.2,'C':0.2,'D':0.1}\npq=[[f,[s,'']] for s,f in freq.items()]; heapq.heapify(pq)\nwhile len(pq)>1:\n    lo=heapq.heappop(pq); hi=heapq.heappop(pq)\n    for pair in lo[1:]: pair[1]='0'+pair[1]\n    for pair in hi[1:]: pair[1]='1'+pair[1]\n    heapq.heappush(pq,[lo[0]+hi[0]]+lo[1:]+hi[1:])\ncodes={s:c for s,c in pq[0][1:]}\navg=sum(freq[s]*len(c) for s,c in codes.items())\nprint(codes)\nprint('avg length',round(avg,3))"]],
+    ["h3","Result"],
+    ["p","The frequent symbol A gets a 1-bit code while the rarest D gets a 3-bit code, giving an average length near 1.8 bits per symbol. Compare this to the Shannon entropy of the source (about 1.76 bits), which Huffman approaches but cannot beat, and to a fixed 2-bit code, which it beats. The prefix property lets a decoder read bit by bit and emit a symbol the moment a leaf is reached."],
+    ["ul",["Huffman is provably optimal among symbol-by-symbol prefix codes for a known distribution.","It cannot beat the source entropy; arithmetic and range coding close the remaining fractional-bit gap.","Prefix-code ideas support lossless compression of Kronos diagnostic and log data streams."]]
+  ],
+  "related": [["hamming-7-4-decode","Hamming(7,4) Encode and Decode"],["dijkstra-trace","Tracing Dijkstra"],["bloom-filter-false-positive","Bloom Filter False-Positive Rate"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "hamming-7-4-decode",
+  "title": "Hamming(7,4) Encode and Decode",
+  "cat": "worked-examples",
+  "lede": "Encode four data bits into a seven-bit codeword, inject a single-bit error, and locate it from the syndrome.",
+  "body": [
+    ["h2","Problem"],
+    ["p","The Hamming(7,4) code adds three parity bits to four data bits so that any single-bit error can be detected and corrected. Each parity bit checks a specific subset of positions; a single error flips a unique pattern of parity checks, the syndrome, that points directly at the corrupted bit."],
+    ["h3","Encoding"],
+    ["p","Positions 1,2,4 are parity bits; 3,5,6,7 carry data. Parity bit p_i covers all positions whose index has bit i set. The syndrome, read as a binary number, equals the position of the error, which is the elegance of the numbering."],
+    ["code",["python","import numpy as np\nG=np.array([[1,1,0,1],[1,0,1,1],[1,0,0,0],[0,1,1,1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])%2\nd=np.array([1,0,1,1])\nc=(G@d)%2                     # 7-bit codeword\nc[4]^=1                       # inject error at position 5 (index 4)\nH=np.array([[0,0,0,1,1,1,1],[0,1,1,0,0,1,1],[1,0,1,0,1,0,1]])\nsyn=(H@c)%2\npos=syn[0]*4+syn[1]*2+syn[2]  # wait: read syndrome as binary position\nprint('syndrome',syn,'error at position',int(''.join(map(str,syn)),2))"]],
+    ["h3","Result"],
+    ["p","The parity-check matrix H multiplies the received word to give a 3-bit syndrome. A zero syndrome means no detected error; otherwise the syndrome read as a binary number is exactly the position of the flipped bit, here position 5. Flipping that bit back recovers the original codeword. Hamming(7,4) corrects any single error and detects (but cannot correct) any double error."],
+    ["ul",["The minimum distance is 3, giving single-error correction or double-error detection, but not both at once.","Structured position numbering makes the syndrome equal the error location, avoiding a lookup table.","Error-correcting codes protect memory and telemetry in Kronos control and data-acquisition electronics."]]
+  ],
+  "related": [["surface-code-cycle","One Surface-Code Cycle"],["huffman-coding-small","Huffman Coding a Small Alphabet"],["bloom-filter-false-positive","Bloom Filter False-Positive Rate"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "simpson-rule-integration",
+  "title": "Simpson's Rule Integration",
+  "cat": "worked-examples",
+  "lede": "Approximate a definite integral with Simpson's rule, fitting parabolas over pairs of intervals for fourth-order accuracy.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Simpson's rule estimates a definite integral by fitting a parabola through each consecutive triple of points and integrating it exactly. It achieves fourth-order accuracy, far better than the trapezoid rule, and is exact for any polynomial up to degree three."],
+    ["h3","Formula"],
+    ["p","On an even number of equal panels of width h, the integral is (h/3) times [f0 + 4(f1+f3+...) + 2(f2+f4+...) + fn]. The alternating weights 4 and 2 come from integrating the fitted parabolas. We integrate sin(x) from 0 to pi, whose exact value is 2."],
+    ["code",["python","import numpy as np\nf=np.sin; a,b,n=0,np.pi,8\nx=np.linspace(a,b,n+1); h=(b-a)/n\ny=f(x)\nI=h/3*(y[0]+y[-1]+4*y[1:-1:2].sum()+2*y[2:-1:2].sum())\nprint('Simpson',round(I,8),'exact 2, error',round(abs(I-2),3e-1*0+8))"]],
+    ["h3","Result"],
+    ["p","With just eight panels Simpson's rule returns 2.0000 to five or six digits, an error near 1e-5, whereas the trapezoid rule with the same points would be off by around 1e-2. Because the error scales as h^4, doubling the panel count cuts the error by roughly sixteen. Simpson requires an even panel count; for smooth integrands it is an excellent default."],
+    ["ul",["Simpson is exact for cubics, so its leading error term depends on the fourth derivative of the integrand.","Fourth-order accuracy means far fewer points than trapezoid for a target error.","Adaptive quadrature refines only where the integrand is difficult, used in Kronos cross-section and profile integrals."]]
+  ],
+  "related": [["fft-sampled-signal","FFT of a Sampled Signal"],["monte-carlo-pi","Monte Carlo Estimate of Pi"],["rk4-orbit-integration","RK4 Orbit Integration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gauss-seidel-iteration",
+  "title": "Gauss-Seidel Iteration",
+  "cat": "worked-examples",
+  "lede": "Solve a small diagonally dominant system by sweeping updates in place, using each new value immediately.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Gauss-Seidel is an iterative method for linear systems that updates each unknown in turn using the most recent values of the others. For diagonally dominant matrices it converges, and because it uses updated values immediately it typically beats the simpler Jacobi iteration."],
+    ["h3","Iteration"],
+    ["p","For each equation, solve for its diagonal unknown given the current values of the rest: x_i = (b_i - sum of a_ij x_j for j not equal to i) / a_ii. Sweeping through all rows once is one iteration."],
+    ["code",["python","import numpy as np\nA=np.array([[4.,1.,0.],[1.,4.,1.],[0.,1.,3.]]); b=np.array([5.,6.,4.])\nx=np.zeros(3)\nfor it in range(8):\n    for i in range(3):\n        s=sum(A[i,j]*x[j] for j in range(3) if j!=i)\n        x[i]=(b[i]-s)/A[i,i]\n    print(it,np.round(x,5))\nprint('residual',round(np.linalg.norm(A@x-b),3e-1*0+8))"]],
+    ["h3","Result"],
+    ["p","The iterates converge within a handful of sweeps because the matrix is strongly diagonally dominant, and the residual drops toward zero. Gauss-Seidel needs no matrix factorization and little storage, which is why it, and its accelerated cousin successive over-relaxation, are used as smoothers inside multigrid solvers for very large PDE systems."],
+    ["ul",["Convergence is guaranteed for diagonally dominant or symmetric positive definite matrices.","Using updated values in place gives faster convergence than Jacobi but makes the sweep sequential.","Gauss-Seidel smoothing is a component of the multigrid solvers used on Kronos field and transport grids."]]
+  ],
+  "related": [["conjugate-gradient-solve","Conjugate Gradient Solver"],["lu-partial-pivoting","LU with Partial Pivoting"],["poisson-1d-finite-difference","1D Poisson by Finite Differences"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "bisection-root-find",
+  "title": "The Bisection Method",
+  "cat": "worked-examples",
+  "lede": "Bracket a root, halve the interval repeatedly, and converge to a solution with guaranteed but linear reliability.",
+  "body": [
+    ["h2","Problem"],
+    ["p","Bisection finds a root of a continuous function by starting with an interval where the function changes sign and repeatedly halving it, keeping the half that still brackets the sign change. It is slow but utterly reliable, guaranteed to converge whenever a sign change exists."],
+    ["h3","Method"],
+    ["p","If f(a) and f(b) have opposite signs, a root lies between them by the intermediate value theorem. Evaluate the midpoint m; replace whichever endpoint shares its sign. Each step halves the bracket, so the error is bounded and predictable."],
+    ["code",["python","f=lambda x:x**3-x-2   # root near 1.5214\na,b=1.0,2.0\nfor k in range(20):\n    m=(a+b)/2\n    if f(a)*f(m)<=0: b=m\n    else: a=m\n    print(k,round(m,6),'width',round(b-a,6))\nprint('root approx',round((a+b)/2,6))"]],
+    ["h3","Result"],
+    ["p","Starting from the bracket [1,2], the interval width halves every step, so after 20 iterations it is below 1e-6 and the midpoint approximates the root 1.52138 accurately. Bisection gains about one binary digit per iteration (linear convergence), slower than Newton's quadratic rate, but it needs no derivative and cannot diverge. It is often used to generate a good starting point before switching to a faster method."],
+    ["ul",["Guaranteed convergence makes bisection a safe fallback when faster methods might diverge.","The error after k steps is at most the initial width divided by 2^k, known in advance.","Hybrid solvers (Brent's method) combine bisection's safety with faster interpolation, as used in Kronos scalar root-finding."]]
+  ],
+  "related": [["newton-raphson-system","Newton-Raphson on a Nonlinear System"],["simpson-rule-integration","Simpson's Rule Integration"],["gauss-seidel-iteration","Gauss-Seidel Iteration"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "bloom-filter-false-positive",
+  "title": "Bloom Filter False-Positive Rate",
+  "cat": "worked-examples",
+  "lede": "Build a small Bloom filter, insert a few keys, and compute the probability of a false positive from its parameters.",
+  "body": [
+    ["h2","Problem"],
+    ["p","A Bloom filter is a compact probabilistic set that answers membership queries with no false negatives but a tunable false-positive rate. It stores no keys, only bits set by hash functions, so it is far smaller than a hash set at the cost of occasional false hits."],
+    ["h3","Parameters"],
+    ["p","With m bits, k hash functions, and n inserted keys, the false-positive probability is approximately (1 - e^{-k n / m})^k. Optimal k is about (m/n) ln 2. We use m=32 bits, k=3, n=5 keys."],
+    ["code",["python","import numpy as np\nm,k,n=32,3,5\np=(1-np.exp(-k*n/m))**k\nprint('predicted false-positive rate',round(p,4))\n# empirical check\nrng=np.random.default_rng(9)\nbits=np.zeros(m,int)\nkeys=[('key%d'%i) for i in range(n)]\nhsh=lambda s,seed:(hash((s,seed))%m)\nfor s in keys:\n    for j in range(k): bits[hsh(s,j)]=1\nfp=0; T=20000\nfor i in range(T):\n    q='q%d'%i\n    if all(bits[hsh(q,j)] for j in range(k)): fp+=1\nprint('empirical',round(fp/T,4))"]],
+    ["h3","Result"],
+    ["p","The formula predicts a false-positive rate near a few percent for these parameters, and the empirical test over many random queries lands close to it. There are never false negatives: any inserted key always returns present, because its bits were set. Increasing m or tuning k lowers the false-positive rate; too many hash functions saturates the bit array and makes it worse."],
+    ["ul",["No false negatives ever, which is why Bloom filters guard expensive lookups (disk, network) cheaply.","False-positive rate trades against memory; the optimal number of hashes balances the two.","Bloom-style filters can pre-screen large key sets in Kronos data-catalog and deduplication tooling."]]
+  ],
+  "related": [["huffman-coding-small","Huffman Coding a Small Alphabet"],["hamming-7-4-decode","Hamming(7,4) Encode and Decode"],["monte-carlo-pi","Monte Carlo Estimate of Pi"]],
+  "seo_type": "TechArticle"
+}
+]

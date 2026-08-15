@@ -1,0 +1,2920 @@
+[
+ {
+  "slug": "reflex-loop-l1-architecture",
+  "title": "The L1 Deterministic Reflex Loop",
+  "cat": "control-safety",
+  "lede": "L1 is the hard real-time reflex tier: a fixed-latency sense-decide-actuate loop whose worst-case timing is proven, not measured after the fact.",
+  "body": [
+   [
+    "h2",
+    "What the reflex loop is"
+   ],
+   [
+    "p",
+    "The Kronos control stack separates <b>intelligence</b> from <b>reflex</b>. Learning-based control lives in L3 on a 50&ndash;100&nbsp;ms predictive shadow; the reflex loop lives in L1 and runs on edge FPGAs with a fixed, provable cycle. Its job is to hold the breeder (Hyperion) and burner (Aegis / MetroVolt) inside a hardware-defined operating envelope regardless of what any model does or fails to do."
+   ],
+   [
+    "p",
+    "A reflex loop is a strict pipeline: acquire the validated state vector, evaluate bounded control laws and envelope checks, arbitrate the resulting commands, and gate them onto actuators. Every stage has a budgeted, bounded execution time. The pipeline is data-flow, not event-driven, so there is no queue whose depth can grow without bound."
+   ],
+   [
+    "h3",
+    "Loop invariants"
+   ],
+   [
+    "ul",
+    [
+     "Fixed cycle period T_loop with hard deadline equal to the period.",
+     "No dynamic memory allocation, no unbounded loops, no locks on the fast path.",
+     "Every output is a function of the current validated inputs plus fixed state.",
+     "The failsafe branch is reachable in one cycle from any state."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# The reflex cycle, conceptually: fixed work per tick, hard deadline\ndef reflex_tick(state, T_loop_s):\n    x  = read_validated_state()      # bounded: fixed channel count\n    u  = bounded_control_law(x)      # affine / lookup, no iteration\n    u  = envelope_clamp(u, x)        # range + rate-of-change limits\n    if not within_envelope(x):\n        return drive_failsafe()      # single-cycle escape\n    return gate_actuators(u)\n\n# deadline == period: the loop must finish inside its own tick\nassert wcet(reflex_tick) < T_loop_s"
+    ]
+   ],
+   [
+    "p",
+    "A useful mental model is that L1 is a governor, not a driver. It does not try to make the plasma perform; it makes sure the plasma cannot do anything the hardware cannot survive. Performance is the supervisory tier's problem and can be as clever as it likes, because it can only ever move setpoints inside a box L1 refuses to let it leave. That division is what keeps the reflex tier small, auditable, and stable across firmware and model changes above it."
+   ],
+   [
+    "p",
+    "The remainder of this category decomposes each element of that tick: the <a href=./sub-10us-latency-budget.html>sub-10&micro;s latency budget</a>, the <a href=./actuation-gate-synchronization.html>synchronized actuation gates</a>, and the <a href=./ml-independent-failsafe-path.html>ML-independent failsafe</a> that makes the whole design certifiable independent of the AI layers above it."
+   ]
+  ],
+  "related": [
+   [
+    "sub-10us-latency-budget",
+    "Sub-10&micro;s latency budget"
+   ],
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "safety-architecture-overview",
+    "Control & safety architecture overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sub-10us-latency-budget",
+  "title": "Sub-10 Microsecond Latency Budget",
+  "cat": "control-safety",
+  "lede": "The fastest protection loops must close under 10 microseconds; this page decomposes that budget stage by stage and shows the timing margin.",
+  "body": [
+   [
+    "h2",
+    "Why sub-10 microseconds"
+   ],
+   [
+    "p",
+    "The tightest reflexes on both machines &mdash; quench onset, plug-coil overstress, vertical displacement arrest &mdash; evolve on timescales where a millisecond loop is far too slow. Kronos budgets the fastest protection path at under 10&micro;s end to end, from analog front-end to actuator gate, so the reflex acts inside the physical growth time of the fault it guards against."
+   ],
+   [
+    "h3",
+    "Stage-by-stage budget"
+   ],
+   [
+    "p",
+    "The budget is additive and every term is a worst case, not a mean. The sum must sit below the period with margin for jitter."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Worst-case latency budget for the fastest protection path (ns)\nbudget_ns = {\n    'analog_front_end':   400,   # anti-alias + settle\n    'adc_conversion':     300,   # pipeline ADC, fixed latency\n    'deterministic_link': 900,   # point-to-point serial, fixed hops\n    'fpga_validate':      500,   # range/rate/consistency checks\n    'fpga_control_law':   700,   # bounded, cycle-accurate\n    'arbitration_gate':   400,   # command arbitration + interlock AND\n    'driver_actuate':    1200,   # gate driver to power stage\n}\ntotal = sum(budget_ns.values())          # 4400 ns\ndeadline = 10_000                         # 10 us\nmargin = deadline - total                 # 5600 ns headroom\nassert margin > 0 and total < deadline"
+    ]
+   ],
+   [
+    "p",
+    "The example sums to 4.4&micro;s, leaving 5.6&micro;s of headroom against the 10&micro;s deadline. That headroom absorbs clock jitter, temperature-dependent propagation drift, and one retransmission on the deterministic link without breaching the deadline."
+   ],
+   [
+    "p",
+    "Budgets are re-verified whenever any stage changes: a new front-end filter, a longer link, or a deeper control law reopens the sum. The rule is that no single change may consume the jitter margin, because the margin belongs to determinism, not to feature growth. When a needed change would breach the deadline, the loop is re-partitioned rather than the deadline relaxed &mdash; slow reasoning moves upstream to the supervisory tier and only a clamped result returns to the fast path. The example here sums to 4.4&micro;s against a 10&micro;s deadline, but the headroom is not spare capacity to be filled &mdash; it is the reserve that absorbs jitter, drift, and one link retransmission, and it is defended as strictly as the deadline itself."
+   ],
+   [
+    "p",
+    "Budgets are per-path, not global: the equilibrium and shape loops run at a slower, still-deterministic cadence and carry their own budgets. See <a href=./control-loop-timing-math.html>control-loop timing math</a> for how loop period is chosen from the physics bandwidth, and <a href=./jitter-and-determinism-bounds.html>jitter and determinism bounds</a> for how the margin is defended."
+   ]
+  ],
+  "related": [
+   [
+    "control-loop-timing-math",
+    "Control-loop timing math"
+   ],
+   [
+    "jitter-and-determinism-bounds",
+    "Jitter & determinism bounds"
+   ],
+   [
+    "wcet-reflex-path",
+    "WCET on the reflex path"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-loop-timing-math",
+  "title": "Control-Loop Timing Math",
+  "cat": "control-safety",
+  "lede": "Loop period is not chosen by convenience; it is derived from the closed-loop bandwidth required to stabilize the fastest mode the loop must control.",
+  "body": [
+   [
+    "h2",
+    "From physics bandwidth to loop period"
+   ],
+   [
+    "p",
+    "Each control loop must sample fast enough to observe and act on the dominant mode it stabilizes. A common engineering rule places the sampling rate at 20&ndash;40&times; the closed-loop bandwidth so that the discrete controller behaves like its continuous design and the added phase lag stays small."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef loop_period(f_bw_hz, oversample=30):\n    # sample well above the closed-loop bandwidth to bound phase lag\n    fs = oversample * f_bw_hz\n    return 1.0 / fs                      # loop period, seconds\n\ndef phase_lag_deg(T_loop, f_bw_hz):\n    # half-sample computational delay -> phase lag at bandwidth\n    return 360.0 * f_bw_hz * (T_loop/2.0)\n\nT = loop_period(2_000)                   # 2 kHz mode -> ~17 us period\nprint(round(phase_lag_deg(T, 2_000),1)) # ~6 deg lag at bandwidth"
+    ]
+   ],
+   [
+    "h3",
+    "Vertical stability sets the pace"
+   ],
+   [
+    "p",
+    "On the breeder, the vertical instability of an elongated, negative-triangularity (&delta;&nbsp;=&nbsp;&minus;0.30) plasma is the fastest mode the position loop must catch. Its growth rate sets the required loop bandwidth, which sets the period, which the timing budget must then honor with margin."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def stabilizable(growth_rate_s, loop_bw_hz, margin=5.0):\n    # loop bandwidth must exceed the instability growth rate\n    gamma_hz = growth_rate_s / (2*math.pi)\n    return loop_bw_hz >= margin * gamma_hz\n\nassert stabilizable(growth_rate_s=800.0, loop_bw_hz=1500.0)"
+    ]
+   ],
+   [
+    "p",
+    "Oversampling far above the closed-loop bandwidth also buys robustness to the model error the loop was designed against: the discrete controller stays close to its continuous prototype, so the phase and gain margins computed on paper survive discretization. Under-sampling to save compute is self-defeating here, because the phase lag it introduces is spent from the same stability budget that model uncertainty and transport delay already draw down. The period is therefore chosen from physics first and hardware second, and a loop that cannot be run fast enough on the available fabric is redesigned or re-partitioned rather than run at an unsafe cadence, because a loop sampled too slowly is not a slower controller but an unstable one."
+   ],
+   [
+    "p",
+    "The same derivation runs for the burner's ambipolar potential and end-plug density loops. Where a mode is faster than any digital loop can chase, control is not attempted &mdash; the fault is instead handled by a hardware reflex or a passive stabilizing structure. See <a href=./stability-margins-and-control-headroom.html>stability margins and control headroom</a> and <a href=./vertical-displacement-arrest.html>vertical displacement arrest</a>."
+   ]
+  ],
+  "related": [
+   [
+    "stability-margins-and-control-headroom",
+    "Stability margins & headroom"
+   ],
+   [
+    "sub-10us-latency-budget",
+    "Sub-10&micro;s latency budget"
+   ],
+   [
+    "vertical-displacement-arrest",
+    "Vertical displacement arrest"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "jitter-and-determinism-bounds",
+  "title": "Jitter and Determinism Bounds",
+  "cat": "control-safety",
+  "lede": "A deadline met on average is a deadline missed under load; the reflex tier is engineered for bounded worst-case jitter, not good typical behavior.",
+  "body": [
+   [
+    "h2",
+    "Determinism is a worst-case property"
+   ],
+   [
+    "p",
+    "Determinism on the reflex path means the response time is bounded above by a value that holds under every admissible input and load. Average latency is irrelevant to safety; only the tail matters. Kronos designs the fast path so its distribution has a hard right edge, not a long tail."
+   ],
+   [
+    "h3",
+    "Sources of jitter, and how each is bounded"
+   ],
+   [
+    "ul",
+    [
+     "Clock jitter: bounded by a distributed reference (PTP-disciplined) and cycle-accurate FPGA logic.",
+     "Contention: eliminated on the fast path &mdash; no shared buses, no locks, no OS scheduler.",
+     "Cache / pipeline effects: absent in the FPGA datapath; every stage is fixed-latency logic.",
+     "Link variability: point-to-point deterministic serial with fixed framing, not switched Ethernet."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def deadline_ok(wcet_ns, jitter_ns, deadline_ns):\n    # the loop is safe only if worst case + jitter still fits\n    return (wcet_ns + jitter_ns) <= deadline_ns\n\n# fast protection path: 4400 ns WCET, 800 ns bounded jitter, 10 us deadline\nassert deadline_ok(4400, 800, 10_000)\n\ndef utilization(wcet_ns, period_ns):\n    return wcet_ns / period_ns          # keep well below 1 for headroom"
+    ]
+   ],
+   [
+    "p",
+    "The design target keeps loop utilization low so that even the worst admissible tick leaves slack. Utilization near unity is a design smell: it means the deadline is met only when nothing goes wrong, which is precisely when safety loops must not fail."
+   ],
+   [
+    "p",
+    "The empirical check matters as much as the analytic bound. Kronos captures long-run latency histograms in operation and confirms the measured maximum sits inside the static WCET, with the jitter margin unspent. A drift in the empirical tail &mdash; even one that never breaches the deadline &mdash; is treated as a leading indicator of a hardware or configuration problem and investigated before it grows into a real miss. Determinism is thus maintained, not merely asserted once at design time."
+   ],
+   [
+    "p",
+    "Determinism is verified two ways: static <a href=./wcet-reflex-path.html>worst-case execution time analysis</a> of the FPGA datapath, and long-run capture of the measured latency distribution to confirm the empirical tail sits inside the analytic bound. Both must agree before a loop is cleared for operation."
+   ]
+  ],
+  "related": [
+   [
+    "wcet-reflex-path",
+    "WCET on the reflex path"
+   ],
+   [
+    "cycle-accurate-fpga-pipeline",
+    "Cycle-accurate FPGA pipeline"
+   ],
+   [
+    "deadline-monotonic-scheduling",
+    "Deadline-monotonic scheduling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "wcet-reflex-path",
+  "title": "Worst-Case Execution Time on the Reflex Path",
+  "cat": "control-safety",
+  "lede": "Every reflex-path stage carries a statically provable upper bound on execution time; the loop is only certified when their sum fits the deadline with margin.",
+  "body": [
+   [
+    "h2",
+    "Why static bounds, not benchmarks"
+   ],
+   [
+    "p",
+    "Benchmarks tell you what happened; a worst-case execution time (WCET) bound tells you what can happen. Safety loops are certified on the latter. On the FPGA datapath, WCET is structural: the logic has a fixed depth and a fixed clock, so the cycle count is exact and the time is the cycle count divided by the clock frequency."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def wcet_ns(cycles, clk_hz):\n    return cycles / clk_hz * 1e9\n\n# a validation + control-law block: fixed pipeline depth\nprint(round(wcet_ns(cycles=250, clk_hz=250e6), 1))   # 1000.0 ns\n\ndef path_wcet(stage_cycles, clk_hz):\n    # sum of fixed-depth stages: still exact, no distribution\n    return sum(wcet_ns(c, clk_hz) for c in stage_cycles)"
+    ]
+   ],
+   [
+    "h3",
+    "Where iteration is forbidden"
+   ],
+   [
+    "p",
+    "Any construct whose runtime depends on data &mdash; an unbounded loop, a variable-length search, a solver iterating to a tolerance &mdash; is banned from the reflex path because its WCET is unbounded or hard to certify. Such work is pushed up to the supervisory or twin tiers, whose outputs enter L1 only as pre-validated, clamped setpoints."
+   ],
+   [
+    "ul",
+    [
+     "Allowed on fast path: affine control laws, table lookups, comparators, fixed-tap filters.",
+     "Banned on fast path: dynamic allocation, unbounded iteration, recursion, blocking I/O.",
+     "Pushed upstream: MPC optimization, equilibrium reconstruction, surrogate inference."
+    ]
+   ],
+   [
+    "p",
+    "This discipline also shapes how new capability is added. When a feature needs iteration or search, the design does not smuggle it onto the fast path with a generous timeout; it splits the work, running the unbounded computation in the supervisory or twin tier and passing only a pre-validated, clamped result down to L1. The reflex path stays a fixed-depth datapath whose WCET can be recomputed exactly, so certification is a re-run of arithmetic rather than a new measurement campaign."
+   ],
+   [
+    "p",
+    "The certified WCET of the whole path is compared against the deadline in the <a href=./sub-10us-latency-budget.html>latency budget</a>; the difference is the jitter margin defended in <a href=./jitter-and-determinism-bounds.html>determinism bounds</a>. A change that grows any stage's cycle count reopens the budget for review."
+   ]
+  ],
+  "related": [
+   [
+    "sub-10us-latency-budget",
+    "Sub-10&micro;s latency budget"
+   ],
+   [
+    "jitter-and-determinism-bounds",
+    "Jitter & determinism bounds"
+   ],
+   [
+    "cycle-accurate-fpga-pipeline",
+    "Cycle-accurate FPGA pipeline"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "actuation-gate-synchronization",
+  "title": "Synchronized Actuation Gates",
+  "cat": "control-safety",
+  "lede": "Commands do not reach actuators the instant they are computed; they pass a synchronized gate that admits them only in a valid window and only when all interlocks agree.",
+  "body": [
+   [
+    "h2",
+    "The gate between decision and energy"
+   ],
+   [
+    "p",
+    "A synchronized actuation gate is the last checkpoint before a command moves energy. It admits a command only when three conditions hold simultaneously: the command is inside its clamped envelope, the machine state permits the action, and every relevant interlock reads permissive. Any one condition failing holds the gate closed and the actuator stays in its last safe state."
+   ],
+   [
+    "h3",
+    "Gate truth table"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Cmd valid",
+      "State permits",
+      "Interlocks clear",
+      "Gate opens"
+     ],
+     [
+      [
+       "0",
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The gate is a hardware AND of independent permissives. It is deliberately not clever: no single software fault can force it open, because the interlock permissive originates outside the software domain in the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a>."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def gate(cmd_valid, state_permits, interlocks_clear, in_window):\n    # all four must be true in the same cycle for the gate to open\n    return cmd_valid and state_permits and interlocks_clear and in_window\n\ndef in_actuation_window(t, t_edge_ns, width_ns=200):\n    # phase-locked window: pellet/beam/coil edges align to the clock\n    return 0 <= (t - t_edge_ns) <= width_ns"
+    ]
+   ],
+   [
+    "p",
+    "The gate also enforces the actuation window itself: even a fully permissive command is held until it falls inside the phase-locked window it belongs to, so late or early commands are never applied. This turns timing errors into safe no-ops rather than mistimed energy. A command that misses its window is dropped and re-requested on the next cycle, never stretched or applied stale, which keeps the effect of every admitted command equal to its designed effect. The gate thus does double duty as both a safety permissive and a timing enforcer, and its simplicity &mdash; a hardware AND of independent conditions plus a window check &mdash; is exactly what makes it trustworthy as the last checkpoint before energy moves."
+   ],
+   [
+    "p",
+    "Synchronization matters when several actuators must act coherently &mdash; for example pellet injection timed to a plasma phase, or multi-coil current steps that must step together to avoid a transient force imbalance. The gate aligns these to a common clock edge so their combined effect is the designed one. See <a href=./phase-locked-actuation-commit.html>phase-locked actuation commit</a> for the multi-actuator commit protocol."
+   ]
+  ],
+  "related": [
+   [
+    "phase-locked-actuation-commit",
+    "Phase-locked actuation commit"
+   ],
+   [
+    "interlock-matrix-hardwired",
+    "Hardwired interlock matrix"
+   ],
+   [
+    "reflex-loop-l1-architecture",
+    "The L1 reflex loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "phase-locked-actuation-commit",
+  "title": "Phase-Locked Actuation Commit",
+  "cat": "control-safety",
+  "lede": "When several actuators must move as one, Kronos uses a two-phase commit locked to a shared clock so the group either acts coherently or not at all.",
+  "body": [
+   [
+    "h2",
+    "Coherent multi-actuator action"
+   ],
+   [
+    "p",
+    "Some actions require several actuators to change together: a synchronized poloidal-field coil step for shape control, or a coordinated gas-and-pellet fueling event. If they act at slightly different times the transient can be worse than the steady state they aimed for. Kronos commits such groups with a phase-locked, two-phase protocol referenced to the distributed clock."
+   ],
+   [
+    "h3",
+    "Prepare, then fire"
+   ],
+   [
+    "ul",
+    [
+     "Prepare: each actuator receives its clamped setpoint and arms, reporting readiness.",
+     "Barrier: the coordinator waits for all-ready or the prepare deadline.",
+     "Fire: on a shared future clock edge, all armed actuators execute in the same window.",
+     "Abort: if any actuator is not ready by the deadline, none fire and the group reverts."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def phase_locked_commit(actuators, fire_edge_ns, prepare_deadline_ns, now_ns):\n    armed = [a for a in actuators if a.arm()]        # phase 1: prepare\n    if len(armed) != len(actuators) or now_ns > prepare_deadline_ns:\n        for a in armed: a.disarm()                   # atomic abort\n        return 'aborted'\n    for a in armed:\n        a.schedule_fire(fire_edge_ns)                # phase 2: same edge\n    return 'committed'"
+    ]
+   ],
+   [
+    "p",
+    "The protocol is all-or-nothing: a partial fire is never allowed, because a half-executed coordinated action is exactly the failure mode it exists to prevent. If the group aborts, each actuator holds its prior safe setpoint, which is always a defined, benign state."
+   ],
+   [
+    "p",
+    "The prepare-then-fire structure also gives the supervisory tier a clean failure signal: if a group repeatedly aborts because one actuator will not arm, that actuator is flagged for maintenance rather than silently degrading the coordinated action. Because the abort is atomic and the fallback is each actuator's prior safe setpoint, a chronically unready actuator reduces capability but never creates a hazardous partial action, which is exactly the property a coordinated fueling or coil step needs."
+   ],
+   [
+    "p",
+    "This is distinct from the general orchestration two-phase commit in L4; here the commit is bounded to a single clock window and carries a hard deadline, so it lives in the reflex tier. It builds directly on the <a href=./actuation-gate-synchronization.html>synchronized actuation gates</a> and the clock distribution described in the L1 control plane."
+   ]
+  ],
+  "related": [
+   [
+    "actuation-gate-synchronization",
+    "Synchronized actuation gates"
+   ],
+   [
+    "reflex-loop-l1-architecture",
+    "The L1 reflex loop"
+   ],
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "reflex-tier-separation",
+  "title": "Reflex and Supervisory Tier Separation",
+  "cat": "control-safety",
+  "lede": "Intelligence proposes on a slow horizon; reflex disposes on a fast one. Keeping these tiers physically separate is what lets the safety case ignore the AI entirely.",
+  "body": [
+   [
+    "h2",
+    "Two clocks, two mandates"
+   ],
+   [
+    "p",
+    "Kronos runs two control mandates on two different clocks. The supervisory tier (L3 model-predictive control, twin-informed optimization) plans setpoint trajectories on a 50&ndash;100&nbsp;ms horizon. The reflex tier (L1) enforces safety on a microsecond-to-millisecond horizon. The reflex tier never waits on the supervisory tier and never trusts it beyond a clamped setpoint."
+   ],
+   [
+    "h3",
+    "What crosses the boundary"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Direction",
+      "Payload",
+      "Trust level"
+     ],
+     [
+      [
+       "L3 to L1",
+       "clamped setpoint + validity",
+       "advisory, re-checked"
+      ],
+      [
+       "L1 to L3",
+       "validated state + gate status",
+       "authoritative"
+      ],
+      [
+       "L1 internal",
+       "failsafe trigger",
+       "authoritative, immediate"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Setpoints from above are treated as suggestions until L1 re-validates them against the live envelope. If the supervisory link goes silent, stale, or produces an out-of-envelope value, L1 falls back to a safe holding law without any supervisory input at all. This is the property that lets the failsafe be certified independently &mdash; see <a href=./ml-independent-failsafe-path.html>the ML-independent failsafe</a>."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def accept_setpoint(sp, live_envelope, age_ms, max_age_ms=150):\n    if age_ms > max_age_ms:\n        return holding_law()             # stale supervisory link\n    if not live_envelope.contains(sp):\n        return live_envelope.clamp(sp)   # trust, but verify + clamp\n    return sp"
+    ]
+   ],
+   [
+    "p",
+    "The boundary is also a security boundary. Because the reflex tier accepts only clamped setpoints and never executable logic from above, a compromised supervisory node cannot induce an unsafe action &mdash; the worst it can do is propose values that L1 clamps or rejects, or fall silent, which triggers the holding law. Keeping the fast path free of any interpreter, script, or model weight means the certified safety behavior does not change when the software above it is updated, attacked, or replaced."
+   ],
+   [
+    "p",
+    "The separation is not only logical but physical: distinct compute (FPGA vs GPU/CPU), distinct networks, distinct power and clock domains. A fault that takes out the intelligence tier cannot propagate into the reflex tier, and the reflex tier can hold the machine safe with the intelligence tier entirely dark. Compare <a href=./defense-in-depth-layers.html>defense-in-depth layering</a>."
+   ]
+  ],
+  "related": [
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "defense-in-depth-layers",
+    "Defense-in-depth layering"
+   ],
+   [
+    "reflex-loop-l1-architecture",
+    "The L1 reflex loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deadline-monotonic-scheduling",
+  "title": "Deadline-Monotonic Scheduling of Control Tasks",
+  "cat": "control-safety",
+  "lede": "Where several deterministic tasks share a core, priority follows deadline; a schedulability test proves the fastest safety task always meets its deadline.",
+  "body": [
+   [
+    "h2",
+    "Priority by deadline"
+   ],
+   [
+    "p",
+    "The pure reflexes run on dedicated FPGA fabric, but the deterministic supervisory tasks &mdash; equilibrium updates, slower position loops, telemetry framing &mdash; share real-time cores. Kronos schedules these with deadline-monotonic priority: the task with the shortest relative deadline gets the highest priority. This is optimal for fixed-priority scheduling of periodic tasks with deadlines no greater than their periods."
+   ],
+   [
+    "h3",
+    "Schedulability, not hope"
+   ],
+   [
+    "p",
+    "A response-time analysis proves each task finishes before its deadline under worst-case interference from higher-priority tasks. A task set is admitted only if every task passes."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def response_time(i, C, T, D):\n    # C=WCETs, T=periods, D=deadlines; tasks sorted by deadline (i highest prio first)\n    R = C[i]\n    while True:\n        interference = sum(-(-R // T[j]) * C[j] for j in range(i))  # ceil()\n        R_new = C[i] + interference\n        if R_new == R:\n            return R <= D[i], R      # schedulable if response <= deadline\n        if R_new > D[i]:\n            return False, R_new\n        R = R_new"
+    ]
+   ],
+   [
+    "p",
+    "Priority inheritance protects shared resources so a low-priority task holding a lock cannot indefinitely block a safety task &mdash; a classic priority-inversion hazard. On the reflex path proper, the problem is avoided entirely by allowing no shared resources at all."
+   ],
+   [
+    "ul",
+    [
+     "Highest priority: fastest protection loop (shortest deadline).",
+     "Middle: position and shape loops at their derived periods.",
+     "Lowest: non-safety telemetry and configuration tasks."
+    ]
+   ],
+   [
+    "p",
+    "The analysis is redone whenever the task set changes, because adding even a light task raises the interference term for everything below it. Kronos treats the schedulability proof as part of the safety case, archived alongside the WCET evidence, so a reviewer can confirm that the shortest-deadline safety task still meets its deadline under the worst admissible load. Tasks that cannot be shown schedulable are moved to dedicated fabric rather than squeezed into a shared core."
+   ],
+   [
+    "p",
+    "If a proposed task set fails the test, the fix is architectural &mdash; move work off the shared core, not shave a WCET estimate. See <a href=./wcet-reflex-path.html>WCET analysis</a> for where the C values come from."
+   ]
+  ],
+  "related": [
+   [
+    "wcet-reflex-path",
+    "WCET analysis"
+   ],
+   [
+    "jitter-and-determinism-bounds",
+    "Jitter & determinism bounds"
+   ],
+   [
+    "cycle-accurate-fpga-pipeline",
+    "Cycle-accurate FPGA pipeline"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cycle-accurate-fpga-pipeline",
+  "title": "Cycle-Accurate FPGA Reflex Pipeline",
+  "cat": "control-safety",
+  "lede": "The fastest loops run as fixed-depth FPGA pipelines where latency is an exact cycle count, not a statistic, making the reflex tier certifiable by construction.",
+  "body": [
+   [
+    "h2",
+    "Latency as arithmetic"
+   ],
+   [
+    "p",
+    "On a general CPU, latency is a distribution shaped by caches, branch prediction, and the scheduler. On the FPGA reflex fabric, latency is arithmetic: a pipeline of fixed depth clocked at a fixed frequency produces a result exactly N cycles after its input, every time. This is what makes the fast path's WCET exact rather than estimated."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# a fixed-depth reflex pipeline: validate -> filter -> law -> clamp -> gate\nSTAGE_CYCLES = {'validate':3, 'filter':5, 'law':4, 'clamp':2, 'gate':1}\ndef pipeline_latency_ns(clk_hz):\n    depth = sum(STAGE_CYCLES.values())      # 15 cycles, always\n    return depth / clk_hz * 1e9\n\nprint(round(pipeline_latency_ns(250e6),1)) # 60.0 ns, deterministic\n# throughput is one result per cycle once the pipeline is full"
+    ]
+   ],
+   [
+    "h3",
+    "Design constraints that keep it exact"
+   ],
+   [
+    "ul",
+    [
+     "No data-dependent branching in the datapath; use predicated logic.",
+     "Fixed-tap filters and lookup tables, so every path through the logic has equal depth.",
+     "No off-chip memory on the fast path; state lives in on-chip registers/BRAM.",
+     "Registered I/O with the same clock domain to avoid metastability on the boundary."
+    ]
+   ],
+   [
+    "p",
+    "Because throughput is one sample per clock once the pipeline is primed, the fabric can service many channels concurrently without adding latency &mdash; each channel is a parallel lane, not a queued job. This is why the reflex tier can watch the full magnetics and quench-sensing constellation without falling behind."
+   ],
+   [
+    "p",
+    "Parallel lanes also give the reflex tier its diversity of observation without added latency: many channels of magnetics, quench voltage, and coil strain are processed every cycle without any of them queuing behind the others. That constant, complete view is what lets voting and cross-consistency checks run inside the same tick as the control law, so a bad channel is caught in the cycle it goes bad rather than after a scan delay. Determinism and breadth of observation are the same property here."
+   ],
+   [
+    "p",
+    "CPUs and GPUs are not banned from Kronos &mdash; they run supervision, the twin, and offline training &mdash; but they are excluded from the certified fast path precisely because their timing is statistical. See <a href=./reflex-tier-separation.html>reflex and supervisory tier separation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "wcet-reflex-path",
+    "WCET analysis"
+   ],
+   [
+    "reflex-tier-separation",
+    "Reflex / supervisory separation"
+   ],
+   [
+    "sub-10us-latency-budget",
+    "Sub-10&micro;s latency budget"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-architecture-overview",
+  "title": "Control and Safety Architecture Overview",
+  "cat": "control-safety",
+  "lede": "Kronos's safety architecture is layered defense: bounded reflex, hardwired interlocks, an ML-independent failsafe, and human oversight, each able to hold the line alone.",
+  "body": [
+   [
+    "h2",
+    "Layers that do not depend on each other"
+   ],
+   [
+    "p",
+    "Safety at Kronos is not one mechanism but a stack of independent ones, ordered so that each can arrest a fault without help from the layers above. The design rule is that the most trusted layer is also the simplest and the least intelligent, because simplicity is what makes trust verifiable."
+   ],
+   [
+    "h3",
+    "The layers, fastest and simplest first"
+   ],
+   [
+    "ul",
+    [
+     "L1 reflex: bounded control laws + envelope clamps on FPGA, microsecond scale.",
+     "Hardwired interlocks: permissives outside the software domain that gate all actuation.",
+     "ML-independent failsafe: passive/analog trip to a defined safe state, no code required.",
+     "Supervisory guardrails: L3/L4 envelope and authorization checks on proposed actions.",
+     "Human oversight: operators with authority to abort, override, and grant exceptions."
+    ]
+   ],
+   [
+    "p",
+    "The two machines share this architecture but instantiate it differently. The breeder (Hyperion) reflex tier emphasizes <a href=./breeder-disruption-mitigation-loop.html>disruption mitigation</a> and <a href=./vertical-displacement-arrest.html>vertical stability</a>; the burner (Aegis / MetroVolt) reflex tier emphasizes <a href=./burner-plug-stability-reflex.html>plug stability supervision</a> and <a href=./plug-coil-stress-protection.html>plug-coil overstress protection</a>. Both share <a href=./quench-protection-reflex-chain.html>quench protection</a> and vacuum interlocks."
+   ],
+   [
+    "h3",
+    "Honest framing"
+   ],
+   [
+    "p",
+    "These machines are design-and-simulation studies. Breeder construction begins Q2&nbsp;2027 with first-of-a-kind first tritium targeted around 2030; there is no hardware net-gain claim before then. The safety architecture is being designed and validated in simulation and hardware-in-the-loop now, so that it is proven before it ever guards a real plasma. The burner in particular carries open physics gates &mdash; documented candidly across this category &mdash; that the safety layers are designed to respect, not paper over."
+   ],
+   [
+    "p",
+    "Read next: the <a href=./defense-in-depth-layers.html>defense-in-depth layering</a> that formalizes independence, and the <a href=./failure-response-decision-table.html>failure response decision table</a> that maps faults to responses."
+   ]
+  ],
+  "related": [
+   [
+    "defense-in-depth-layers",
+    "Defense-in-depth layering"
+   ],
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ml-independent-failsafe-path",
+  "title": "The ML-Independent Hardware Failsafe",
+  "cat": "control-safety",
+  "lede": "The last line of defense contains no machine learning and no general-purpose software; it trips to a defined safe state through logic simple enough to certify by inspection.",
+  "body": [
+   [
+    "h2",
+    "Trust requires independence from intelligence"
+   ],
+   [
+    "p",
+    "Every AI component at Kronos &mdash; the twin, the copilots, the MPC agents &mdash; can be wrong, stale, or absent. The failsafe is the layer that must still work when they are. It is therefore built with no dependence on any learned model, no dependence on the supervisory network, and where possible no dependence on running software at all: comparators, latching logic, and energy-dump hardware that default to safe on loss of power or loss of heartbeat."
+   ],
+   [
+    "h3",
+    "What the failsafe does"
+   ],
+   [
+    "ul",
+    [
+     "Continuously compares a small set of hardwired safety signals against fixed thresholds.",
+     "On any breach, latches a trip and drives every actuator to its defined safe state.",
+     "Requires no arbitration, no model inference, and no supervisory permission to act.",
+     "Is fail-safe by default: loss of power, clock, or heartbeat itself causes a safe trip."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def failsafe_trip(signals, thresholds, heartbeat_ok, power_ok):\n    # pure combinational logic: any breach OR loss of liveness -> trip\n    breach = any(s > t for s, t in zip(signals, thresholds))\n    if breach or (not heartbeat_ok) or (not power_ok):\n        return 'TRIP -> safe state'      # latched until manual reset\n    return 'permit'"
+    ]
+   ],
+   [
+    "p",
+    "The failsafe deliberately cannot be talked out of a trip by anything upstream. A model that is confident the machine is fine has no channel to suppress a hardwired trip. This asymmetry &mdash; intelligence can request action but never veto safety &mdash; is the core of the design and the reason the safety case can be argued without reference to any AI behavior."
+   ],
+   [
+    "p",
+    "This is also why the failsafe is validated by fault injection rather than by argument about the AI's behavior. Because it depends on no learned component, its correctness is a property of a small, fixed piece of logic that can be exhaustively tested against every trip condition. The safety authority can sign off on the failsafe without ever reasoning about model accuracy, training data, or distribution shift, which is exactly the independence that makes an AI-heavy plant certifiable at all."
+   ],
+   [
+    "p",
+    "The failsafe is validated by fault injection during <a href=./commissioning-and-safety-validation.html>commissioning</a> and re-proven at intervals by <a href=./proof-testing-and-diagnostic-coverage.html>proof testing</a>. Its relationship to the intelligent layers is spelled out in <a href=./reflex-tier-separation.html>tier separation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "reflex-tier-separation",
+    "Reflex / supervisory separation"
+   ],
+   [
+    "interlock-matrix-hardwired",
+    "Hardwired interlock matrix"
+   ],
+   [
+    "proof-testing-and-diagnostic-coverage",
+    "Proof testing & coverage"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "defense-in-depth-layers",
+  "title": "Defense-in-Depth Safety Layering",
+  "cat": "control-safety",
+  "lede": "Independent layers with diverse failure modes multiply reliability; the safety case rests on the product of layer failure probabilities, not any single number.",
+  "body": [
+   [
+    "h2",
+    "Independence is the whole point"
+   ],
+   [
+    "p",
+    "Defense in depth only buys safety if the layers fail independently. Two mechanisms that share a sensor, a power rail, a clock, or a code path can fail together, and their combined protection is no better than one. Kronos enforces diversity across layers: different physical principles, different suppliers where feasible, and strict separation of power, clock, and network domains."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def combined_failure_prob(layer_pfds, common_cause_beta=0.02):\n    # PFD = probability of failure on demand; independent product,\n    # plus an irreducible common-cause floor (beta-factor model)\n    import math\n    independent = math.prod(layer_pfds)\n    worst_layer = min(layer_pfds)\n    common = common_cause_beta * worst_layer\n    return independent + common     # common cause dominates at depth\n\nprint(combined_failure_prob([1e-2, 1e-2, 1e-3]))  # ~2e-5, floored by CCF"
+    ]
+   ],
+   [
+    "p",
+    "The code makes the central lesson visible: past a few layers, the common-cause term dominates the independent product. Adding a fourth identical layer barely helps; adding a <b>diverse</b> layer that breaks the common cause helps a lot. This is why the failsafe uses a different technology base than the reflex loop it backs up."
+   ],
+   [
+    "h3",
+    "The Kronos layer set"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Layer",
+      "Principle",
+      "Independent of ML"
+     ],
+     [
+      [
+       "Reflex loop",
+       "bounded digital control",
+       "yes"
+      ],
+      [
+       "Hardwired interlock",
+       "permissive logic",
+       "yes"
+      ],
+      [
+       "Failsafe trip",
+       "analog/latching",
+       "yes"
+      ],
+      [
+       "Supervisory guardrail",
+       "envelope check",
+       "no (checked by above)"
+      ],
+      [
+       "Human oversight",
+       "operator authority",
+       "yes"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The layer set is also chosen so the least intelligent layers are the most trusted. The failsafe and the interlock matrix, which carry the highest integrity requirements, are the simplest to inspect and the least likely to hide a subtle fault; the intelligent guardrails, which are hardest to certify, carry the lowest safety weight and are always backed by simpler layers. This inverse relationship between cleverness and trust is deliberate and runs through every safety decision at Kronos, and it is why the machine can lean heavily on AI for performance while resting its safety case entirely on layers that contain no AI at all."
+   ],
+   [
+    "p",
+    "Note that only one layer depends on machine learning, and it sits behind three that do not. See <a href=./common-cause-failure-mitigation.html>common-cause failure mitigation</a> for how the beta-factor is driven down, and <a href=./functional-safety-sil-allocation.html>SIL allocation</a> for how integrity targets are assigned per function."
+   ]
+  ],
+  "related": [
+   [
+    "common-cause-failure-mitigation",
+    "Common-cause mitigation"
+   ],
+   [
+    "functional-safety-sil-allocation",
+    "Functional safety / SIL"
+   ],
+   [
+    "safety-architecture-overview",
+    "Safety architecture overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fail-safe-state-definition",
+  "title": "Defining the Fail-Safe State",
+  "cat": "control-safety",
+  "lede": "A trip is only as good as the state it trips to; each machine has an explicitly defined, benign resting state that every failsafe path drives toward.",
+  "body": [
+   [
+    "h2",
+    "Safe is a place, not an absence"
+   ],
+   [
+    "p",
+    "Cutting power is not automatically safe. A safe state is a specific, defined configuration where stored energy is being removed in a controlled way and no protected limit is being approached. Kronos defines the safe state per machine and per subsystem, and every failsafe path is designed to reach that defined state, not merely to stop."
+   ],
+   [
+    "h3",
+    "Breeder safe state"
+   ],
+   [
+    "ul",
+    [
+     "Plasma terminated by a controlled, mitigated shutdown rather than an uncontrolled disruption.",
+     "Magnet energy extraction initiated into the dump resistors if quench criteria are met.",
+     "Heating and fueling actuators driven to zero; vacuum and cryo interlocks held permissive-off.",
+     "Vessel forces and halo currents kept within the structural envelope during the ramp-down."
+    ]
+   ],
+   [
+    "h3",
+    "Burner safe state"
+   ],
+   [
+    "ul",
+    [
+     "Plug and throat coil currents ramped to a defined low-stress hold or extracted to dump.",
+     "Neutral beam and fueling to zero; DEC decoupled from the load with controlled ride-down.",
+     "Ambipolar potential allowed to relax along a path that avoids a rapid confinement loss transient."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def safe_state_reached(machine_state, limits):\n    # all monitored quantities inside their benign holding band\n    return all(limits[k].lo <= machine_state[k] <= limits[k].hi\n               for k in limits) and machine_state['stored_energy_falling']"
+    ]
+   ],
+   [
+    "p",
+    "Defining the safe state per subsystem also disciplines recovery. Because the resting configuration is explicit, the path back to operation is a checked sequence from a known state rather than an improvisation from wherever the trip left things. Operators and the supervisory tier both reason against the same defined state, which removes a whole class of restart hazards where a machine is brought up from an ambiguous, partially-tripped configuration whose stored energy and interlock status are not fully known."
+   ],
+   [
+    "p",
+    "For fast-growing faults, reaching the ideal safe state may be impossible in the available time; then the failsafe drives to the <b>least-unsafe reachable</b> state and hands off to mitigation. That trade &mdash; ideal versus reachable &mdash; is decided in advance per fault, not improvised. See the <a href=./failure-response-decision-table.html>failure response decision table</a> and <a href=./fail-safe-state-definition.html>this page's</a> companion on <a href=./energy-dump-and-discharge.html>magnet energy extraction</a>."
+   ]
+  ],
+  "related": [
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ],
+   [
+    "energy-dump-and-discharge",
+    "Magnet energy extraction"
+   ],
+   [
+    "breeder-disruption-mitigation-loop",
+    "Breeder disruption mitigation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interlock-matrix-hardwired",
+  "title": "Hardwired Interlock Matrix",
+  "cat": "control-safety",
+  "lede": "The interlock matrix expresses which states permit which actions in permissive logic that lives outside software, so no software fault can grant a forbidden action.",
+  "body": [
+   [
+    "h2",
+    "Permissives, not permissions"
+   ],
+   [
+    "p",
+    "An interlock is a permissive: it does not command anything, it only allows or forbids. The interlock matrix encodes the full set of preconditions for every energetic action &mdash; opening a high-vacuum valve, energizing a coil supply, firing a beam &mdash; as combinational logic in hardware. The reflex loop can request an action, but the action only proceeds if the matrix reads permissive."
+   ],
+   [
+    "h3",
+    "Example: coil energization permissive"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Cryo OK",
+      "Vacuum OK",
+      "Quench clear",
+      "Dump armed",
+      "Energize permit"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1",
+       "0",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Every zero in the permit column is a state where energizing the coil would be unsafe: cryogenics not ready, vacuum lost, a quench indication present, or the energy-dump path not armed to catch a fault. The matrix makes these preconditions explicit and enforces them in logic that no model and no operator keystroke can bypass without an audited exception."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def energize_permit(cryo_ok, vac_ok, quench_clear, dump_armed):\n    return cryo_ok and vac_ok and quench_clear and dump_armed\n\n# permissive is AND of independent conditions -> any missing input = deny\nassert energize_permit(1,1,1,1) and not energize_permit(1,1,0,1)"
+    ]
+   ],
+   [
+    "p",
+    "The matrix is intentionally static: its logic is fixed for a given machine configuration and changes only through a controlled engineering process, never at runtime and never by a model. This is what lets a reviewer read the matrix once and know the permissive conditions for every energetic action. Runtime flexibility lives entirely above the matrix, in the supervisory tier, which can only ever request actions the fixed permissives already allow. Because the matrix reads unknown or stale inputs as not-permissive, a degraded sensor closes an interlock rather than opening one, so the failure of an input can only ever make the machine more conservative, never less."
+   ],
+   [
+    "p",
+    "The matrix is deliberately conservative: unknown or stale inputs read as not-permissive, so a lost sensor closes the interlock rather than opening it. Bypassing an interlock for maintenance is possible but tightly governed &mdash; see <a href=./interlock-bypass-governance.html>interlock bypass governance</a>. The matrix feeds the <a href=./actuation-gate-synchronization.html>synchronized actuation gates</a> as the interlocks-clear term."
+   ]
+  ],
+  "related": [
+   [
+    "actuation-gate-synchronization",
+    "Synchronized actuation gates"
+   ],
+   [
+    "interlock-bypass-governance",
+    "Interlock bypass governance"
+   ],
+   [
+    "cryogenic-and-vacuum-safety-interlocks",
+    "Cryo & vacuum interlocks"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "heartbeat-watchdog-supervision",
+  "title": "Heartbeat and Watchdog Supervision",
+  "cat": "control-safety",
+  "lede": "A watchdog turns silence into safety: any controller that stops proving it is alive causes a trip, so a hung process fails safe instead of failing quiet.",
+  "body": [
+   [
+    "h2",
+    "Liveness as a safety signal"
+   ],
+   [
+    "p",
+    "A controller that crashes and stops sending commands can look identical to a controller that is holding steady. The watchdog removes that ambiguity: every reflex and supervisory node must periodically prove liveness by petting a hardware watchdog. If the heartbeat stops arriving within the window, the watchdog assumes the worst and trips to the safe state."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def watchdog(last_pet_ns, now_ns, window_ns):\n    # miss the window by any margin -> trip; silence is not safe\n    if (now_ns - last_pet_ns) > window_ns:\n        return 'TRIP'\n    return 'ok'\n\ndef pet_deadline(loop_period_ns, misses_allowed=2):\n    # allow a small number of missed ticks before declaring dead\n    return loop_period_ns * (misses_allowed + 1)"
+    ]
+   ],
+   [
+    "h3",
+    "Design rules"
+   ],
+   [
+    "ul",
+    [
+     "The heartbeat must exercise the real work path, not a dedicated timer thread, so a hung control loop is detected.",
+     "The watchdog is an independent device; the process it guards cannot disable it.",
+     "The trip window is a small multiple of the loop period, not a generous timeout.",
+     "A watchdog trip latches and requires a deliberate reset, so problems are investigated, not auto-cleared."
+    ]
+   ],
+   [
+    "p",
+    "Windowed watchdogs also catch the opposite fault: a heartbeat arriving too early can indicate a runaway loop. A good watchdog therefore trips both on too-late and too-soon petting, bounding the loop period from both sides."
+   ],
+   [
+    "p",
+    "Watchdogs are layered like everything else: node-level watchdogs guard individual controllers, and a plant-level watchdog guards the aggregate heartbeat so that a coordinated failure of several nodes is also caught. Each watchdog is independent of the process it supervises and defaults to trip, so the failure of a watchdog itself does not leave a node unguarded. The result is that no controller can silently stop mattering; silence anywhere in the reflex tier resolves to a safe trip."
+   ],
+   [
+    "p",
+    "Watchdog supervision composes with the <a href=./ml-independent-failsafe-path.html>ML-independent failsafe</a>: loss of heartbeat is one of the conditions that drives a hardwired trip. It also feeds the liveness input consumed by <a href=./reflex-tier-separation.html>tier separation</a> when the supervisory link goes silent."
+   ]
+  ],
+  "related": [
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "reflex-tier-separation",
+    "Reflex / supervisory separation"
+   ],
+   [
+    "voting-and-redundancy-architecture",
+    "Voting & redundancy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "voting-and-redundancy-architecture",
+  "title": "Voting and Redundancy Architecture",
+  "cat": "control-safety",
+  "lede": "Critical safety signals are triplicated and voted so that a single failed channel is outvoted and flagged, not obeyed.",
+  "body": [
+   [
+    "h2",
+    "Two-out-of-three, and why"
+   ],
+   [
+    "p",
+    "A single sensor or channel can fail in a way that reads plausible but wrong. Kronos triplicates the most critical safety signals and votes them two-out-of-three (2oo3). A single deviating channel is outvoted, the machine keeps running on the agreeing pair, and the odd channel is flagged for maintenance. Two channels must fail the same way at the same time to defeat the vote, which is far less likely than one."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Ch A",
+      "Ch B",
+      "Ch C",
+      "Voted",
+      "Fault flag"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1",
+       "none"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "1",
+       "C"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "1",
+       "B"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "1",
+       "A"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "0",
+       "A"
+      ],
+      [
+       "0",
+       "0",
+       "0",
+       "0",
+       "none"
+      ]
+     ]
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def vote_2oo3(a, b, c):\n    voted = (a and b) or (a and c) or (b and c)\n    disagree = [name for name, v in (('A',a),('B',b),('C',c)) if v != voted]\n    return voted, disagree            # value + which channel to flag"
+    ]
+   ],
+   [
+    "h3",
+    "Degrading gracefully"
+   ],
+   [
+    "p",
+    "When one channel is flagged out, the survivors form a 1oo2 pair. The design chooses whether the remaining pair votes conservatively (either can trip) or agreeing (both must confirm) based on whether the function is trip-critical or availability-critical. Safety-critical trips favor 1oo2 trip-if-either; the trade is a slightly higher spurious-trip rate, accepted deliberately."
+   ],
+   [
+    "p",
+    "The choice between 1oo2 trip-if-either and 2oo2 confirm-both after a channel is lost is made per function and recorded, because it trades spurious-trip rate against missed-trip rate and only the hazard analysis knows which way to lean. Safety-critical protections accept more spurious trips to guarantee real ones; availability-critical but non-hazardous functions lean the other way. Voting logic itself is kept simple enough to verify by inspection, since a clever voter is a common-cause hazard."
+   ],
+   [
+    "p",
+    "Redundancy defends against random channel failure but not against a common cause that takes all three at once &mdash; a shared power rail, a shared calibration error, a shared firmware bug. That gap is closed by diversity, covered in <a href=./common-cause-failure-mitigation.html>common-cause failure mitigation</a>. Voting composes with <a href=./heartbeat-watchdog-supervision.html>watchdog supervision</a>, which itself votes on liveness."
+   ]
+  ],
+  "related": [
+   [
+    "common-cause-failure-mitigation",
+    "Common-cause mitigation"
+   ],
+   [
+    "heartbeat-watchdog-supervision",
+    "Watchdog supervision"
+   ],
+   [
+    "defense-in-depth-layers",
+    "Defense-in-depth layering"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "common-cause-failure-mitigation",
+  "title": "Common-Cause and Common-Mode Failure Mitigation",
+  "cat": "control-safety",
+  "lede": "Redundancy fails when copies fail together; Kronos attacks the shared cause with diversity in physics, supply, power, clock, and software.",
+  "body": [
+   [
+    "h2",
+    "The correlated-failure trap"
+   ],
+   [
+    "p",
+    "Triplicated channels and layered defenses assume independence. Common-cause failure (CCF) breaks that assumption: a shared vulnerability &mdash; one power supply, one firmware image, one calibration procedure, one environmental exposure &mdash; can knock out redundant copies simultaneously. In reliability math the CCF term, modeled by a beta-factor, usually dominates the residual risk once independent failures are made rare."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def system_pfd(channel_pfd, n, beta):\n    # n redundant channels; beta = fraction of failures that are common-cause\n    independent = (channel_pfd * (1 - beta)) ** n\n    common = beta * channel_pfd\n    return independent + common      # common term sets the floor\n\nprint(system_pfd(1e-2, n=3, beta=0.05))   # ~5e-4, floored by CCF"
+    ]
+   ],
+   [
+    "h3",
+    "How Kronos drives beta down"
+   ],
+   [
+    "ul",
+    [
+     "Physical diversity: back the digital reflex with an analog/latching failsafe on a different principle.",
+     "Supply diversity: source redundant sensors and controllers from different lines where feasible.",
+     "Power and clock domain separation so one rail or one clock cannot take all channels.",
+     "Software diversity and staggered updates so a single firmware bug does not deploy everywhere at once.",
+     "Procedural diversity: independent calibration and installation checks to break shared human error."
+    ]
+   ],
+   [
+    "p",
+    "Environmental CCF gets specific attention on these machines: neutron and gamma fields, strong magnetic fields, cryogenic temperatures, and vacuum all stress electronics in correlated ways. Safety electronics are sited, shielded, and rated so that a single environmental excursion does not exceed the qualified envelope of an entire redundant set at once."
+   ],
+   [
+    "p",
+    "Diversity is finite, so it is applied where it matters most: on the highest-integrity functions and on the shared resources whose loss would defeat a whole redundant set at once. A single diverse failsafe behind three identical digital channels usually buys more real safety than a fourth identical channel, precisely because it breaks the common cause rather than adding another correlated copy. The beta-factor, not the channel count, is the number the design works to reduce."
+   ],
+   [
+    "p",
+    "CCF mitigation is what gives the <a href=./defense-in-depth-layers.html>defense-in-depth layers</a> their real independence, and it is audited during <a href=./commissioning-and-safety-validation.html>commissioning</a> by deliberately faulting shared resources and confirming the surviving diversity holds."
+   ]
+  ],
+  "related": [
+   [
+    "defense-in-depth-layers",
+    "Defense-in-depth layering"
+   ],
+   [
+    "voting-and-redundancy-architecture",
+    "Voting & redundancy"
+   ],
+   [
+    "functional-safety-sil-allocation",
+    "Functional safety / SIL"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "functional-safety-sil-allocation",
+  "title": "Functional Safety and Integrity Allocation",
+  "cat": "control-safety",
+  "lede": "Each safety function gets an integrity target set by the severity and frequency of the hazard it prevents; higher targets demand more redundancy, coverage, and proof.",
+  "body": [
+   [
+    "h2",
+    "Match rigor to hazard"
+   ],
+   [
+    "p",
+    "Not every safety function needs the same rigor. Kronos allocates a safety integrity target to each function based on the hazard it addresses &mdash; how severe the consequence, how often the demand, and how much other protection exists. The target then drives concrete requirements: redundancy level, diagnostic coverage, proof-test interval, and independence from other layers."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def target_pfd(consequence, demand_rate_per_yr, other_layers_rrf):\n    # required risk reduction = intolerable gap after existing layers\n    tolerable = 1e-5                       # tolerable event freq / yr\n    unmitigated = consequence * demand_rate_per_yr\n    needed_rrf = unmitigated / (tolerable * other_layers_rrf)\n    return 1.0 / needed_rrf                # PFD the function must meet"
+    ]
+   ],
+   [
+    "h3",
+    "From target to design"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Integrity need",
+      "Redundancy",
+      "Diagnostic coverage",
+      "Proof interval"
+     ],
+     [
+      [
+       "low",
+       "single + monitor",
+       "basic",
+       "longer"
+      ],
+      [
+       "medium",
+       "1oo2 or 2oo3",
+       "high",
+       "moderate"
+      ],
+      [
+       "high",
+       "2oo3 + diverse failsafe",
+       "very high",
+       "short + auto-test"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Diagnostic coverage &mdash; the fraction of dangerous failures the system detects on its own &mdash; matters as much as redundancy. An undetected dangerous failure sits latent until a demand arrives; high coverage converts most of those into detected, safe-side failures that trip or alarm. This is why <a href=./proof-testing-and-diagnostic-coverage.html>proof testing and diagnostic coverage</a> is a first-class concern."
+   ],
+   [
+    "p",
+    "Allocation is revisited whenever the plant or the hazard picture changes, because integrity is a property of the whole risk chain, not a fixed label on a box. If a protection layer that other functions leaned on is removed or degraded, the functions behind it inherit a higher target automatically. Kronos keeps this dependency explicit so that a change in one layer surfaces every function whose integrity argument depended on it, rather than silently eroding margins elsewhere. The allocation therefore behaves as a living part of the safety case, traced from hazard through requirement to design, not a static label assigned once and forgotten."
+   ],
+   [
+    "p",
+    "Integrity allocation is not a paperwork exercise bolted on at the end; it is decided at design time and traces through to the <a href=./failure-response-decision-table.html>failure response decision table</a> and the redundancy chosen in <a href=./voting-and-redundancy-architecture.html>voting and redundancy</a>. Because these machines are pre-FOAK, the allocation is being validated in simulation and hardware-in-the-loop before first plasma."
+   ]
+  ],
+  "related": [
+   [
+    "proof-testing-and-diagnostic-coverage",
+    "Proof testing & coverage"
+   ],
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ],
+   [
+    "defense-in-depth-layers",
+    "Defense-in-depth layering"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "proof-testing-and-diagnostic-coverage",
+  "title": "Proof Testing and Diagnostic Coverage",
+  "cat": "control-safety",
+  "lede": "Latent failures are the enemy of protection systems; automatic diagnostics plus scheduled proof tests keep the probability of failure on demand inside its target.",
+  "body": [
+   [
+    "h2",
+    "The latent-failure problem"
+   ],
+   [
+    "p",
+    "A protection function that is never demanded can fail silently and stay failed until the one moment it is needed. Two things hold this at bay: on-line diagnostics that detect failures continuously, and periodic proof tests that exercise the full trip path to reveal what diagnostics miss. Together they set how the probability of failure on demand (PFD) accumulates between tests."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def pfd_avg(lambda_du_per_hr, proof_interval_hr, coverage):\n    # undetected dangerous failure rate drives the sawtooth PFD\n    lambda_undetected = lambda_du_per_hr * (1 - coverage)\n    return lambda_undetected * proof_interval_hr / 2.0\n\n# shorter interval OR higher coverage lowers average PFD\nprint(pfd_avg(1e-6, proof_interval_hr=8760, coverage=0.9))  # ~4.4e-4"
+    ]
+   ],
+   [
+    "p",
+    "The formula shows the two levers directly: raise diagnostic coverage or shorten the proof interval. Kronos favors automatic partial-stroke and self-test where the actuator allows it, because it raises coverage without a full shutdown, and reserves full proof tests for maintenance windows."
+   ],
+   [
+    "h3",
+    "What a proof test must exercise"
+   ],
+   [
+    "ul",
+    [
+     "The whole path: sensor through logic through final actuator, not just the logic.",
+     "The trip action itself, verified to reach the defined safe state.",
+     "Voting degradation: confirm the function still trips with one channel removed.",
+     "Failsafe defaults: confirm loss of power/heartbeat trips rather than holds."
+    ]
+   ],
+   [
+    "p",
+    "Coverage and interval are traded against operational reality: full proof tests need a shutdown, so Kronos maximizes automatic self-test and partial-stroke testing that run without stopping the plant, reserving full tests for planned windows. The measured failure rates from every test feed back into the integrity accounting, so assumptions are corrected by evidence over the machine's life rather than fixed at design time. A rate worse than assumed shortens the interval or forces a redesign."
+   ],
+   [
+    "p",
+    "Proof-test results feed the integrity accounting in <a href=./functional-safety-sil-allocation.html>integrity allocation</a>: if measured failure rates exceed assumptions, the interval shortens or the design changes. During <a href=./commissioning-and-safety-validation.html>commissioning</a> the first full proof test is run under fault injection to establish the baseline before operation."
+   ]
+  ],
+  "related": [
+   [
+    "functional-safety-sil-allocation",
+    "Functional safety / SIL"
+   ],
+   [
+    "commissioning-and-safety-validation",
+    "Commissioning & validation"
+   ],
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "breeder-disruption-mitigation-loop",
+  "title": "Breeder Disruption Mitigation Reflex",
+  "cat": "control-safety",
+  "lede": "When a disruption becomes unavoidable, the breeder reflex converts it from an uncontrolled event into a mitigated shutdown within the plasma's own timescale.",
+  "body": [
+   [
+    "h2",
+    "Avoid, then mitigate"
+   ],
+   [
+    "p",
+    "On the breeder (Hyperion), a D-T spherical tokamak at 9.86&nbsp;MA plasma current and 88.7&nbsp;MW fusion power, a disruption is the loss of plasma control that dumps thermal and magnetic energy into the vessel and coils. The control strategy is two-stage: the supervisory tier <a href=./l3-breeder-disruption-avoidance.html>avoids</a> approaches to instability, and when avoidance fails, the reflex tier <b>mitigates</b> &mdash; it deliberately terminates the plasma in a controlled way rather than letting it disrupt uncontrolled."
+   ],
+   [
+    "h3",
+    "The mitigation trigger"
+   ],
+   [
+    "p",
+    "Mitigation fires on a small set of fast, robust precursors combined so that any one strong indicator, or several weak ones together, arms the injectors. The decision is intentionally simple and biased toward acting: a mitigated shutdown is recoverable; an unmitigated disruption at full current is not."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def arm_mitigation(locked_mode_amp, n1_growth, vde_flag, thresholds):\n    strong = (locked_mode_amp > thresholds['locked'] or vde_flag)\n    weak_sum = (n1_growth > thresholds['n1'])\n    # bias to act: any strong precursor, or accumulating weak ones\n    return strong or weak_sum\n\ndef mitigation_deadline(current_quench_time_s, safety_factor=3):\n    # injection must complete well inside the natural quench time\n    return current_quench_time_s / safety_factor"
+    ]
+   ],
+   [
+    "p",
+    "The whole precursor-to-injection chain must fit inside the physical time the disruption gives &mdash; see <a href=./disruption-precursor-to-actuation-latency.html>precursor-to-actuation latency</a>. The injectors themselves and their timing are covered in <a href=./massive-gas-injection-timing.html>massive gas / pellet injection timing</a>."
+   ],
+   [
+    "p",
+    "The trigger logic is deliberately biased toward acting, because the two outcomes are asymmetric: a mitigated shutdown sacrifices a pulse and requires a recovery sequence, while an unmitigated disruption at 9.86&nbsp;MA can load the vessel and coils near their structural limits. Kronos therefore accepts a rate of precautionary mitigations that terminate healthy-looking pulses, treating those false positives as a small, accepted penalty that guarantees the true positives are always caught in time."
+   ],
+   [
+    "p",
+    "Mitigation trades a lost pulse for a protected machine. It also feeds the <a href=./halo-and-eddy-current-limits.html>halo and eddy current limits</a> and <a href=./runaway-electron-suppression.html>runaway electron suppression</a> paths, since a well-mitigated shutdown is what keeps those secondary hazards inside their envelopes. This is a design-and-simulation capability being validated ahead of first plasma."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-precursor-to-actuation-latency",
+    "Precursor-to-actuation latency"
+   ],
+   [
+    "massive-gas-injection-timing",
+    "Injection timing"
+   ],
+   [
+    "runaway-electron-suppression",
+    "Runaway electron suppression"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-precursor-to-actuation-latency",
+  "title": "Disruption Precursor-to-Actuation Latency Chain",
+  "cat": "control-safety",
+  "lede": "Mitigation only helps if the whole chain from precursor detection to material in the plasma completes inside the disruption's own growth time.",
+  "body": [
+   [
+    "h2",
+    "Racing the physics"
+   ],
+   [
+    "p",
+    "A disruption gives a fixed, unforgiving time budget set by the current quench and thermal quench timescales. The mitigation chain &mdash; detect, decide, arm, fire, transport, effect &mdash; must complete inside it. Kronos budgets each link and proves the sum sits below the available time with margin, exactly as the reflex loop budgets its microsecond path."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "chain_ms = {\n    'precursor_detect':  0.10,   # fast magnetics + real-time analysis\n    'arm_decision':      0.05,   # bounded reflex logic\n    'injector_open':     0.50,   # valve/pellet mechanism\n    'transit_to_plasma': 1.00,   # material flight time\n    'radiative_effect':  1.50,   # onset of mitigating radiation\n}\ntotal = sum(chain_ms.values())      # 3.15 ms\navailable = 8.0                     # ms of disruption budget (example)\nassert total < available            # with margin\nprint(round(available-total,2), 'ms margin')"
+    ]
+   ],
+   [
+    "h3",
+    "Where the time actually goes"
+   ],
+   [
+    "p",
+    "The electronic links &mdash; detection and decision &mdash; are fast; the slow terms are mechanical and physical: opening an injector, the flight time of gas or pellets, and the finite time for injected material to radiate the stored energy. This is why detection must be early: buying milliseconds at the front of the chain is the only way to afford the mechanical tail."
+   ],
+   [
+    "ul",
+    [
+     "Detection latency is minimized by watching fast, robust precursors, not slow integrated ones.",
+     "Injector latency is minimized by pre-arming when avoidance confidence drops.",
+     "Transit latency is fixed by geometry; it is a budgeted constant, not a variable."
+    ]
+   ],
+   [
+    "p",
+    "The budget is also why avoidance and mitigation are designed as one continuum rather than separate systems. As avoidance confidence falls, the mitigation chain is progressively pre-armed &mdash; injectors readied, thresholds tightened &mdash; so that the moment a trigger fires, only the irreducible physical delays remain. Time bought at the front of the chain, through earlier and more robust detection, is the only lever that makes the fixed mechanical and transit delays affordable inside the disruption's own clock."
+   ],
+   [
+    "p",
+    "If the analysis shows the chain cannot fit the budget for a given fault class, the answer is earlier detection or faster injectors, never a softer threshold. The chain feeds directly into the <a href=./breeder-disruption-mitigation-loop.html>disruption mitigation reflex</a> and shares its methodology with the <a href=./quench-protection-reflex-chain.html>quench protection chain</a>."
+   ]
+  ],
+  "related": [
+   [
+    "breeder-disruption-mitigation-loop",
+    "Disruption mitigation reflex"
+   ],
+   [
+    "massive-gas-injection-timing",
+    "Injection timing"
+   ],
+   [
+    "quench-protection-reflex-chain",
+    "Quench protection chain"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "massive-gas-injection-timing",
+  "title": "Massive Gas and Pellet Injection Timing",
+  "cat": "control-safety",
+  "lede": "The mitigation actuators must open, deliver, and take effect on a schedule tight enough to radiate the plasma's energy before it lands on the wall.",
+  "body": [
+   [
+    "h2",
+    "The actuator side of mitigation"
+   ],
+   [
+    "p",
+    "Disruption mitigation on the breeder relies on rapidly introducing material &mdash; massive gas injection and/or shattered pellets &mdash; to radiate the plasma's stored thermal and magnetic energy uniformly instead of dumping it on a small area. The timing constraint is that the mitigating radiation must begin before the thermal quench deposits energy on plasma-facing components."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def injection_ok(open_delay_ms, transit_ms, assimilate_ms, budget_ms):\n    delivered = open_delay_ms + transit_ms\n    effective = delivered + assimilate_ms\n    return effective <= budget_ms, effective\n\nok, t = injection_ok(open_delay_ms=0.5, transit_ms=1.0,\n                     assimilate_ms=1.5, budget_ms=8.0)\nassert ok"
+    ]
+   ],
+   [
+    "h3",
+    "Why pre-arming matters"
+   ],
+   [
+    "p",
+    "The valve or pellet mechanism has an irreducible mechanical opening delay. If the injector is only armed at the moment mitigation is decided, that delay is spent inside the disruption budget. Kronos pre-arms the injectors when avoidance confidence falls, so that at the decision instant only the fire command remains &mdash; converting a mechanical delay into a near-instant release."
+   ],
+   [
+    "ul",
+    [
+     "Multiple injectors distributed toroidally give redundancy and more uniform assimilation.",
+     "Pre-arm on falling avoidance confidence; fire on the mitigation trigger.",
+     "Fail-safe on the injector itself: loss of hold releases toward the safe (mitigating) action."
+    ]
+   ],
+   [
+    "p",
+    "Injector siting is a safety parameter, not just a plumbing choice: toroidally distributed injectors deliver material more symmetrically, which improves assimilation and lowers the force-peaking that drives structural loads during the shutdown. The design therefore treats the number, placement, and independent firing of injectors as part of the mitigation's safety margin, and the reflex tier can fire subsets to keep delivering material even if one injector is unavailable."
+   ],
+   [
+    "p",
+    "Uniform assimilation is what keeps the <a href=./halo-and-eddy-current-limits.html>halo current and force limits</a> and <a href=./runaway-electron-suppression.html>runaway electron</a> hazards in check; a poorly timed or asymmetric injection can worsen both. The overall schedule must fit the <a href=./disruption-precursor-to-actuation-latency.html>precursor-to-actuation latency</a> chain."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-precursor-to-actuation-latency",
+    "Precursor-to-actuation latency"
+   ],
+   [
+    "halo-and-eddy-current-limits",
+    "Halo & eddy current limits"
+   ],
+   [
+    "breeder-disruption-mitigation-loop",
+    "Disruption mitigation reflex"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vertical-displacement-arrest",
+  "title": "Vertical Displacement Arrest",
+  "cat": "control-safety",
+  "lede": "An elongated negative-triangularity plasma is vertically unstable; the position loop must catch a growing displacement faster than it can run away.",
+  "body": [
+   [
+    "h2",
+    "Catching a runaway before it runs"
+   ],
+   [
+    "p",
+    "The breeder plasma is shaped with negative triangularity (&delta;&nbsp;=&nbsp;&minus;0.30) and is vertically elongated, which makes it vertically unstable: a small vertical displacement grows exponentially unless actively opposed. The vertical position loop drives the fast poloidal-field coils to arrest the displacement, and it must have enough bandwidth and enough control authority to win the race against the growth rate."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef controllable(gamma_s, loop_bw_hz, u_available, u_needed):\n    # need both fast enough loop AND enough control authority\n    fast_enough = loop_bw_hz >= 5.0 * (gamma_s / (2*math.pi))\n    strong_enough = u_available >= u_needed\n    return fast_enough and strong_enough\n\n# growth rate gamma sets the minimum loop bandwidth\nassert controllable(gamma_s=700.0, loop_bw_hz=1200.0,\n                    u_available=1.0, u_needed=0.7)"
+    ]
+   ],
+   [
+    "h3",
+    "Two failure modes, two guards"
+   ],
+   [
+    "ul",
+    [
+     "Too slow: the loop bandwidth is below the growth rate; the displacement wins. Guarded by the timing budget.",
+     "Saturated: the coils hit their current or voltage limit; authority runs out. Guarded by envelope headroom.",
+     "If arrest fails, the event becomes a vertical displacement event (VDE) and hands off to disruption mitigation."
+    ]
+   ],
+   [
+    "p",
+    "The loop is designed with explicit reserve authority so that a routine disturbance never runs the coils to saturation; the reserve exists specifically for the off-nominal kick. When both the bandwidth and the authority reserve are consumed, the design does not chase a lost cause &mdash; it recognizes the incipient displacement event and hands off to mitigation while a controlled termination is still possible, converting a failed catch into a mitigated shutdown rather than a full disruption."
+   ],
+   [
+    "p",
+    "The loop period is derived from the growth rate in <a href=./control-loop-timing-math.html>control-loop timing math</a>, and the authority margin is part of <a href=./stability-margins-and-control-headroom.html>stability margins and control headroom</a>. When both margins are exhausted, the failsafe recognizes an imminent VDE and arms the <a href=./breeder-disruption-mitigation-loop.html>disruption mitigation reflex</a> before the plasma is lost, so a failed catch degrades to a mitigated shutdown rather than an uncontrolled one."
+   ]
+  ],
+  "related": [
+   [
+    "control-loop-timing-math",
+    "Control-loop timing math"
+   ],
+   [
+    "stability-margins-and-control-headroom",
+    "Stability margins & headroom"
+   ],
+   [
+    "breeder-disruption-mitigation-loop",
+    "Disruption mitigation reflex"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "halo-and-eddy-current-limits",
+  "title": "Halo Current and Force Limits",
+  "cat": "control-safety",
+  "lede": "A disruption drives halo and eddy currents through the vessel; the safety envelope caps the forces these can exert on the structure.",
+  "body": [
+   [
+    "h2",
+    "Currents that push on the machine"
+   ],
+   [
+    "p",
+    "When the breeder plasma moves or terminates rapidly, it drives halo currents through the plasma edge into the vessel and induces eddy currents in conducting structures. These currents, crossing the strong magnetic field, produce large mechanical forces. The safety envelope treats the peak force and its asymmetry as protected limits, because exceeding them is a structural hazard rather than merely a lost pulse."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def structural_ok(halo_fraction, toroidal_peaking, field_T, limits):\n    # force scales with halo current * field; asymmetry concentrates it\n    effective_load = halo_fraction * toroidal_peaking * field_T\n    return effective_load <= limits['max_load']\n\n# both magnitude and asymmetry (peaking) matter for the local force\nassert structural_ok(0.3, 1.5, 8.0, {'max_load': 4.5})"
+    ]
+   ],
+   [
+    "h3",
+    "Why mitigation shape matters"
+   ],
+   [
+    "p",
+    "A symmetric, well-mitigated shutdown spreads the halo current and its force around the vessel; an asymmetric one concentrates it. This is the structural reason <a href=./massive-gas-injection-timing.html>injection timing and uniformity</a> are safety-critical, not just performance-critical. Toroidally distributed injectors reduce the peaking factor that drives local forces."
+   ],
+   [
+    "ul",
+    [
+     "Protected quantity: peak halo current fraction and its toroidal peaking factor.",
+     "Guarded by: mitigation that terminates the plasma before halo currents grow large.",
+     "Monitored by: distributed structural and current diagnostics feeding the reflex tier."
+    ]
+   ],
+   [
+    "p",
+    "The forces are also orientation-dependent, so the diagnostics feeding the reflex tier resolve not just the magnitude of the halo current but its toroidal distribution, since a symmetric current of a given size is far more benign than the same current concentrated on one sector. Keeping the peaking factor low is therefore a live objective of the mitigation, and the structural envelope is expressed in terms of both magnitude and asymmetry rather than a single scalar limit."
+   ],
+   [
+    "p",
+    "Halo-force limits are part of the breeder <a href=./fail-safe-state-definition.html>fail-safe state definition</a>: a mitigated shutdown is only 'safe' if it stays inside the force envelope during ramp-down. These loads are being characterized in simulation as part of the pre-FOAK safety case, and validated against the structural model during <a href=./commissioning-and-safety-validation.html>commissioning</a>."
+   ]
+  ],
+  "related": [
+   [
+    "massive-gas-injection-timing",
+    "Injection timing"
+   ],
+   [
+    "fail-safe-state-definition",
+    "Fail-safe state definition"
+   ],
+   [
+    "runaway-electron-suppression",
+    "Runaway electron suppression"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "runaway-electron-suppression",
+  "title": "Runaway Electron Suppression",
+  "cat": "control-safety",
+  "lede": "A disruption can accelerate a beam of relativistic electrons; the mitigation path is designed to keep that beam from forming or to dissipate it benignly.",
+  "body": [
+   [
+    "h2",
+    "The relativistic-beam hazard"
+   ],
+   [
+    "p",
+    "During a current quench the strong toroidal electric field can accelerate electrons to relativistic energies, forming a runaway electron beam that carries a large fraction of the plasma current. Uncontrolled, such a beam can strike plasma-facing components in a small area. Suppression is therefore a named objective of the breeder mitigation strategy, alongside energy radiation and force control."
+   ],
+   [
+    "h3",
+    "Two levers: avoid formation, or dissipate"
+   ],
+   [
+    "ul",
+    [
+     "Suppress formation: raise the plasma density enough during mitigation that collisional drag exceeds the accelerating field.",
+     "Benign dissipation: if a beam forms, control its final loss so its energy is spread rather than concentrated.",
+     "Both levers depend on the same fast, uniform material injection used for energy radiation."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def runaway_suppressed(density_after_inject, critical_density):\n    # above the critical density, collisional drag beats the E-field\n    return density_after_inject >= critical_density\n\ndef avalanche_headroom(n_inject, n_crit, margin=1.5):\n    # inject enough to clear the threshold with margin\n    return n_inject >= margin * n_crit"
+    ]
+   ],
+   [
+    "p",
+    "The physics here is coupled to the injection actuators: reaching the critical density fast enough is the same problem as radiating the thermal energy fast enough, so the <a href=./massive-gas-injection-timing.html>injection timing</a> budget serves both goals. Getting one right without the other is not acceptable; the mitigation is designed as a single event that satisfies energy, force, and runaway limits together."
+   ],
+   [
+    "p",
+    "Because formation-suppression and energy-radiation are served by the same fast, uniform material injection, the mitigation is designed as one event that must satisfy energy, force, and runaway constraints together rather than as separate optimizations that could work against each other. Kronos treats runaway control as an open engineering problem and builds the reflex tier to invoke the best available mitigation while reporting honestly on residual risk, rather than claiming the relativistic-beam hazard is eliminated."
+   ],
+   [
+    "p",
+    "Runaway suppression is an active area of design-and-simulation work across the field and at Kronos; it is treated as an honest open engineering problem, and the reflex tier is built to invoke the best available mitigation, not to claim the hazard is solved. It closes out the breeder disruption triad with <a href=./halo-and-eddy-current-limits.html>halo/force limits</a> and the <a href=./breeder-disruption-mitigation-loop.html>mitigation reflex</a> itself."
+   ]
+  ],
+  "related": [
+   [
+    "massive-gas-injection-timing",
+    "Injection timing"
+   ],
+   [
+    "halo-and-eddy-current-limits",
+    "Halo & force limits"
+   ],
+   [
+    "breeder-disruption-mitigation-loop",
+    "Disruption mitigation reflex"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-plug-stability-reflex",
+  "title": "Burner Plug-Stability Reflex Supervisor",
+  "cat": "control-safety",
+  "lede": "The burner's end-plug confinement rests on operating conditions far beyond any built device; the reflex supervisor treats every plug excursion as a hard limit, not a setpoint to chase.",
+  "body": [
+   [
+    "h2",
+    "Supervising a regime we cannot yet post-dict"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator whose confinement depends on the end plugs holding an ambipolar potential. In design-and-simulation studies the plug operating regime sits <b>166&ndash;830&times; beyond any device ever built</b>, so its behavior cannot be post-dicted from experiment today. The plug-stability supervisor is written for that reality: it does not assume the plug is well-behaved, and it trips conservatively on any departure from the narrow modeled envelope."
+   ],
+   [
+    "h3",
+    "Conservative by mandate"
+   ],
+   [
+    "ul",
+    [
+     "Every plug parameter has a hard envelope; the supervisor trips on exit, it does not optimize inside.",
+     "Model uncertainty is treated as part of the limit, so envelopes are set with wide margin.",
+     "Loss of a plug diagnostic reads as out-of-envelope, because an un-monitored plug cannot be trusted."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def plug_supervisor(potential, density, coil_stress, env, model_conf):\n    # low model confidence -> shrink the trusted envelope\n    m = 1.0 if model_conf > 0.5 else 0.6\n    inside = (env.pot.lo*(1/m) <= potential <= env.pot.hi*m and\n              env.den.lo <= density <= env.den.hi and\n              coil_stress <= env.stress_max)\n    return 'run' if inside else 'TRIP -> safe hold'"
+    ]
+   ],
+   [
+    "p",
+    "This candor is deliberate. The supervisor's job is not to prove the plug works &mdash; that is what the machine is being built to test &mdash; but to guarantee that if the plug behaves outside the modeled regime, the reflex tier notices and trips before anything is damaged. It is inseparable from <a href=./plug-coil-stress-protection.html>plug-coil overstress protection</a> and <a href=./ambipolar-potential-safety-envelope.html>the ambipolar potential envelope</a>."
+   ],
+   [
+    "p",
+    "None of this asserts the plug will work; the machine is being built to find that out. The supervisor's mandate is narrower and honest: guarantee that if the plug leaves the modeled regime, the reflex tier detects it and trips before damage, so the physics question can be answered safely. This framing keeps the burner's four open gates &mdash; coil stress, operating regime, He-3 supply, and availability &mdash; visible in the control design rather than buried under an optimistic assumption."
+   ],
+   [
+    "p",
+    "No net-power claim is made for the burner today; the four honest gates &mdash; plug-coil stress, operating regime, He-3 supply, and availability &mdash; are documented plainly across this category, and the reflex tier is designed to respect every one."
+   ]
+  ],
+  "related": [
+   [
+    "plug-coil-stress-protection",
+    "Plug-coil overstress protection"
+   ],
+   [
+    "ambipolar-potential-safety-envelope",
+    "Ambipolar potential envelope"
+   ],
+   [
+    "mirror-throat-field-supervision",
+    "Mirror throat field supervision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plug-coil-stress-protection",
+  "title": "Plug-Coil Overstress Protection",
+  "cat": "control-safety",
+  "lede": "At the design bore the burner plug coil is stressed 3-3.9x beyond feasibility; the protection loop treats coil stress as a first-class safety limit, not a design detail.",
+  "body": [
+   [
+    "h2",
+    "A structural limit stated honestly"
+   ],
+   [
+    "p",
+    "The burner's end-plug field of 26.49&nbsp;T (with a 17&nbsp;T throat) implies mechanical stresses on the plug coil that, at the design bore, exceed feasible material limits by <b>a factor of about 3&ndash;3.9</b>. As specified, the coil is infeasible &mdash; this is a documented design-and-simulation gate, not a solved problem. The overstress protection loop exists to make that limit inviolable in any built prototype: coil stress is monitored and enforced as a hard trip condition."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def stress_ratio(hoop_stress_MPa, allowable_MPa):\n    return hoop_stress_MPa / allowable_MPa\n\ndef coil_permit(ratio, trip_at=1.0, warn_at=0.85):\n    if ratio >= trip_at:\n        return 'TRIP -> dump'      # never operate an overstressed coil\n    if ratio >= warn_at:\n        return 'WARN -> limit current'\n    return 'permit'\n\n# the design-point specification sits at ratio ~3-3.9: infeasible as-is\nassert coil_permit(3.4) == 'TRIP -> dump'"
+    ]
+   ],
+   [
+    "h3",
+    "What protection can and cannot do"
+   ],
+   [
+    "ul",
+    [
+     "It CAN guarantee no built coil is driven past its real material limit &mdash; current is capped or dumped first.",
+     "It CANNOT make the specified 26.49&nbsp;T bore feasible; that requires a design change, not a control loop.",
+     "It therefore bounds the achievable operating field to what the actual coil can survive, and reports the gap."
+    ]
+   ],
+   [
+    "p",
+    "The protection loop is coupled to the <a href=./energy-dump-and-discharge.html>magnet energy extraction</a> path: an overstress trip drives the coil current into the dump rather than holding it. Coil stress is inferred from strain sensing and the structural model, cross-checked, and voted like any critical safety signal (see <a href=./voting-and-redundancy-architecture.html>voting and redundancy</a>)."
+   ],
+   [
+    "p",
+    "The protection loop's honest consequence is a bounded operating field: it will cap current at whatever the real coil can survive and report the gap between that and the specified 26.49&nbsp;T bore, rather than pretend the specification is achievable. That gap is a design finding, surfaced by the control system, that feeds back to the magnet engineers &mdash; the loop's job is to make the limit inviolable and the shortfall measurable, not to close a gap that only a design change can close."
+   ],
+   [
+    "p",
+    "Stating the 3&ndash;3.9&times; gate plainly is part of the design philosophy: the control system is honest about the physics it must respect. This gate is why the burner is presented as a design-and-simulation study, and it composes with the <a href=./burner-plug-stability-reflex.html>plug-stability supervisor</a>."
+   ]
+  ],
+  "related": [
+   [
+    "burner-plug-stability-reflex",
+    "Plug-stability supervisor"
+   ],
+   [
+    "energy-dump-and-discharge",
+    "Magnet energy extraction"
+   ],
+   [
+    "mirror-throat-field-supervision",
+    "Mirror throat field supervision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ambipolar-potential-safety-envelope",
+  "title": "Ambipolar Potential Safety Envelope",
+  "cat": "control-safety",
+  "lede": "Tandem-mirror confinement lives or dies on the end-plug ambipolar potential; the safety envelope bounds it against a rapid confinement-loss transient.",
+  "body": [
+   [
+    "h2",
+    "The potential that holds the plasma"
+   ],
+   [
+    "p",
+    "In the burner's tandem-mirror configuration, the end plugs establish an ambipolar electrostatic potential that confines the central-cell ions. Confinement quality is a steep function of that potential. The safety concern is not steady operation but the transient: a rapid collapse of the plug potential releases the central-cell plasma quickly, a fast fault the reflex tier must bound."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def confinement_margin(phi_plug, phi_min, phi_max):\n    # normalized distance inside the confining-potential band\n    if phi_plug < phi_min:\n        return -1.0                # below floor: confinement collapsing\n    span = phi_max - phi_min\n    return (phi_plug - phi_min) / span\n\ndef envelope_action(margin, dphi_dt, rate_limit):\n    if margin <= 0 or dphi_dt < -rate_limit:\n        return 'TRIP -> controlled ride-down'\n    return 'permit'"
+    ]
+   ],
+   [
+    "h3",
+    "Rate matters as much as level"
+   ],
+   [
+    "p",
+    "The envelope watches both the potential level and its rate of change. A slow drift toward the floor is handled by supervisory control raising plug heating; a fast negative rate &mdash; the signature of an incipient collapse &mdash; is a reflex-tier trip, because by the time a slow loop reacted, confinement would already be lost. This mirrors the two-timescale split used throughout the reflex tier."
+   ],
+   [
+    "ul",
+    [
+     "Level guard: keep the plug potential above the confining floor with margin.",
+     "Rate guard: trip on a fast negative excursion before collapse completes.",
+     "Diagnostic loss guard: an unmeasured potential is treated as out-of-envelope."
+    ]
+   ],
+   [
+    "p",
+    "The envelope is also written to degrade its own trust as diagnostics degrade. If the potential measurement becomes noisy or a redundant channel drops, the confining floor is raised and the rate limit tightened, so the supervisor errs toward an early, benign ride-down rather than risking a fast collapse it can no longer see clearly. Given how far the plug regime sits beyond any built device, this bias toward conservatism under uncertainty is a stated design choice, not a tuning afterthought."
+   ],
+   [
+    "p",
+    "Because the plug regime is <b>166&ndash;830&times; beyond any built device</b>, the envelope is set conservatively and widened for model uncertainty, exactly as in the <a href=./burner-plug-stability-reflex.html>plug-stability supervisor</a>. A collapse trip drives the burner toward its <a href=./fail-safe-state-definition.html>defined safe state</a> along a path chosen to avoid a violent confinement-loss transient."
+   ]
+  ],
+  "related": [
+   [
+    "burner-plug-stability-reflex",
+    "Plug-stability supervisor"
+   ],
+   [
+    "mirror-throat-field-supervision",
+    "Mirror throat field supervision"
+   ],
+   [
+    "fail-safe-state-definition",
+    "Fail-safe state definition"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mirror-throat-field-supervision",
+  "title": "Mirror Throat Field Supervision",
+  "cat": "control-safety",
+  "lede": "The 17 T throat field sets the mirror ratio that confines the burner plasma; the supervisor guards both the field and the coil producing it.",
+  "body": [
+   [
+    "h2",
+    "The throat as a confinement gate"
+   ],
+   [
+    "p",
+    "In the tandem mirror, the throat field &mdash; 17&nbsp;T at the burner design point, against the 26.49&nbsp;T plug &mdash; sets the mirror ratio that determines which particles are confined and which escape through the loss cone. The throat supervisor monitors this field and the coil producing it, because a throat that sags changes the confinement physics, and a throat coil that overstresses is a structural hazard like the plug coil."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def mirror_ratio(B_throat_T, B_center_T):\n    return B_throat_T / B_center_T\n\ndef throat_permit(B_throat_T, target_T, coil_stress_ratio, tol=0.05):\n    field_ok  = abs(B_throat_T - target_T) <= tol * target_T\n    stress_ok = coil_stress_ratio < 1.0\n    return field_ok and stress_ok\n\n# 17 T throat, 3 T center -> mirror ratio ~5.7 (illustrative)\nprint(round(mirror_ratio(17.0, 3.0), 2))"
+    ]
+   ],
+   [
+    "h3",
+    "Coupled to the plug"
+   ],
+   [
+    "p",
+    "The throat and plug fields are not independent knobs: the confinement picture depends on their ratio and profile together. The supervisor therefore cross-checks throat and plug states and trips if their relationship leaves the modeled envelope, not just if either exceeds an individual limit. This coupling is why plug and throat supervision are designed as one subsystem."
+   ],
+   [
+    "ul",
+    [
+     "Field guard: hold the throat field within tolerance of target.",
+     "Stress guard: keep the throat coil below its material limit, dump on breach.",
+     "Consistency guard: trip if the plug/throat relationship exits the modeled regime."
+    ]
+   ],
+   [
+    "p",
+    "Because confinement depends on the plug and throat together, the supervisor treats them as a coupled pair and can trip on their relationship even when each is individually inside its own limit. This catches failure modes that per-signal thresholds miss, such as a throat sag that leaves the mirror ratio too low while every scalar reading still looks nominal. The coupled check is set conservatively for the same reason the plug envelope is: the operating regime is far outside anything experiment can yet corroborate."
+   ],
+   [
+    "p",
+    "Like the plug, the throat coil's stress is enforced with the <a href=./plug-coil-stress-protection.html>overstress protection</a> discipline and the <a href=./energy-dump-and-discharge.html>energy extraction</a> path. Together with the <a href=./ambipolar-potential-safety-envelope.html>ambipolar potential envelope</a>, throat supervision completes the burner confinement safety set &mdash; all designed to respect the burner's open physics gates rather than assume them away."
+   ]
+  ],
+  "related": [
+   [
+    "plug-coil-stress-protection",
+    "Plug-coil overstress protection"
+   ],
+   [
+    "ambipolar-potential-safety-envelope",
+    "Ambipolar potential envelope"
+   ],
+   [
+    "energy-dump-and-discharge",
+    "Magnet energy extraction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-fault-isolation-reflex",
+  "title": "DEC Fault Isolation and Ride-Through",
+  "cat": "control-safety",
+  "lede": "The burner's direct energy conversion couples the plasma to an electrical load; the reflex tier isolates load-side faults before they perturb the plasma.",
+  "body": [
+   [
+    "h2",
+    "Two systems that must not drag each other down"
+   ],
+   [
+    "p",
+    "The burner uses direct energy conversion (DEC) to turn escaping charged-particle energy into electricity, coupling plasma physics to a power-electronics load. That coupling is a fault path in both directions: a load-side fault (a short, a grid disturbance) could perturb the plasma, and a plasma-side transient could stress the converter. The reflex tier isolates the two so a fault on one side is contained, not transmitted."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def dec_action(load_fault, dv_dt, plasma_ok, limits):\n    # isolate first, ask questions later\n    if load_fault or abs(dv_dt) > limits['dv_dt']:\n        return 'ISOLATE load -> ride-through on plasma side'\n    if not plasma_ok:\n        return 'DECOUPLE DEC -> controlled ride-down'\n    return 'run'"
+    ]
+   ],
+   [
+    "h3",
+    "Ride-through, then decide"
+   ],
+   [
+    "ul",
+    [
+     "Load-side fault: disconnect the load fast, hold the plasma on a controlled setpoint, then resynchronize or shut down deliberately.",
+     "Plasma-side fault: decouple the DEC collector so a plasma transient does not appear as a converter fault.",
+     "Both: the isolation action is a reflex; the recovery decision is supervisory."
+    ]
+   ],
+   [
+    "p",
+    "The dv/dt limit is the fast trigger: a rapid collector-voltage swing is the earliest sign of trouble on either side, and the reflex trips on it before slower protections would react. This is the same fast-slow split used across the reflex tier &mdash; act on the fastest robust indicator, defer the reasoning to the supervisory layer."
+   ],
+   [
+    "p",
+    "DEC fault isolation is part of the burner <a href=./fail-safe-state-definition.html>safe-state</a> definition: a safe burner is one where the DEC has ridden down in a controlled way and the plasma is on a benign holding path. It does not touch the confinement gates, but it must never be the thing that trips the plasma &mdash; hence the isolation-first design. Grid-side behavior and availability are discussed under the honest availability gate."
+   ]
+  ],
+  "related": [
+   [
+    "fail-safe-state-definition",
+    "Fail-safe state definition"
+   ],
+   [
+    "burner-plug-stability-reflex",
+    "Plug-stability supervisor"
+   ],
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quench-protection-reflex-chain",
+  "title": "Quench Protection Reflex Chain",
+  "cat": "control-safety",
+  "lede": "A superconducting magnet losing superconductivity must be detected and de-energized in milliseconds; the quench chain is the fastest shared reflex on both machines.",
+  "body": [
+   [
+    "h2",
+    "From detection to a de-energized magnet"
+   ],
+   [
+    "p",
+    "Both machines run high-field superconducting magnets &mdash; the breeder at up to 16.84&nbsp;T peak field, the burner at 26.49&nbsp;T plug and 17&nbsp;T throat. If any conductor loses superconductivity (a quench), the local resistive heating can damage the magnet unless the stored magnetic energy is extracted fast. The quench protection chain detects the normal zone, confirms it, and drives the energy into external dump resistors within the magnet's safe hot-spot time."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def quench_chain(normal_zone_voltage, threshold_V, confirm_windows, dump):\n    if normal_zone_voltage <= threshold_V:\n        return 'permit'\n    # brief confirmation to reject noise, then irreversible dump\n    if confirm_windows >= 2:\n        dump.fire()\n        return 'DUMP fired -> energy to resistors'\n    return 'arming'\n\ndef hotspot_ok(detect_ms, dump_time_ms, allowable_ms):\n    return (detect_ms + dump_time_ms) <= allowable_ms"
+    ]
+   ],
+   [
+    "h3",
+    "The budget that must be met"
+   ],
+   [
+    "p",
+    "The whole chain &mdash; detect, briefly confirm, fire the dump, extract the current &mdash; must complete inside the conductor's allowable hot-spot time, or the local temperature exceeds safe limits. Detection therefore favors fast, robust indicators; confirmation is just long enough to reject noise; and the dump path is pre-armed so firing is immediate."
+   ],
+   [
+    "ul",
+    [
+     "Detect: normal-zone voltage and complementary indicators, voted for robustness.",
+     "Confirm: a short window to reject transients, never long enough to blow the hot-spot budget.",
+     "Dump: irreversible energy extraction into external resistors, fail-safe on loss of hold."
+    ]
+   ],
+   [
+    "p",
+    "The chain is the fastest shared reflex on both machines, so it sets a floor on the whole reflex-tier timing design: whatever budget the hot-spot time allows becomes the target the detection, confirmation, and dump stages must fit inside with margin. Every microsecond spent confirming a quench to reject noise is a microsecond taken from the dump, so the confirmation window is tuned to the minimum that rejects known transients and no longer, and the dump path is pre-armed so firing adds no mechanical delay."
+   ],
+   [
+    "p",
+    "Detection timing specifics are in <a href=./rebco-quench-detection-timing.html>REBCO quench detection timing</a>, and the extraction hardware in <a href=./energy-dump-and-discharge.html>magnet energy extraction</a>. The chain shares its budget-and-margin methodology with <a href=./disruption-precursor-to-actuation-latency.html>disruption mitigation latency</a>; both race a physical clock."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-quench-detection-timing",
+    "REBCO quench detection timing"
+   ],
+   [
+    "energy-dump-and-discharge",
+    "Magnet energy extraction"
+   ],
+   [
+    "disruption-precursor-to-actuation-latency",
+    "Disruption mitigation latency"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-quench-detection-timing",
+  "title": "REBCO Quench Detection Timing",
+  "cat": "control-safety",
+  "lede": "REBCO conductors quench with a slow-propagating normal zone that is hard to see electrically; detection must be sensitive and fast without tripping on noise.",
+  "body": [
+   [
+    "h2",
+    "The slow-propagation problem"
+   ],
+   [
+    "p",
+    "High-temperature REBCO conductors, used for the high fields on both machines, have a low normal-zone propagation velocity: a quench spreads slowly, so the classic voltage signature is small and localized before it becomes dangerous. Detection must therefore be sensitive enough to catch a small early signal, yet robust enough not to trip on inductive and mechanical noise &mdash; a genuine engineering tension the timing design has to resolve."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def covoltage(v_taps, mutual_inductance, di_dt):\n    # subtract the inductive component to expose the resistive (quench) part\n    v_inductive = mutual_inductance * di_dt\n    return v_taps - v_inductive        # co-wound / bridge cancellation\n\ndef detect(resistive_V, threshold_V, dwell_us, min_dwell_us):\n    # require a small resistive voltage to persist briefly\n    return resistive_V > threshold_V and dwell_us >= min_dwell_us"
+    ]
+   ],
+   [
+    "h3",
+    "Diversity of indicators"
+   ],
+   [
+    "ul",
+    [
+     "Co-wound voltage taps / bridges to cancel the inductive term and expose the resistive quench voltage.",
+     "Distributed fiber or acoustic sensing to localize a normal zone the voltage barely shows.",
+     "Temperature and strain trends as slower, corroborating channels.",
+     "Voting across indicator types to cut both missed detections and spurious trips."
+    ]
+   ],
+   [
+    "p",
+    "The detection dwell &mdash; how long a signal must persist before it counts &mdash; is the knob that trades sensitivity against false trips. It is set just long enough to reject known noise transients, then handed to the confirmation stage of the <a href=./quench-protection-reflex-chain.html>quench protection chain</a>. Every microsecond of detection latency is a microsecond less for the dump, so the two budgets are designed together."
+   ],
+   [
+    "p",
+    "The tension between sensitivity and false trips is resolved by diversity rather than by picking a single clever threshold. Voltage bridges, distributed fiber or acoustic sensing, and slower thermal and strain trends are combined so a real quench lights up several indicators while noise lights up only one, letting the detector be sensitive without being twitchy. Kronos treats this as a fundamentally hard, still-open detection problem and validates the scheme against injected quench signatures rather than assuming it solved."
+   ],
+   [
+    "p",
+    "Because REBCO detection is genuinely hard, Kronos treats it as a diversity problem, not a single-sensor problem, and validates the scheme by injecting synthetic and real quench signatures during <a href=./commissioning-and-safety-validation.html>commissioning</a>. Detected quenches feed the <a href=./energy-dump-and-discharge.html>energy extraction</a> path immediately."
+   ]
+  ],
+  "related": [
+   [
+    "quench-protection-reflex-chain",
+    "Quench protection chain"
+   ],
+   [
+    "energy-dump-and-discharge",
+    "Magnet energy extraction"
+   ],
+   [
+    "voting-and-redundancy-architecture",
+    "Voting & redundancy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "energy-dump-and-discharge",
+  "title": "Magnet Energy Extraction and Dump",
+  "cat": "control-safety",
+  "lede": "When a magnet must be de-energized fast, its stored energy is driven into external resistors along a fail-safe path that defaults to dumping on loss of control.",
+  "body": [
+   [
+    "h2",
+    "Getting the energy out safely"
+   ],
+   [
+    "p",
+    "A high-field magnet stores a large amount of energy in its field. On a quench or overstress trip that energy must leave the magnet quickly and land somewhere safe &mdash; external dump resistors &mdash; rather than depositing in the fault. The extraction path is the actuator end of the quench and coil-stress reflexes, and it is engineered to fail toward dumping, not toward holding current."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def dump_time_constant(inductance_H, dump_resistance_ohm):\n    return inductance_H / dump_resistance_ohm     # L/R decay\n\ndef peak_dump_voltage(current_A, dump_resistance_ohm):\n    return current_A * dump_resistance_ohm        # must stay within insulation\n\n# larger R -> faster dump but higher voltage: a bounded trade\ntau = dump_time_constant(inductance_H=5.0, dump_resistance_ohm=0.5)  # 10 s\nassert peak_dump_voltage(current_A=10_000, dump_resistance_ohm=0.5) < 6000"
+    ]
+   ],
+   [
+    "h3",
+    "The dump-rate trade"
+   ],
+   [
+    "p",
+    "A larger dump resistance extracts energy faster (shorter L/R time) but raises the peak voltage across the coil, which the insulation must survive. The dump resistance is sized to extract energy fast enough to protect the hot spot while keeping voltage within the insulation limit. This is a bounded, pre-computed trade, not a runtime decision."
+   ],
+   [
+    "ul",
+    [
+     "Fail-safe switch: the current path holds through a switch that opens (diverting to the dump) on loss of hold or power.",
+     "Sized resistors: fast enough for the hot-spot budget, low enough voltage for the insulation.",
+     "Distributed dumps for large magnets so no single resistor or node is a common-cause point."
+    ]
+   ],
+   [
+    "p",
+    "The extraction path is engineered fail-safe from the switch outward: the current is held by an element that opens on loss of power, loss of hold, or an explicit trip, so any failure of the controlling logic diverts current into the dump rather than trapping it in the magnet. This inversion &mdash; where doing nothing means dumping, and holding requires active, healthy control &mdash; is what lets the extraction path sit behind the ML-independent failsafe and be trusted to act when everything upstream has gone dark."
+   ],
+   [
+    "p",
+    "Extraction is invoked by the <a href=./quench-protection-reflex-chain.html>quench protection chain</a> and by <a href=./plug-coil-stress-protection.html>plug-coil overstress protection</a>, and it is a component of the <a href=./fail-safe-state-definition.html>fail-safe state</a> for both machines. Its fail-safe-by-default behavior is what lets it sit behind the <a href=./ml-independent-failsafe-path.html>ML-independent failsafe</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quench-protection-reflex-chain",
+    "Quench protection chain"
+   ],
+   [
+    "plug-coil-stress-protection",
+    "Plug-coil overstress protection"
+   ],
+   [
+    "fail-safe-state-definition",
+    "Fail-safe state definition"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "cryogenic-and-vacuum-safety-interlocks",
+  "title": "Cryogenic and Vacuum Safety Interlocks",
+  "cat": "control-safety",
+  "lede": "Cryogenics and vacuum are preconditions for high-field, high-confinement operation; their interlocks gate energization and default closed on any doubt.",
+  "body": [
+   [
+    "h2",
+    "Preconditions, not afterthoughts"
+   ],
+   [
+    "p",
+    "Both machines require deep cryogenics for their superconducting magnets and high vacuum for their plasmas. These are not merely operating conveniences; losing either while energized is a hazard. The cryogenic and vacuum interlocks are permissives in the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a>: coils cannot be energized and plasma cannot be sustained unless cryo and vacuum read good, and any doubt reads as not-good."
+   ],
+   [
+    "h3",
+    "Vacuum permissive"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Pump running",
+      "Pressure in band",
+      "Isolation valve pos known",
+      "High-vac permit"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def cryo_permit(temp_K, target_K, flow_ok, tol_K=0.5):\n    # margin band around the operating temperature, flow present\n    return abs(temp_K - target_K) <= tol_K and flow_ok\n\ndef energize_gate(cryo_ok, vac_ok):\n    # both preconditions AND-ed into the energization permissive\n    return cryo_ok and vac_ok"
+    ]
+   ],
+   [
+    "h3",
+    "Fail-closed on ambiguity"
+   ],
+   [
+    "ul",
+    [
+     "A stale or lost cryo/vacuum sensor reads as not-permissive, closing the interlock.",
+     "A warming magnet or rising pressure trips toward de-energization before limits are reached.",
+     "Recovery is deliberate: interlocks re-open only when good conditions are re-established and confirmed."
+    ]
+   ],
+   [
+    "p",
+    "The two systems sit on different timescales and are guarded accordingly. A cryogenic excursion usually develops slowly enough for a supervisory response that ramps the machine down in an orderly way, so its interlock is backed by trend monitoring that acts before a hard limit is reached. A vacuum breach can be fast, so its permissive lives in the reflex tier and trips immediately. Both, however, share the same fail-closed rule: absence of a good reading is treated as a bad reading. Recovery from either interlock is deliberate rather than automatic &mdash; permissives re-open only when good conditions are re-established and confirmed &mdash; so a machine is never brought back up on the assumption that a transient has passed without evidence that it has."
+   ],
+   [
+    "p",
+    "Cryo loss is often slow enough for a supervisory response, but a rapid vacuum breach is fast, so the vacuum interlock sits in the reflex tier. Both feed the energization gate that also depends on <a href=./quench-protection-reflex-chain.html>quench status</a> and dump-armed status, making energization conditional on the full safety context, not any single check."
+   ]
+  ],
+  "related": [
+   [
+    "interlock-matrix-hardwired",
+    "Hardwired interlock matrix"
+   ],
+   [
+    "quench-protection-reflex-chain",
+    "Quench protection chain"
+   ],
+   [
+    "failure-response-decision-table",
+    "Failure response decision table"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "human-oversight-authority-levels",
+  "title": "Human Oversight and Authority Levels",
+  "cat": "control-safety",
+  "lede": "Automation runs the loops; humans hold ultimate authority. Roles, permissions, and the actions reserved for people are defined explicitly, not left implicit.",
+  "body": [
+   [
+    "h2",
+    "Who can do what"
+   ],
+   [
+    "p",
+    "Kronos automates control but does not remove human authority. The architecture defines authority levels &mdash; observer, operator, shift supervisor, safety authority &mdash; and binds specific actions to specific levels. High-consequence actions (relaxing a limit, bypassing an interlock, authorizing a non-standard operating point) require a level of authority and, for the highest-consequence ones, a second person."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Action",
+      "Operator",
+      "Shift supervisor",
+      "Safety authority"
+     ],
+     [
+      [
+       "monitor / acknowledge",
+       "yes",
+       "yes",
+       "yes"
+      ],
+      [
+       "command within envelope",
+       "yes",
+       "yes",
+       "yes"
+      ],
+      [
+       "manual abort / trip",
+       "yes",
+       "yes",
+       "yes"
+      ],
+      [
+       "relax a soft limit",
+       "no",
+       "yes",
+       "yes"
+      ],
+      [
+       "bypass an interlock",
+       "no",
+       "no",
+       "yes + 2nd person"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Note the one action available to everyone regardless of level: <b>abort</b>. Anyone who sees something wrong can trip the machine to safe state. Authority levels gate actions that increase risk; they never gate the action that reduces it. This asymmetry is deliberate and mirrors the reflex tier's rule that anything can request safety but only authority can request more risk."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def authorized(action, level, second_person=False):\n    REQUIRED = {'abort':0, 'command':1, 'relax_soft_limit':2,\n                'bypass_interlock':3}\n    need = REQUIRED[action]\n    ok = level >= need\n    if action == 'bypass_interlock':\n        ok = ok and second_person       # two-person rule\n    return ok"
+    ]
+   ],
+   [
+    "p",
+    "The copilots deliberately hold no authority level of their own. They can surface a recommendation, pre-fill a request, and explain their reasoning, but a human at the required level must authorize anything that crosses an envelope, and the human &mdash; not the model &mdash; owns the logged decision. This keeps accountability with people and keeps the AI in an advisory role, which is the same principle the reflex tier applies in hardware: intelligence proposes, and only humans or hardwired logic dispose of higher risk."
+   ],
+   [
+    "p",
+    "Every authorized high-consequence action is logged with who, when, why, and the machine state at the time &mdash; the audit trail that a <a href=./safety-case-replay-evidence.html>safety case</a> is built on. The AI copilots advise and can request actions, but they hold no authority level; a human authorizes anything the copilots propose that crosses an envelope. See <a href=./operator-abort-and-manual-trip.html>operator abort and manual trip</a> and <a href=./interlock-bypass-governance.html>interlock bypass governance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "operator-abort-and-manual-trip",
+    "Operator abort & manual trip"
+   ],
+   [
+    "interlock-bypass-governance",
+    "Interlock bypass governance"
+   ],
+   [
+    "safety-case-replay-evidence",
+    "Safety-case replay evidence"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "operator-abort-and-manual-trip",
+  "title": "Operator Abort and Manual Trip",
+  "cat": "control-safety",
+  "lede": "A human can always take the machine to safe state through a path that does not route through the AI, the network, or ordinary software.",
+  "body": [
+   [
+    "h2",
+    "The button that always works"
+   ],
+   [
+    "p",
+    "The manual trip is the human end of the failsafe. It must work when everything else has failed: no dependence on the copilots, the twin, the supervisory network, or the control application. Kronos routes the manual abort through the same hardwired, fail-safe path as the automatic failsafe, so pressing it commands the machine to its defined safe state directly."
+   ],
+   [
+    "h3",
+    "Design requirements"
+   ],
+   [
+    "ul",
+    [
+     "Hardwired: the trip signal reaches the failsafe logic without traversing general-purpose software.",
+     "Always available: no operating mode disables it; it is not gated by authority level.",
+     "Unambiguous: a single, clearly identified control per station, with no confirmation that could delay it.",
+     "Latching: a trip stays tripped until a deliberate, authorized reset and investigation."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def manual_trip(button_pressed, failsafe):\n    # direct path to the failsafe; no model, no network, no permission check\n    if button_pressed:\n        failsafe.latch_trip()\n        return 'TRIP -> safe state (hardwired)'\n    return 'armed'"
+    ]
+   ],
+   [
+    "p",
+    "The manual trip is deliberately dumb. It does not ask the AI whether a trip is warranted, does not weigh the loss of a pulse, and does not require the operator to justify it in the moment. A spurious trip is an acceptable outcome; a suppressed real trip is not. Investigation happens after the machine is safe, not before it is made safe."
+   ],
+   [
+    "p",
+    "Its deliberate dumbness is a feature, not a limitation. By refusing to weigh the loss of a pulse, ask the AI for a second opinion, or require justification in the moment, the manual trip removes every path by which a real emergency stop could be delayed or argued down. The consequences of a spurious trip are handled after the machine is safe; nothing is allowed to stand between a worried human and the safe state, which is the whole point of a last-resort control."
+   ],
+   [
+    "p",
+    "Because the manual trip shares the <a href=./ml-independent-failsafe-path.html>ML-independent failsafe</a> path, it inherits the same certification argument: the human's ability to stop the machine does not depend on any AI being correct or even present. Every manual trip is logged for the <a href=./safety-case-replay-evidence.html>safety case</a>, and re-arming follows the reset governance in <a href=./interlock-bypass-governance.html>bypass and reset governance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "human-oversight-authority-levels",
+    "Authority levels"
+   ],
+   [
+    "heartbeat-watchdog-supervision",
+    "Watchdog supervision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interlock-bypass-governance",
+  "title": "Interlock Bypass and Reset Governance",
+  "cat": "control-safety",
+  "lede": "Interlocks sometimes must be bypassed for maintenance; doing so safely requires authority, a second person, a scope, a time limit, and an audit record.",
+  "body": [
+   [
+    "h2",
+    "The most dangerous routine action"
+   ],
+   [
+    "p",
+    "Maintenance and commissioning occasionally require bypassing an interlock &mdash; energizing a subsystem with a normally-required permissive forced. This is the single most dangerous routine action in the plant, because it removes a protection on purpose. Kronos governs it tightly: a bypass is an authorized, scoped, time-limited, two-person, fully-logged exception, never a casual toggle."
+   ],
+   [
+    "h3",
+    "Bypass request requirements"
+   ],
+   [
+    "ul",
+    [
+     "Authority: only the safety authority can approve a bypass (see authority levels).",
+     "Two-person: a second qualified person independently confirms scope and conditions.",
+     "Scoped: the bypass names exactly which interlock, on which subsystem, for which task.",
+     "Time-boxed: it auto-expires; it cannot be left forced indefinitely.",
+     "Logged: who, why, when, expiry, and machine state, for the audit trail."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def bypass_permit(approver_level, second_person, scope, now, expiry):\n    return (approver_level >= 3           # safety authority\n            and second_person             # two-person rule\n            and scope is not None         # explicit scope\n            and now < expiry)             # not expired\n\ndef auto_restore(now, expiry, active_bypasses):\n    # expired bypasses are force-restored, not merely warned about\n    return [b for b in active_bypasses if now < b.expiry]"
+    ]
+   ],
+   [
+    "p",
+    "Bypasses auto-restore on expiry rather than waiting for someone to remember, and the system refuses to enter normal operating modes while any safety-relevant bypass is active. A reset after a trip follows the same discipline: deliberate, authorized, and only after the trip's cause is understood &mdash; never an automatic clear that would hide a recurring fault."
+   ],
+   [
+    "p",
+    "Auto-expiry is the quiet workhorse of the scheme: because every bypass carries a hard expiry and the plant refuses normal operating modes while a safety-relevant bypass is active, the common failure of a forgotten forced permissive simply cannot persist into operation. Combined with the two-person rule and the audit record, this turns interlock bypass from an informal, error-prone practice into a bounded, reviewable exception whose scope and lifetime are known to everyone at all times."
+   ],
+   [
+    "p",
+    "This governance is what keeps the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a> trustworthy in practice, not just in principle. Every bypass and reset is evidence in the <a href=./safety-case-replay-evidence.html>safety case</a>, and the authority model comes from <a href=./human-oversight-authority-levels.html>authority levels</a>."
+   ]
+  ],
+  "related": [
+   [
+    "human-oversight-authority-levels",
+    "Authority levels"
+   ],
+   [
+    "interlock-matrix-hardwired",
+    "Hardwired interlock matrix"
+   ],
+   [
+    "safety-case-replay-evidence",
+    "Safety-case replay evidence"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-case-replay-evidence",
+  "title": "Safety-Case Replay and Decision Evidence",
+  "cat": "control-safety",
+  "lede": "Every trip, override, and gated action is recorded with enough fidelity to replay the event deterministically and prove the safety layers behaved as designed.",
+  "body": [
+   [
+    "h2",
+    "Prove it, don't assert it"
+   ],
+   [
+    "p",
+    "A safety architecture is only credible if you can show, after the fact, that it did what it was designed to do. Kronos records the reflex tier's inputs, decisions, gate states, and trips with timestamps precise enough to reconstruct any event. The record is captured on a path independent of the control decision, so logging cannot slow or perturb the reflex it observes."
+   ],
+   [
+    "h3",
+    "What is captured"
+   ],
+   [
+    "ul",
+    [
+     "The validated state vector feeding each reflex decision, at loop cadence.",
+     "Every gate open/close, interlock permissive, and vote outcome, with cause.",
+     "Every trip: which condition, at what value, and the resulting safe-state path.",
+     "Every human action: who, what, when, and the authority exercised."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def replay(recorded_inputs, reflex_fn):\n    # deterministic reflex + recorded inputs -> reproduce every decision\n    outputs = [reflex_fn(x) for x in recorded_inputs]\n    return outputs\n\ndef matches_live(replayed, recorded_outputs):\n    # replay must reproduce the live decisions bit-for-bit\n    return all(a == b for a, b in zip(replayed, recorded_outputs))"
+    ]
+   ],
+   [
+    "p",
+    "Because the reflex tier is deterministic (see <a href=./cycle-accurate-fpga-pipeline.html>cycle-accurate FPGA pipeline</a>), replaying the recorded inputs through the same logic must reproduce the recorded decisions exactly. A mismatch means the record, the logic, or an assumption is wrong &mdash; a finding in itself. This bit-exact reproducibility is the backbone of the safety case."
+   ],
+   [
+    "p",
+    "The independence of the logging path is what makes the evidence trustworthy. Recording runs on a separate path from the control decision, so capturing an event can neither slow nor perturb the reflex it observes, and the record cannot be shaped by the same fault it is meant to document. This separation, plus the bit-exact reproducibility of the deterministic reflex, lets a reviewer replay any trip and confirm the safety layers behaved as designed rather than take the operator's word for it."
+   ],
+   [
+    "p",
+    "Replay serves three audiences: engineers debugging an event, the safety authority validating the protection functions, and regulators reviewing the design. It draws on the same deterministic-replay capability used in the data fabric, applied here specifically to safety evidence. It underpins <a href=./commissioning-and-safety-validation.html>commissioning validation</a> and the periodic re-proof in <a href=./proof-testing-and-diagnostic-coverage.html>proof testing</a>."
+   ]
+  ],
+  "related": [
+   [
+    "commissioning-and-safety-validation",
+    "Commissioning & validation"
+   ],
+   [
+    "proof-testing-and-diagnostic-coverage",
+    "Proof testing & coverage"
+   ],
+   [
+    "human-oversight-authority-levels",
+    "Authority levels"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "commissioning-and-safety-validation",
+  "title": "Commissioning and Safety Validation",
+  "cat": "control-safety",
+  "lede": "Before a safety layer guards a real plasma it is proven by fault injection in hardware-in-the-loop, so the failsafe is validated against faults, not assumed to work.",
+  "body": [
+   [
+    "h2",
+    "Validate against faults, not against hope"
+   ],
+   [
+    "p",
+    "A protection system that has never seen a fault is a hypothesis. Kronos commissions the safety architecture by injecting faults deliberately &mdash; in simulation, then in hardware-in-the-loop with the real reflex hardware &mdash; and confirming each layer responds as designed. This happens now, in the design-and-simulation phase ahead of breeder construction in Q2&nbsp;2027 and first-of-a-kind first tritium around 2030, so the safety case is mature before first plasma."
+   ],
+   [
+    "h3",
+    "The validation ladder"
+   ],
+   [
+    "ul",
+    [
+     "Simulation: inject each hazard against the digital twin and confirm the modeled reflex trips correctly.",
+     "Hardware-in-the-loop: run the real FPGA reflex tier against a simulated plant, inject faults, measure the actual latency.",
+     "Failsafe proof: cut power, drop the heartbeat, and confirm the machine defaults to safe state.",
+     "Integrated drill: exercise human abort, bypass governance, and audit capture end to end."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def commission_case(inject_fault, expected_response, reflex, latency_budget_ns):\n    t0 = clock_ns()\n    inject_fault()\n    resp = reflex.observe_response()\n    latency = clock_ns() - t0\n    return (resp == expected_response) and (latency <= latency_budget_ns)"
+    ]
+   ],
+   [
+    "p",
+    "Each commissioning case pairs an injected fault with the response the design promises, and passes only if the reflex both does the right thing and does it inside the budgeted latency. Measured latencies are compared against the <a href=./wcet-reflex-path.html>static WCET bounds</a>; the empirical distribution must sit inside the analytic one. Failing cases block operation until resolved."
+   ],
+   [
+    "p",
+    "Commissioning is deliberately adversarial: the goal is to make each protection layer fail on purpose, in a controlled setting, and confirm the response, rather than to demonstrate the machine running smoothly. A layer that has never been shown to trip under a real injected fault is treated as unproven regardless of how confident the analysis is, which is why fault injection, not clean operation, is the acceptance criterion for the safety architecture."
+   ],
+   [
+    "p",
+    "Commissioning is where the whole category comes together: the <a href=./ml-independent-failsafe-path.html>failsafe</a>, the <a href=./quench-protection-reflex-chain.html>quench chain</a>, the machine-specific <a href=./breeder-disruption-mitigation-loop.html>disruption</a> and <a href=./burner-plug-stability-reflex.html>plug-stability</a> reflexes, and the human layer are all proven together and recorded for the <a href=./safety-case-replay-evidence.html>safety case</a>. For the burner, commissioning explicitly tests behavior at the edges of the modeled regime, respecting the open physics gates rather than assuming them resolved."
+   ]
+  ],
+  "related": [
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "safety-case-replay-evidence",
+    "Safety-case replay evidence"
+   ],
+   [
+    "wcet-reflex-path",
+    "WCET analysis"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stability-margins-and-control-headroom",
+  "title": "Stability Margins and Control Headroom",
+  "cat": "control-safety",
+  "lede": "A loop that only just holds is a loop about to fail; Kronos designs gain and phase margin plus actuator headroom so faults have somewhere to be absorbed.",
+  "body": [
+   [
+    "h2",
+    "Margin is the room to be wrong"
+   ],
+   [
+    "p",
+    "Every control loop is designed against a model, and the model is imperfect. Stability margins &mdash; gain margin and phase margin &mdash; measure how much the real plant can differ from the model before the loop goes unstable. Actuator headroom measures how much authority is left before the loop saturates. Both must be positive with margin, because faults consume both and a saturated or marginally-stable loop cannot arrest a disturbance."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "import math\ndef phase_margin_deg(gain_crossover_hz, delay_s):\n    # transport/computation delay eats phase margin at crossover\n    return 180.0 - 360.0 * gain_crossover_hz * delay_s\n\ndef headroom(u_command, u_max):\n    return (u_max - abs(u_command)) / u_max   # fraction of authority left\n\n# a 1 kHz crossover with 50 us total delay keeps healthy phase margin\nprint(round(phase_margin_deg(1000, 50e-6), 1))   # ~162 deg (illustrative)"
+    ]
+   ],
+   [
+    "h3",
+    "How margins are spent"
+   ],
+   [
+    "ul",
+    [
+     "Loop delay eats phase margin: every microsecond of latency in the reflex path consumes phase at crossover.",
+     "Model error eats gain margin: an off-nominal plant shifts the effective gain.",
+     "Disturbances eat headroom: a vertical kick or a fueling transient demands authority the loop must have in reserve."
+    ]
+   ],
+   [
+    "p",
+    "This is why latency is a safety property, not just a performance one: the phase-margin equation ties the <a href=./sub-10us-latency-budget.html>latency budget</a> directly to stability. A loop redesigned to be faster is not gold-plating; it is buying back the margin that model uncertainty and disturbances will spend."
+   ],
+   [
+    "p",
+    "Because the phase-margin relation ties latency directly to stability, shaving loop latency is not premature optimization &mdash; it is buying back margin that model error and disturbances will inevitably spend. Kronos budgets gain margin, phase margin, and actuator reserve explicitly at design time and re-measures them in commissioning, treating a loop that merely holds under nominal conditions as a defect, since the whole purpose of margin is to survive the off-nominal conditions the loop was built to reject."
+   ],
+   [
+    "p",
+    "Headroom is what the <a href=./vertical-displacement-arrest.html>vertical displacement arrest</a> and burner confinement loops draw on when a fault hits; when a loop's headroom is exhausted, the design hands off to the reflex trip rather than pretending authority exists. Margins are budgeted at design time and re-verified in <a href=./commissioning-and-safety-validation.html>commissioning</a>."
+   ]
+  ],
+  "related": [
+   [
+    "sub-10us-latency-budget",
+    "Sub-10&micro;s latency budget"
+   ],
+   [
+    "vertical-displacement-arrest",
+    "Vertical displacement arrest"
+   ],
+   [
+    "control-loop-timing-math",
+    "Control-loop timing math"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "failure-response-decision-table",
+  "title": "Failure Response Decision Table",
+  "cat": "control-safety",
+  "lede": "Every anticipated fault maps in advance to a defined response and a defined safe state, so the reflex tier looks up the answer instead of computing it under duress.",
+  "body": [
+   [
+    "h2",
+    "Decide before, not during"
+   ],
+   [
+    "p",
+    "Under a fast fault there is no time to reason about the right response. Kronos decides every anticipated fault's response in advance and encodes it as a decision table the reflex tier consults. The table maps fault class to action, target safe state, and which layer owns the response. Novel or unclassified faults default to the most conservative action: trip to safe state."
+   ],
+   [
+    "h3",
+    "Representative entries"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Fault",
+      "Owning layer",
+      "Action",
+      "Target state"
+     ],
+     [
+      [
+       "quench detected",
+       "reflex",
+       "dump magnet",
+       "de-energized"
+      ],
+      [
+       "imminent VDE",
+       "reflex",
+       "mitigate + terminate",
+       "mitigated shutdown"
+      ],
+      [
+       "plug coil overstress",
+       "reflex",
+       "cap/dump current",
+       "low-stress hold"
+      ],
+      [
+       "ambipolar collapse",
+       "reflex",
+       "controlled ride-down",
+       "benign relax"
+      ],
+      [
+       "stale supervisory link",
+       "reflex",
+       "holding law",
+       "safe hold"
+      ],
+      [
+       "unclassified fault",
+       "failsafe",
+       "trip",
+       "defined safe state"
+      ]
+     ]
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def respond(fault_class, table):\n    # look up, don't reason; default to the safest action\n    return table.get(fault_class, ('failsafe', 'trip', 'safe_state'))"
+    ]
+   ],
+   [
+    "p",
+    "The table is not a runtime optimizer; it is a pre-agreed contract between the physics analysis, the safety authority, and the control system. Each row is justified by hazard analysis and validated by fault injection in <a href=./commissioning-and-safety-validation.html>commissioning</a>. Adding a machine capability means adding and validating rows, not teaching a model to improvise."
+   ],
+   [
+    "p",
+    "Keeping the response predefined also makes the whole safety system testable: each row is a case that can be injected and checked, and the table's coverage of the hazard analysis can be audited directly. Novelty is handled conservatively rather than cleverly &mdash; an unrecognized fault falls through to the failsafe default and trips, because a safe pause on an unfamiliar event is always preferable to an improvised response computed under time pressure with incomplete information. Extending the machine's capability therefore means adding and validating rows, subject to the same hazard analysis and fault injection as the rest, rather than teaching a model to react to situations no one designed for."
+   ],
+   [
+    "p",
+    "The table ties the whole category together: it names the <a href=./fail-safe-state-definition.html>safe states</a> each fault targets, assigns faults to the <a href=./reflex-tier-separation.html>reflex or supervisory tier</a>, and its conservative default is the <a href=./ml-independent-failsafe-path.html>ML-independent failsafe</a>. Every response it prescribes is recorded for the <a href=./safety-case-replay-evidence.html>safety case</a>."
+   ]
+  ],
+  "related": [
+   [
+    "fail-safe-state-definition",
+    "Fail-safe state definition"
+   ],
+   [
+    "ml-independent-failsafe-path",
+    "The ML-independent failsafe"
+   ],
+   [
+    "commissioning-and-safety-validation",
+    "Commissioning & validation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

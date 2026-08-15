@@ -1,0 +1,3228 @@
+[
+ {
+  "slug": "l4-orchestration-overview",
+  "title": "Layer 4 Orchestration Overview",
+  "cat": "l4-orchestration",
+  "lede": "The orchestration layer coordinates twin predictions and copilot proposals into bounded, gated actions before anything reaches real-time control.",
+  "body": [
+   [
+    "h2",
+    "Position in the stack"
+   ],
+   [
+    "p",
+    "Layer 4 sits between the machine-learning tiers above it (L3 digital twin, L5 copilot) and the real-time control loop below it (L1). Its job is coordination and containment: it accepts <b>proposals</b> from probabilistic systems and converts them into <b>commands</b> only after schema validation, safety-envelope checks, policy evaluation, and any required human approval. No twin output and no copilot suggestion reaches L1 actuation on the breeder (Hyperion) or the burner (Aegis / MetroVolt) without passing through this gate."
+   ],
+   [
+    "h2",
+    "What orchestration owns"
+   ],
+   [
+    "ul",
+    [
+     "The event-streaming backbone that carries every measurement, prediction, proposal, and command as an immutable event.",
+     "The workflow / campaign engine that runs shot and experiment procedures as durable, resumable state machines.",
+     "The rules engine and HARD safety bounds, enforced independently of the ML stack.",
+     "Human-in-the-loop approval routing and the experiment scheduler with priority and preemption.",
+     "The audit and decision-lineage bus that records why every action happened."
+    ]
+   ],
+   [
+    "h2",
+    "Design and simulation framing"
+   ],
+   [
+    "p",
+    "Both machines are design-and-simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted around 2030; there is no hardware net-gain claim before FOAK. Layer 4 is therefore specified and validated today against the digital twin and against replayed synthetic campaigns, so that the gating discipline is proven long before it governs physical actuators."
+   ],
+   [
+    "h2",
+    "Core invariant"
+   ],
+   [
+    "p",
+    "The controlling invariant is separation of concerns: intelligence proposes, orchestration disposes. The ML stack may be wrong, drifting, or adversarially perturbed; the orchestration layer assumes it can be and never lets an ungated proposal move a coil current, a gas valve, or a neutral beam. See <a href=./action-gating-pipeline.html>the action-gating pipeline</a> for the enforced sequence."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "proposal (L3/L5) -> validate -> policy -> safety envelope -> approval? -> command (L1)\n                     any stage may REJECT; reject is the default"
+    ]
+   ]
+  ],
+  "related": [
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "event-streaming-backbone",
+    "Event-Streaming Backbone"
+   ],
+   [
+    "rules-engine-hard-bounds",
+    "Rules Engine & Hard Bounds"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "event-streaming-backbone",
+  "title": "Event-Streaming Backbone",
+  "cat": "l4-orchestration",
+  "lede": "An append-only, partitioned event log is the single source of truth carrying every measurement, prediction, proposal, and command through the stack.",
+  "body": [
+   [
+    "h2",
+    "Why a log, not a bus"
+   ],
+   [
+    "p",
+    "Orchestration is built on an append-only, partitioned commit log rather than a fire-and-forget message bus. Every fact about the breeder (Hyperion) and burner (Aegis / MetroVolt) enters as an immutable, sequenced event. Consumers read at their own offset, replay history deterministically, and rebuild state from scratch. This is the substrate that makes <a href=./deterministic-replay.html>deterministic replay</a> and <a href=./audit-and-decision-lineage-bus.html>decision lineage</a> possible."
+   ],
+   [
+    "h2",
+    "Topic and partition model"
+   ],
+   [
+    "p",
+    "Events are grouped into topics by domain and partitioned by a key that preserves the ordering that physics requires. For the breeder, magnetics telemetry partitions by coil-set so that a single coil's current history is a totally ordered sub-stream; for the burner, plug and throat diagnostics partition by mirror-cell. Partition key selection is a correctness decision, covered in <a href=./event-ordering-and-partitioning.html>event ordering and partitioning</a>."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "topic: breeder.magnetics.coil_current   key=coil_id\ntopic: breeder.plasma.equilibrium        key=shot_id\ntopic: burner.plug.field                 key=cell_id\ntopic: *.commands                         key=actuator_id  (single-writer)\ntopic: *.proposals                        key=shot_id\ntopic: *.audit                            append-only, never compacted"
+    ]
+   ],
+   [
+    "h2",
+    "Retention and compaction"
+   ],
+   [
+    "ul",
+    [
+     "Raw diagnostic topics: time-retained, then tiered to cold storage for post-campaign analysis.",
+     "State topics (equilibrium reconstruction, twin snapshots): log-compacted so the latest value per key is always recoverable.",
+     "Command and audit topics: infinite retention, cryptographically chained, never compacted."
+    ]
+   ],
+   [
+    "h2",
+    "Throughput budget"
+   ],
+   [
+    "p",
+    "The backbone is sized for the burst profile of a shot, not the average. A breeder disruption event can emit tens of thousands of high-rate magnetics samples in milliseconds; the log absorbs the burst and lets slower consumers fall behind gracefully under <a href=./backpressure-and-flow-control.html>backpressure</a> rather than dropping data. Real-time control on L1 never depends on the log for its microsecond loop; the log is the coordination and record plane, not the deterministic control path."
+   ],
+   [
+    "p",
+    "Producers are idempotent (see <a href=./idempotency-and-dedup.html>idempotency</a>) so that a retried write after a network partition does not duplicate a measurement or, worse, a command."
+   ]
+  ],
+  "related": [
+   [
+    "event-ordering-and-partitioning",
+    "Event Ordering & Partitioning"
+   ],
+   [
+    "event-schema-registry",
+    "Event Schema Registry"
+   ],
+   [
+    "backpressure-and-flow-control",
+    "Backpressure & Flow Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "event-schema-registry",
+  "title": "Event Schema Registry",
+  "cat": "l4-orchestration",
+  "lede": "Every event conforms to a versioned, registered schema so producers and consumers evolve independently without silent corruption.",
+  "body": [
+   [
+    "h2",
+    "Contract-first events"
+   ],
+   [
+    "p",
+    "No event enters the backbone without a registered schema. A central registry holds the schema for every topic, assigns it a version and an ID, and refuses writes that fail validation. This turns the event log into a set of enforced contracts between the twin (L3), copilot (L5), orchestration (L4), and control (L1). A malformed equilibrium reconstruction from the breeder twin is rejected at the edge, not discovered mid-procedure."
+   ],
+   [
+    "h2",
+    "Canonical envelope"
+   ],
+   [
+    "p",
+    "Every event shares an envelope; the payload is schema-specific. The envelope carries the identity, causality, and provenance fields that the audit and replay machinery depend on."
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"event_id\": \"uuid-v7\",          // time-ordered, unique\n  \"schema\": \"breeder.plasma.equilibrium\",\n  \"schema_version\": 7,\n  \"key\": \"shot_00421\",\n  \"occurred_at\": \"2030-04-12T09:14:22.104Z\",\n  \"producer\": \"l3.twin.equilibrium@v2.3.1\",\n  \"causation_id\": \"<event that caused this>\",\n  \"correlation_id\": \"<shot/campaign trace>\",\n  \"idempotency_key\": \"twin:shot_00421:step_88\",\n  \"payload\": { }\n}"
+    ]
+   ],
+   [
+    "h2",
+    "Compatibility rules"
+   ],
+   [
+    "ul",
+    [
+     "Backward compatible: new consumers read old events (added fields are optional with defaults).",
+     "Forward compatible: old consumers ignore unknown fields rather than crashing.",
+     "Breaking changes require a new topic or a new major version, never an in-place mutation."
+    ]
+   ],
+   [
+    "h2",
+    "Why it matters on these machines"
+   ],
+   [
+    "p",
+    "During a breeder campaign the twin may be upgraded between shots while a long procedure is still draining old-format events from the log. Registry-enforced compatibility lets the new twin version and the in-flight procedure coexist. Schema discipline is what allows <a href=./deterministic-replay.html>replay</a> years later against the exact bytes that were emitted. See <a href=./schema-evolution-compatibility.html>schema evolution</a> for the migration rules."
+   ],
+   [
+    "p",
+    "Command schemas are the strictest: a burner plug-field setpoint command carries explicit units, valid-range metadata, and a reference to the safety envelope version it was checked against, so the <a href=./safety-envelope-checks.html>envelope checker</a> can reject a command minted against a stale envelope."
+   ]
+  ],
+  "related": [
+   [
+    "schema-evolution-compatibility",
+    "Schema Evolution & Compatibility"
+   ],
+   [
+    "event-streaming-backbone",
+    "Event-Streaming Backbone"
+   ],
+   [
+    "audit-and-decision-lineage-bus",
+    "Audit & Decision-Lineage Bus"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "idempotency-and-dedup",
+  "title": "Idempotency & Deduplication",
+  "cat": "l4-orchestration",
+  "lede": "Retries are inevitable on a distributed control plane; idempotency keys make a repeated write or command harmless.",
+  "body": [
+   [
+    "h2",
+    "The retry problem"
+   ],
+   [
+    "p",
+    "Networks partition, processes restart, and producers time out and retry. Without protection, a retried write duplicates a breeder magnetics sample or, catastrophically, re-issues a burner neutral-beam command. Layer 4 makes every producer and every command handler idempotent: applying the same operation twice yields the same state as applying it once."
+   ],
+   [
+    "h2",
+    "Idempotency keys"
+   ],
+   [
+    "p",
+    "Each event carries an <b>idempotency_key</b> derived from the semantic identity of the operation, not from wall-clock time. The backbone and each stateful consumer keep a bounded dedup window keyed on it. A duplicate is silently absorbed."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def handle(cmd):\n    # dedup on semantic identity, not arrival time\n    if store.seen(cmd.idempotency_key):\n        return store.result_of(cmd.idempotency_key)   # same answer, no re-apply\n    result = apply(cmd)\n    store.record(cmd.idempotency_key, result, ttl=DEDUP_WINDOW)\n    return result\n\n# breeder coil setpoint: key encodes what, not when\n# key = f\"coil:{coil_id}:shot:{shot_id}:step:{step}:setpoint:{value_hash}\""
+    ]
+   ],
+   [
+    "h2",
+    "Commands vs measurements"
+   ],
+   [
+    "ul",
+    [
+     "Measurements: dedup prevents double-counting in twin inputs and diagnostics.",
+     "Commands: dedup prevents double-actuation, the safety-critical case on both machines.",
+     "Compensations (see <a href=./saga-and-compensation.html>sagas</a>): must themselves be idempotent so a retried rollback does not overshoot."
+    ]
+   ],
+   [
+    "h2",
+    "Window sizing"
+   ],
+   [
+    "p",
+    "The dedup window must exceed the maximum retry horizon plus the maximum consumer lag, or a late duplicate slips through. It is bounded so state does not grow without limit. Keys older than the window are safe to forget because the backbone's offset commits guarantee they will not be re-delivered from before that point."
+   ],
+   [
+    "p",
+    "Idempotency is the precondition for the stronger <a href=./exactly-once-vs-at-least-once.html>delivery-semantics</a> guarantees: at-least-once delivery plus idempotent handling is how the stack achieves effectively-once processing without a distributed transaction on the hot path."
+   ]
+  ],
+  "related": [
+   [
+    "exactly-once-vs-at-least-once",
+    "Exactly-Once vs At-Least-Once"
+   ],
+   [
+    "saga-and-compensation",
+    "Saga & Compensation"
+   ],
+   [
+    "transactional-outbox",
+    "Transactional Outbox"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "backpressure-and-flow-control",
+  "title": "Backpressure & Flow Control",
+  "cat": "l4-orchestration",
+  "lede": "When a consumer cannot keep up, the system slows producers or sheds non-critical load instead of dropping safety-relevant events.",
+  "body": [
+   [
+    "h2",
+    "Load is bursty"
+   ],
+   [
+    "p",
+    "A breeder disruption or a burner plug-instability transient emits orders of magnitude more events per second than steady operation. Layer 4 is designed so that a slow or failed consumer degrades predictably. The log absorbs bursts; consumers pull at their own rate; and lag is a first-class, monitored quantity."
+   ],
+   [
+    "h2",
+    "Pull, not push"
+   ],
+   [
+    "p",
+    "Consumers pull from committed offsets. A consumer that falls behind simply reads older offsets; it never forces the producer to block on it directly. This decouples fast diagnostic producers on the breeder from slower analytics consumers. The pressure signal is <b>consumer lag</b> = latest offset minus committed offset."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "lag = end_offset(partition) - committed_offset(partition)\nif lag > LAG_CRITICAL:\n    scheduler.pause_low_priority_campaigns()   # shed non-safety load\n    alert(\"L4 consumer lag critical\", partition, lag)\nelif lag > LAG_WARN:\n    ratelimit.tighten(producer_class=\"analytics\")"
+    ]
+   ],
+   [
+    "h2",
+    "Load shedding priority"
+   ],
+   [
+    "ul",
+    [
+     "Never shed: safety-envelope checks, interlock events, command acknowledgements.",
+     "Shed last: live twin inputs needed for the current shot.",
+     "Shed first: post-hoc analytics, non-urgent copilot exploratory proposals, dashboards."
+    ]
+   ],
+   [
+    "h2",
+    "Separation from real-time control"
+   ],
+   [
+    "p",
+    "Crucially, L1 real-time control on both machines does not sit behind the event log. If L4 experiences backpressure, the microsecond control loops keep running on their deterministic path and the interlocks remain armed. Backpressure degrades coordination and record-keeping latency, never the machine's own protective reflexes. See <a href=./interlock-integration.html>interlock integration</a>."
+   ],
+   [
+    "p",
+    "Rate limits on actuation are a separate, harder guard: even with plenty of throughput, the <a href=./rate-limiting-and-quotas-for-actuation.html>actuation rate limiter</a> caps how fast setpoints may change to stay within engineering slew limits on breeder coils and burner plug magnets."
+   ]
+  ],
+  "related": [
+   [
+    "rate-limiting-and-quotas-for-actuation",
+    "Rate Limiting & Quotas for Actuation"
+   ],
+   [
+    "dead-letter-and-poison-messages",
+    "Dead-Letter & Poison Messages"
+   ],
+   [
+    "orchestration-observability-slos",
+    "Observability & SLOs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "exactly-once-vs-at-least-once",
+  "title": "Exactly-Once vs At-Least-Once",
+  "cat": "l4-orchestration",
+  "lede": "The stack chooses delivery semantics per topic; safety-critical commands get effectively-once via idempotency, telemetry tolerates at-least-once.",
+  "body": [
+   [
+    "h2",
+    "The three honest options"
+   ],
+   [
+    "p",
+    "Distributed messaging offers at-most-once (may lose), at-least-once (may duplicate), and exactly-once (neither, but expensive and never truly free). True end-to-end exactly-once across independent actuators is a fiction; what is achievable is <b>at-least-once delivery plus idempotent processing</b>, which yields effectively-once state changes. Layer 4 states its choice explicitly per topic."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Topic class",
+      "Delivery",
+      "Effect"
+     ],
+     [
+      [
+       "diagnostics",
+       "at-least-once",
+       "dedup on ingest"
+      ],
+      [
+       "twin inputs",
+       "at-least-once",
+       "dedup by step key"
+      ],
+      [
+       "commands",
+       "at-least-once + idempotent",
+       "effectively-once actuation"
+      ],
+      [
+       "audit",
+       "at-least-once",
+       "append; dedup by event_id"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Why not at-most-once"
+   ],
+   [
+    "p",
+    "At-most-once is banned for anything that matters. Losing a breeder command acknowledgement or a burner interlock event could leave a procedure believing an action succeeded when it did not. The stack prefers a duplicate it can detect over a loss it cannot."
+   ],
+   [
+    "h2",
+    "Achieving effectively-once"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "1. producer writes with idempotency_key (at-least-once)\n2. consumer dedups on key within window\n3. consumer processes and commits offset ATOMICALLY with its state\n   (transactional outbox / read-process-write in one txn)\n4. crash before commit -> reprocess -> dedup absorbs the duplicate"
+    ]
+   ],
+   [
+    "p",
+    "Step 3 is the subtle one: the offset commit and the state change must be atomic, or a crash between them re-processes an event whose effect already landed. The <a href=./transactional-outbox.html>transactional outbox</a> pattern makes this atomic without a distributed transaction on the hot path."
+   ],
+   [
+    "h2",
+    "On the machines"
+   ],
+   [
+    "p",
+    "A burner plug-field setpoint may be delivered twice under retry; because the command handler is idempotent (same key, same setpoint hash), the magnet is driven to the target once. A breeder gas-puff command uses the same discipline so a network hiccup cannot double-dose the fuelling. See <a href=./idempotency-and-dedup.html>idempotency</a>."
+   ],
+   [
+    "h2",
+    "The honest limit"
+   ],
+   [
+    "p",
+    "Effectively-once is a property of state changes, not of side effects in the physical world. Once an actuator has moved, no delivery guarantee un-moves it; the guarantee is that orchestration will not <i>ask</i> it to move twice for one decision. That is why the strongest safeguard against double-actuation is not the messaging layer at all but the single-writer <a href=./command-authorization-and-tokens.html>token</a> and single-use idempotency key at the actuator adapter. The stack states its delivery semantics per topic precisely so no engineer mistakes at-least-once telemetry for a guarantee that a command cannot be re-issued, or mistakes idempotent handling for a promise that the physical world is transactional."
+   ]
+  ],
+  "related": [
+   [
+    "idempotency-and-dedup",
+    "Idempotency & Deduplication"
+   ],
+   [
+    "transactional-outbox",
+    "Transactional Outbox"
+   ],
+   [
+    "two-phase-action-commit",
+    "Two-Phase Action Commit"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "workflow-campaign-engine",
+  "title": "Workflow & Campaign Engine",
+  "cat": "l4-orchestration",
+  "lede": "Shot and experiment procedures run as durable, resumable state machines that survive process restarts without losing their place.",
+  "body": [
+   [
+    "h2",
+    "Procedures as durable state machines"
+   ],
+   [
+    "p",
+    "A breeder shot or a burner startup is a multi-step procedure spanning seconds to hours: pump down, field ramp, fuelling, heating, diagnostics windows, ramp-down, and post-shot recovery. The campaign engine models each as an explicit, persisted state machine. Every transition is an event on the backbone, so a crashed orchestrator resumes exactly where it stopped rather than restarting a partially energized machine."
+   ],
+   [
+    "h2",
+    "Determinism requirement"
+   ],
+   [
+    "p",
+    "Procedure logic is deterministic: given the same event history it takes the same transitions. All nondeterminism (twin predictions, sensor reads, timers) enters only as recorded events. This is what makes the engine replayable and testable against the digital twin before any hardware exists."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# procedure code is deterministic; side effects go through the engine\n@procedure\ndef breeder_shot(ctx):\n    ctx.step(\"pumpdown\",      until=lambda s: s.base_pressure_ok)\n    ctx.step(\"field_ramp\",    cmd=ramp_toroidal_field(target_T=8.0))   # on-axis\n    ctx.gate(\"go_no_go\", approver=\"session_leader\")   # human-in-the-loop\n    ctx.step(\"fuelling\",      cmd=gas_program(shot=ctx.shot_id))\n    ctx.step(\"heating\",       cmd=aux_heating_program())\n    ctx.step(\"diagnostics\",   window_ms=ctx.plan.diag_window)\n    ctx.compensate_on_fault(safe_rampdown)   # saga guard"
+    ]
+   ],
+   [
+    "h2",
+    "What the engine guarantees"
+   ],
+   [
+    "ul",
+    [
+     "Exactly-once step execution via idempotent commands and durable step markers.",
+     "Automatic compensation on fault, so a half-run procedure leaves the machine in a safe state.",
+     "Human gates as first-class steps that block until approved (see <a href=./human-in-the-loop-approval-routing.html>approval routing</a>).",
+     "Full lineage: every step, its inputs, and the twin/copilot proposals that shaped it are recorded."
+    ]
+   ],
+   [
+    "h2",
+    "Breeder vs burner cadence"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) runs discrete pulsed shots, so its procedures are shot-scoped and repeat with parameter variation across a campaign. The burner (Aegis / MetroVolt) targets steady-state operation, so its procedures look more like long-running supervisory loops with rare state changes and continuous <a href=./plug-stability-supervision.html>plug supervision</a>. The same engine expresses both; only the step cadence differs."
+   ],
+   [
+    "p",
+    "Long procedures checkpoint frequently; see <a href=./long-running-procedure-checkpointing.html>checkpointing</a> and <a href=./saga-and-compensation.html>saga and compensation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "saga-and-compensation",
+    "Saga & Compensation"
+   ],
+   [
+    "shot-sequence-orchestration",
+    "Shot-Sequence Orchestration"
+   ],
+   [
+    "long-running-procedure-checkpointing",
+    "Long-Running Procedure Checkpointing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shot-sequence-orchestration",
+  "title": "Shot-Sequence Orchestration",
+  "cat": "l4-orchestration",
+  "lede": "The breeder shot lifecycle is a strict state machine where each phase has entry guards, exit conditions, and its own safe-abort path.",
+  "body": [
+   [
+    "h2",
+    "The shot as a lifecycle"
+   ],
+   [
+    "p",
+    "On the breeder (Hyperion), a shot is a bounded pulsed experiment. Orchestration drives it through a fixed sequence of phases, each with an entry guard, an actuation program, an exit condition, and a dedicated abort path. Phases never overlap on a shared actuator, and every phase transition is journalled to the event log."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "IDLE -> PUMPDOWN -> FIELD_RAMP -> BREAKDOWN -> RAMP_UP\n     -> FLATTOP(diagnostics, fuelling, heating) -> RAMP_DOWN -> RECOVERY -> IDLE\nany phase --fault--> SAFE_ABORT -> RECOVERY -> IDLE"
+    ]
+   ],
+   [
+    "h2",
+    "Guards reference frozen design points"
+   ],
+   [
+    "p",
+    "Entry and exit guards are written against the machine's design targets so the procedure and the physics stay consistent: toroidal field ramp targets 8 T on-axis (16.84 T peak at the conductor), flat-top plasma current targets 9.86 MA, and the equilibrium is held at negative triangularity delta -0.30. These are design-and-simulation set points; the engine validates that commanded programs stay inside them and defers to the <a href=./safety-envelope-checks.html>safety envelope</a> for hard limits."
+   ],
+   [
+    "h2",
+    "Per-phase abort"
+   ],
+   [
+    "ul",
+    [
+     "During FIELD_RAMP a coil fault triggers a controlled field de-energize, not a free ramp-down.",
+     "During FLATTOP a predicted disruption triggers the <a href=./disruption-mitigation-workflow.html>disruption-mitigation workflow</a> before an uncontrolled event.",
+     "A magnet quench triggers the <a href=./quench-abort-orchestration.html>quench-abort orchestration</a>, which has priority over the running shot procedure."
+    ]
+   ],
+   [
+    "h2",
+    "Parameter variation across a campaign"
+   ],
+   [
+    "p",
+    "A campaign is an ordered set of shots that sweep parameters (fuelling, heating waveform, shape). The <a href=./campaign-parameter-sweep-orchestration.html>sweep orchestrator</a> generates the shot plans; the shot-sequence engine executes each one identically so results are comparable. Tritium-production accounting rolls up per shot into the <a href=./breeder-tritium-campaign-workflow.html>tritium campaign workflow</a>."
+   ],
+   [
+    "p",
+    "Because each shot is deterministic given its recorded inputs, an anomalous shot can be re-run in simulation via <a href=./deterministic-replay.html>replay</a> to reproduce exactly what the orchestrator saw and did."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-mitigation-workflow",
+    "Disruption-Mitigation Workflow"
+   ],
+   [
+    "quench-abort-orchestration",
+    "Quench-Abort Orchestration"
+   ],
+   [
+    "campaign-parameter-sweep-orchestration",
+    "Campaign Parameter-Sweep Orchestration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "saga-and-compensation",
+  "title": "Saga & Compensation",
+  "cat": "l4-orchestration",
+  "lede": "Long machine procedures cannot hold a single lock; sagas break them into steps each paired with a compensating action that undoes it safely.",
+  "body": [
+   [
+    "h2",
+    "No global transaction on a tokamak"
+   ],
+   [
+    "p",
+    "A breeder shot touches vacuum, magnets, fuelling, and heating across seconds; a burner startup spans minutes. You cannot wrap that in one database transaction. The saga pattern instead sequences local, individually-committed steps and pairs each with a <b>compensation</b> that returns the machine toward safety if a later step fails."
+   ],
+   [
+    "h2",
+    "Forward and compensating steps"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "saga = [\n  step(pumpdown,     compensate=vent_to_holding),\n  step(field_ramp,   compensate=field_deenergize),\n  step(fuelling,     compensate=stop_gas_and_pump),\n  step(heating,      compensate=heating_off),\n]\n# on failure at step k: run compensations k-1..0 in REVERSE order\n# each compensation is idempotent and itself safety-bounded"
+    ]
+   ],
+   [
+    "h2",
+    "Compensation is not naive rollback"
+   ],
+   [
+    "p",
+    "A compensation is a forward action chosen for safety, not a literal undo. You cannot un-inject neutrons or un-heat a plasma; the compensating action for heating is a controlled ramp-down, and for field it is a rate-limited de-energize that respects magnet slew limits. Every compensation is itself checked against the <a href=./safety-envelope-checks.html>safety envelope</a> and is <a href=./idempotency-and-dedup.html>idempotent</a> so a retried rollback does not overshoot."
+   ],
+   [
+    "h2",
+    "Ordering and partial failure"
+   ],
+   [
+    "ul",
+    [
+     "Compensations run in strict reverse order of the committed forward steps.",
+     "A compensation that itself fails escalates to the interlock layer, never leaves the machine hanging.",
+     "Steps already compensated are marked so a resumed saga does not double-compensate."
+    ]
+   ],
+   [
+    "h2",
+    "Burner long procedures"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) targets steady state, so its sagas are long-lived: a plug-field establishment saga may run for minutes with compensations that gracefully bleed the 26.49 T plug field back down if throat confinement at 17 T is not achieved. The saga state is persisted continuously so a supervisor restart resumes mid-procedure; see <a href=./long-running-procedure-checkpointing.html>checkpointing</a>."
+   ],
+   [
+    "p",
+    "Sagas coordinate with the <a href=./two-phase-action-commit.html>two-phase action commit</a> for the small number of steps that must be all-or-nothing across two coupled actuators."
+   ]
+  ],
+  "related": [
+   [
+    "long-running-procedure-checkpointing",
+    "Long-Running Procedure Checkpointing"
+   ],
+   [
+    "two-phase-action-commit",
+    "Two-Phase Action Commit"
+   ],
+   [
+    "workflow-campaign-engine",
+    "Workflow & Campaign Engine"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deterministic-replay",
+  "title": "Deterministic Replay",
+  "cat": "l4-orchestration",
+  "lede": "Any shot or campaign can be re-executed against the recorded event stream to reproduce exactly what orchestration saw and decided.",
+  "body": [
+   [
+    "h2",
+    "Replay as ground truth"
+   ],
+   [
+    "p",
+    "Because the event log is the single source of truth and procedure logic is deterministic, orchestration can re-run any past shot bit-for-bit. Feed the recorded events back into the same procedure version and it reaches the same states and would emit the same commands. This is the core tool for post-shot analysis on the breeder and for validating orchestration changes before they touch either machine."
+   ],
+   [
+    "h2",
+    "Requirements for determinism"
+   ],
+   [
+    "ul",
+    [
+     "All external inputs (sensors, twin predictions, timers, random seeds) are captured as events, never read live during replay.",
+     "Procedure code has no hidden clock or nondeterministic branch; time advances by recorded events.",
+     "Schema versions are pinned, so old events deserialize with the schema that produced them (see <a href=./schema-evolution-compatibility.html>schema evolution</a>)."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def replay(shot_id, procedure_version):\n    events = log.read(correlation_id=shot_id)   # exact recorded stream\n    engine = Engine(procedure_version, mode=REPLAY)  # commands are captured, not sent\n    for e in events:\n        engine.apply(e)\n    return engine.emitted_commands, engine.final_state\n\n# assert replayed commands == originally logged commands  (regression guard)"
+    ]
+   ],
+   [
+    "h2",
+    "What-if replay"
+   ],
+   [
+    "p",
+    "A variant, covered in <a href=./replay-and-what-if-simulation.html>replay and what-if simulation</a>, swaps in a new procedure or twin version and replays historical inputs to ask: would the change have behaved better on last week's breeder disruption? Emitted commands are captured, never sent, so the machine is untouched."
+   ],
+   [
+    "h2",
+    "Auditable causality"
+   ],
+   [
+    "p",
+    "Replay is bound to the <a href=./audit-and-decision-lineage-bus.html>decision-lineage bus</a>: causation and correlation IDs let an investigator reconstruct the full chain from a raw diagnostic sample through a twin prediction and a copilot proposal to the gated command that moved a burner plug magnet. Determinism turns 'why did it do that' from a guess into a reproducible experiment."
+   ],
+   [
+    "p",
+    "On both machines this discipline is validated today against synthetic and simulated campaigns, long before FOAK first tritium around 2030."
+   ]
+  ],
+  "related": [
+   [
+    "replay-and-what-if-simulation",
+    "Replay & What-If Simulation"
+   ],
+   [
+    "audit-and-decision-lineage-bus",
+    "Audit & Decision-Lineage Bus"
+   ],
+   [
+    "distributed-tracing-correlation",
+    "Distributed Tracing & Correlation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rules-engine-hard-bounds",
+  "title": "Rules Engine & Hard Bounds",
+  "cat": "l4-orchestration",
+  "lede": "A deterministic rules engine enforces hard operational bounds independently of the ML stack; it can only ever forbid, never command.",
+  "body": [
+   [
+    "h2",
+    "Independence from intelligence"
+   ],
+   [
+    "p",
+    "The rules engine is the machine's written law. It is small, deterministic, human-authored, and version-controlled, with <b>no dependence</b> on the twin, the copilot, or any learned model. Its sole power is to REJECT a proposed command that violates a hard bound. It never originates an action. This asymmetry is deliberate: intelligence can be wrong, so the veto authority must not itself be intelligent."
+   ],
+   [
+    "h2",
+    "Hard bounds are physics and engineering limits"
+   ],
+   [
+    "ul",
+    [
+     "Breeder toroidal field must not exceed the conductor's peak-field rating (design peak 16.84 T); on-axis target 8 T.",
+     "Breeder plasma current commanded slew and magnitude bounded around the 9.86 MA design point.",
+     "Burner plug field bounded at the 26.49 T design point; throat field at 17 T; no command may exceed magnet ratings.",
+     "Fuelling, heating, and pumping interlocked so no combination can be commanded outside the validated envelope."
+    ]
+   ],
+   [
+    "h2",
+    "Rule structure"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# rules are pure predicates over (command, machine_state); default DENY\n@rule(\"coil_peak_field\")\ndef within_peak_field(cmd, state):\n    return cmd.expected_peak_field_T <= LIMIT_PEAK_FIELD_T   # 16.84\n\n@rule(\"slew_limit\")\ndef within_slew(cmd, state):\n    return abs(cmd.d_setpoint_dt) <= SLEW_MAX[cmd.actuator]\n\n# a command passes ONLY if every rule returns True (AND of predicates)"
+    ]
+   ],
+   [
+    "h2",
+    "Relationship to the safety envelope"
+   ],
+   [
+    "p",
+    "The rules engine evaluates static, absolute bounds. The <a href=./safety-envelope-checks.html>safety-envelope checker</a> evaluates the richer, state-dependent envelope (combinations of quantities that are individually legal but jointly unsafe). Both must pass; either can veto. Together they form the independent guard described in the <a href=./action-gating-pipeline.html>gating pipeline</a>."
+   ],
+   [
+    "h2",
+    "Change control"
+   ],
+   [
+    "p",
+    "Because these rules are safety law, they are changed only through reviewed, audited pull requests with two-person sign-off, and every rule evaluation is logged to the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> with the rule version that ran. A copilot may <i>propose</i> a rule change, but the change follows the human process; it never self-modifies."
+   ]
+  ],
+  "related": [
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "interlock-integration",
+    "Interlock Integration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-envelope-checks",
+  "title": "Safety-Envelope Checks",
+  "cat": "l4-orchestration",
+  "lede": "The envelope checker validates that a command keeps the machine inside a state-dependent safe region, not just under individual scalar limits.",
+  "body": [
+   [
+    "h2",
+    "Beyond scalar limits"
+   ],
+   [
+    "p",
+    "Individual quantities can each be legal while their combination is unsafe. The safety-envelope checker evaluates the joint operating point: for the breeder, a plasma current, shape, and pressure combination that risks a vertical displacement or a disruption; for the burner, a plug-to-throat mirror ratio and beta combination that risks losing plug confinement. It is state-dependent, evaluated against the current reconstructed machine state."
+   ],
+   [
+    "h2",
+    "Envelope as a region"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def in_envelope(cmd, state):\n    proj = project_state(state, cmd)          # predicted next operating point\n    return all([\n        g_current(proj)   <= 0,   # each g_i <= 0 defines the safe region\n        g_shape(proj)     <= 0,   # negative triangularity delta -0.30 maintained\n        g_vertical(proj)  <= 0,   # vertical stability margin preserved\n        g_density(proj)   <= 0,   # below empirical density limit fraction\n    ])\n# projection uses a certified reduced model, NOT the learned twin"
+    ]
+   ],
+   [
+    "h2",
+    "Why the checker is not the twin"
+   ],
+   [
+    "p",
+    "The envelope projection uses a small, certified, deterministic reduced-order model whose properties are analyzed and bounded, not the full learned digital twin. The twin (L3) may be more accurate on average but is not certified for veto authority. If twin and envelope-checker disagree, the checker wins and the command is rejected. Accuracy is not the same as trustworthiness for a safety veto."
+   ],
+   [
+    "h2",
+    "Margins and hysteresis"
+   ],
+   [
+    "ul",
+    [
+     "The safe region is drawn with margin inside the true physical limit so prediction error does not cross the real boundary.",
+     "Hysteresis prevents chattering near the boundary from oscillating command approvals.",
+     "Margins tighten automatically when state reconstruction uncertainty is high."
+    ]
+   ],
+   [
+    "h2",
+    "Placement in the gate"
+   ],
+   [
+    "p",
+    "The envelope check runs after schema validation and rules evaluation and before any human gate, so approvers never see a proposal that is already unsafe. See the <a href=./action-gating-pipeline.html>action-gating pipeline</a>. Every check, its inputs, and its verdict are journalled for <a href=./deterministic-replay.html>replay</a> and audit."
+   ]
+  ],
+  "related": [
+   [
+    "rules-engine-hard-bounds",
+    "Rules Engine & Hard Bounds"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "l3-twin-l5-copilot-coordination",
+    "Coordinating Twin & Copilot"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "human-in-the-loop-approval-routing",
+  "title": "Human-in-the-Loop Approval Routing",
+  "cat": "l4-orchestration",
+  "lede": "Actions above a defined authority threshold pause until the right qualified human approves, with the request, context, and decision all recorded.",
+  "body": [
+   [
+    "h2",
+    "When a human must decide"
+   ],
+   [
+    "p",
+    "Not every action can or should be autonomous. Layer 4 classifies each proposed action by an authority level and routes those above a threshold to a qualified human before execution. Examples: a first shot at a new breeder operating point, a change to the burner plug-field target, or any action the copilot flags as low-confidence. The procedure blocks at a gate step until approval or rejection arrives."
+   ],
+   [
+    "h2",
+    "Routing by role and qualification"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def route(action):\n    lvl = authority_level(action)          # L0 auto ... L3 dual-approval\n    if lvl == L0: return AUTO\n    approvers = qualified_for(action.domain, lvl)   # e.g. session_leader, magnet_engineer\n    req = ApprovalRequest(action, context=lineage(action), deadline=action.gate_deadline)\n    return await_quorum(req, approvers, policy=quorum_policy(lvl))"
+    ]
+   ],
+   [
+    "h2",
+    "What the approver sees"
+   ],
+   [
+    "ul",
+    [
+     "The proposed command and its origin (which twin or copilot version proposed it).",
+     "The safety-envelope verdict and remaining margin.",
+     "The relevant machine state and the predicted effect.",
+     "A single, unambiguous approve / reject, never a free-form command entry."
+    ]
+   ],
+   [
+    "h2",
+    "Approvers approve, they do not command"
+   ],
+   [
+    "p",
+    "A human gate is a veto-and-consent point, not a back door to inject arbitrary actions. The approver can only accept or reject the specific, already-bounded proposal in front of them. This keeps the same safety checks in force regardless of who is at the console and prevents an approval from bypassing the <a href=./safety-envelope-checks.html>envelope checker</a>."
+   ],
+   [
+    "h2",
+    "Timeouts and defaults"
+   ],
+   [
+    "p",
+    "Every gate has a deadline. If no decision arrives in time the default is the safe outcome, which for a pending energizing action is REJECT and for a pending abort is PROCEED. Quorum rules for high-authority actions are covered in <a href=./approval-policy-and-quorum.html>approval policy and quorum</a>. Every request, the context shown, the decider identity, and the decision are written to the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a>."
+   ]
+  ],
+  "related": [
+   [
+    "approval-policy-and-quorum",
+    "Approval Policy & Quorum"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "experiment-scheduler-priority-preemption",
+  "title": "Experiment Scheduler with Priority & Preemption",
+  "cat": "l4-orchestration",
+  "lede": "The scheduler allocates machine time by priority, preempts running work for safety, and prevents low-priority starvation.",
+  "body": [
+   [
+    "h2",
+    "Scarce, exclusive machine time"
+   ],
+   [
+    "p",
+    "Both machines are single, exclusive resources: only one campaign owns the breeder or the burner at a time. The scheduler decides what runs next from a queue of approved experiment plans, using priority classes, and can preempt a running plan when a higher-priority need arises, above all a safety action."
+   ],
+   [
+    "h2",
+    "Priority classes"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Class",
+      "Example",
+      "Preempts"
+     ],
+     [
+      [
+       "P0 safety",
+       "quench abort, disruption mitigation",
+       "everything"
+      ],
+      [
+       "P1 commissioning",
+       "new operating-point validation",
+       "P2,P3"
+      ],
+      [
+       "P2 campaign",
+       "planned parameter sweep",
+       "P3"
+      ],
+      [
+       "P3 opportunistic",
+       "background diagnostics",
+       "nothing"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Preemption is graceful"
+   ],
+   [
+    "p",
+    "Preemption never yanks the machine. A preempted breeder shot is brought to a safe stop through its saga compensations before the higher-priority plan starts; the preempted plan is re-queued with its progress checkpointed. A P0 safety action is the exception that runs immediately through the abort path, which itself leaves the machine safe."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def admit(next_plan, running):\n    if next_plan.priority < running.priority:      # lower number = higher priority\n        safe_stop(running)             # run compensations, checkpoint, requeue\n        return start(next_plan)\n    return enqueue(next_plan)\n\n# starvation guard: aging raises effective priority of long-waiting P3 plans"
+    ]
+   ],
+   [
+    "h2",
+    "Anti-starvation and fairness"
+   ],
+   [
+    "ul",
+    [
+     "Waiting plans age, raising their effective priority so opportunistic work eventually runs.",
+     "Priority inheritance prevents a low-priority plan holding a shared calibration from blocking a high-priority one (see <a href=./preemption-and-priority-inheritance.html>priority inheritance</a>).",
+     "Machine-conditioning and recovery windows are scheduled as first-class, non-preemptible maintenance."
+    ]
+   ],
+   [
+    "h2",
+    "Coordination with campaigns"
+   ],
+   [
+    "p",
+    "The scheduler consumes plans emitted by the <a href=./campaign-parameter-sweep-orchestration.html>parameter-sweep orchestrator</a> and hands each admitted plan to the <a href=./workflow-campaign-engine.html>campaign engine</a>. Every admit, preempt, and requeue decision is logged for audit and reproducibility."
+   ],
+   [
+    "h2",
+    "Machine state, not just the queue"
+   ],
+   [
+    "p",
+    "Admission is not purely a queue decision; the scheduler also gates on machine readiness. A breeder plan is not admitted while the machine is in RECOVERY after a fault, and a burner plan is not admitted until the plug and throat fields are established and stable. The scheduler treats conditioning windows, vacuum readiness, and post-fault clearances as hard preconditions, so a high-priority plan waits for a safe machine rather than forcing an unsafe start. This keeps priority strictly about ordering approved-and-ready work, never about overriding the machine's physical state, which remains the domain of the <a href=./safety-envelope-checks.html>envelope</a> and <a href=./interlock-integration.html>interlocks</a>."
+   ]
+  ],
+  "related": [
+   [
+    "preemption-and-priority-inheritance",
+    "Preemption & Priority Inheritance"
+   ],
+   [
+    "campaign-parameter-sweep-orchestration",
+    "Campaign Parameter-Sweep Orchestration"
+   ],
+   [
+    "workflow-campaign-engine",
+    "Workflow & Campaign Engine"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "audit-and-decision-lineage-bus",
+  "title": "Audit & Decision-Lineage Bus",
+  "cat": "l4-orchestration",
+  "lede": "An append-only, tamper-evident record links every action back through the proposals, checks, and approvals that produced it.",
+  "body": [
+   [
+    "h2",
+    "Every action has a provenance"
+   ],
+   [
+    "p",
+    "For each command that reaches the breeder or burner, the lineage bus records the complete causal chain: the raw diagnostics, the twin prediction, the copilot proposal, the rules and envelope verdicts, any human approval, and the final command. Nothing actuates without a written explanation of why. This is the accountability backbone for a machine whose behavior is shaped by learned systems."
+   ],
+   [
+    "h2",
+    "Causation and correlation"
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"command_id\": \"cmd_88f2\",\n  \"correlation_id\": \"shot_00421\",\n  \"caused_by\": [\"proposal_71a\",\"envelope_ok_55\",\"approval_leader_09\"],\n  \"rules_version\": \"2030.04.1\",\n  \"envelope_version\": \"2030.04.1\",\n  \"twin_version\": \"l3.twin@v2.3.1\",\n  \"copilot_version\": \"l5.copilot@v1.8.0\",\n  \"decision\": \"EXECUTED\"\n}"
+    ]
+   ],
+   [
+    "h2",
+    "Tamper-evidence"
+   ],
+   [
+    "p",
+    "Audit events are chained with content hashes so any retroactive edit breaks the chain and is detectable. The bus is append-only and never compacted. This matters both for internal engineering trust and for eventual regulatory review of an operating fusion machine; the discipline is built and exercised now, during the design-and-simulation phase, so it is mature before FOAK."
+   ],
+   [
+    "h2",
+    "What it enables"
+   ],
+   [
+    "ul",
+    [
+     "Deterministic <a href=./deterministic-replay.html>replay</a> of any decision from its recorded inputs.",
+     "Root-cause analysis: from an anomalous burner plug transient back to the proposal that preceded it.",
+     "Model accountability: attribute an outcome to the exact twin and copilot versions in force.",
+     "Regression testing: assert a new orchestration version reproduces past approved decisions."
+    ]
+   ],
+   [
+    "h2",
+    "Separation from operational topics"
+   ],
+   [
+    "p",
+    "The audit bus is a distinct topic class with its own retention and access controls; operational backpressure never sheds audit events (see <a href=./backpressure-and-flow-control.html>backpressure</a>). Distributed traces (see <a href=./distributed-tracing-correlation.html>tracing</a>) share the correlation IDs so latency analysis and causal analysis use the same identifiers."
+   ]
+  ],
+  "related": [
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ],
+   [
+    "distributed-tracing-correlation",
+    "Distributed Tracing & Correlation"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-twin-l5-copilot-coordination",
+  "title": "Coordinating Twin & Copilot",
+  "cat": "l4-orchestration",
+  "lede": "Orchestration reconciles L3 twin predictions and L5 copilot proposals into a single bounded action, resolving disagreement conservatively.",
+  "body": [
+   [
+    "h2",
+    "Two intelligences, one machine"
+   ],
+   [
+    "p",
+    "The digital twin (L3) predicts machine state and consequences; the copilot (L5) proposes actions to achieve goals. Both are learned, both can be wrong, and they can disagree. Layer 4 is the arbiter: it consumes twin predictions and copilot proposals as events and produces at most one bounded command per actuator per step, or none."
+   ],
+   [
+    "h2",
+    "Reconciliation policy"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def reconcile(proposal, twin_pred):\n    if proposal.confidence < CONF_MIN:      return route_to_human(proposal)\n    if twin_pred.uncertainty > UNC_MAX:     return HOLD   # act only on trusted state\n    if disagree(proposal, twin_pred):       return conservative_of(proposal, twin_pred)\n    return proposal.command                 # still must pass rules + envelope"
+    ]
+   ],
+   [
+    "h2",
+    "Conservatism on disagreement"
+   ],
+   [
+    "p",
+    "When the copilot's expected outcome conflicts with the twin's prediction beyond a tolerance, orchestration chooses the more conservative action or holds. For the breeder, that biases toward staying inside the current operating point rather than pursuing a proposed higher-performance point on contested predictions. For the burner, it biases toward maintaining established plug confinement over an aggressive efficiency move."
+   ],
+   [
+    "h2",
+    "Confidence and uncertainty are inputs, not authority"
+   ],
+   [
+    "ul",
+    [
+     "Low copilot confidence routes the proposal to a <a href=./human-in-the-loop-approval-routing.html>human gate</a>.",
+     "High twin uncertainty holds action until state is re-established with acceptable confidence.",
+     "Neither a high confidence score nor a low uncertainty grants bypass of the <a href=./safety-envelope-checks.html>envelope check</a>."
+    ]
+   ],
+   [
+    "h2",
+    "The gate is downstream"
+   ],
+   [
+    "p",
+    "Reconciliation only selects a candidate command; it does not authorize it. The selected candidate still traverses the full <a href=./action-gating-pipeline.html>gating pipeline</a>: schema, rules, envelope, approval. This ordering means even a perfectly reconciled, high-confidence proposal is rejected if it would leave the safe region. Both machines remain design-and-simulation studies, so this coordination is exercised against replayed and simulated scenarios today."
+   ]
+  ],
+  "related": [
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "human-in-the-loop-approval-routing",
+    "Human-in-the-Loop Approval Routing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "action-gating-pipeline",
+  "title": "Action-Gating Pipeline",
+  "cat": "l4-orchestration",
+  "lede": "Every candidate action passes a fixed, ordered sequence of independent checks; any stage can reject, and rejection is the default.",
+  "body": [
+   [
+    "h2",
+    "One path to actuation"
+   ],
+   [
+    "p",
+    "There is exactly one path from a proposal to a command on L1, and it runs through an ordered pipeline of independent checks. No component may skip a stage, and the pipeline fails closed: if any stage errors or times out, the action is rejected. This single-path discipline is what lets the whole stack reason about safety."
+   ],
+   [
+    "h2",
+    "The ordered stages"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "1. RECONCILE   twin + copilot -> single candidate         (L4)\n2. SCHEMA      command validates against registry         (reject on fail)\n3. AUTHZ       caller holds a valid, scoped command token  (reject on fail)\n4. RULES       all hard-bound predicates true             (reject on fail)\n5. ENVELOPE    stays inside state-dependent safe region    (reject on fail)\n6. RATE        within actuation slew/quota limits          (reject on fail)\n7. APPROVAL    human gate if authority level requires it   (reject/timeout)\n8. COMMIT      idempotent command emitted to L1"
+    ]
+   ],
+   [
+    "h2",
+    "Independence of stages"
+   ],
+   [
+    "p",
+    "Stages 4 (<a href=./rules-engine-hard-bounds.html>rules</a>) and 5 (<a href=./safety-envelope-checks.html>envelope</a>) are deliberately independent of the ML stack that produced stage 1. A failure or compromise of the twin or copilot cannot disable them because they do not call into those systems. This is defense in depth: the intelligent layer and the guarding layer share no failure mode."
+   ],
+   [
+    "h2",
+    "Fail-closed default"
+   ],
+   [
+    "ul",
+    [
+     "Unknown command schema: reject.",
+     "Missing or expired token: reject (see <a href=./command-authorization-and-tokens.html>authorization</a>).",
+     "Envelope checker unavailable: reject, do not fall through.",
+     "Approval timeout on an energizing action: reject."
+    ]
+   ],
+   [
+    "h2",
+    "Applies identically to both machines"
+   ],
+   [
+    "p",
+    "A breeder coil-current setpoint and a burner plug-field setpoint traverse the same pipeline; only the specific rules, envelope model, and authority thresholds differ. Every stage's verdict is journalled to the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> so the full decision is replayable. The pipeline is validated today against the digital twin ahead of FOAK first tritium around 2030."
+   ]
+  ],
+  "related": [
+   [
+    "rules-engine-hard-bounds",
+    "Rules Engine & Hard Bounds"
+   ],
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "command-authorization-and-tokens",
+  "title": "Command Authorization & Tokens",
+  "cat": "l4-orchestration",
+  "lede": "Every command carries a scoped, short-lived, single-writer token; actuators reject anything unsigned or out of scope.",
+  "body": [
+   [
+    "h2",
+    "No token, no actuation"
+   ],
+   [
+    "p",
+    "Each command to the breeder or burner must carry a cryptographically-signed authorization token that names the actuator scope, the authority level it satisfies, and an expiry. Actuator-facing adapters on L1 reject any command whose token is missing, expired, out of scope, or replayed. Authorization is a hard gate in the <a href=./action-gating-pipeline.html>pipeline</a>, independent of the ML stack."
+   ],
+   [
+    "h2",
+    "Scoping"
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"token_id\": \"tok_44c1\",\n  \"scope\": [\"breeder.coil.PF3.setpoint\"],\n  \"authority\": \"L2\",\n  \"issued_for\": \"shot_00421:step_field_ramp\",\n  \"not_after\": \"2030-04-12T09:20:00Z\",\n  \"single_writer\": true\n}"
+    ]
+   ],
+   [
+    "h2",
+    "Single-writer per actuator"
+   ],
+   [
+    "p",
+    "At any moment exactly one procedure holds the write token for a given actuator. This eliminates the class of bugs where two components command the same breeder coil or the same burner plug magnet concurrently. Token handoff between phases is an audited event; a preempted procedure surrenders its tokens as part of its safe stop (see <a href=./experiment-scheduler-priority-preemption.html>scheduler</a>)."
+   ],
+   [
+    "h2",
+    "Binding to checks"
+   ],
+   [
+    "ul",
+    [
+     "A token references the rules and envelope versions it was minted against; a command minted against a stale envelope is rejected.",
+     "Human approval (<a href=./human-in-the-loop-approval-routing.html>routing</a>) is what elevates a token to a higher authority level.",
+     "Tokens are single-use per idempotency key, so a replayed command cannot re-actuate."
+    ]
+   ],
+   [
+    "h2",
+    "Emergency authority"
+   ],
+   [
+    "p",
+    "Safety actions (P0: <a href=./quench-abort-orchestration.html>quench abort</a>, <a href=./disruption-mitigation-workflow.html>disruption mitigation</a>) use pre-authorized, always-valid emergency tokens so a protective action is never blocked waiting for authorization. These tokens are scoped strictly to abort and safe-state actions, never to energizing actions, and their every use is loudly audited."
+   ]
+  ],
+  "related": [
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "human-in-the-loop-approval-routing",
+    "Human-in-the-Loop Approval Routing"
+   ],
+   [
+    "audit-and-decision-lineage-bus",
+    "Audit & Decision-Lineage Bus"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plasma-shot-state-machine",
+  "title": "Plasma Shot State Machine",
+  "cat": "l4-orchestration",
+  "lede": "The formal state machine behind a breeder shot, its guarded transitions, and the invariants each state must hold.",
+  "body": [
+   [
+    "h2",
+    "Formalizing the shot"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) shot is expressed as an explicit finite state machine whose transitions are guarded by measurable conditions and whose states each carry an invariant that must hold for the duration. Formalizing it this way makes the procedure analyzable, replayable, and testable against the twin before hardware exists."
+   ],
+   [
+    "h2",
+    "States and invariants"
+   ],
+   [
+    "matrix",
+    [
+     "state x invariant",
+     [
+      [
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Reading the matrix rows as PUMPDOWN, FIELD_RAMP, FLATTOP, RAMP_DOWN, RECOVERY against columns (vacuum-ok, field-armed, plasma-present): each state asserts its required invariants continuously, and violation triggers transition to SAFE_ABORT."
+   ],
+   [
+    "h2",
+    "Guarded transitions"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "T = {\n ('PUMPDOWN','FIELD_RAMP'):  lambda s: s.base_pressure_ok,\n ('FIELD_RAMP','FLATTOP'):    lambda s: s.i_p_A >= 9.86e6*0.98 and s.delta <= -0.30,\n ('FLATTOP','RAMP_DOWN'):     lambda s: s.diag_window_done or s.plan_end,\n ('*','SAFE_ABORT'):          lambda s: s.fault or s.envelope_violated,\n}"
+    ]
+   ],
+   [
+    "h2",
+    "Invariants reference the design point"
+   ],
+   [
+    "ul",
+    [
+     "FLATTOP asserts plasma current near the 9.86 MA design value and shape at negative triangularity delta -0.30.",
+     "Field states assert on-axis field toward 8 T with peak conductor field within the 16.84 T rating.",
+     "Every state asserts the <a href=./safety-envelope-checks.html>safety envelope</a> holds; violation forces SAFE_ABORT."
+    ]
+   ],
+   [
+    "h2",
+    "Determinism"
+   ],
+   [
+    "p",
+    "The state machine advances only on recorded events, so a shot is fully <a href=./deterministic-replay.html>replayable</a>. Faults route to the shared abort path, which coordinates with <a href=./disruption-mitigation-workflow.html>disruption mitigation</a> and <a href=./quench-abort-orchestration.html>quench abort</a> depending on the fault class."
+   ],
+   [
+    "h2",
+    "Why formalize rather than script"
+   ],
+   [
+    "p",
+    "Expressing the shot as an explicit guarded state machine, rather than an imperative script, makes three properties checkable by construction: no two states drive the same actuator, every state has a defined exit and a defined abort, and no transition can fire unless its guard evaluates true against measured state. A scripted sequence hides these properties in control flow; the state machine exposes them for review. The transition table and invariants are version-controlled and pass through the same <a href=./replay-and-what-if-simulation.html>replay regression</a> gate as any other orchestration change, so a modified shot definition must reproduce approved past shots before it can run on the breeder."
+   ]
+  ],
+  "related": [
+   [
+    "shot-sequence-orchestration",
+    "Shot-Sequence Orchestration"
+   ],
+   [
+    "disruption-mitigation-workflow",
+    "Disruption-Mitigation Workflow"
+   ],
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-campaign-orchestration",
+  "title": "Burner Campaign Orchestration",
+  "cat": "l4-orchestration",
+  "lede": "The burner runs as a long steady-state supervisory loop rather than pulsed shots, so orchestration emphasizes continuous supervision over sequencing.",
+  "body": [
+   [
+    "h2",
+    "Steady state changes the shape"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator targeting steady-state operation, not the pulsed shots of the breeder. Its campaign is a long-running supervisory procedure: establish the plug and throat fields, reach the operating point, then hold it while continuously supervising stability and direct energy conversion. State changes are rare and deliberate rather than a fixed shot sequence."
+   ],
+   [
+    "h2",
+    "Establishment saga"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "STANDBY -> PUMPDOWN -> THROAT_FIELD(17 T) -> PLUG_FIELD(26.49 T)\n        -> FUELLING(D-3He) -> IGNITION_APPROACH -> STEADY_STATE(hold)\n        -> CONTROLLED_SHUTDOWN\nany phase --fault--> SAFE_BLEED (rate-limited field de-energize)"
+    ]
+   ],
+   [
+    "h2",
+    "Continuous supervision, not sequencing"
+   ],
+   [
+    "p",
+    "In STEADY_STATE the dominant activity is supervision: the <a href=./plug-stability-supervision.html>plug-stability supervisor</a> runs continuously, the <a href=./safety-envelope-checks.html>envelope checker</a> validates the operating point on every update, and small corrective setpoints flow through the full <a href=./action-gating-pipeline.html>gating pipeline</a>. The neutron fraction is low at 5.44%, so neutron-driven interlocks are one input among several rather than the dominant hazard as on the breeder."
+   ],
+   [
+    "h2",
+    "Housing-specific policy"
+   ],
+   [
+    "ul",
+    [
+     "Aegis (fixed defense installations): availability and predictable, deliberate state changes are weighted heavily.",
+     "MetroVolt (data centers): the supervisory loop coordinates output with load, still under the same envelope and rate limits.",
+     "Both share one orchestration codebase; only policy parameters and scheduling differ."
+    ]
+   ],
+   [
+    "h2",
+    "Design-and-simulation status"
+   ],
+   [
+    "p",
+    "The burner is a design-and-simulation study; there is no built machine and no net-gain claim. Its steady-state orchestration is validated against the digital twin and simulated long-duration runs, exercising the establishment saga, envelope holding, and <a href=./long-running-procedure-checkpointing.html>checkpointing</a> of a procedure that in principle never ends."
+   ]
+  ],
+  "related": [
+   [
+    "plug-stability-supervision",
+    "Plug-Stability Supervision"
+   ],
+   [
+    "long-running-procedure-checkpointing",
+    "Long-Running Procedure Checkpointing"
+   ],
+   [
+    "breeder-tritium-campaign-workflow",
+    "Breeder Tritium Campaign Workflow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "breeder-tritium-campaign-workflow",
+  "title": "Breeder Tritium Campaign Workflow",
+  "cat": "l4-orchestration",
+  "lede": "A breeder campaign chains shots and tracks tritium and helium-3 production accounting as durable, auditable state across the run.",
+  "body": [
+   [
+    "h2",
+    "A campaign is more than shots"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a D-T spherical tokamak whose products include a tritium class near 4 kg/yr, helium-3 near 1.97 kg/yr, and 14 MeV neutrons. A tritium campaign orchestrates a sequence of shots while maintaining a running, auditable inventory model of production and breeding performance. The tritium breeding ratio is treated as a design lever explored across 1.1, 1.5, and 1.8 rather than a single fixed value."
+   ],
+   [
+    "h2",
+    "Accounting as durable state"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# per-shot rollup into campaign inventory (design-and-simulation accounting)\ncampaign.inventory.tritium_kg     += shot.bred_tritium_estimate\ncampaign.inventory.helium3_kg     += shot.helium3_estimate\ncampaign.metrics.record(shot_id, TBR_setting=shot.tbr_lever)   # 1.1 | 1.5 | 1.8\n# every update is an event; inventory is rebuildable by replay"
+    ]
+   ],
+   [
+    "h2",
+    "TBR as a swept lever"
+   ],
+   [
+    "ul",
+    [
+     "The campaign plan tags each shot with the TBR design setting under study (1.1 / 1.5 / 1.8).",
+     "Orchestration keeps shots at one setting grouped so results are comparable.",
+     "Inventory projections are simulation estimates, not measured yields; the machine is not built."
+    ]
+   ],
+   [
+    "h2",
+    "Coordination with the scheduler"
+   ],
+   [
+    "p",
+    "Campaign shots are submitted to the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a> as P2 plans; a safety event preempts them and the campaign resumes from its checkpoint afterward, with inventory accounting intact because it is rebuilt from the event log. Each shot runs on the <a href=./plasma-shot-state-machine.html>shot state machine</a>."
+   ],
+   [
+    "h2",
+    "Honest framing"
+   ],
+   [
+    "p",
+    "All production figures here are design targets and simulation outputs. Breeder construction begins Q2 2027 with FOAK first tritium targeted around 2030; there is no net-gain claim before then. The workflow exists now to validate the accounting, lineage, and reproducibility discipline against the digital twin so it is trustworthy when real material is eventually produced."
+   ]
+  ],
+  "related": [
+   [
+    "campaign-parameter-sweep-orchestration",
+    "Campaign Parameter-Sweep Orchestration"
+   ],
+   [
+    "experiment-scheduler-priority-preemption",
+    "Experiment Scheduler with Priority & Preemption"
+   ],
+   [
+    "plasma-shot-state-machine",
+    "Plasma Shot State Machine"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "event-ordering-and-partitioning",
+  "title": "Event Ordering & Partitioning",
+  "cat": "l4-orchestration",
+  "lede": "Ordering is guaranteed only within a partition, so partition keys are chosen to keep causally-related machine events on one ordered stream.",
+  "body": [
+   [
+    "h2",
+    "Ordering is a per-partition guarantee"
+   ],
+   [
+    "p",
+    "The event log guarantees total order within a partition, not across partitions. Choosing the partition key is therefore a correctness decision: any two events whose relative order must be preserved must share a key. Get this wrong and a consumer may see a coil setpoint applied before the measurement that justified it."
+   ],
+   [
+    "h2",
+    "Key selection on the machines"
+   ],
+   [
+    "ul",
+    [
+     "Breeder magnetics: key by coil-set, so each coil's setpoint and current history is totally ordered.",
+     "Breeder equilibrium and shot events: key by shot_id, so a shot's timeline is one ordered stream.",
+     "Burner plug/throat: key by mirror-cell, so a cell's field history is ordered.",
+     "Commands: key by actuator_id with single-writer, so an actuator's command sequence is unambiguous."
+    ]
+   ],
+   [
+    "h2",
+    "Cross-partition ordering needs event time"
+   ],
+   [
+    "p",
+    "When a consumer must merge streams from different partitions (for example, correlate breeder magnetics with plasma density during a disruption), it cannot rely on arrival order. It orders by the event-time field in the envelope and uses <a href=./watermarks-and-event-time.html>watermarks</a> to know when it has seen enough to emit a correct merged result."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "same key      -> same partition -> total order (safe to assume causality)\ndifferent key -> different partition -> merge by occurred_at + watermark\nrule: if order matters for correctness, co-locate on one key"
+    ]
+   ],
+   [
+    "h2",
+    "Partition count and parallelism"
+   ],
+   [
+    "p",
+    "Partition count sets the maximum consumer parallelism. Too few and a burst on one key becomes a bottleneck (see <a href=./backpressure-and-flow-control.html>backpressure</a>); too many and cross-partition merges get harder. The count is sized to the peak per-key event rate during a breeder disruption or burner transient, the worst case."
+   ],
+   [
+    "h2",
+    "Rebalancing safely"
+   ],
+   [
+    "p",
+    "When consumers are added or removed, partitions rebalance. Handlers are idempotent (see <a href=./idempotency-and-dedup.html>idempotency</a>) and commit offsets atomically so a partition reassigned mid-processing does not double-apply an event. Ordering within each partition is preserved across the rebalance."
+   ]
+  ],
+  "related": [
+   [
+    "watermarks-and-event-time",
+    "Watermarks & Event Time"
+   ],
+   [
+    "stream-topology-and-topics",
+    "Stream Topology & Topics"
+   ],
+   [
+    "idempotency-and-dedup",
+    "Idempotency & Deduplication"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stream-topology-and-topics",
+  "title": "Stream Topology & Topics",
+  "cat": "l4-orchestration",
+  "lede": "A disciplined topic taxonomy separates measurements, state, proposals, commands, and audit so each gets the right retention and access policy.",
+  "body": [
+   [
+    "h2",
+    "Topics carry policy, not just data"
+   ],
+   [
+    "p",
+    "The topic a fact lives on determines its retention, compaction, ordering key, and access control. Layer 4 uses a deliberate taxonomy so that, for example, a command never shares a policy with a dashboard metric. The taxonomy is stable across the breeder and burner; only the domain segments differ."
+   ],
+   [
+    "h2",
+    "Naming convention"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "<machine>.<domain>.<signal>            key                policy\nbreeder.magnetics.coil_current         coil_id            time-retained\nbreeder.plasma.equilibrium             shot_id            log-compacted\nbreeder.diag.neutron_flux              shot_id            time-retained\nburner.plug.field                      cell_id            log-compacted\nburner.dec.output                      unit_id            time-retained\n*.proposals                            shot/campaign      time-retained\n*.commands                             actuator_id        infinite, chained\n*.audit                                event_id           infinite, chained"
+    ]
+   ],
+   [
+    "h2",
+    "Five topic classes"
+   ],
+   [
+    "ul",
+    [
+     "Measurements: high-rate, time-retained, tiered to cold storage.",
+     "State: log-compacted so the latest per-key value is always available (equilibrium, plug field).",
+     "Proposals: twin and copilot outputs awaiting gating.",
+     "Commands: gated, authorized actions; infinite retention, cryptographically chained.",
+     "Audit: decision lineage; infinite retention, never shed."
+    ]
+   ],
+   [
+    "h2",
+    "Access control by class"
+   ],
+   [
+    "p",
+    "Command and audit topics have the strictest write and read controls; only the gating pipeline may write commands, and only via a valid <a href=./command-authorization-and-tokens.html>token</a>. Proposal topics are writable by L3/L5 but their contents actuate nothing until gated. This separation means a compromised analytics consumer can read measurements but can neither forge a command nor tamper with audit history."
+   ],
+   [
+    "h2",
+    "Dead-letter topics"
+   ],
+   [
+    "p",
+    "Each processing topic has a companion dead-letter topic for events that repeatedly fail handling, so a single poison message cannot stall a partition (see <a href=./dead-letter-and-poison-messages.html>dead-letter handling</a>). Topology, retention, and keys are all captured in the <a href=./event-schema-registry.html>schema registry</a> alongside the schemas."
+   ]
+  ],
+  "related": [
+   [
+    "event-schema-registry",
+    "Event Schema Registry"
+   ],
+   [
+    "dead-letter-and-poison-messages",
+    "Dead-Letter & Poison Messages"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dead-letter-and-poison-messages",
+  "title": "Dead-Letter & Poison Messages",
+  "cat": "l4-orchestration",
+  "lede": "An event that repeatedly fails processing is quarantined to a dead-letter topic so it cannot stall a partition or block the machine.",
+  "body": [
+   [
+    "h2",
+    "One bad event must not stop the line"
+   ],
+   [
+    "p",
+    "Because ordering is per-partition, an event that always fails handling would block every later event on its partition indefinitely. On a control plane that is unacceptable: a poison magnetics event could stall the whole breeder magnetics stream. Layer 4 bounds retries, then quarantines the offending event to a dead-letter topic and advances the offset."
+   ],
+   [
+    "h2",
+    "Retry then quarantine"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def process(e):\n    for attempt in range(MAX_RETRY):\n        try:\n            handle(e); commit(e); return\n        except Transient:\n            backoff(attempt)         # transient: retry with backoff\n        except Poison:\n            break                    # deterministic failure: stop retrying\n    deadletter.publish(e, reason=last_error, attempts=attempt+1)\n    commit(e)                        # unblock the partition"
+    ]
+   ],
+   [
+    "h2",
+    "Transient vs poison"
+   ],
+   [
+    "ul",
+    [
+     "Transient (timeout, temporary unavailability): retried with exponential backoff.",
+     "Poison (schema mismatch, invariant violation): not retried; sent straight to dead-letter.",
+     "Ambiguous: retried a bounded number of times, then dead-lettered."
+    ]
+   ],
+   [
+    "h2",
+    "Safety-critical streams never silently drop"
+   ],
+   [
+    "p",
+    "For command and safety streams, dead-lettering is itself an alarm: a command that cannot be processed triggers a fail-closed rejection and a loud alert, never a silent skip. A dead-lettered <a href=./safety-envelope-checks.html>envelope</a> or interlock event escalates immediately, because the safe interpretation of an unprocessable safety event is that the machine should hold or abort."
+   ],
+   [
+    "h2",
+    "Draining the dead-letter"
+   ],
+   [
+    "p",
+    "Dead-letter contents are inspected offline, root-caused, and, where a fix makes them processable, re-injected in order. Their lineage is preserved so a re-injected event carries its original identity for <a href=./deterministic-replay.html>replay</a> and audit. The dead-letter rate is a monitored SLO (see <a href=./orchestration-observability-slos.html>observability</a>)."
+   ]
+  ],
+  "related": [
+   [
+    "backpressure-and-flow-control",
+    "Backpressure & Flow Control"
+   ],
+   [
+    "orchestration-observability-slos",
+    "Observability & SLOs"
+   ],
+   [
+    "failure-domains-and-bulkheads",
+    "Failure Domains & Bulkheads"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "watermarks-and-event-time",
+  "title": "Watermarks & Event Time",
+  "cat": "l4-orchestration",
+  "lede": "Consumers reason about event time, not arrival time, and use watermarks to know when a time window is safe to close.",
+  "body": [
+   [
+    "h2",
+    "Event time vs processing time"
+   ],
+   [
+    "p",
+    "Diagnostics from the breeder and burner are timestamped at the source (occurred_at). Because of buffering, retries, and multi-partition merges, they can arrive out of order and late. Any computation that windows over time (for example, energy or neutron-flux integrals during a shot) must use event time, or it will attribute samples to the wrong window."
+   ],
+   [
+    "h2",
+    "The watermark"
+   ],
+   [
+    "p",
+    "A watermark is the consumer's assertion that it has seen all events with occurred_at at or before time W. It advances as ordered streams progress and lets the consumer close windows deterministically. Late events arriving after their window closed are handled explicitly, not silently misplaced."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "watermark = min(latest_occurred_at[p] for p in partitions) - allowed_lateness\nfor window in windows_ending_before(watermark):\n    emit(aggregate(window))          # safe to close: no earlier event can still arrive\n# late event (occurred_at < watermark): route to correction path, never drop\nif e.occurred_at < watermark:\n    corrections.publish(e)"
+    ]
+   ],
+   [
+    "h2",
+    "Allowed lateness"
+   ],
+   [
+    "ul",
+    [
+     "Set from measured worst-case delivery lag so genuinely-late samples still land in-window.",
+     "Too small: correct samples get treated as late; too large: windows close slowly.",
+     "Tuned per topic; high-rate magnetics tolerate less lateness than slow analytics."
+    ]
+   ],
+   [
+    "h2",
+    "Determinism preserved"
+   ],
+   [
+    "p",
+    "Watermark-driven windowing is deterministic given the recorded stream: <a href=./deterministic-replay.html>replay</a> reproduces the same window closures and the same aggregates. This is why post-shot analysis of a breeder disruption matches what the live system computed, and why cross-partition merges during a transient are reproducible (see <a href=./event-ordering-and-partitioning.html>ordering</a>)."
+   ],
+   [
+    "p",
+    "Watermarks decouple correctness from timeliness: under <a href=./backpressure-and-flow-control.html>backpressure</a> windows close later but never incorrectly."
+   ]
+  ],
+  "related": [
+   [
+    "event-ordering-and-partitioning",
+    "Event Ordering & Partitioning"
+   ],
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ],
+   [
+    "backpressure-and-flow-control",
+    "Backpressure & Flow Control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "transactional-outbox",
+  "title": "Transactional Outbox",
+  "cat": "l4-orchestration",
+  "lede": "State changes and their emitted events are committed in one local transaction, so a crash never leaves the two inconsistent.",
+  "body": [
+   [
+    "h2",
+    "The dual-write problem"
+   ],
+   [
+    "p",
+    "A consumer that updates its state and then publishes an event faces a gap: crash between the two and either the state changed without an event, or the event fired without the state change. On a control plane this could mean a procedure believes a breeder step advanced while no downstream consumer heard, or vice versa. The transactional outbox closes the gap."
+   ],
+   [
+    "h2",
+    "One local transaction"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "with db.transaction():\n    apply_state_change(cmd)                 # e.g. mark step advanced\n    outbox.insert(event_for(cmd))           # SAME transaction, local\n# a separate relay reads the outbox and publishes to the log at-least-once\n# publish failure -> retry; downstream dedups on event_id (idempotent)"
+    ]
+   ],
+   [
+    "h2",
+    "Why this beats a distributed transaction"
+   ],
+   [
+    "p",
+    "A distributed transaction across the state store and the log would add latency and a coordinator that can itself fail. The outbox needs only a local transaction plus an idempotent relay, giving effectively-once semantics without a two-phase commit on the hot path. The relay publishes at-least-once and consumers dedup by event_id (see <a href=./idempotency-and-dedup.html>idempotency</a>)."
+   ],
+   [
+    "h2",
+    "Read-process-write atomicity"
+   ],
+   [
+    "ul",
+    [
+     "Consuming an event, updating state, and enqueuing outputs commit together, so offset and state never diverge.",
+     "A crash before commit reprocesses the input; dedup absorbs the duplicate output.",
+     "This is the mechanism behind the <a href=./exactly-once-vs-at-least-once.html>effectively-once</a> guarantee."
+    ]
+   ],
+   [
+    "h2",
+    "On the machines"
+   ],
+   [
+    "p",
+    "The breeder campaign engine uses the outbox so a step advance and the command event that follows it are inseparable; an orchestrator restart mid-step resumes cleanly. The burner supervisor uses it so a state-change decision and the resulting setpoint proposal are never orphaned. The pattern underpins <a href=./saga-and-compensation.html>saga</a> reliability."
+   ]
+  ],
+  "related": [
+   [
+    "exactly-once-vs-at-least-once",
+    "Exactly-Once vs At-Least-Once"
+   ],
+   [
+    "idempotency-and-dedup",
+    "Idempotency & Deduplication"
+   ],
+   [
+    "command-vs-event-cqrs",
+    "Commands vs Events (CQRS)"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "command-vs-event-cqrs",
+  "title": "Commands vs Events (CQRS)",
+  "cat": "l4-orchestration",
+  "lede": "Commands are imperative requests that may be rejected; events are immutable facts that already happened. The stack keeps them strictly separate.",
+  "body": [
+   [
+    "h2",
+    "Two different things"
+   ],
+   [
+    "p",
+    "A <b>command</b> is a request to change the machine: 'ramp coil PF3 to setpoint'. It is addressed to one handler, can be validated, and can be rejected. An <b>event</b> is an immutable record that something happened: 'coil PF3 reached setpoint'. It is broadcast, cannot be rejected, and is never mutated. Confusing the two is a common source of control-plane bugs; Layer 4 keeps them on separate topics with separate semantics."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Aspect",
+      "Command",
+      "Event"
+     ],
+     [
+      [
+       "mood",
+       "imperative",
+       "past-tense fact"
+      ],
+      [
+       "can reject",
+       "yes",
+       "no"
+      ],
+      [
+       "recipients",
+       "one handler",
+       "many consumers"
+      ],
+      [
+       "mutable",
+       "no (single-use)",
+       "no (immutable)"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "CQRS separation"
+   ],
+   [
+    "p",
+    "Command handling (the write path through the <a href=./action-gating-pipeline.html>gating pipeline</a>) is separated from query/read models built by consuming events. The read side, for instance a live breeder equilibrium view or a burner plug-field dashboard, is a projection rebuilt from the event log and never actuates anything. This keeps the safety-critical write path small and auditable while read models can be many and disposable."
+   ],
+   [
+    "h2",
+    "Command lifecycle"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "command issued -> gated -> ACCEPTED or REJECTED\nif ACCEPTED and actuator acts -> emits event(s): STARTED, PROGRESS, COMPLETED|FAILED\nconsumers build read models from events; they never re-issue the command"
+    ]
+   ],
+   [
+    "h2",
+    "Why it matters here"
+   ],
+   [
+    "ul",
+    [
+     "The safe default is possible only because a command CAN be rejected; an event cannot.",
+     "Read models can be rebuilt or reshaped without risk because they are pure projections.",
+     "Auditability: the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> records both the command and the events it caused."
+    ]
+   ],
+   [
+    "p",
+    "Command emission is made reliable by the <a href=./transactional-outbox.html>transactional outbox</a>, and command uniqueness by <a href=./idempotency-and-dedup.html>idempotency keys</a>."
+   ]
+  ],
+  "related": [
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "transactional-outbox",
+    "Transactional Outbox"
+   ],
+   [
+    "audit-and-decision-lineage-bus",
+    "Audit & Decision-Lineage Bus"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "distributed-tracing-correlation",
+  "title": "Distributed Tracing & Correlation",
+  "cat": "l4-orchestration",
+  "lede": "Correlation and causation IDs thread a single shot's activity across every service so latency and causality can both be reconstructed.",
+  "body": [
+   [
+    "h2",
+    "One shot, many services"
+   ],
+   [
+    "p",
+    "A single breeder shot touches diagnostics ingest, the twin, the copilot, the gating pipeline, and actuator adapters. To understand latency and causality across all of them, every event and span carries a shared correlation_id (the shot or campaign) and a causation_id (the specific event that triggered it). These are the same IDs the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> uses, so tracing and audit share one identifier scheme."
+   ],
+   [
+    "h2",
+    "Correlation vs causation"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "correlation_id = shot_00421          // groups everything for this shot\ncausation_id   = <parent event id>   // forms a causal tree, not just a group\n// diagnostic -> twin_pred (caused_by diagnostic)\n//            -> proposal  (caused_by twin_pred)\n//            -> command   (caused_by proposal + envelope_ok + approval)"
+    ]
+   ],
+   [
+    "h2",
+    "Latency budget across the gate"
+   ],
+   [
+    "p",
+    "Tracing measures how long a candidate spends in each <a href=./action-gating-pipeline.html>gating</a> stage: reconcile, schema, rules, envelope, rate, approval. This matters because the gate sits between the twin's proposal and L1; if the human-approval stage dominates, that is visible and expected, while an unexpectedly slow envelope check is an alert. Tracing never sits on the L1 microsecond loop, which is off the event plane."
+   ],
+   [
+    "h2",
+    "What traces reveal"
+   ],
+   [
+    "ul",
+    [
+     "End-to-end path of a burner plug-field correction from measurement to actuation.",
+     "Which stage rejected a breeder command and how long the pipeline took to say no.",
+     "Consumer lag hotspots feeding <a href=./backpressure-and-flow-control.html>backpressure</a> decisions."
+    ]
+   ],
+   [
+    "h2",
+    "Deterministic reconstruction"
+   ],
+   [
+    "p",
+    "Because IDs are recorded on the immutable log, a trace can be rebuilt exactly during <a href=./deterministic-replay.html>replay</a>, unlike sampled traces that are lost after the fact. Every causal edge is preserved, so 'why did this command fire' is answered from the causation tree rather than inferred from timestamps."
+   ]
+  ],
+  "related": [
+   [
+    "audit-and-decision-lineage-bus",
+    "Audit & Decision-Lineage Bus"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "orchestration-observability-slos",
+    "Observability & SLOs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rate-limiting-and-quotas-for-actuation",
+  "title": "Rate Limiting & Quotas for Actuation",
+  "cat": "l4-orchestration",
+  "lede": "Even valid commands are throttled to engineering slew limits and per-actuator quotas so no burst can drive hardware faster than it may move.",
+  "body": [
+   [
+    "h2",
+    "Fast is not always safe"
+   ],
+   [
+    "p",
+    "A command can be schema-valid, rule-legal, and inside the envelope, yet still be dangerous if issued too fast or too often. Superconducting magnets have slew limits; gas valves and heating systems have duty limits. The actuation rate limiter enforces these as a distinct gate, independent of throughput, so a flood of individually-legal setpoints cannot exceed hardware slew on the breeder coils or the burner plug magnet."
+   ],
+   [
+    "h2",
+    "Token-bucket per actuator"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "class SlewGuard:\n    def allow(self, actuator, new_sp, now):\n        max_delta = SLEW_MAX[actuator] * (now - self.last_t[actuator])\n        if abs(new_sp - self.last_sp[actuator]) > max_delta:\n            return CLAMP_OR_REJECT      # never exceed hardware slew\n        if not self.bucket[actuator].take(1, now):\n            return REJECT               # per-actuator command-rate quota\n        self._commit(actuator, new_sp, now); return OK"
+    ]
+   ],
+   [
+    "h2",
+    "Slew clamping vs rejection"
+   ],
+   [
+    "ul",
+    [
+     "For continuous setpoints (coil current, plug field toward 26.49 T) an over-fast command is clamped to the max legal slew, not silently dropped.",
+     "For discrete actions (a gas puff) an over-quota command is rejected and surfaced.",
+     "Every clamp and reject is logged so the copilot can learn it is asking for impossible rates."
+    ]
+   ],
+   [
+    "h2",
+    "Interaction with safety"
+   ],
+   [
+    "p",
+    "Rate limiting complements but does not replace the <a href=./safety-envelope-checks.html>envelope</a>: the envelope says where the machine may be, the rate limiter says how fast it may move between legal points. Both are on the <a href=./action-gating-pipeline.html>gating path</a>. Emergency safe-state actions (abort ramps) use rate limits set for controlled but rapid de-energize, not the routine slew caps."
+   ],
+   [
+    "h2",
+    "Quotas protect shared systems"
+   ],
+   [
+    "p",
+    "Per-actuator and per-subsystem quotas also protect shared services such as fuelling and heating from being monopolized by one runaway procedure, working with <a href=./backpressure-and-flow-control.html>backpressure</a> and the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a> to keep the machine responsive to higher-priority needs."
+   ]
+  ],
+  "related": [
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "backpressure-and-flow-control",
+    "Backpressure & Flow Control"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quench-abort-orchestration",
+  "title": "Quench-Abort Orchestration",
+  "cat": "l4-orchestration",
+  "lede": "A magnet quench is the highest-priority breeder event; orchestration coordinates a fast, safe, pre-authorized shutdown that preempts all else.",
+  "body": [
+   [
+    "h2",
+    "Quench is a P0 event"
+   ],
+   [
+    "p",
+    "In the breeder's high-field superconducting magnet system (design peak 16.84 T), a quench, the loss of superconductivity, must be handled immediately to protect the coils. Quench abort is a P0 priority that preempts any running procedure through the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a> and executes a pre-authorized safe-state sequence using an emergency <a href=./command-authorization-and-tokens.html>token</a> so it is never blocked."
+   ],
+   [
+    "h2",
+    "The abort sequence"
+   ],
+   [
+    "code",
+    [
+     "text",
+     ">>> QUENCH DETECTED (L1 hardware detection, fastest path)\nL1 fires hardware protection immediately (energy dump) -- does NOT wait on L4\nL4 in parallel:\n  1. preempt running procedure -> SAFE_ABORT\n  2. rate-limited de-energize of unaffected coils\n  3. controlled plasma termination (coordinate with disruption path)\n  4. sequence pumping/fuelling to safe standby\n  5. lock machine in RECOVERY pending human clearance"
+    ]
+   ],
+   [
+    "h2",
+    "Hardware first, orchestration second"
+   ],
+   [
+    "p",
+    "The primary quench protection is a hardware interlock and energy-dump on L1, which acts in real time without waiting for the event plane; see <a href=./interlock-integration.html>interlock integration</a>. Orchestration's role is to bring the rest of the machine (plasma, fuelling, adjacent coils) to a coordinated safe state and to journal the whole event, not to be the fast protective reflex. Depending on the event plane for quench protection would be a design error."
+   ],
+   [
+    "h2",
+    "Coordination with disruption"
+   ],
+   [
+    "ul",
+    [
+     "A quench during a shot usually forces a controlled plasma termination, coordinated with the <a href=./disruption-mitigation-workflow.html>disruption-mitigation workflow</a>.",
+     "Compensations from the running <a href=./saga-and-compensation.html>saga</a> run in reverse to leave a clean state.",
+     "The machine will not re-arm until a human clears RECOVERY (a mandatory <a href=./human-in-the-loop-approval-routing.html>approval gate</a>)."
+    ]
+   ],
+   [
+    "h2",
+    "Validated in simulation"
+   ],
+   [
+    "p",
+    "Because the breeder is a design-and-simulation study today, quench-abort orchestration is exercised entirely against the twin and fault-injection scenarios, so the coordination, preemption, and lineage are proven long before FOAK. Every quench event is fully <a href=./deterministic-replay.html>replayable</a> for analysis."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-mitigation-workflow",
+    "Disruption-Mitigation Workflow"
+   ],
+   [
+    "interlock-integration",
+    "Interlock Integration"
+   ],
+   [
+    "experiment-scheduler-priority-preemption",
+    "Experiment Scheduler with Priority & Preemption"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-mitigation-workflow",
+  "title": "Disruption-Mitigation Workflow",
+  "cat": "l4-orchestration",
+  "lede": "When the twin predicts a breeder disruption, orchestration triggers a bounded mitigation sequence before the plasma terminates uncontrolled.",
+  "body": [
+   [
+    "h2",
+    "Predict, then act within bounds"
+   ],
+   [
+    "p",
+    "A disruption is a sudden loss of the breeder plasma's confinement that can damage the machine. The twin (L3) forecasts disruption risk from real-time diagnostics; when risk crosses a threshold, orchestration triggers a pre-planned mitigation sequence. Because this is a protective action it runs at high priority, but it still passes the <a href=./safety-envelope-checks.html>envelope</a> and rate checks, since a mitigation that itself violates magnet limits helps nothing."
+   ],
+   [
+    "h2",
+    "The mitigation decision"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "if twin.disruption_risk > RISK_TRIGGER and twin.uncertainty < UNC_MAX:\n    action = mitigation_plan(state)          # e.g. controlled termination / injection\n    if envelope_ok(action) and rate_ok(action):\n        execute(action, token=EMERGENCY_MITIGATION)\n    else:\n        fallback_safe_termination()          # always-valid last resort\nelif twin.uncertainty >= UNC_MAX:\n    conservative_rampdown()                  # do not trust an uncertain forecast"
+    ]
+   ],
+   [
+    "h2",
+    "Uncertainty gates the response"
+   ],
+   [
+    "p",
+    "A high-confidence forecast can trigger a targeted mitigation; a low-confidence one falls back to a conservative controlled ramp-down rather than a specific aggressive intervention. This encodes the principle that the machine should not take a strong action on a prediction it cannot trust, consistent with <a href=./l3-twin-l5-copilot-coordination.html>twin/copilot coordination</a>."
+   ],
+   [
+    "h2",
+    "Relationship to hardware protection"
+   ],
+   [
+    "ul",
+    [
+     "The predictive workflow aims to act BEFORE the fast hardware interlocks must fire.",
+     "If a disruption occurs anyway, L1 hardware protection and <a href=./interlock-integration.html>interlocks</a> handle the immediate event.",
+     "A disruption can trigger or accompany a <a href=./quench-abort-orchestration.html>quench</a>; the two workflows coordinate on a shared safe-state path."
+    ]
+   ],
+   [
+    "h2",
+    "Simulation and replay"
+   ],
+   [
+    "p",
+    "Disruption mitigation is developed and tuned against replayed and synthetic disruption scenarios in the twin, since the breeder is not built. Every trigger, forecast, and action is journalled so a mitigation can be <a href=./deterministic-replay.html>replayed</a> to ask whether an updated twin would have acted sooner or better."
+   ]
+  ],
+  "related": [
+   [
+    "quench-abort-orchestration",
+    "Quench-Abort Orchestration"
+   ],
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "l3-twin-l5-copilot-coordination",
+    "Coordinating Twin & Copilot"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plug-stability-supervision",
+  "title": "Plug-Stability Supervision",
+  "cat": "l4-orchestration",
+  "lede": "The burner's tandem-mirror end plugs must hold continuously; orchestration supervises plug field and stability and gates every corrective setpoint.",
+  "body": [
+   [
+    "h2",
+    "The plug is the burner's crux"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem mirror whose end plugs (design field 26.49 T, throat 17 T) confine the central-cell plasma. Losing plug confinement ends the operating point. In steady state, orchestration runs a continuous plug-stability supervisor that watches plug field, mirror ratio, and stability indicators and issues small corrective setpoints through the full gating pipeline."
+   ],
+   [
+    "h2",
+    "Supervisory loop"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "while state == STEADY_STATE:\n    s = twin.reconstruct()                     # plug field, mirror ratio, beta\n    if s.stability_margin < MARGIN_WARN:\n        prop = copilot.correction(s)           # proposed plug/throat setpoint nudge\n        cmd  = reconcile(prop, twin.predict(prop))\n        gate(cmd)                              # schema+rules+envelope+rate\n    if s.stability_margin < MARGIN_CRIT:\n        safe_bleed()                           # rate-limited controlled shutdown"
+    ]
+   ],
+   [
+    "h2",
+    "Envelope in plug space"
+   ],
+   [
+    "p",
+    "The <a href=./safety-envelope-checks.html>envelope checker</a> for the burner is expressed in plug-relevant coordinates: the joint region of plug field, throat field, mirror ratio, and beta that keeps confinement and stays within magnet ratings. A setpoint that individually looks fine but pushes the mirror ratio combination toward a loss-of-confinement boundary is rejected."
+   ],
+   [
+    "h2",
+    "Two failure directions"
+   ],
+   [
+    "ul",
+    [
+     "Toward instability: escalate corrective setpoints, then controlled safe-bleed if the margin keeps falling.",
+     "Toward magnet limits: rate-limit and clamp per the <a href=./rate-limiting-and-quotas-for-actuation.html>actuation limiter</a> so no correction exceeds the 26.49 T rating.",
+     "Sensor loss: hold last-known-safe and route to a <a href=./human-in-the-loop-approval-routing.html>human gate</a> rather than act on bad state."
+    ]
+   ],
+   [
+    "h2",
+    "Continuous, checkpointed, simulated"
+   ],
+   [
+    "p",
+    "Supervision is a long-running procedure that <a href=./long-running-procedure-checkpointing.html>checkpoints</a> continuously so a supervisor restart resumes without dropping the plug. As a design-and-simulation study with no built machine and no net-gain claim, plug supervision is validated against long-duration twin runs and fault injection."
+   ]
+  ],
+  "related": [
+   [
+    "burner-campaign-orchestration",
+    "Burner Campaign Orchestration"
+   ],
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "long-running-procedure-checkpointing",
+    "Long-Running Procedure Checkpointing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interlock-integration",
+  "title": "Interlock Integration",
+  "cat": "l4-orchestration",
+  "lede": "Hardware interlocks are the last line of defense and act independently of software; orchestration integrates with them but never replaces them.",
+  "body": [
+   [
+    "h2",
+    "Defense in depth"
+   ],
+   [
+    "p",
+    "The Kronos control philosophy layers protection: predictive orchestration (L4) aims to avoid faults, and hard-wired interlocks (below L1) catch what prediction misses. Interlocks are physical or firmware safety circuits that act in real time, with no dependence on the event plane, the twin, or the copilot. Orchestration integrates with them, observes their state, and defers to them, but never sits in their protective path."
+   ],
+   [
+    "h2",
+    "Independence is the point"
+   ],
+   [
+    "p",
+    "If the entire software stack, including L4, froze, the interlocks would still trip a breeder quench energy-dump or a burner magnet safe-state on their own. This is why the fast quench and over-current protection are hardware, not orchestration; the <a href=./quench-abort-orchestration.html>quench-abort workflow</a> coordinates the rest of the machine but the reflex is hard-wired."
+   ],
+   [
+    "h2",
+    "Software-to-interlock contract"
+   ],
+   [
+    "ul",
+    [
+     "Orchestration reads interlock status as high-priority events but cannot disable an interlock.",
+     "Every command respects interlock preconditions; a command that would violate one is rejected upstream at the <a href=./rules-engine-hard-bounds.html>rules</a> stage.",
+     "An interlock trip is a P0 event that preempts all procedures and forces a safe-state saga."
+    ]
+   ],
+   [
+    "truth",
+    [
+     [
+      "Layer",
+      "Acts on",
+      "Can be disabled by software"
+     ],
+     [
+      [
+       "hardware interlock",
+       "real-time reflex",
+       "no"
+      ],
+      [
+       "rules engine",
+       "every command",
+       "no (audited change only)"
+      ],
+      [
+       "envelope checker",
+       "every command",
+       "no (audited change only)"
+      ],
+      [
+       "twin/copilot",
+       "proposals only",
+       "n/a (cannot actuate)"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Why orchestration still matters"
+   ],
+   [
+    "p",
+    "Interlocks protect the machine but at a cost: a trip usually means an aborted shot or shutdown. Predictive orchestration exists to keep the machine inside limits so interlocks rarely fire, improving availability without weakening the last-line guarantee. Interlock trips are journalled to the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> and analyzed via <a href=./deterministic-replay.html>replay</a> to improve the predictive layer."
+   ]
+  ],
+  "related": [
+   [
+    "rules-engine-hard-bounds",
+    "Rules Engine & Hard Bounds"
+   ],
+   [
+    "quench-abort-orchestration",
+    "Quench-Abort Orchestration"
+   ],
+   [
+    "failure-domains-and-bulkheads",
+    "Failure Domains & Bulkheads"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "approval-policy-and-quorum",
+  "title": "Approval Policy & Quorum",
+  "cat": "l4-orchestration",
+  "lede": "High-authority actions require multiple qualified approvers; policy defines who counts, how many, and what happens on timeout.",
+  "body": [
+   [
+    "h2",
+    "Not all approvals are equal"
+   ],
+   [
+    "p",
+    "A routine, low-authority action may need one qualified approver; a first-of-its-kind breeder operating point or a change to the burner plug-field target may require a quorum of independent, qualified people. Approval policy formalizes the authority levels, the required quorum at each level, and the qualification each approver must hold. It is version-controlled safety policy, like the <a href=./rules-engine-hard-bounds.html>rules engine</a>."
+   ],
+   [
+    "h2",
+    "Authority levels and quorum"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Level",
+      "Example action",
+      "Quorum"
+     ],
+     [
+      [
+       "L0",
+       "in-envelope routine setpoint",
+       "auto, none"
+      ],
+      [
+       "L1",
+       "new setpoint within a proven point",
+       "1 qualified"
+      ],
+      [
+       "L2",
+       "new operating point in a campaign",
+       "2 independent"
+      ],
+      [
+       "L3",
+       "new machine limit / plug-field target",
+       "2 + safety officer"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Independence and qualification"
+   ],
+   [
+    "ul",
+    [
+     "Approvers at L2+ must be independent (no single person can satisfy the quorum alone).",
+     "Each approver must hold the qualification for the action's domain (magnet, plasma, vacuum, DEC).",
+     "The proposing copilot and the twin author are never counted as approvers."
+    ]
+   ],
+   [
+    "h2",
+    "Timeout defaults are safe"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def resolve(req):\n    if approvals(req) >= quorum(req.level) and all_independent(req):\n        return APPROVE\n    if now() > req.deadline:\n        return SAFE_DEFAULT[req.action_class]   # energize->REJECT, abort->PROCEED\n    return PENDING"
+    ]
+   ],
+   [
+    "h2",
+    "Auditable and replayable"
+   ],
+   [
+    "p",
+    "Every approval request records who was asked, who decided, the context shown (via <a href=./human-in-the-loop-approval-routing.html>routing</a>), and the outcome, chained on the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a>. Policy changes follow the same two-person, audited process as rule changes. Because the breeder and burner are design-and-simulation studies, quorum policy is exercised in drills against the twin so the human process is practiced before FOAK."
+   ],
+   [
+    "h2",
+    "Escalation and de-escalation"
+   ],
+   [
+    "p",
+    "Authority level is a property of the action, not of the operator, so it cannot be lowered by choosing a more senior approver. What can change it is context: a setpoint that is L1 inside a proven breeder operating point becomes L2 when the campaign steps to an unproven point, and a burner plug-field change escalates to L3 whenever it would move the established 26.49 T target. The policy computes the level from the action and current machine state; approvers cannot self-elevate to satisfy their own quorum. Repeated low-authority approvals never aggregate into permission for a high-authority action, which closes a common privilege-creep path on shared consoles."
+   ]
+  ],
+  "related": [
+   [
+    "human-in-the-loop-approval-routing",
+    "Human-in-the-Loop Approval Routing"
+   ],
+   [
+    "rules-engine-hard-bounds",
+    "Rules Engine & Hard Bounds"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "preemption-and-priority-inheritance",
+  "title": "Preemption & Priority Inheritance",
+  "cat": "l4-orchestration",
+  "lede": "Priority inheritance stops a low-priority plan holding a shared resource from blocking a high-priority safety action.",
+  "body": [
+   [
+    "h2",
+    "The priority-inversion trap"
+   ],
+   [
+    "p",
+    "Suppose a low-priority diagnostic campaign holds a shared calibration resource, and a high-priority safety action needs it. Without care, the high-priority action waits on the low-priority holder while medium-priority work runs ahead of both, a classic priority inversion. On a machine where the high-priority action may be a <a href=./quench-abort-orchestration.html>quench abort</a>, that delay is unacceptable."
+   ],
+   [
+    "h2",
+    "Inheritance rule"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "def request(resource, requester):\n    holder = resource.holder\n    if holder and requester.priority < holder.priority:\n        holder.effective_priority = requester.priority   # inherit, temporarily\n        # holder now runs at high priority to release the resource fast\n    return resource.acquire_when_free(requester)"
+    ]
+   ],
+   [
+    "h2",
+    "Graceful release, not seizure"
+   ],
+   [
+    "p",
+    "Inheritance raises the holder's effective priority so it finishes or safely yields the resource quickly, rather than being violently seized mid-operation. For a breeder procedure that means running its release compensation at elevated priority; for the burner it means completing an atomic sub-step before yielding. This preserves the machine's safe-state guarantees during preemption (see <a href=./experiment-scheduler-priority-preemption.html>scheduler</a>)."
+   ],
+   [
+    "h2",
+    "Safety actions bypass"
+   ],
+   [
+    "ul",
+    [
+     "P0 safety actions do not queue behind resource holders; they use pre-authorized emergency paths.",
+     "For non-safety preemption, inheritance bounds the maximum blocking time to one holder's release.",
+     "Nested inheritance is bounded so a chain of holders cannot compound the delay unboundedly."
+    ]
+   ],
+   [
+    "h2",
+    "Anti-starvation pairing"
+   ],
+   [
+    "p",
+    "Inheritance solves inversion; aging (raising the priority of long-waiting plans) solves starvation. Together they keep both the breeder and burner responsive to urgent needs while ensuring opportunistic work eventually runs. Every inheritance and preemption event is logged for <a href=./deterministic-replay.html>replay</a> so scheduling behavior is reproducible."
+   ]
+  ],
+  "related": [
+   [
+    "experiment-scheduler-priority-preemption",
+    "Experiment Scheduler with Priority & Preemption"
+   ],
+   [
+    "quench-abort-orchestration",
+    "Quench-Abort Orchestration"
+   ],
+   [
+    "failure-domains-and-bulkheads",
+    "Failure Domains & Bulkheads"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "long-running-procedure-checkpointing",
+  "title": "Long-Running Procedure Checkpointing",
+  "cat": "l4-orchestration",
+  "lede": "Procedures that run for minutes to hours checkpoint their state so a restart resumes exactly, without re-energizing from scratch.",
+  "body": [
+   [
+    "h2",
+    "Restarts must not restart the machine"
+   ],
+   [
+    "p",
+    "A breeder shot lasts seconds, but a full campaign or a burner steady-state run lasts far longer, and the orchestrator process can restart mid-procedure. Checkpointing persists procedure state frequently so a restart resumes at the exact step rather than re-running an energizing sequence from the beginning, which could be unsafe on a partially-energized machine."
+   ],
+   [
+    "h2",
+    "Checkpoint contents"
+   ],
+   [
+    "code",
+    [
+     "json",
+     "{\n  \"procedure\": \"burner_steady_state\",\n  \"version\": \"1.8.0\",\n  \"current_step\": \"STEADY_STATE\",\n  \"committed_steps\": [\"throat_field\",\"plug_field\",\"fuelling\",\"ignition_approach\"],\n  \"held_tokens\": [\"burner.plug.field\",\"burner.throat.field\"],\n  \"saga_compensations_pending\": [\"safe_bleed\"],\n  \"last_event_offset\": 918273\n}"
+    ]
+   ],
+   [
+    "h2",
+    "Checkpoint = last committed event"
+   ],
+   [
+    "p",
+    "Because the procedure is a deterministic function of the event log, a checkpoint is effectively a durable offset plus derived state. On restart, orchestration reloads the checkpoint and, if needed, replays events after the checkpoint offset to reach the precise current state, reusing the <a href=./deterministic-replay.html>replay</a> machinery. Idempotent handlers mean any re-applied events after the checkpoint are harmless."
+   ],
+   [
+    "h2",
+    "Token and saga continuity"
+   ],
+   [
+    "ul",
+    [
+     "Held actuator <a href=./command-authorization-and-tokens.html>tokens</a> are recorded so a resumed procedure re-asserts single-writer ownership.",
+     "Pending <a href=./saga-and-compensation.html>compensations</a> are checkpointed so a crash during rollback resumes the rollback.",
+     "If a restart cannot safely re-establish state, the default is a controlled safe-state, not a blind resume."
+    ]
+   ],
+   [
+    "h2",
+    "Frequency vs cost"
+   ],
+   [
+    "p",
+    "Checkpoint cadence is tuned so the maximum re-play distance after a restart stays small, which matters most for the burner's <a href=./plug-stability-supervision.html>plug supervision</a> where the machine must not lose the plug during an orchestrator restart. All of this is validated in simulation ahead of FOAK, with fault injection that kills the orchestrator mid-procedure."
+   ]
+  ],
+  "related": [
+   [
+    "saga-and-compensation",
+    "Saga & Compensation"
+   ],
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ],
+   [
+    "plug-stability-supervision",
+    "Plug-Stability Supervision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "replay-and-what-if-simulation",
+  "title": "Replay & What-If Simulation",
+  "cat": "l4-orchestration",
+  "lede": "Recorded machine inputs are replayed against new procedure, twin, or policy versions to test changes safely before they touch hardware.",
+  "body": [
+   [
+    "h2",
+    "Test on the past, safely"
+   ],
+   [
+    "p",
+    "The recorded event streams of past breeder shots and burner runs are a corpus of real (or simulated) scenarios. What-if replay feeds these historical inputs into a modified orchestration, a new procedure version, an updated twin, a tightened envelope, and observes what it would have done. Emitted commands are captured, never sent, so the machine is untouched. This is how orchestration changes are validated before deployment."
+   ],
+   [
+    "h2",
+    "Two replay modes"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# 1. FIDELITY replay: same versions -> must reproduce recorded commands (regression)\nassert replay(shot, v_current).commands == recorded_commands(shot)\n\n# 2. WHAT-IF replay: new version -> compare behavior, commands NOT sent\nnew = replay(shot, v_candidate)\ndiff = compare(new.commands, recorded_commands(shot))\nreport(diff)   # would the candidate have mitigated sooner? stayed in envelope?"
+    ]
+   ],
+   [
+    "h2",
+    "Questions it answers"
+   ],
+   [
+    "ul",
+    [
+     "Would an updated twin have flagged this breeder disruption earlier (see <a href=./disruption-mitigation-workflow.html>disruption mitigation</a>)?",
+     "Does a tightened <a href=./safety-envelope-checks.html>envelope</a> reject any historically-approved command (a possible safety improvement or a false-positive regression)?",
+     "Does a new burner plug-supervision policy avoid a past near-loss of confinement?"
+    ]
+   ],
+   [
+    "h2",
+    "Closed loop with the twin"
+   ],
+   [
+    "p",
+    "What-if replay can drive the digital twin forward under the candidate's commands to estimate outcomes the historical record does not contain, a full closed-loop simulation seeded by real inputs. This is central to developing orchestration for machines that are not built: the breeder and burner are design-and-simulation studies, so simulated and replayed scenarios are the only proving ground before FOAK."
+   ],
+   [
+    "h2",
+    "Regression gate on deploy"
+   ],
+   [
+    "p",
+    "Fidelity replay is a mandatory gate: any orchestration change must reproduce approved past decisions unless the diff is intended and reviewed. This turns the <a href=./audit-and-decision-lineage-bus.html>lineage record</a> into an executable test suite for the control plane."
+   ]
+  ],
+  "related": [
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ],
+   [
+    "safety-envelope-checks",
+    "Safety-Envelope Checks"
+   ],
+   [
+    "disruption-mitigation-workflow",
+    "Disruption-Mitigation Workflow"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "schema-evolution-compatibility",
+  "title": "Schema Evolution & Compatibility",
+  "cat": "l4-orchestration",
+  "lede": "Schemas change over a machine's life; compatibility rules let old and new events coexist without breaking replay or in-flight procedures.",
+  "body": [
+   [
+    "h2",
+    "Long-lived machines, changing schemas"
+   ],
+   [
+    "p",
+    "The breeder and burner control stacks will evolve for years. Event schemas gain fields, diagnostics are added, and models are versioned. Without discipline, a schema change would break replay of old data or crash consumers still reading old formats. Compatibility rules in the <a href=./event-schema-registry.html>schema registry</a> keep every version readable and every consumer resilient."
+   ],
+   [
+    "h2",
+    "Compatibility classes"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Change",
+      "Backward",
+      "Forward",
+      "Allowed in place"
+     ],
+     [
+      [
+       "add optional field",
+       "yes",
+       "yes",
+       "yes"
+      ],
+      [
+       "add required field",
+       "no",
+       "yes",
+       "no (new version)"
+      ],
+      [
+       "remove field",
+       "yes",
+       "no",
+       "no (new version)"
+      ],
+      [
+       "change type/units",
+       "no",
+       "no",
+       "never (new topic)"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Rules that hold the line"
+   ],
+   [
+    "ul",
+    [
+     "Additive, optional changes only for in-place evolution; anything breaking gets a new major version or topic.",
+     "Units and types are immutable for a given schema name; a burner plug-field value never silently changes units.",
+     "Every event stamps its schema_version so decoders pick the exact schema that wrote it."
+    ]
+   ],
+   [
+    "h2",
+    "Replay across versions"
+   ],
+   [
+    "p",
+    "Because old events carry their schema version, <a href=./deterministic-replay.html>replay</a> years later decodes them with their original schema and re-runs the procedure version that was in force. A 2030 breeder shot remains replayable after later stack upgrades. This is why breaking changes must never mutate an existing schema in place; doing so would corrupt the historical record."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "decoder = registry.get(event.schema, event.schema_version)  # exact original\nrecord  = decoder.decode(event.payload)\n# new consumers read old records via backward-compatible readers"
+    ]
+   ],
+   [
+    "h2",
+    "Command schemas are strictest"
+   ],
+   [
+    "p",
+    "Command schemas change only through the same two-person process as safety rules, because a command's meaning must never drift. A command also references the envelope and rules versions it was checked against, so a schema or policy upgrade cannot retroactively validate a stale command (see <a href=./command-authorization-and-tokens.html>authorization</a>)."
+   ]
+  ],
+  "related": [
+   [
+    "event-schema-registry",
+    "Event Schema Registry"
+   ],
+   [
+    "deterministic-replay",
+    "Deterministic Replay"
+   ],
+   [
+    "command-authorization-and-tokens",
+    "Command Authorization & Tokens"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "failure-domains-and-bulkheads",
+  "title": "Failure Domains & Bulkheads",
+  "cat": "l4-orchestration",
+  "lede": "Orchestration is partitioned into isolated failure domains so a fault in one subsystem cannot cascade into machine-wide loss of control.",
+  "body": [
+   [
+    "h2",
+    "Contain the blast radius"
+   ],
+   [
+    "p",
+    "A single failing component, a stuck consumer, a crashed twin service, a flooded topic, must not take down the whole control plane. Layer 4 is partitioned into bulkheaded failure domains with bounded resource pools, so a fault is contained to its domain. The breeder magnetics pipeline failing does not stall the burner supervisor, and an analytics consumer crash never touches the gating path."
+   ],
+   [
+    "h2",
+    "Bulkhead patterns"
+   ],
+   [
+    "ul",
+    [
+     "Separate resource pools (threads, connections, buffers) per domain so one cannot exhaust another.",
+     "Circuit breakers on cross-domain calls: a failing dependency is cut off and the caller degrades gracefully.",
+     "The gating pipeline runs isolated from the ML stack so a twin/copilot outage cannot disable safety checks."
+    ]
+   ],
+   [
+    "code",
+    [
+     "python",
+     "breaker = CircuitBreaker(fail_max=5, reset_after=30)\n@breaker\ndef call_twin(state):\n    return twin.predict(state)\n# breaker OPEN -> skip twin, fall back to conservative control, never block the gate"
+    ]
+   ],
+   [
+    "h2",
+    "Degradation modes"
+   ],
+   [
+    "p",
+    "Each domain has a defined degraded mode. If the twin is unavailable, orchestration holds the current operating point and routes any needed change to a <a href=./human-in-the-loop-approval-routing.html>human gate</a> rather than acting blind. If the copilot is unavailable, no new proposals arrive and the machine simply holds. In all cases the <a href=./rules-engine-hard-bounds.html>rules</a> and <a href=./safety-envelope-checks.html>envelope</a> remain in force because they are in their own domain."
+   ],
+   [
+    "h2",
+    "No shared fate with intelligence"
+   ],
+   [
+    "p",
+    "The most important bulkhead is between the learned stack (L3/L5) and the guard (rules, envelope, interlocks). They share no process, no library that can crash both, and no resource pool. This is why a total ML-stack failure degrades the machine to a safe hold rather than to loss of control, the design principle behind the whole <a href=./action-gating-pipeline.html>gating pipeline</a>."
+   ],
+   [
+    "h2",
+    "Validated by fault injection"
+   ],
+   [
+    "p",
+    "Failure domains are proven by injecting faults, killing consumers, partitioning the network, corrupting a topic, in simulation against the twin, confirming each stays contained ahead of FOAK. Contained faults surface as <a href=./orchestration-observability-slos.html>SLO</a> breaches, not silent machine-wide failures."
+   ]
+  ],
+  "related": [
+   [
+    "orchestration-observability-slos",
+    "Observability & SLOs"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "dead-letter-and-poison-messages",
+    "Dead-Letter & Poison Messages"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "orchestration-observability-slos",
+  "title": "Observability & SLOs",
+  "cat": "l4-orchestration",
+  "lede": "The orchestration layer is measured against explicit service-level objectives for latency, lag, and safety-check availability.",
+  "body": [
+   [
+    "h2",
+    "Measure what protects the machine"
+   ],
+   [
+    "p",
+    "Orchestration health is defined by explicit SLOs, not vibes. The metrics that matter are the ones that bound how quickly and correctly a proposal becomes a gated command, and how reliably safety checks are available. These are tracked live and gate deploys via <a href=./replay-and-what-if-simulation.html>replay regression</a>."
+   ],
+   [
+    "h2",
+    "Core SLOs"
+   ],
+   [
+    "truth",
+    [
+     [
+      "SLO",
+      "Target class",
+      "Why it matters"
+     ],
+     [
+      [
+       "gate decision latency",
+       "tight, bounded",
+       "time from proposal to accept/reject"
+      ],
+      [
+       "envelope-check availability",
+       "near-total",
+       "a missing check means fail-closed rejects"
+      ],
+      [
+       "consumer lag",
+       "bounded",
+       "late state degrades control quality"
+      ],
+      [
+       "dead-letter rate",
+       "near-zero",
+       "poison events signal upstream defects"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h2",
+    "Golden signals per domain"
+   ],
+   [
+    "ul",
+    [
+     "Latency: end-to-end and per-<a href=./action-gating-pipeline.html>gate-stage</a>, so a slow envelope check is caught.",
+     "Saturation: consumer <a href=./backpressure-and-flow-control.html>lag</a> and resource-pool utilization per failure domain.",
+     "Errors: rejects by stage, dead-letter rate, circuit-breaker trips.",
+     "Traffic: event and command rates, distinguishing burst (disruption) from steady load."
+    ]
+   ],
+   [
+    "h2",
+    "Safety metrics are first-class"
+   ],
+   [
+    "p",
+    "Some metrics are not about performance but about the integrity of the guard: the fraction of commands that passed with a fresh (non-stale) envelope, the number of commands rejected for safety reasons, and the availability of the rules and envelope services. A degradation here pages immediately, because a machine whose safety checks are flaky must hold, not proceed."
+   ],
+   [
+    "h2",
+    "Observability feeds control decisions"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "if slo.envelope_availability < THRESHOLD:\n    orchestrator.enter_safe_hold()      # do not gate new energizing actions\n    page(\"envelope checker degraded\")\nif slo.consumer_lag > LAG_CRIT:\n    scheduler.pause_low_priority()      # shed load"
+    ]
+   ],
+   [
+    "p",
+    "All metrics share the correlation IDs used by <a href=./distributed-tracing-correlation.html>tracing</a> and the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a>, so a numeric SLO breach can be drilled straight to the causal events. SLOs are exercised in simulation for both machines ahead of FOAK."
+   ]
+  ],
+  "related": [
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "distributed-tracing-correlation",
+    "Distributed Tracing & Correlation"
+   ],
+   [
+    "failure-domains-and-bulkheads",
+    "Failure Domains & Bulkheads"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "two-phase-action-commit",
+  "title": "Two-Phase Action Commit",
+  "cat": "l4-orchestration",
+  "lede": "The rare actions that must span two coupled actuators atomically use a prepare-then-commit protocol with a safe abort on any failure.",
+  "body": [
+   [
+    "h2",
+    "When one command is not enough"
+   ],
+   [
+    "p",
+    "Most actions target a single actuator, but a few require two coupled changes to happen together or not at all, for example a coordinated adjustment of the burner's two end plugs, or a paired change to breeder coil currents that must move in step to preserve equilibrium. For these, Layer 4 uses a bounded two-phase commit so a partial application cannot leave the machine in an unsafe intermediate."
+   ],
+   [
+    "h2",
+    "Prepare then commit"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "PHASE 1 PREPARE:\n  ask each actuator adapter: can you reach setpoint X, within envelope+rate?\n  each replies PREPARED (reserved) or ABORT\nPHASE 2:\n  all PREPARED -> COMMIT (both apply) \n  any ABORT / timeout -> ABORT all (release reservations, no motion)"
+    ]
+   ],
+   [
+    "h2",
+    "Bounded and fail-safe"
+   ],
+   [
+    "p",
+    "Unlike a generic distributed transaction, this protocol is used sparingly, has a hard timeout, and its failure mode is defined: on any prepare failure or timeout, nothing moves. It is not used on the fast L1 control loop; it coordinates the small set of supervisory setpoint changes that are physically coupled. A blocked or uncertain commit resolves to ABORT, the safe outcome."
+   ],
+   [
+    "h2",
+    "Why not a saga here"
+   ],
+   [
+    "ul",
+    [
+     "Sagas suit long sequences where each step is independently safe and compensable.",
+     "Two-phase commit suits short, tightly-coupled pairs where an intermediate state is itself unsafe.",
+     "The two compose: a <a href=./saga-and-compensation.html>saga</a> step may internally use a two-phase commit for a coupled pair."
+    ]
+   ],
+   [
+    "h2",
+    "Still fully gated"
+   ],
+   [
+    "p",
+    "Both prepared setpoints pass the full <a href=./action-gating-pipeline.html>gating pipeline</a> before PREPARE, so a two-phase action is not a bypass of rules, envelope, or authorization; it only adds atomicity across two already-approved commands. The prepare, commit, and abort steps are all journalled to the <a href=./audit-and-decision-lineage-bus.html>lineage bus</a> and are <a href=./deterministic-replay.html>replayable</a>."
+   ]
+  ],
+  "related": [
+   [
+    "saga-and-compensation",
+    "Saga & Compensation"
+   ],
+   [
+    "action-gating-pipeline",
+    "Action-Gating Pipeline"
+   ],
+   [
+    "exactly-once-vs-at-least-once",
+    "Exactly-Once vs At-Least-Once"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "campaign-parameter-sweep-orchestration",
+  "title": "Campaign Parameter-Sweep Orchestration",
+  "cat": "l4-orchestration",
+  "lede": "A sweep orchestrator generates comparable shot plans across a parameter grid, submits them by priority, and adapts the grid from results.",
+  "body": [
+   [
+    "h2",
+    "Systematic exploration"
+   ],
+   [
+    "p",
+    "A breeder campaign explores how the machine behaves as parameters vary: fuelling, heating waveform, shape, and the tritium breeding ratio design lever across 1.1, 1.5, and 1.8. The sweep orchestrator turns a parameter specification into an ordered set of individual shot plans, each identical in structure so results are directly comparable, and submits them to the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a>."
+   ],
+   [
+    "h2",
+    "Grid to plans"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "grid = product(fuelling=[...], heating=[...], tbr_lever=[1.1,1.5,1.8])\nfor point in ordered(grid, by=RISK_ASCENDING):   # safe points first\n    plan = shot_plan(base=campaign.base, overrides=point)\n    plan.priority = P2\n    scheduler.submit(plan)                       # each runs on the shot state machine"
+    ]
+   ],
+   [
+    "h2",
+    "Safety-ordered execution"
+   ],
+   [
+    "ul",
+    [
+     "Points are ordered so lower-risk operating points run before more aggressive ones.",
+     "A new point at the frontier of the sweep is treated as a new operating point and may require higher <a href=./approval-policy-and-quorum.html>approval authority</a>.",
+     "Every commanded point is still bounded by the <a href=./safety-envelope-checks.html>envelope</a>; the sweep cannot request an out-of-envelope point."
+    ]
+   ],
+   [
+    "h2",
+    "Adaptive sweeps"
+   ],
+   [
+    "p",
+    "The sweep can be adaptive: results from completed shots (fed by the twin and diagnostics) reshape the remaining grid, concentrating shots where behavior is most informative or refining near a boundary. A copilot (L5) may propose the next point, but that proposal is gated exactly like any other action, so an adaptive sweep never escapes the safety discipline."
+   ],
+   [
+    "h2",
+    "Rollup and reproducibility"
+   ],
+   [
+    "p",
+    "Per-shot results roll up into the <a href=./breeder-tritium-campaign-workflow.html>tritium campaign workflow</a> accounting, and the entire sweep, its grid, ordering, and adaptations, is journalled so it is fully <a href=./deterministic-replay.html>replayable</a>. As a design-and-simulation study, sweeps are first executed against the twin, so the sweep logic and its safety ordering are proven before the breeder is built."
+   ]
+  ],
+  "related": [
+   [
+    "experiment-scheduler-priority-preemption",
+    "Experiment Scheduler with Priority & Preemption"
+   ],
+   [
+    "breeder-tritium-campaign-workflow",
+    "Breeder Tritium Campaign Workflow"
+   ],
+   [
+    "shot-sequence-orchestration",
+    "Shot-Sequence Orchestration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

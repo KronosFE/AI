@@ -1,0 +1,2086 @@
+[
+ {
+  "slug": "quantum-for-fusion-overview",
+  "title": "Where Quantum Computing Fits for Kronos",
+  "cat": "quantum-for-fusion",
+  "lede": "A candid map of the few fusion problems where quantum computing has a credible long-term role, and the many where it does not.",
+  "body": [
+   [
+    "h2",
+    "The honest starting point"
+   ],
+   [
+    "p",
+    "Quantum computing is not a general accelerator for the Kronos machines. Nothing in the microsecond control plane runs on a quantum processor, and nothing will: the breeder (Hyperion, D-T spherical tokamak) and the burner (Aegis / MetroVolt, D-3He tandem mirror) are controlled by deterministic classical hardware. Quantum computing belongs strictly in the offline <a href=./quantum-classical-hybrid-workflows.html>L0 foundation layer</a>, alongside classical supercomputing, and only for a narrow class of problems whose structure classical methods struggle with."
+   ],
+   [
+    "p",
+    "The credible candidates fall into three families: quantum <b>simulation</b> of strongly correlated electronic structure (first-wall materials, blanket chemistry, REBCO superconductors), quantum <b>optimization</b> of combinatorial schedules and layouts, and, at the hardware level, the He-3 supply link between fusion byproducts and the dilution refrigerators that cool qubits."
+   ],
+   [
+    "h3",
+    "What quantum can and cannot touch"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Kronos problem",
+      "Quantum-relevant?",
+      "Why"
+     ],
+     [
+      [
+       "Microsecond plasma control",
+       "no",
+       "latency + determinism required"
+      ],
+      [
+       "Grad-Shafranov / MHD PDE solves",
+       "weak",
+       "classical PINNs/FEM already strong"
+      ],
+      [
+       "First-wall / blanket electronic structure",
+       "yes (long-term)",
+       "correlated fermions, exponential state space"
+      ],
+      [
+       "Fleet & campaign scheduling",
+       "maybe",
+       "NP-hard combinatorics, heuristic today"
+      ],
+      [
+       "He-3 cooling supply",
+       "yes (hardware)",
+       "physical isotope link, not compute"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "The rule we hold"
+   ],
+   [
+    "p",
+    "We claim no quantum advantage that has not been demonstrated. On today's noisy intermediate-scale quantum (NISQ) devices, no fusion-relevant computation has beaten the best classical method. Every page in this category states where a technique sits on the near-term / long-term axis and what would have to be true for it to matter. See the <a href=./quantum-honest-assessment-nisq.html>honest assessment</a> and the <a href=./quantum-roadmap-kronos.html>Kronos roadmap</a>."
+   ],
+   [
+    "p",
+    "The value proposition is asymmetric and patient: quantum simulation of a single tungsten grain boundary under 14 MeV neutron damage, if it becomes feasible, would inform first-wall material choices for decades of fleet operation. That is the kind of high-leverage, non-time-critical question worth positioning for now, without betting operations on it."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest NISQ assessment"
+   ],
+   [
+    "quantum-classical-hybrid-workflows",
+    "Hybrid workflows in L0"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Kronos quantum roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-honest-assessment-nisq",
+  "title": "NISQ Reality: Near-Term vs Long-Term",
+  "cat": "quantum-for-fusion",
+  "lede": "On current noisy devices no fusion computation beats classical; the honest case for quantum is fault-tolerant and years out.",
+  "body": [
+   [
+    "h2",
+    "What NISQ can actually do today"
+   ],
+   [
+    "p",
+    "Noisy intermediate-scale quantum (NISQ) devices have on the order of tens to low hundreds of physical qubits, two-qubit gate error rates around 1e-3 to 1e-2, and coherence times that limit circuits to roughly hundreds to low thousands of gates before noise dominates the signal. This budget is far too small for any Kronos materials problem at useful accuracy."
+   ],
+   [
+    "p",
+    "The circuit depth reachable before noise swamps the answer scales roughly as the inverse of the per-gate error. If a variational chemistry circuit for a modest active space needs depth D and two-qubit count G, the probability the whole circuit runs clean is approximately:"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "P_clean  ~=  (1 - e2)^G\n\n# e2  = two-qubit gate error (~1e-3 best hardware)\n# G   = number of two-qubit gates in the circuit\n# For G = 1e4, e2 = 1e-3:  P_clean ~= e^{-10} ~= 4.5e-5\n# -> answer is buried in noise without error mitigation/correction"
+    ]
+   ],
+   [
+    "h3",
+    "The three honest statements"
+   ],
+   [
+    "ul",
+    [
+     "No published quantum computation has produced a fusion-relevant materials or plasma result more accurate or faster than the best classical method.",
+     "Variational methods (VQE, QAOA) have no proven scaling advantage and face barren-plateau and measurement-cost obstacles.",
+     "The credible advantage cases require fault-tolerant, error-corrected machines that do not yet exist at the needed scale."
+    ]
+   ],
+   [
+    "h3",
+    "Where the line is"
+   ],
+   [
+    "p",
+    "We treat near-term quantum as a research and benchmarking activity, not a production tool. It runs in <a href=./quantum-classical-hybrid-workflows.html>L0</a> next to classical solvers, always with a classical baseline computed in parallel. A quantum result is accepted only if it reproduces the classical answer on cases classical can reach, before we ever trust it on cases classical cannot. See <a href=./error-mitigation-nisq.html>error mitigation</a> and <a href=./quantum-error-correction-surface-code.html>error correction</a> for what changes the picture."
+   ],
+   [
+    "p",
+    "This candor is a feature. Overclaiming quantum advantage would poison the same trust the honest breeder and burner gates are meant to build. The machines are design-and-simulation studies until FOAK first tritium around 2030; the quantum program is positioned on an even longer horizon."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ],
+   [
+    "error-mitigation-nisq",
+    "Error mitigation"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Fault-tolerant resource estimates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hamiltonian-simulation-basics",
+  "title": "Hamiltonian Simulation for Fusion Materials",
+  "cat": "quantum-for-fusion",
+  "lede": "Simulating quantum time evolution e^{-iHt} is the core primitive behind every materials and chemistry use case in the Kronos quantum program.",
+  "body": [
+   [
+    "h2",
+    "The primitive: unitary time evolution"
+   ],
+   [
+    "p",
+    "The reason quantum computers are interesting for materials at all is that simulating the time evolution of a quantum system is native to them. For a Hamiltonian H, the state evolves by the unitary U(t) = exp(-i H t / hbar). Classically, representing the state of n interacting fermions costs memory that grows exponentially; a quantum register stores it in n qubits and evolves it with a circuit."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "i hbar d|psi>/dt = H |psi>\n=> |psi(t)> = U(t)|psi(0)>,   U(t) = exp(-i H t / hbar)\n\n# H for an electronic-structure problem (second quantization):\nH = sum_pq  h_pq a_p^dag a_q\n  + (1/2) sum_pqrs  g_pqrs a_p^dag a_q^dag a_r a_s\n#   h_pq   one-electron integrals (kinetic + nuclear)\n#   g_pqrs two-electron Coulomb integrals"
+    ]
+   ],
+   [
+    "h3",
+    "Why Kronos cares"
+   ],
+   [
+    "ul",
+    [
+     "First-wall tungsten and its response to 14 MeV neutron damage is a strongly correlated d-electron problem.",
+     "Lithium-bearing breeder blanket chemistry governs tritium retention and release.",
+     "REBCO high-temperature superconductors, the basis of the 16.84 T breeder magnets, are correlated-electron materials no classical method solves cleanly."
+    ]
+   ],
+   [
+    "h3",
+    "From fermions to qubits"
+   ],
+   [
+    "p",
+    "To run on qubits the fermionic operators must be mapped to Pauli operators via the Jordan-Wigner or Bravyi-Kitaev transformation, turning H into a weighted sum of Pauli strings H = sum_k c_k P_k. Two implementation routes then exist: product-formula methods (<a href=./trotter-suzuki-decomposition.html>Trotterization</a>) and modern <a href=./qubitization-lcu.html>qubitization / LCU</a> methods with better asymptotic scaling."
+   ],
+   [
+    "p",
+    "The eigenvalues of H are the energy levels we ultimately want; time evolution is the engine that <a href=./quantum-phase-estimation-energy-eigenvalues.html>quantum phase estimation</a> uses to extract them, and the variational <a href=./vqe-first-wall-materials.html>VQE</a> approach uses shorter evolutions as ansatz building blocks. All of this is offline L0 work with a classical reference solve run alongside; none of it touches the real-time machines."
+   ]
+  ],
+  "related": [
+   [
+    "trotter-suzuki-decomposition",
+    "Trotterization"
+   ],
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "quantum-phase-estimation-energy-eigenvalues",
+    "Phase estimation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "trotter-suzuki-decomposition",
+  "title": "Trotter-Suzuki Product Formulas",
+  "cat": "quantum-for-fusion",
+  "lede": "Product formulas approximate e^{-iHt} by chopping it into small implementable steps, the workhorse of near-term Hamiltonian simulation.",
+  "body": [
+   [
+    "h2",
+    "Splitting a non-commuting exponential"
+   ],
+   [
+    "p",
+    "The Hamiltonian is a sum H = sum_j H_j of terms that do not commute, so exp(-iHt) is not the product of the individual exponentials. The Lie-Trotter formula recovers it in the limit of many small steps, and the second-order Suzuki formula halves the leading error."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# First-order (Lie-Trotter), r steps of size dt = t/r\n# exp(-iHt) ~= [ prod_j exp(-i H_j dt) ]^r\n\n# Second-order (Suzuki) symmetric splitting:\n# S2(dt) = prod_j exp(-i H_j dt/2) * prod_{j reversed} exp(-i H_j dt/2)\n\ndef trotter2(H_terms, t, r):\n    dt = t / r\n    step = []\n    for Hj in H_terms:            step.append(('exp', Hj, dt/2))\n    for Hj in reversed(H_terms):  step.append(('exp', Hj, dt/2))\n    return step * r          # circuit = r repetitions of S2"
+    ]
+   ],
+   [
+    "h3",
+    "Error scaling"
+   ],
+   [
+    "p",
+    "For the first-order formula the total error scales as O(t^2/r), i.e. it falls linearly with the number of steps r. The second-order formula scales as O(t^3/r^2). More precisely the step error is bounded by nested commutators of the terms:"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "|| exp(-iHt) - S2(t/r)^r ||  =  O( t^3 / r^2 * sum_{j,k,l} ||[H_j,[H_k,H_l]]|| )\n# commutator norms -> tighter bounds when terms nearly commute\n# gate count grows with number of Pauli terms L and steps r"
+    ]
+   ],
+   [
+    "h3",
+    "Fit to the Kronos program"
+   ],
+   [
+    "ul",
+    [
+     "Simple to compile and requires no extra ancilla qubits, so it is the first thing tried on NISQ hardware.",
+     "Circuit depth grows with the number of Pauli terms, which for a realistic first-wall active space is large.",
+     "Practical accuracy on today's devices is limited by gate noise long before the Trotter error itself matters."
+    ]
+   ],
+   [
+    "p",
+    "For Kronos, Trotterization is a benchmarking primitive: we use it to generate short-time evolutions inside <a href=./vqe-ansatze-uccsd-hardware-efficient.html>UCCSD ansatze</a> and to validate against classical exact-diagonalization on small <a href=./vqe-first-wall-materials.html>first-wall</a> clusters. For asymptotically better scaling we look to <a href=./qubitization-lcu.html>qubitization</a>, and for eigenvalues to <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "hamiltonian-simulation-basics",
+    "Hamiltonian simulation"
+   ],
+   [
+    "qubitization-lcu",
+    "Qubitization / LCU"
+   ],
+   [
+    "quantum-phase-estimation-energy-eigenvalues",
+    "Phase estimation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "qubitization-lcu",
+  "title": "Qubitization and Linear Combination of Unitaries",
+  "cat": "quantum-for-fusion",
+  "lede": "Block-encoding and qubitization give near-optimal Hamiltonian simulation scaling, the fault-tolerant route Kronos targets for materials.",
+  "body": [
+   [
+    "h2",
+    "Beyond product formulas"
+   ],
+   [
+    "p",
+    "Product formulas like <a href=./trotter-suzuki-decomposition.html>Trotter</a> are simple but scale poorly in the number of Hamiltonian terms and required precision. The modern approach writes H as a linear combination of unitaries (LCU) and builds a block encoding: a larger unitary that contains H/alpha in a corner, accessed through ancilla qubits."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "H = sum_k c_k U_k          # LCU: U_k unitary (Pauli strings), c_k >= 0\nalpha = sum_k c_k          # the '1-norm' of the Hamiltonian\n\n# PREPARE:  |0> -> sum_k sqrt(c_k/alpha) |k>\n# SELECT :  |k>|psi> -> |k> U_k |psi>\n# Block encoding U_H = PREPARE^dag . SELECT . PREPARE\n#   <0|_anc U_H |0>_anc = H / alpha"
+    ]
+   ],
+   [
+    "h3",
+    "Qubitization and the query cost"
+   ],
+   [
+    "p",
+    "Iterating the block encoding with reflections (the Szegedy-style walk operator) 'qubitizes' the problem: the eigenphases of the walk operator encode arccos of the eigenvalues of H/alpha. Simulating for time t then costs a number of queries that is near-optimal:"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "query_cost(t, eps)  =  O( alpha*t  +  log(1/eps) )\n#   alpha  = Hamiltonian 1-norm (the effective 'block-encoding cost')\n#   t      = evolution time,  eps = target error\n# This is optimal in t and in eps (additive log term) -- unlike Trotter's\n# polynomial-in-1/eps scaling."
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters for first-wall chemistry"
+   ],
+   [
+    "ul",
+    [
+     "Precision-friendly: extra digits of accuracy cost only logarithmically, important for chemically accurate energies.",
+     "Scaling is governed by the Hamiltonian 1-norm alpha, which drives most fault-tolerant resource estimates.",
+     "Requires clean logical qubits and many T gates, so it is a post-<a href=./quantum-error-correction-surface-code.html>error-correction</a> technique, not NISQ."
+    ]
+   ],
+   [
+    "p",
+    "Kronos treats qubitization as the reference architecture for future materials simulation: it is what our <a href=./resource-estimation-fault-tolerant.html>fault-tolerant resource estimates</a> assume when counting logical qubits and T gates for a tungsten defect cluster. It does not run on any device we can access today, and we say so plainly."
+   ]
+  ],
+  "related": [
+   [
+    "trotter-suzuki-decomposition",
+    "Trotterization"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ],
+   [
+    "quantum-error-correction-surface-code",
+    "Surface-code QEC"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vqe-first-wall-materials",
+  "title": "VQE for First-Wall Electronic Structure",
+  "cat": "quantum-for-fusion",
+  "lede": "The variational quantum eigensolver estimates ground-state energies of first-wall materials by minimizing a classically driven cost over a quantum ansatz.",
+  "body": [
+   [
+    "h2",
+    "The variational principle on hardware"
+   ],
+   [
+    "p",
+    "The variational quantum eigensolver (VQE) is the leading NISQ approach to electronic structure. It prepares a parameterized state |psi(theta)>, measures the energy expectation, and hands that scalar to a classical optimizer that adjusts theta. It rests on the variational principle: the measured energy is always an upper bound on the true ground-state energy."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# VQE outer loop (classical optimizer drives quantum evaluations)\ndef vqe(H_paulis, ansatz, theta0, optimizer):\n    def energy(theta):\n        E = 0.0\n        for coeff, pauli in H_paulis:      # H = sum coeff * Pauli\n            E += coeff * measure_expectation(ansatz(theta), pauli)\n        return E                            # <psi(theta)| H |psi(theta)>\n    return optimizer.minimize(energy, theta0)\n\n# Variational bound:  E(theta) = <psi(theta)|H|psi(theta)>  >=  E_ground"
+    ]
+   ],
+   [
+    "h3",
+    "The first-wall problem"
+   ],
+   [
+    "p",
+    "The breeder first wall faces 14 MeV neutrons at high fluence. Understanding displacement damage, helium and hydrogen retention, and vacancy clustering in tungsten requires accurate energetics of open-shell d-electron configurations, where classical mean-field methods are least reliable. A small correlated active space around a defect is the natural target for VQE benchmarking."
+   ],
+   [
+    "h3",
+    "The obstacles we do not hide"
+   ],
+   [
+    "ul",
+    [
+     "Measurement cost: the number of Pauli terms grows as O(N^4) in orbitals, so accurate energies need enormous shot counts.",
+     "Barren plateaus: for many ansatze the cost-function gradient vanishes exponentially in qubit count, stalling optimization.",
+     "Noise: gate errors bias the energy, requiring <a href=./error-mitigation-nisq.html>error mitigation</a> that itself costs more samples."
+    ]
+   ],
+   [
+    "p",
+    "Because of these, VQE has not beaten classical coupled-cluster or DMRG on any real first-wall problem. Kronos uses it as a calibrated benchmark: run VQE and a classical solver on the same small active space, and only extend trust as hardware and <a href=./vqe-ansatze-uccsd-hardware-efficient.html>ansatze</a> improve. Genuine advantage waits on <a href=./quantum-error-correction-surface-code.html>error correction</a>."
+   ]
+  ],
+  "related": [
+   [
+    "vqe-ansatze-uccsd-hardware-efficient",
+    "VQE ansatze"
+   ],
+   [
+    "defect-formation-neutron-damage-quantum",
+    "Neutron-damage defects"
+   ],
+   [
+    "error-mitigation-nisq",
+    "Error mitigation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vqe-ansatze-uccsd-hardware-efficient",
+  "title": "VQE Ansatze: UCCSD vs Hardware-Efficient",
+  "cat": "quantum-for-fusion",
+  "lede": "The choice of parameterized circuit trades physical motivation against hardware depth, and both families hit real limits for fusion materials.",
+  "body": [
+   [
+    "h2",
+    "Two families of trial state"
+   ],
+   [
+    "p",
+    "VQE lives or dies by its ansatz, the parameterized circuit that prepares |psi(theta)>. Two families dominate. The unitary coupled-cluster (UCCSD) ansatz is chemically motivated; hardware-efficient ansatze are shallow circuits built from whatever native gates a device offers."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Unitary coupled cluster, singles + doubles (UCCSD):\n|psi(theta)> = exp( T(theta) - T(theta)^dag ) |HF>\nT = sum_{ia} t_ia a_a^dag a_i                       # singles\n  + sum_{ijab} t_ijab a_a^dag a_b^dag a_i a_j       # doubles\n# implemented via Trotterized exponentials of Pauli strings\n\n# Hardware-efficient (layer l of rotations + entanglers):\n|psi(theta)> = prod_l [ U_ent . (x)_q Ry(theta_{l,q}) ] |0...0>"
+    ]
+   ],
+   [
+    "h3",
+    "The trade"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Ansatz",
+      "Strength",
+      "Weakness"
+     ],
+     [
+      [
+       "UCCSD",
+       "physically grounded, systematic",
+       "deep circuits, many terms -> NISQ-infeasible"
+      ],
+      [
+       "Hardware-efficient",
+       "shallow, native gates",
+       "barren plateaus, no physical guarantee"
+      ],
+      [
+       "ADAPT-VQE",
+       "grows operator pool adaptively",
+       "many measurements to pick operators"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Barren plateaus"
+   ],
+   [
+    "p",
+    "For expressive random ansatze the variance of the cost gradient shrinks exponentially with qubit number n, so the optimization landscape becomes flat and untrainable. This is a fundamental obstacle, not a tuning issue."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Var[ d<H>/d(theta_k) ]  ~  O( 2^{-n} )   (barren plateau)\n# gradients vanish exponentially -> optimizer sees noise, not signal\n# mitigations: shallow/structured ansatze, local cost functions,\n#              good initialization -- none fully solve it"
+    ]
+   ],
+   [
+    "p",
+    "For Kronos first-wall work, UCCSD is the accuracy reference but too deep for current hardware, while hardware-efficient circuits are runnable but risk barren plateaus. This tension is exactly why we consider <a href=./vqe-first-wall-materials.html>VQE</a> a benchmark rather than a production method, and why <a href=./tensor-networks-classical-quantum-bridge.html>tensor networks</a> remain the strong classical competitor to beat."
+   ]
+  ],
+  "related": [
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "tensor-networks-classical-quantum-bridge",
+    "Tensor networks"
+   ],
+   [
+    "quantum-machine-learning-honest",
+    "QML honest view"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-chemistry-blanket-tritium-retention",
+  "title": "Quantum Chemistry of Blanket Tritium Retention",
+  "cat": "quantum-for-fusion",
+  "lede": "Tritium retention and release in the breeder blanket is a chemistry problem where correlated quantum simulation could inform long-term material choices.",
+  "body": [
+   [
+    "h2",
+    "Why blanket chemistry is hard"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is designed around a tritium breeding ratio treated as a lever across 1.1, 1.5, and 1.8. Whatever tritium is bred is only useful if it can be recovered: hydrogen isotopes bind, diffuse, and trap in the lithium-bearing blanket and structural materials. Predicting binding energies and trapping at defects and interfaces is a correlated-electron chemistry problem."
+   ],
+   [
+    "p",
+    "The quantities of interest are formation and binding energies of hydrogen isotopes at vacancies, grain boundaries, and lithium ceramic surfaces. These set retention inventories and release temperatures, which feed the fuel-cycle balance the breeder must close to reach roughly the 4 kg/yr tritium-class product."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Binding energy of a trapped tritium atom at a defect site:\nE_bind = E(defect) + E(T_interstitial) - E(defect + T) - E(bulk)\n# each E is a ground-state electronic-structure energy -> VQE/QPE target\n\n# Release follows Arrhenius trapping/detrapping:\nk_detrap = nu0 * exp( -(E_migration + E_bind) / (k_B * T) )\n#   nu0 attempt frequency; E_bind is the quantum-chemistry unknown"
+    ]
+   ],
+   [
+    "h3",
+    "Where quantum could help"
+   ],
+   [
+    "ul",
+    [
+     "Isotope effects (H/D/T) enter through zero-point energy on top of the electronic surface, so accurate energies matter.",
+     "Lithium ceramic and multivalent transition-metal sites are exactly where classical DFT is least trustworthy.",
+     "A handful of accurate defect binding energies would recalibrate large classical rate models used in the digital twin."
+    ]
+   ],
+   [
+    "h3",
+    "Honest status"
+   ],
+   [
+    "p",
+    "This is a long-horizon target. Today the accurate references come from classical quantum chemistry and are fed into classical rate-theory models. Quantum simulation is positioned to eventually supply the few binding energies where classical methods disagree, once <a href=./resource-estimation-fault-tolerant.html>fault-tolerant resources</a> exist. Until then it is a benchmarking exercise validated against classical results and, ultimately, against measured release curves after FOAK around 2030. It ties directly to <a href=./defect-formation-neutron-damage-quantum.html>neutron-damage defect chemistry</a>."
+   ]
+  ],
+  "related": [
+   [
+    "defect-formation-neutron-damage-quantum",
+    "Neutron-damage defects"
+   ],
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-superconductor-electronic-structure",
+  "title": "Quantum Simulation of REBCO Superconductors",
+  "cat": "quantum-for-fusion",
+  "lede": "The breeder's 16.84 T magnets rely on REBCO, a correlated-electron superconductor whose microscopics remain a target for quantum simulation.",
+  "body": [
+   [
+    "h2",
+    "Why REBCO is a quantum problem"
+   ],
+   [
+    "p",
+    "The breeder reaches a peak field of 16.84 T (8 T on axis) and 9.86 MA plasma current using REBCO high-temperature superconducting tape. REBCO is a cuprate: its superconductivity emerges from strongly correlated copper-oxygen planes that resist mean-field description. The canonical minimal model is the two-dimensional Hubbard model, itself unsolved in the interesting regime."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Fermi-Hubbard model (minimal cuprate physics):\nH = -t sum_{<i,j>,s} ( c_{i,s}^dag c_{j,s} + h.c. )\n    + U sum_i n_{i,up} n_{i,down}\n#   t  hopping amplitude,  U on-site Coulomb repulsion\n#   large U / doping regime = classically hard, quantum-relevant"
+    ]
+   ],
+   [
+    "h3",
+    "What we would want to know"
+   ],
+   [
+    "ul",
+    [
+     "Critical current and its degradation under strain, which limits magnet design margins.",
+     "Pinning behavior and how defects set the current the tape can carry.",
+     "Response to the neutron and gamma environment near the plasma over fleet lifetimes."
+    ]
+   ],
+   [
+    "h3",
+    "Quantum vs classical reality"
+   ],
+   [
+    "p",
+    "The Hubbard model is a headline quantum-simulation target precisely because classical methods (quantum Monte Carlo, DMRG, <a href=./tensor-networks-classical-quantum-bridge.html>tensor networks</a>) hit the fermion sign problem or entanglement growth in two dimensions. A quantum device that could reach large 2D lattices at strong coupling would be genuinely new physics capability."
+   ],
+   [
+    "p",
+    "But the practical link to magnet engineering is indirect: engineering-scale critical-current and quench behavior are governed by mesoscale defect structure, not by solving the Hubbard model. Kronos positions REBCO quantum simulation as fundamental-understanding research, not as a design tool for the FOAK magnets, whose margins are set by measured tape performance and classical electromagnetics. Strain-driven quench sensing on the real magnets is a classical control problem handled elsewhere in the stack."
+   ]
+  ],
+  "related": [
+   [
+    "defect-formation-neutron-damage-quantum",
+    "Neutron-damage defects"
+   ],
+   [
+    "tensor-networks-classical-quantum-bridge",
+    "Tensor networks"
+   ],
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "defect-formation-neutron-damage-quantum",
+  "title": "Quantum Simulation of Neutron-Damage Defects",
+  "cat": "quantum-for-fusion",
+  "lede": "14 MeV neutrons displace atoms and grow defect clusters; their formation energies are correlated-electron quantities quantum simulation targets.",
+  "body": [
+   [
+    "h2",
+    "The damage cascade endpoint"
+   ],
+   [
+    "p",
+    "Both machines produce fast neutrons: the breeder at 88.7 MW of D-T fusion power with a 14 MeV neutron spectrum, and the burner with a 5.44% neutron fraction from D-3He side reactions. A 14 MeV neutron initiates a displacement cascade that leaves vacancies, self-interstitials, and, through transmutation, helium and hydrogen. The long-term material state is governed by the energetics of the surviving defects."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Displacements per atom from cascade (NRT-style estimate):\nN_d = 0.8 * E_dam / (2 * E_d)\n#   E_dam damage energy, E_d displacement threshold (~90 eV for W)\n\n# Vacancy formation energy (electronic-structure ground states):\nE_f^vac = E(N-1 atoms, relaxed) - ((N-1)/N) * E(N atoms, perfect)\n# open-shell, magnetic transition metals -> correlation-sensitive"
+    ]
+   ],
+   [
+    "h3",
+    "Where classical methods wobble"
+   ],
+   [
+    "ul",
+    [
+     "Helium-vacancy cluster energetics in tungsten, which drive bubble nucleation and surface blistering.",
+     "Magnetic and open-shell configurations at defect cores, where DFT exchange-correlation choices change answers.",
+     "Interstitial hydrogen isotope binding, coupling to <a href=./quantum-chemistry-blanket-tritium-retention.html>tritium retention</a>."
+    ]
+   ],
+   [
+    "h3",
+    "The quantum role, stated honestly"
+   ],
+   [
+    "p",
+    "Multiscale damage modeling is overwhelmingly classical: molecular dynamics for cascades, rate theory and kinetic Monte Carlo for microstructure evolution. Quantum simulation would supply only the small set of formation and binding energies where classical electronic-structure methods disagree by chemically significant amounts."
+   ],
+   [
+    "p",
+    "That is a narrow but high-leverage insertion point: a few accurate numbers recalibrating rate models that predict first-wall lifetime across the fleet. It requires accurate ground-state energies via <a href=./vqe-first-wall-materials.html>VQE</a> or <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a> at accuracies that today demand <a href=./resource-estimation-fault-tolerant.html>fault-tolerant machines</a>. We validate every quantum estimate against classical references before it informs any material decision."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-chemistry-blanket-tritium-retention",
+    "Tritium retention"
+   ],
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-phase-estimation-energy-eigenvalues",
+  "title": "Quantum Phase Estimation for Energy Levels",
+  "cat": "quantum-for-fusion",
+  "lede": "Phase estimation extracts eigenvalues of a Hamiltonian to arbitrary precision, the fault-tolerant route to chemically accurate fusion-material energies.",
+  "body": [
+   [
+    "h2",
+    "Reading energies from phases"
+   ],
+   [
+    "p",
+    "Quantum phase estimation (QPE) is the algorithm that turns Hamiltonian time evolution into a number. If |psi> is an eigenstate of U = exp(-iHt) with eigenvalue exp(-i E t), QPE measures the phase E t and therefore the energy E. Unlike variational <a href=./vqe-first-wall-materials.html>VQE</a>, its precision improves systematically with more ancilla qubits rather than more optimization."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# QPE circuit sketch\n1. prepare ancilla |0>^m and system state |psi> (overlap with eigenstate)\n2. apply controlled-U^{2^k} for k = 0..m-1     (U = exp(-iHt))\n3. inverse QFT on the ancilla register\n4. measure ancilla -> binary fraction ~ (E t)/(2*pi)\n\n# Precision:  eps ~ 2^{-m}  with m ancilla qubits\n# Runtime per estimate:  O(1/eps) applications of U"
+    ]
+   ],
+   [
+    "h3",
+    "Cost and preconditions"
+   ],
+   [
+    "ul",
+    [
+     "Needs a good initial state with non-negligible overlap on the target eigenstate; success probability scales with that overlap squared.",
+     "Needs long coherent circuits (many controlled-U calls), so it is inherently a fault-tolerant algorithm.",
+     "Precision cost is O(1/eps), a favorable scaling that motivates the whole materials case."
+    ]
+   ],
+   [
+    "h3",
+    "Chemical accuracy is the bar"
+   ],
+   [
+    "p",
+    "For first-wall and blanket energetics the target is chemical accuracy, roughly 1 kcal/mol (about 1.6 milli-Hartree). Reaching that with QPE means m large enough that eps is well below that threshold, driving the <a href=./resource-estimation-fault-tolerant.html>logical-qubit and T-gate counts</a> that define the fault-tolerant era."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "chemical accuracy: eps ~ 1.6e-3 Hartree\n=> m ~ log2( E_range / eps )  ancilla bits\n=> controlled-U calls ~ O(1/eps) ~ hundreds to thousands per digit\n# only tractable with error-corrected logical qubits"
+    ]
+   ],
+   [
+    "p",
+    "QPE is the destination, not a near-term tool. Kronos treats it as the reference algorithm behind resource estimates for a first-wall defect cluster and validates the full pipeline on tiny systems where classical exact diagonalization gives the ground truth. It relies on <a href=./hamiltonian-simulation-basics.html>Hamiltonian simulation</a> and <a href=./qubitization-lcu.html>qubitization</a> as subroutines."
+   ]
+  ],
+  "related": [
+   [
+    "hamiltonian-simulation-basics",
+    "Hamiltonian simulation"
+   ],
+   [
+    "qubitization-lcu",
+    "Qubitization"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "qaoa-fundamentals",
+  "title": "QAOA: Quantum Approximate Optimization",
+  "cat": "quantum-for-fusion",
+  "lede": "QAOA is the leading gate-model approach to combinatorial optimization; Kronos evaluates it for scheduling and layout, with no advantage assumed.",
+  "body": [
+   [
+    "h2",
+    "Optimization as an energy minimum"
+   ],
+   [
+    "p",
+    "Many Kronos planning problems, fleet maintenance windows, experiment campaign order, component layout, are combinatorial optimizations. The quantum approximate optimization algorithm (QAOA) encodes the objective as an Ising Hamiltonian whose ground state is the optimal assignment, then alternates two operators to push a state toward it."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Encode cost C(z) over bit strings z as a diagonal Hamiltonian:\nH_C |z> = C(z) |z>          # e.g. Ising:  C = sum J_ij z_i z_j + sum h_i z_i\nH_B = sum_i X_i             # mixer (transverse field)\n\n# QAOA depth-p ansatz:\n|gamma,beta> = prod_{l=1..p} [ exp(-i beta_l H_B) exp(-i gamma_l H_C) ] |+>^n\n# classically optimize (gamma,beta) to minimize <H_C>"
+    ]
+   ],
+   [
+    "h3",
+    "How it is meant to work"
+   ],
+   [
+    "ul",
+    [
+     "The cost-operator phase separation marks good bit strings; the mixer spreads amplitude toward them.",
+     "Depth p controls expressivity: p -> infinity recovers the adiabatic optimum, but depth is limited by noise.",
+     "A classical optimizer tunes the 2p angles using measured expectation values."
+    ]
+   ],
+   [
+    "h3",
+    "The honest verdict"
+   ],
+   [
+    "p",
+    "QAOA has no proven advantage over classical heuristics for the problem sizes and depths reachable on current hardware. At shallow depth it is often matched or beaten by classical solvers like simulated annealing and specialized branch-and-bound. Kronos treats it as a candidate to be benchmarked, never as a default. See the concrete mappings for <a href=./qaoa-maintenance-scheduling.html>maintenance scheduling</a> and <a href=./qaoa-experiment-campaign-scheduling.html>campaign scheduling</a>, the required <a href=./ising-qubo-mappings-fusion.html>QUBO/Ising encodings</a>, and the <a href=./quantum-annealing-vs-gate-model.html>annealing comparison</a>."
+   ],
+   [
+    "p",
+    "Crucially, none of this runs in operations. Scheduling for the real machines is done by classical solvers with hard safety constraints; QAOA is an L0 research track that must first beat the classical baseline on Kronos-shaped instances before it earns any production role."
+   ]
+  ],
+  "related": [
+   [
+    "ising-qubo-mappings-fusion",
+    "QUBO/Ising mappings"
+   ],
+   [
+    "qaoa-maintenance-scheduling",
+    "Maintenance scheduling"
+   ],
+   [
+    "quantum-annealing-vs-gate-model",
+    "Annealing vs gate model"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "qaoa-maintenance-scheduling",
+  "title": "QAOA for Fleet Maintenance Scheduling",
+  "cat": "quantum-for-fusion",
+  "lede": "Scheduling maintenance across a breeder fleet is an NP-hard constraint problem; we map it to Ising form and benchmark QAOA against classical solvers.",
+  "body": [
+   [
+    "h2",
+    "The scheduling problem"
+   ],
+   [
+    "p",
+    "A fleet of breeder units (FOAK, then NOAK, then BOAK and beyond) must schedule maintenance windows subject to coupled constraints: keep enough units available for firm output, respect crew and spare-part limits, and avoid clustering outages of tritium-producing units. This is a constrained combinatorial optimization, NP-hard in general and solved today by classical mixed-integer and heuristic methods."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Binary var x_{u,w} = 1 if unit u takes maintenance in window w\nminimize  sum_{u,w} c_{u,w} x_{u,w}         # preference / risk cost\ns.t.  sum_w x_{u,w} = 1        for all u    # each unit serviced once\n      sum_u x_{u,w} <= K_w                  # crew capacity per window\n      availability(w) >= A_min  for all w   # firm-output floor"
+    ]
+   ],
+   [
+    "h3",
+    "Mapping to Ising for QAOA"
+   ],
+   [
+    "p",
+    "Hard constraints become quadratic penalty terms so the whole objective is a single Ising/QUBO cost, the form <a href=./qaoa-fundamentals.html>QAOA</a> and <a href=./quantum-annealing-vs-gate-model.html>annealers</a> consume. Penalty weights must dominate the objective scale so violating a constraint is never favorable."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "H = sum_{u,w} c_{u,w} x_{u,w}\n  + P1 * sum_u ( sum_w x_{u,w} - 1 )^2        # one-window penalty\n  + P2 * sum_w ( relu( sum_u x_{u,w} - K_w ) )^2  # capacity penalty\n# choose P1,P2 >> max cost; then substitute x = (1 - z)/2 for spins z"
+    ]
+   ],
+   [
+    "h3",
+    "Honest evaluation protocol"
+   ],
+   [
+    "ul",
+    [
+     "Every instance is solved classically (MILP / simulated annealing) to get a baseline and, where feasible, a proven optimum.",
+     "QAOA is scored on approximation ratio and wall-clock against that baseline, at matched problem sizes.",
+     "Constraint satisfaction is checked exactly; a physically infeasible schedule is discarded regardless of cost."
+    ]
+   ],
+   [
+    "p",
+    "To date, classical solvers handle realistic fleet sizes comfortably, so QAOA here is exploratory. Its interest grows only if fleet and constraint counts scale past where classical methods degrade, an open empirical question we test rather than assume. See <a href=./qaoa-experiment-campaign-scheduling.html>campaign scheduling</a> for the intra-machine analogue."
+   ]
+  ],
+  "related": [
+   [
+    "qaoa-fundamentals",
+    "QAOA fundamentals"
+   ],
+   [
+    "ising-qubo-mappings-fusion",
+    "QUBO/Ising mappings"
+   ],
+   [
+    "qaoa-experiment-campaign-scheduling",
+    "Campaign scheduling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "qaoa-experiment-campaign-scheduling",
+  "title": "QAOA for Experiment Campaign Ordering",
+  "cat": "quantum-for-fusion",
+  "lede": "Ordering plasma shots and parameter sweeps to maximize information under machine-time limits is a combinatorial problem we test QAOA against.",
+  "body": [
+   [
+    "h2",
+    "Sequencing scarce machine time"
+   ],
+   [
+    "p",
+    "Commissioning and characterizing the breeder and burner involves large parameter sweeps: negative-triangularity shape scans on the breeder, breeding-ratio configurations, plug-density operating points on the burner. Machine time is scarce and shots have setup dependencies (a configuration change costs conditioning time). Choosing an order that maximizes information gained per unit machine time is a sequencing optimization."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Sequence pi over shots to maximize info minus transition cost\nmaximize  sum_i  I(shot_{pi(i)})  -  sum_i  t_setup( pi(i-1) -> pi(i) )\n#   I(shot)      expected information gain (from twin/surrogate model)\n#   t_setup      reconfiguration time between successive shots\n# a prize-collecting sequencing / TSP-like structure -> NP-hard"
+    ]
+   ],
+   [
+    "h3",
+    "Ising encoding of an ordering"
+   ],
+   [
+    "p",
+    "An ordering is encoded with position-indexed binaries x_{s,p} = 1 if shot s occupies position p, with permutation constraints as penalties, the same recipe as the traveling-salesman Ising map, then handed to <a href=./qaoa-fundamentals.html>QAOA</a> or a <a href=./quantum-annealing-vs-gate-model.html>quantum annealer</a>."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "H = -sum_{s,p} I_s x_{s,p}\n  + sum_{s,s',p} t_{s,s'} x_{s,p} x_{s',p+1}       # transition cost\n  + P*( sum_s( sum_p x_{s,p} -1 )^2 + sum_p( sum_s x_{s,p} -1 )^2 )\n#   permutation penalties: each shot once, each slot once"
+    ]
+   ],
+   [
+    "h3",
+    "Where this connects and where it stops"
+   ],
+   [
+    "ul",
+    [
+     "Information gain I_s is supplied by the classical digital twin and active-learning surrogates, not by the quantum step.",
+     "The quantum solver, if used, only sequences; it never issues a machine command.",
+     "Classical schedulers already run these campaigns; QAOA must beat them on Kronos instances to matter."
+    ]
+   ],
+   [
+    "p",
+    "This is a clean, safety-isolated place to benchmark quantum optimization: a bad schedule wastes planning, not plasma. It remains research until a quantum method demonstrably outperforms the classical baseline. The active-learning loop that feeds it is described in the L0 surrogate pages; the honest overall stance is in the <a href=./quantum-roadmap-kronos.html>roadmap</a>."
+   ]
+  ],
+  "related": [
+   [
+    "qaoa-maintenance-scheduling",
+    "Maintenance scheduling"
+   ],
+   [
+    "ising-qubo-mappings-fusion",
+    "QUBO/Ising mappings"
+   ],
+   [
+    "qaoa-fundamentals",
+    "QAOA fundamentals"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-annealing-vs-gate-model",
+  "title": "Quantum Annealing vs Gate-Model Optimization",
+  "cat": "quantum-for-fusion",
+  "lede": "Annealers and gate-model QAOA solve the same Ising problems by different routes; Kronos benchmarks both without assuming either wins.",
+  "body": [
+   [
+    "h2",
+    "Two hardware philosophies"
+   ],
+   [
+    "p",
+    "Combinatorial problems mapped to Ising form can be attacked two ways. A quantum annealer physically evolves a system from an easy Hamiltonian to the problem Hamiltonian, hoping to stay near the ground state. Gate-model <a href=./qaoa-fundamentals.html>QAOA</a> approximates that evolution with a shallow, tunable digital circuit."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Adiabatic / annealing schedule s: 0 -> 1 over anneal time T\nH(s) = (1 - s) H_B  +  s H_C\n# adiabatic theorem: stay in ground state if\n#   T  >>  max_s || dH/ds ||  /  gap(s)^2\n#   gap(s) = spectral gap; small gaps -> exponentially slow anneals"
+    ]
+   ],
+   [
+    "h3",
+    "How they compare"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Aspect",
+      "Annealer",
+      "Gate-model QAOA"
+     ],
+     [
+      [
+       "Model",
+       "analog adiabatic evolution",
+       "digital variational circuit"
+      ],
+      [
+       "Qubit counts",
+       "larger (thousands)",
+       "smaller (tens-hundreds)"
+      ],
+      [
+       "Connectivity",
+       "fixed graph, needs minor-embedding",
+       "gate-defined, flexible"
+      ],
+      [
+       "Guarantee",
+       "adiabatic if gap large enough",
+       "none; depends on angle tuning"
+      ],
+      [
+       "Failure mode",
+       "small-gap slowdown",
+       "barren plateaus, noise"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "The shared limitation"
+   ],
+   [
+    "p",
+    "Both are limited by the same physics: hard instances tend to have exponentially small spectral gaps, which slow annealers and flatten QAOA landscapes alike. Neither has shown consistent advantage over strong classical heuristics (simulated annealing, parallel tempering, specialized solvers) on realistic industrial instances."
+   ],
+   [
+    "p",
+    "For Kronos scheduling and layout problems we keep both on the bench and always run the classical baseline. Minor-embedding overhead on annealers and depth limits on QAOA both erode any theoretical edge at the sizes we actually face. The mapping recipe both consume is on the <a href=./ising-qubo-mappings-fusion.html>QUBO/Ising page</a>, and the overall stance is the <a href=./quantum-honest-assessment-nisq.html>honest NISQ assessment</a>."
+   ]
+  ],
+  "related": [
+   [
+    "ising-qubo-mappings-fusion",
+    "QUBO/Ising mappings"
+   ],
+   [
+    "qaoa-fundamentals",
+    "QAOA fundamentals"
+   ],
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ising-qubo-mappings-fusion",
+  "title": "Mapping Fusion Problems to QUBO and Ising",
+  "cat": "quantum-for-fusion",
+  "lede": "Every quantum optimizer consumes an Ising or QUBO form; getting Kronos constraints into that form correctly is where most of the real work lives.",
+  "body": [
+   [
+    "h2",
+    "The common target form"
+   ],
+   [
+    "p",
+    "Quantum annealers and QAOA both minimize a quadratic function over binary variables. Quadratic unconstrained binary optimization (QUBO) uses bits x in {0,1}; the Ising form uses spins z in {-1,+1}. They are equivalent under x = (1 - z)/2. Casting a Kronos planning problem into this form is the modeling step that determines whether a quantum solver can even represent it."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "QUBO:   minimize  x^T Q x ,     x_i in {0,1}\nIsing:  minimize  sum_i h_i z_i + sum_{i<j} J_ij z_i z_j,  z in {-1,+1}\nmap:    x_i = (1 - z_i)/2\n# only linear and quadratic terms allowed -> higher-order terms must\n# be reduced with auxiliary variables (quadratization)"
+    ]
+   ],
+   [
+    "h3",
+    "Turning constraints into penalties"
+   ],
+   [
+    "p",
+    "QUBO is unconstrained, so every hard constraint becomes a squared penalty added to the objective with a weight large enough that any violation costs more than any objective gain."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "constraint  sum_i a_i x_i = b   -->   + P * ( sum_i a_i x_i - b )^2\ninequality  sum_i a_i x_i <= b   -->   introduce slack bits s:\n                                       + P * ( sum a_i x_i + s - b )^2\n# choose P > (max objective range); too large P worsens conditioning"
+    ]
+   ],
+   [
+    "h3",
+    "Kronos-specific modeling pitfalls"
+   ],
+   [
+    "ul",
+    [
+     "Integer quantities (windows, positions) need binary/one-hot encodings that inflate variable count quadratically.",
+     "Higher-order interactions (three-unit availability rules) require quadratization with ancilla bits, growing the graph.",
+     "Annealers add minor-embedding: logical variables map to chains of physical qubits, further multiplying resources."
+    ]
+   ],
+   [
+    "p",
+    "These overheads are why a problem that looks small can exceed hardware limits once encoded, and why the classical baseline usually wins today. Correct penalty weighting is also a correctness issue: a mis-weighted penalty can make an infeasible schedule look optimal. Kronos validates every encoding by checking that the classical optimum of the QUBO matches the classical optimum of the original constrained problem before any quantum run. Used by <a href=./qaoa-maintenance-scheduling.html>maintenance</a> and <a href=./qaoa-experiment-campaign-scheduling.html>campaign</a> scheduling."
+   ]
+  ],
+  "related": [
+   [
+    "qaoa-fundamentals",
+    "QAOA fundamentals"
+   ],
+   [
+    "quantum-annealing-vs-gate-model",
+    "Annealing vs gate model"
+   ],
+   [
+    "qaoa-maintenance-scheduling",
+    "Maintenance scheduling"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-linear-systems-hhl",
+  "title": "Quantum Linear Systems and the HHL Algorithm",
+  "cat": "quantum-for-fusion",
+  "lede": "HHL solves linear systems in log dimension in principle, but its fine print makes it a poor fit for Kronos PDE solves; we say why plainly.",
+  "body": [
+   [
+    "h2",
+    "The promise and the fine print"
+   ],
+   [
+    "p",
+    "Many fusion computations reduce to solving large linear systems A x = b: discretized equilibrium equations, implicit time steps, linearized transport. The Harrow-Hassidim-Lloyd (HHL) algorithm prepares a quantum state proportional to the solution x in time polylogarithmic in the system dimension N, an exponential-looking speedup. The fine print is where it usually fails to help."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# HHL solves A x = b, output = quantum state |x> ~ sum_i x_i |i>\n# runtime  ~  O( kappa^2 * s * log(N) / eps )\n#   kappa = condition number of A\n#   s     = sparsity (nonzeros per row)\n#   eps   = target error\n# NOT O(N): but the caveats below usually dominate"
+    ]
+   ],
+   [
+    "h3",
+    "The four catches"
+   ],
+   [
+    "ul",
+    [
+     "Input: b must be loadable as a quantum state efficiently (needs QRAM or special structure).",
+     "Output: you get the state |x>, not the vector x; reading all N components destroys the speedup.",
+     "Conditioning: runtime scales as kappa^2, and stiff fusion PDE operators are often ill-conditioned.",
+     "You only cheaply extract summary quantities <x|M|x>, not the full field."
+    ]
+   ],
+   [
+    "h3",
+    "Fit to Kronos, honestly"
+   ],
+   [
+    "p",
+    "The <a href=./quantum-for-fusion-overview.html>Kronos</a> PDE workloads, free-boundary Grad-Shafranov, MHD stability, transport, are exactly the cases where the catches bite: we usually want the full field for the digital twin, the operators are ill-conditioned, and state preparation of the source is nontrivial. Classical multigrid and Krylov solvers, plus physics-informed neural networks, already solve these well and give the whole solution."
+   ],
+   [
+    "p",
+    "We therefore do not plan HHL for equilibrium or transport solves. It stays on the shelf as a primitive that could matter only for a narrow problem where we need a scalar functional of a well-conditioned, structured system, which the operational solves are not. This is a case where the honest answer is 'quantum does not help here'; see the broader <a href=./quantum-for-transport-pde-honest.html>PDE assessment</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-for-transport-pde-honest",
+    "Quantum PDE, honest"
+   ],
+   [
+    "quantum-monte-carlo-neutronics",
+    "Quantum Monte Carlo"
+   ],
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-for-transport-pde-honest",
+  "title": "Quantum PDE Solvers: An Honest Verdict",
+  "cat": "quantum-for-fusion",
+  "lede": "Quantum algorithms for differential equations exist on paper, but for Kronos plasma and field solves the caveats erase the advantage.",
+  "body": [
+   [
+    "h2",
+    "Why PDEs tempt and disappoint"
+   ],
+   [
+    "p",
+    "Kronos runs heavy PDE workloads: free-boundary equilibrium (Grad-Shafranov), gyrokinetic turbulence, MHD stability, neutronics transport. Because quantum states live in exponentially large spaces, it is tempting to hope quantum PDE solvers offer exponential speedups. In practice they inherit the same limits as <a href=./quantum-linear-systems-hhl.html>HHL</a>: readout, state preparation, conditioning, and nonlinearity."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Typical quantum PDE route: discretize -> linear system A x = b -> HHL-like\n# Exponential state-space advantage is undone by:\n#   readout   : need field values, not <x|M|x> scalars   -> O(N) cost\n#   loading   : encoding source/boundary data            -> state prep cost\n#   nonlinear : Navier-Stokes / gyrokinetics not linear   -> linearization\n#   kappa     : stiff operators                           -> kappa^2 blowup"
+    ]
+   ],
+   [
+    "h3",
+    "The nonlinearity wall"
+   ],
+   [
+    "p",
+    "Quantum evolution is linear and unitary, but plasma transport and turbulence are strongly nonlinear. Encoding nonlinear dynamics requires Carleman-style linearization (embedding into a larger linear system) that is only accurate at weak nonlinearity and grows the dimension, or repeated measurement-and-reprepare loops that shed any speedup."
+   ],
+   [
+    "h3",
+    "What Kronos actually does"
+   ],
+   [
+    "ul",
+    [
+     "Equilibrium and MHD: classical FEM/spectral solvers and physics-informed neural networks, validated in the twin.",
+     "Turbulence: classical gyrokinetic codes on GPU/HPC, with neural surrogates for fast lookups.",
+     "No quantum PDE solver is on the operational or near-term research critical path."
+    ]
+   ],
+   [
+    "p",
+    "This page exists to close a door cleanly. Claiming quantum speedups for plasma PDEs would be exactly the kind of overclaim we refuse. The genuine long-term quantum opportunities for Kronos are in <a href=./hamiltonian-simulation-basics.html>materials Hamiltonian simulation</a> and, more speculatively, <a href=./quantum-monte-carlo-neutronics.html>amplitude-estimation Monte Carlo</a>, not field PDE solves. The <a href=./quantum-roadmap-kronos.html>roadmap</a> reflects that ordering."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-linear-systems-hhl",
+    "HHL"
+   ],
+   [
+    "quantum-monte-carlo-neutronics",
+    "Quantum Monte Carlo"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-monte-carlo-neutronics",
+  "title": "Amplitude Estimation for Neutronics Monte Carlo",
+  "cat": "quantum-for-fusion",
+  "lede": "Quantum amplitude estimation offers a quadratic speedup for Monte Carlo integrals like neutron transport, useful only far past today's hardware.",
+  "body": [
+   [
+    "h2",
+    "The neutronics integral"
+   ],
+   [
+    "p",
+    "Neutronics for both machines, tritium breeding in the blanket, 14 MeV neutron transport, activation and shielding, is computed by classical Monte Carlo: sample enormous numbers of particle histories and average. The statistical error of Monte Carlo falls as 1/sqrt(M) in the number of samples M. Quantum amplitude estimation (QAE) changes that exponent."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Classical Monte Carlo estimate of mean mu = E[f(X)]:\nerror ~ sigma / sqrt(M)          # M samples\n\n# Quantum amplitude estimation:\nerror ~ sigma / M                # quadratic speedup in sample count\n# to reach error eps:  classical ~ 1/eps^2 ,  quantum ~ 1/eps queries"
+    ]
+   ],
+   [
+    "h3",
+    "How QAE gets the square"
+   ],
+   [
+    "p",
+    "QAE encodes the quantity of interest as the amplitude of a marked state and uses <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a> on a Grover-like operator to read that amplitude with error falling as 1/M rather than 1/sqrt(M). The tritium breeding ratio the breeder treats as a lever (1.1, 1.5, 1.8) is exactly the kind of integrated response QAE would estimate."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Grover/amplitude operator Q, applied M times, phase ~ arcsin(sqrt(a))\n# a = probability of the 'success' (e.g. neutron absorbed in breeder)\n# estimating a to error eps costs O(1/eps) applications of Q\n#  vs classical O(1/eps^2) samples"
+    ]
+   ],
+   [
+    "h3",
+    "Why it is long-term only"
+   ],
+   [
+    "ul",
+    [
+     "Quadratic, not exponential: the win is real but modest, and easily eaten by hardware overhead.",
+     "Each 'sample' becomes a coherent circuit encoding the transport process, which is deep and needs error correction.",
+     "Loading cross-section data and geometry into the circuit is itself a hard state-preparation problem."
+    ]
+   ],
+   [
+    "p",
+    "Because the speedup is only quadratic, it must clear a high hardware bar before beating a mature, massively parallel classical Monte Carlo pipeline. Kronos keeps QAE as a documented long-horizon possibility for neutronics, not a plan. Near term, all breeding-ratio and activation results come from classical Monte Carlo validated against nuclear data, with quantum used only to benchmark the primitive on toy geometries. See <a href=./quantum-amplitude-estimation.html>amplitude estimation</a> for the algorithmic detail."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-amplitude-estimation",
+    "Amplitude estimation"
+   ],
+   [
+    "quantum-phase-estimation-energy-eigenvalues",
+    "Phase estimation"
+   ],
+   [
+    "quantum-for-transport-pde-honest",
+    "Quantum PDE, honest"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-amplitude-estimation",
+  "title": "Quantum Amplitude Estimation",
+  "cat": "quantum-for-fusion",
+  "lede": "The primitive behind quadratic Monte Carlo speedups: reading an amplitude to precision eps in O(1/eps) queries instead of O(1/eps^2).",
+  "body": [
+   [
+    "h2",
+    "Estimating a probability amplitude"
+   ],
+   [
+    "p",
+    "Amplitude estimation (QAE) is the algorithmic core behind the neutronics speedup and several quantum finance-style estimators. Given an operator A that prepares a state where a 'good' subspace has amplitude sqrt(a), QAE returns an estimate of a. It generalizes Grover search from finding a marked item to measuring how much amplitude sits on the marked subspace."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "A|0> = sqrt(1-a) |bad,0> + sqrt(a) |good,1>\n# Grover operator:  Q = A S_0 A^dag S_chi   (reflections)\n# eigenphases of Q are  +/- 2*theta  with  a = sin^2(theta)\n# run phase estimation on Q with m ancilla:\n#   estimate theta to ~2^{-m}  =>  estimate a to error O(1/M), M=2^m"
+    ]
+   ],
+   [
+    "h3",
+    "The quadratic advantage, made precise"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "target error eps in the amplitude a:\n classical sampling : M ~ O(1/eps^2)  measurements\n amplitude estimation: M ~ O(1/eps)   applications of Q\n# a genuine but only quadratic improvement"
+    ]
+   ],
+   [
+    "h3",
+    "Modern low-depth variants"
+   ],
+   [
+    "ul",
+    [
+     "Textbook QAE uses phase estimation and deep circuits requiring error correction.",
+     "Maximum-likelihood and iterative QAE trade some coherence for shallower circuits, edging toward NISQ feasibility.",
+     "Even these need far cleaner hardware than today's for any real neutronics or chemistry estimator."
+    ]
+   ],
+   [
+    "h3",
+    "Where Kronos would use it"
+   ],
+   [
+    "p",
+    "Any expectation value or integrated response computed by Monte Carlo is a candidate: breeding-ratio integrals, activation inventories, dose estimates. Because the speedup is quadratic it only pays off once fault-tolerant depth is cheap. Kronos documents QAE as the shared engine behind <a href=./quantum-monte-carlo-neutronics.html>neutronics Monte Carlo</a> and behind eigenvalue readout in <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a>, and validates it on analytically known toy integrals before trusting any nontrivial case."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-monte-carlo-neutronics",
+    "Quantum Monte Carlo"
+   ],
+   [
+    "quantum-phase-estimation-energy-eigenvalues",
+    "Phase estimation"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "error-mitigation-nisq",
+  "title": "Error Mitigation on Noisy Devices",
+  "cat": "quantum-for-fusion",
+  "lede": "Error mitigation extracts better answers from noisy quantum runs at a steep sampling cost, extending NISQ usefulness but not solving the noise problem.",
+  "body": [
+   [
+    "h2",
+    "Mitigation, not correction"
+   ],
+   [
+    "p",
+    "Error mitigation is distinct from <a href=./quantum-error-correction-surface-code.html>error correction</a>: it does not remove errors, it statistically cancels their effect on an expectation value by post-processing many noisy runs. It is the only tool that makes NISQ chemistry benchmarks meaningful at all, but it buys accuracy with exponentially growing sample counts."
+   ],
+   [
+    "h3",
+    "Zero-noise extrapolation"
+   ],
+   [
+    "p",
+    "Zero-noise extrapolation (ZNE) deliberately amplifies the noise (for example by stretching gate times or folding gates), measures the observable at several noise levels, and extrapolates back to the zero-noise limit."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Zero-noise extrapolation\n# run circuit at noise scale factors lambda = 1, 2, 3 (gate folding)\nEs = [measure(scale_noise(circuit, lam)) for lam in (1,2,3)]\n# fit E(lambda) ~ a + b*lambda (+ c*lambda^2) and evaluate at lambda=0\nE_zero = extrapolate(lam=[1,2,3], vals=Es, model='richardson')\n# E_zero approximates the noise-free expectation value"
+    ]
+   ],
+   [
+    "h3",
+    "Probabilistic error cancellation and the sampling wall"
+   ],
+   [
+    "p",
+    "Probabilistic error cancellation (PEC) inverts a characterized noise channel by sampling from a quasi-probability distribution. It is unbiased but its cost grows exponentially with circuit size, the fundamental wall all mitigation shares."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# PEC sampling overhead to hold variance fixed:\ncost  ~  gamma^{2 * (number of noisy gates)}\n#   gamma > 1 is the per-gate negativity of the quasi-probability\n# -> exponential in gate count: mitigation delays, not defeats, noise"
+    ]
+   ],
+   [
+    "ul",
+    [
+     "ZNE is cheap and popular but assumes a smooth, extrapolatable noise model.",
+     "PEC is rigorous but exponentially expensive, capping the circuits it can rescue.",
+     "All mitigation multiplies the shot count, worsening the already heavy measurement cost of VQE."
+    ]
+   ],
+   [
+    "p",
+    "For Kronos, mitigation is what lets us compare a NISQ <a href=./vqe-first-wall-materials.html>VQE</a> run against a classical reference on a tiny active space and see agreement. It does not enable a real first-wall calculation. That still requires <a href=./quantum-error-correction-surface-code.html>error correction</a>, and the honest framing is on the <a href=./quantum-honest-assessment-nisq.html>NISQ assessment</a> page."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-error-correction-surface-code",
+    "Surface-code QEC"
+   ],
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-error-correction-surface-code",
+  "title": "Surface-Code Error Correction",
+  "cat": "quantum-for-fusion",
+  "lede": "Fault tolerance is the gate to real fusion-materials simulation; the surface code shows how many physical qubits one logical qubit costs.",
+  "body": [
+   [
+    "h2",
+    "From physical to logical qubits"
+   ],
+   [
+    "p",
+    "Every credible fusion-materials advantage, <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a>, <a href=./qubitization-lcu.html>qubitization</a>, requires deep circuits that noise would destroy. Quantum error correction (QEC) encodes one reliable logical qubit into many noisy physical qubits, detecting and correcting errors faster than they accumulate. The surface code is the leading candidate because it tolerates relatively high physical error and needs only nearest-neighbor connectivity."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Surface code, distance d:\nphysical qubits per logical qubit  ~  2 d^2\ncorrects any error pattern of weight < d/2\nlogical error rate  ~  A * ( p / p_th )^{ (d+1)/2 }\n#   p    = physical gate error,  p_th ~ 1e-2 threshold\n#   need p < p_th, then increase d to drive logical error down"
+    ]
+   ],
+   [
+    "h3",
+    "The threshold condition"
+   ],
+   [
+    "p",
+    "QEC only helps if the physical error rate p is below the code threshold p_th (about 1% for the surface code). Below threshold, increasing the code distance d suppresses logical errors exponentially; above it, adding qubits makes things worse. Today's best hardware sits near this threshold, which is why fault tolerance is emerging but not yet at scale."
+   ],
+   [
+    "h3",
+    "The cost that shapes the timeline"
+   ],
+   [
+    "ul",
+    [
+     "A useful algorithm needs logical error rates around 1e-10 or lower, meaning large code distances.",
+     "That multiplies physical-qubit counts by hundreds to thousands per logical qubit.",
+     "Non-Clifford T gates need costly magic-state distillation, often dominating the resource budget."
+    ]
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# to reach logical error ~1e-10 with p/p_th ~ 0.1 -> d ~ 15-20\n# => ~500-800 physical qubits per logical qubit, plus distillation\n# a first-wall QPE run needs ~10^2-10^3 logical qubits (see estimates)"
+    ]
+   ],
+   [
+    "p",
+    "This is the hard boundary between what quantum can do now and what it could eventually do for Kronos. It is the reason our materials use cases are framed as long-term. The concrete counts for a first-wall problem are on the <a href=./resource-estimation-fault-tolerant.html>resource-estimation</a> page; the bridge from noisy runs today is <a href=./error-mitigation-nisq.html>error mitigation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ],
+   [
+    "error-mitigation-nisq",
+    "Error mitigation"
+   ],
+   [
+    "quantum-phase-estimation-energy-eigenvalues",
+    "Phase estimation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "resource-estimation-fault-tolerant",
+  "title": "Fault-Tolerant Resource Estimation",
+  "cat": "quantum-for-fusion",
+  "lede": "How many logical qubits and T gates would a real first-wall simulation need? Honest estimates set the horizon for Kronos quantum materials work.",
+  "body": [
+   [
+    "h2",
+    "Turning a use case into qubit and gate counts"
+   ],
+   [
+    "p",
+    "Resource estimation is the discipline of computing, before any hardware exists, how large a fault-tolerant machine a target problem needs. For a first-wall or blanket electronic-structure calculation this means counting logical qubits (from the number of spin-orbitals) and non-Clifford T gates (from the <a href=./qubitization-lcu.html>qubitization</a> query cost and target precision)."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Rough scaling for a QPE/qubitization chemistry run:\nlogical_qubits  ~  O(N)          # N = spin-orbitals in active space\nT_gate_count    ~  O( N^3 / eps )  to  O( N^4 )   (method-dependent)\n#   eps = target energy error (chemical accuracy ~1.6e-3 Hartree)\n# then multiply by surface-code overhead for PHYSICAL resources"
+    ]
+   ],
+   [
+    "h3",
+    "Why the numbers are sobering"
+   ],
+   [
+    "p",
+    "Even a modest correlated active space, tens of spin-orbitals, translates into hundreds to low thousands of logical qubits and billions to trillions of T gates once precision is demanded. Each logical qubit is hundreds of physical qubits under the <a href=./quantum-error-correction-surface-code.html>surface code</a>, and T gates require magic-state distillation factories that dominate footprint and runtime."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Illustrative chain for a small first-wall defect cluster:\nN ~ 50 spin-orbitals\n  -> ~10^2 logical qubits\n  -> ~10^9-10^{12} T gates for chemical accuracy\n  -> x (10^2-10^3 physical qubits/logical) = 10^4-10^5 physical qubits\n  -> plus distillation -> runtime hours-to-days on a machine not yet built"
+    ]
+   ],
+   [
+    "h3",
+    "What Kronos does with these numbers"
+   ],
+   [
+    "ul",
+    [
+     "Prioritize use cases: the smallest active space that answers a real first-wall question comes first.",
+     "Track hardware roadmaps against these targets to know when, not whether, to invest.",
+     "Refuse to promise results the resource estimate says are a decade-plus away."
+    ]
+   ],
+   [
+    "p",
+    "Resource estimation is how we stay honest: it converts vague quantum optimism into concrete, checkable requirements. It is also why the Kronos machines' physics, validated at FOAK around 2030, will not wait on quantum computing for any decision. Quantum materials simulation is a patient bet whose payoff, if it comes, benefits fleet-scale material choices. See the <a href=./quantum-roadmap-kronos.html>roadmap</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-error-correction-surface-code",
+    "Surface-code QEC"
+   ],
+   [
+    "qubitization-lcu",
+    "Qubitization"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "helium3-dilution-refrigeration-link",
+  "title": "Helium-3 and the Dilution Refrigerators That Cool Qubits",
+  "cat": "quantum-for-fusion",
+  "lede": "Superconducting and many other qubits run at millikelvin temperatures reached only with helium-3, a physical link between fusion byproducts and quantum hardware.",
+  "body": [
+   [
+    "h2",
+    "Why quantum hardware needs helium-3"
+   ],
+   [
+    "p",
+    "Superconducting qubits, and several other leading modalities, operate at temperatures around 10-20 millikelvin. The only practical continuous cooling technology to reach that regime is the dilution refrigerator, which exploits the finite solubility of helium-3 in helium-4 near absolute zero. Cooling power comes from moving He-3 atoms across the phase boundary; without He-3 there is no dilution fridge."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Dilution refrigerator cooling power (mixing chamber):\nQ_dot  ~=  84 * n_dot3 * T^2      [watts, SI-ish scaling form]\n#   n_dot3 = molar circulation rate of helium-3\n#   T      = mixing-chamber temperature\n# cooling power falls as T^2 -> He-3 circulation is the scarce lever\n# below ~0.7 K, He-3 dissolving into superfluid He-4 provides cooling"
+    ]
+   ],
+   [
+    "h3",
+    "The isotope, not the compute"
+   ],
+   [
+    "p",
+    "This is a hardware-supply link, not a computational one. Terrestrial He-3 is scarce: it comes chiefly from tritium decay (tritium beta-decays to He-3 with a 12.3-year half-life). The breeder (Hyperion) is designed to produce a tritium-class product on the order of 4 kg/yr and, directly, on the order of 1.97 kg/yr of helium-3. That places Kronos on the supply side of the same isotope quantum computing depends on."
+   ],
+   [
+    "h3",
+    "The demand context, honestly"
+   ],
+   [
+    "ul",
+    [
+     "Each dilution fridge holds only a modest He-3 charge, but a scaling quantum sector means many thousands of fridges.",
+     "Other He-3 demands (neutron detection, medical imaging, national security) already strain supply.",
+     "He-3 is a genuinely constrained isotope; new primary production sources are strategically significant."
+    ]
+   ],
+   [
+    "p",
+    "The connection to the burner is instructive and cuts the other way: the burner (Aegis / MetroVolt) would consume He-3 as fuel at roughly 400x domestic supply per commercial unit, one of the four honest burner gates, which is exactly why breeder-bred He-3 and, longer term, lunar He-3 matter. The overlap of these demands is the subject of the <a href=./isotope-demand-flywheel-quantum.html>isotope-demand flywheel</a>."
+   ]
+  ],
+  "related": [
+   [
+    "isotope-demand-flywheel-quantum",
+    "Isotope-demand flywheel"
+   ],
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ],
+   [
+    "quantum-sensing-metrology-diagnostics",
+    "Quantum sensing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "isotope-demand-flywheel-quantum",
+  "title": "The Helium-3 Isotope-Demand Flywheel",
+  "cat": "quantum-for-fusion",
+  "lede": "Breeder byproduct helium-3 feeds both quantum-hardware cooling and future burner fuel, while burner He-3 demand dwarfs terrestrial supply.",
+  "body": [
+   [
+    "h2",
+    "One isotope, three demands"
+   ],
+   [
+    "p",
+    "Helium-3 sits at an unusual crossroads for Kronos. The breeder (Hyperion) produces it as a byproduct on the order of 1.97 kg/yr per unit, chiefly via tritium decay. Three demand sinks compete for it: <a href=./helium3-dilution-refrigeration-link.html>dilution refrigerators</a> cooling quantum computers, the burner (Aegis / MetroVolt) as fusion fuel, and existing uses in neutron detection, medical imaging, and security."
+   ],
+   [
+    "truth",
+    [
+     [
+      "He-3 flow",
+      "Direction",
+      "Scale note"
+     ],
+     [
+      [
+       "Breeder byproduct",
+       "supply",
+       "~1.97 kg/yr per unit (design)"
+      ],
+      [
+       "Quantum-fridge cooling",
+       "demand",
+       "grows with qubit sector; per-fridge small"
+      ],
+      [
+       "Burner fuel",
+       "demand",
+       "~400x domestic supply per commercial unit"
+      ],
+      [
+       "Detectors / medical / security",
+       "demand",
+       "already supply-constrained today"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Why it is a flywheel, not a market claim"
+   ],
+   [
+    "p",
+    "We describe this as a physical materials flywheel, deliberately with no economics. The breeder produces the isotope that both quantum hardware and the burner need; that shared dependence means investment in breeder-scale He-3 production has value across two otherwise unrelated high-technology sectors. Growth in one demand strengthens the case for the primary production the other also needs."
+   ],
+   [
+    "h3",
+    "The honest scale mismatch"
+   ],
+   [
+    "ul",
+    [
+     "Quantum-cooling demand per fridge is small, but a large quantum sector implies many thousands of fridges.",
+     "Burner fuel demand is enormous: one commercial unit would need roughly 400x current domestic He-3 supply.",
+     "No terrestrial source, including breeder byproduct, closes the burner's fuel gap at fleet scale, which is why lunar He-3 enters the long-term picture."
+    ]
+   ],
+   [
+    "p",
+    "So the flywheel is real but bounded: breeder He-3 can meaningfully serve quantum-hardware cooling and seed early burner testing, but the burner's fleet-scale fuel demand is a separate, much larger problem gated on supply that does not yet exist at terrestrial scale. This is one of the four burner honest gates, stated as a physics-and-supply fact, never as a price. The cooling link is on the <a href=./helium3-dilution-refrigeration-link.html>dilution-refrigeration page</a>."
+   ]
+  ],
+  "related": [
+   [
+    "helium3-dilution-refrigeration-link",
+    "Dilution refrigeration"
+   ],
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-classical-hybrid-workflows",
+  "title": "Quantum-Classical Hybrid Workflows in L0",
+  "cat": "quantum-for-fusion",
+  "lede": "Where a quantum processor would plug into the Kronos stack: strictly offline in L0, orchestrated by classical code, always with a classical baseline.",
+  "body": [
+   [
+    "h2",
+    "Quantum lives in L0, never in control"
+   ],
+   [
+    "p",
+    "No quantum computation runs anywhere near the microsecond control plane. In the eight-layer Kronos architecture, quantum processors are, at most, an accelerator called from the offline L0 foundation layer, the same place classical supercomputing, surrogate training, and large sweeps run. Everything time-critical on the breeder and burner is deterministic classical hardware."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# L0 hybrid job: quantum used as a subroutine, classical drives + verifies\ndef materials_energy(active_space):\n    classical = classical_solver(active_space)      # DMRG / coupled cluster\n    if quantum_available and within_resource_budget(active_space):\n        q = quantum_estimator(active_space)         # VQE or (future) QPE\n        assert agrees(q, classical, tol='chemical') # gate on agreement\n        return reconcile(q, classical)\n    return classical                                # default is classical"
+    ]
+   ],
+   [
+    "h3",
+    "The orchestration pattern"
+   ],
+   [
+    "ul",
+    [
+     "A classical optimizer or driver owns the loop; the quantum device evaluates a cost or estimates a scalar.",
+     "Every quantum result is checked against a classical baseline computed in parallel.",
+     "Jobs are scheduled like any other L0 batch workload, with reproducibility and provenance tracked."
+    ]
+   ],
+   [
+    "h3",
+    "Two integration shapes"
+   ],
+   [
+    "p",
+    "Variational methods (<a href=./vqe-first-wall-materials.html>VQE</a>, <a href=./qaoa-fundamentals.html>QAOA</a>) are tight loops: many short quantum evaluations per classical optimizer step, latency-sensitive to the quantum-classical round trip. Estimation methods (<a href=./quantum-phase-estimation-energy-eigenvalues.html>QPE</a>, <a href=./quantum-amplitude-estimation.html>QAE</a>) are long single circuits: one deep coherent run returning a high-precision number, requiring fault tolerance."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "variational:  classical_opt <--(scalar)--  QPU   (many fast round trips)\nestimation :  classical_prep --> deep QPU circuit --> classical_readout\n# both are OFFLINE; neither is on any real-time actuation path"
+    ]
+   ],
+   [
+    "p",
+    "This isolation is a safety property, not a limitation. A quantum result can be wrong, noisy, or unavailable without any consequence for machine operation, because operations never depend on it. That is precisely what lets us experiment with immature quantum methods responsibly. The governing stance is the <a href=./quantum-honest-assessment-nisq.html>honest NISQ assessment</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ],
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-sensing-metrology-diagnostics",
+  "title": "Quantum Sensing for Fusion Diagnostics",
+  "cat": "quantum-for-fusion",
+  "lede": "Quantum sensors, distinct from quantum computers, offer precision magnetometry and metrology that could sharpen future diagnostics on the Kronos machines.",
+  "body": [
+   [
+    "h2",
+    "A different quantum technology"
+   ],
+   [
+    "p",
+    "Quantum sensing is separate from quantum computing and much closer to deployment. It uses quantum coherence, in atoms, defects, or superconducting circuits, to measure fields, time, and motion at fundamental precision limits. For fusion diagnostics the interesting cases are magnetometry (for the breeder's high-field environment) and ultra-stable frequency references."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Quantum-limited phase sensing: N probes, coherence time T\nstandard quantum limit (independent probes):  d_phi ~ 1/sqrt(N)\nHeisenberg limit (entangled probes):          d_phi ~ 1/N\n# entanglement buys a sqrt(N) improvement in field/phase resolution\n# NV-center magnetometry: shift ~ gamma_e * B  measured via spin readout"
+    ]
+   ],
+   [
+    "h3",
+    "Candidate uses on the machines"
+   ],
+   [
+    "ul",
+    [
+     "NV-center or atomic magnetometers as calibration references for magnetic diagnostics near the 16.84 T breeder magnets.",
+     "Optically pumped and atomic clocks for high-stability timing of diagnostic acquisition.",
+     "Quantum-enhanced interferometry for precision density or displacement metrology in specialized diagnostics."
+    ]
+   ],
+   [
+    "h3",
+    "Honest placement"
+   ],
+   [
+    "p",
+    "Even quantum sensing must survive the fusion environment: intense 14 MeV neutron and gamma fields, strong background magnetic fields, and vibration. Many quantum sensors are sensitive to exactly these, so realistic use is as bench and calibration references or in shielded, low-radiation locations, not as primary in-vessel plasma diagnostics, which remain classical (interferometry, Thomson scattering, magnetic coils)."
+   ],
+   [
+    "p",
+    "Kronos tracks quantum sensing as a nearer-term, lower-risk quantum technology than quantum computing, with concrete potential as a metrology backbone for the classical <a href=./quantum-for-fusion-overview.html>diagnostics constellation</a>. It makes no operational claim today; it is a watch-and-benchmark item alongside the compute work, and it shares only the word 'quantum' with the materials-simulation program."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-for-fusion-overview",
+    "Overview"
+   ],
+   [
+    "helium3-dilution-refrigeration-link",
+    "Dilution refrigeration"
+   ],
+   [
+    "quantum-roadmap-kronos",
+    "Roadmap"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "tensor-networks-classical-quantum-bridge",
+  "title": "Tensor Networks: The Classical Competitor",
+  "cat": "quantum-for-fusion",
+  "lede": "Tensor-network methods are the classical benchmark quantum simulation must beat; they already solve many correlated-electron problems Kronos cares about.",
+  "body": [
+   [
+    "h2",
+    "Classical methods that mimic quantum states"
+   ],
+   [
+    "p",
+    "Any honest quantum-advantage claim must beat the best classical method, and for correlated quantum systems that method is often a tensor network. Tensor networks (matrix product states / DMRG in 1D, PEPS in 2D) represent quantum states with a controlled amount of entanglement, capturing exactly the physics that makes <a href=./vqe-first-wall-materials.html>VQE</a> and <a href=./rebco-superconductor-electronic-structure.html>Hubbard-model</a> problems hard, without a quantum computer."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Matrix product state (MPS) with bond dimension chi:\n|psi> = sum  A^{s1}_{a1} A^{s2}_{a1 a2} ... A^{sN}_{a_{N-1}} |s1..sN>\n# cost ~ O(N * chi^3);  chi controls captured entanglement\n# exact when chi >= 2^{N/2}; efficient when entanglement is bounded\n# DMRG variationally optimizes the A tensors for the ground state"
+    ]
+   ],
+   [
+    "h3",
+    "Where classical wins today"
+   ],
+   [
+    "ul",
+    [
+     "One-dimensional and quasi-1D correlated systems: DMRG is essentially exact and fast.",
+     "Moderate 2D systems: PEPS and related methods reach sizes VQE cannot.",
+     "Molecular active spaces: DMRG and coupled cluster set the accuracy bar for first-wall chemistry."
+    ]
+   ],
+   [
+    "h3",
+    "Where they strain, and why quantum matters long-term"
+   ],
+   [
+    "p",
+    "Tensor networks fail when entanglement grows beyond what a tractable bond dimension chi can hold: large two-dimensional systems at strong coupling, and real-time dynamics where entanglement grows linearly in time. The cost scales steeply in chi, so these cases eventually become intractable, exactly the regime a fault-tolerant quantum computer would own."
+   ],
+   [
+    "p",
+    "Kronos uses tensor networks two ways: as the classical production tool for correlated-electron questions we can answer now, and as the mandatory baseline every quantum result is measured against. A quantum method earns trust only by matching tensor networks where they are reliable and then extending past where they break. This is the operational meaning of 'no assumed quantum advantage'; see the <a href=./quantum-honest-assessment-nisq.html>honest assessment</a>."
+   ]
+  ],
+  "related": [
+   [
+    "vqe-first-wall-materials",
+    "VQE for first-wall"
+   ],
+   [
+    "rebco-superconductor-electronic-structure",
+    "REBCO simulation"
+   ],
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-machine-learning-honest",
+  "title": "Quantum Machine Learning: A Skeptical View",
+  "cat": "quantum-for-fusion",
+  "lede": "Quantum machine learning is heavily hyped and thinly proven; Kronos treats it as a research curiosity, not a tool for the digital twin or control.",
+  "body": [
+   [
+    "h2",
+    "What QML claims and what it shows"
+   ],
+   [
+    "p",
+    "Quantum machine learning (QML) proposes to use quantum circuits as models, quantum kernels, variational classifiers, quantum neural networks, for learning tasks. It attracts strong claims. The honest state of the field is that, for classical data of the kind Kronos actually has (plasma telemetry, diagnostics, simulation outputs), no QML method has shown a robust advantage over classical machine learning."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "# Quantum kernel method:\nK(x, x') = |<phi(x) | phi(x')>|^2\n#   phi(x) = quantum feature map (data-encoding circuit)\n# used inside a classical SVM. Advantage requires a feature map that is\n# (a) hard to compute classically AND (b) actually useful for the task.\n# For generic classical data, (a) and (b) rarely hold together."
+    ]
+   ],
+   [
+    "h3",
+    "The core obstacles"
+   ],
+   [
+    "ul",
+    [
+     "Data loading: encoding classical vectors into quantum states can cost as much as the computation itself.",
+     "Barren plateaus: variational QML circuits suffer the same vanishing-gradient problem as <a href=./vqe-ansatze-uccsd-hardware-efficient.html>VQE ansatze</a>.",
+     "Dequantization: several proposed QML speedups were later matched by classical randomized algorithms."
+    ]
+   ],
+   [
+    "h3",
+    "Where Kronos stands"
+   ],
+   [
+    "p",
+    "All production machine learning for the Kronos machines, disruption precursors, surrogates, anomaly detection, digital-twin models, is classical, running in L0 and compiled toward the edge. These methods are mature, verifiable, and already good. There is no identified Kronos ML problem where a quantum model is expected to help."
+   ],
+   [
+    "p",
+    "QML stays a monitored research topic, tracked for the specific case where the data itself is quantum, for example feeding <a href=./quantum-sensing-metrology-diagnostics.html>quantum-sensor</a> outputs or <a href=./hamiltonian-simulation-basics.html>quantum-simulation</a> results into a learning step, which is the one setting where a quantum model has a principled reason to help. Absent that, we default to classical and say so. This restraint is the same candor applied throughout the <a href=./quantum-honest-assessment-nisq.html>quantum program</a>."
+   ]
+  ],
+  "related": [
+   [
+    "vqe-ansatze-uccsd-hardware-efficient",
+    "VQE ansatze"
+   ],
+   [
+    "quantum-sensing-metrology-diagnostics",
+    "Quantum sensing"
+   ],
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quantum-roadmap-kronos",
+  "title": "The Kronos Quantum Roadmap",
+  "cat": "quantum-for-fusion",
+  "lede": "A staged, honest plan: benchmark now, invest in fault-tolerant materials simulation later, and treat the He-3 link as the nearest-term reality.",
+  "body": [
+   [
+    "h2",
+    "Sequencing quantum against the machine timeline"
+   ],
+   [
+    "p",
+    "The Kronos machines do not wait on quantum computing. Breeder construction begins Q2 2027, FOAK first tritium is targeted around 2030, and every operational decision rests on classical simulation and control validated by measured hardware. The quantum roadmap therefore runs on its own, longer track, with the physical He-3 link as its only near-term concrete element."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Horizon",
+      "Quantum activity",
+      "Status"
+     ],
+     [
+      [
+       "Now (NISQ)",
+       "benchmark VQE/QAOA vs classical on tiny cases",
+       "research only, no advantage"
+      ],
+      [
+       "Near-term",
+       "He-3 supply link to dilution refrigerators",
+       "physical, real, active"
+      ],
+      [
+       "Mid-term",
+       "early fault tolerance; validate QPE on small chemistry",
+       "gated on hardware threshold"
+      ],
+      [
+       "Long-term",
+       "first-wall / blanket / REBCO materials simulation",
+       "the actual prize, decade-plus"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "The three commitments"
+   ],
+   [
+    "ul",
+    [
+     "Never place a quantum computation on any real-time control or safety path; quantum stays in <a href=./quantum-classical-hybrid-workflows.html>offline L0</a>.",
+     "Always run and publish the classical baseline; accept a quantum result only when it matches, then extends it.",
+     "Never translate a quantum or He-3 statement into an economic claim; these are physics and supply facts."
+    ]
+   ],
+   [
+    "h3",
+    "What we are actually doing today"
+   ],
+   [
+    "p",
+    "Concretely: maintaining calibrated <a href=./vqe-first-wall-materials.html>VQE</a> and <a href=./qaoa-fundamentals.html>QAOA</a> benchmarks against classical <a href=./tensor-networks-classical-quantum-bridge.html>tensor-network</a> and heuristic baselines; tracking <a href=./resource-estimation-fault-tolerant.html>fault-tolerant resource estimates</a> for a first-wall defect cluster against hardware roadmaps; and treating the breeder's <a href=./helium3-dilution-refrigeration-link.html>He-3 output</a> as a genuine, present-day link to the quantum-hardware supply chain."
+   ],
+   [
+    "p",
+    "The payoff, if it comes, is fleet-scale: accurate materials energetics that inform first-wall and blanket choices across decades of operation. That is a patient, high-leverage bet made without overclaiming. The near-term, undeniable quantum fact for Kronos is not an algorithm at all, it is helium-3, described in the <a href=./isotope-demand-flywheel-quantum.html>isotope-demand flywheel</a>."
+   ]
+  ],
+  "related": [
+   [
+    "quantum-honest-assessment-nisq",
+    "Honest assessment"
+   ],
+   [
+    "isotope-demand-flywheel-quantum",
+    "Isotope flywheel"
+   ],
+   [
+    "resource-estimation-fault-tolerant",
+    "Resource estimates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Interlock Bypass and Reset Governance · Kronos Fusion Energy"><meta property="og:description" content="Interlocks sometimes must be bypassed for maintenance; doing so safely requires authority, a second person, a scope, a time limit, and an audit record."><meta property="og:url" content="https://kronosfusionenergy.com/ai/interlock-bypass-governance.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -431,7 +431,7 @@ def auto_restore(now, expiry, active_bypasses):
     return [b for b in active_bypasses if now &lt; b.expiry]</code></pre>
 <p>Bypasses auto-restore on expiry rather than waiting for someone to remember, and the system refuses to enter normal operating modes while any safety-relevant bypass is active. A reset after a trip follows the same discipline: deliberate, authorized, and only after the trip's cause is understood &mdash; never an automatic clear that would hide a recurring fault.</p>
 <p>Auto-expiry is the quiet workhorse of the scheme: because every bypass carries a hard expiry and the plant refuses normal operating modes while a safety-relevant bypass is active, the common failure of a forgotten forced permissive simply cannot persist into operation. Combined with the two-person rule and the audit record, this turns interlock bypass from an informal, error-prone practice into a bounded, reviewable exception whose scope and lifetime are known to everyone at all times.</p>
-<p>This governance is what keeps the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a> trustworthy in practice, not just in principle. Every bypass and reset is evidence in the <a href=./safety-case-replay-evidence.html>safety case</a>, and the authority model comes from <a href=./human-oversight-authority-levels.html>authority levels</a>.</p><div class="related"><h3>Related</h3><a href="./human-oversight-authority-levels.html">Authority levels &rarr;</a><a href="./interlock-matrix-hardwired.html">Hardwired interlock matrix &rarr;</a><a href="./safety-case-replay-evidence.html">Safety-case replay evidence &rarr;</a></div></main></div><div class="kfe-embed">
+<p>This governance is what keeps the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a> trustworthy in practice, not just in principle. Every bypass and reset is evidence in the <a href=./safety-case-replay-evidence.html>safety case</a>, and the authority model comes from <a href=./human-oversight-authority-levels.html>authority levels</a>.</p><div class="related"><h3>Related</h3><a href="./human-oversight-authority-levels.html">Authority levels &rarr;</a><a href="./interlock-matrix-hardwired.html">Hardwired interlock matrix &rarr;</a><a href="./safety-case-replay-evidence.html">Safety-case replay evidence &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

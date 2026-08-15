@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Signal Conditioning Front End · Kronos Fusion Energy"><meta property="og:description" content="Before digitization, each channel passes an analog front end that amplifies, buffers, and band-limits the signal to match its diagnostic and the sampler."><meta property="og:url" content="https://kronosfusionenergy.com/ai/signal-conditioning-front-end.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -424,7 +424,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <ul><li>A low-pass filter set below the Nyquist frequency of the chosen sample rate keeps out-of-band energy from folding into the signal.</li><li>The filter's phase response is characterized so the fabric can correct group delay across channels.</li><li>Filter cutoffs are versioned with the channel so a later analysis knows exactly what band was preserved.</li></ul>
 <h3>Noise rejection at the source</h3>
 <p>Differential amplification rejects the common-mode pickup radiated by the machine's currents and the ICE-PISTON preload transients. Shielding and grounding discipline start here because noise not rejected in the analog domain cannot be fully recovered later — <a href=./hf-noise-filtering.html>digital HF filtering</a> cleans what remains but cannot undo saturation or aliasing.</p>
-<p>The front-end topology is a design specification for both the breeder (Hyperion) and the burner; the machines are simulation and engineering studies until FOAK construction begins Q2 2027.</p><div class="related"><h3>Related</h3><a href="./hf-noise-filtering.html">High-Frequency Noise Filtering &rarr;</a><a href="./adc-quantization-dynamic-range.html">ADC Quantization &amp; Range &rarr;</a><a href="./cryo-vacuum-feedthroughs.html">Cryo Vacuum Feedthroughs &rarr;</a></div></main></div><div class="kfe-embed">
+<p>The front-end topology is a design specification for both the breeder (Hyperion) and the burner; the machines are simulation and engineering studies until FOAK construction begins Q2 2027.</p><div class="related"><h3>Related</h3><a href="./hf-noise-filtering.html">High-Frequency Noise Filtering &rarr;</a><a href="./adc-quantization-dynamic-range.html">ADC Quantization &amp; Range &rarr;</a><a href="./cryo-vacuum-feedthroughs.html">Cryo Vacuum Feedthroughs &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Extended and Unscented Kalman Filters · Kronos Fusion Energy"><meta property="og:description" content="Fusion dynamics are nonlinear; the EKF linearizes the model while the UKF propagates sample points, giving the twin nonlinear state estimation."><meta property="og:url" content="https://kronosfusionenergy.com/ai/extended-unscented-kalman.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -437,7 +437,7 @@ P_pred = sum(wc[i]*outer(Y[i]-x_pred, Y[i]-x_pred)
 <h3>Where each is used</h3>
 <p>For the breeder, near-equilibrium tracking of shape and current is well served by the EKF using twin Jacobians; near disruption-relevant boundaries, where the response curves sharply, the UKF's better covariance estimate matters. For the burner, strong nonlinearity in the ambipolar response favors the UKF, though its estimates inherit the 166-830x regime uncertainty and are reported as such.</p>
 <ul><li>EKF: Jacobian-based, cheap, accurate near-linear regimes.</li><li>UKF: sigma-point, Jacobian-free, better for strong nonlinearity.</li><li>Selection per subsystem by nonlinearity and latency budget.</li><li>Both still report covariance; both feed innovation monitoring.</li></ul>
-<p>When the state dimension is very large - a full field twin - even the UKF's covariance is unwieldy, and the stack turns to the ensemble Kalman filter covered next.</p><div class="related"><h3>Related</h3><a href="./kalman-filter-derivation.html">The Kalman Filter &rarr;</a><a href="./ensemble-kalman-filter.html">The Ensemble Kalman Filter &rarr;</a><a href="./state-estimation-observability.html">Observability and State Estimation &rarr;</a></div></main></div><div class="kfe-embed">
+<p>When the state dimension is very large - a full field twin - even the UKF's covariance is unwieldy, and the stack turns to the ensemble Kalman filter covered next.</p><div class="related"><h3>Related</h3><a href="./kalman-filter-derivation.html">The Kalman Filter &rarr;</a><a href="./ensemble-kalman-filter.html">The Ensemble Kalman Filter &rarr;</a><a href="./state-estimation-observability.html">Observability and State Estimation &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

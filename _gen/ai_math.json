@@ -1,0 +1,3706 @@
+[
+ {
+  "slug": "foundations-math-overview",
+  "title": "Mathematical Foundations of the S.M.A.R.T. Generator",
+  "cat": "foundations-math",
+  "lede": "Every AI layer running Hyperion and Aegis/MetroVolt rests on a small set of equations: equilibrium PDEs, MHD eigenproblems, Bayesian inference, and constrained optimization.",
+  "body": [
+   [
+    "h2",
+    "Why the math is the product"
+   ],
+   [
+    "p",
+    "Kronos does not apply generic machine learning to fusion. Each learned or optimizing component is a discretization, surrogate, or inverse of a governing equation for one of the two machines. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field (8 T on-axis) and negative triangularity delta -0.30. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction feeding direct energy conversion. The AI stack exists to solve, estimate, control, and optimize these physics faster than a mesh solver can."
+   ],
+   [
+    "h3",
+    "The five mathematical pillars"
+   ],
+   [
+    "ul",
+    [
+     "Equilibrium PDEs: the Grad-Shafranov equation for the breeder, the ambipolar/paraxial force balance for the burner mirror.",
+     "Stability spectra: linearized ideal and resistive MHD eigenproblems bounding the safe operating envelope.",
+     "Function approximation with physics constraints: PINNs and neural operators that carry the PDE residual in their loss.",
+     "State estimation and inference: Kalman-family filters and Bayesian posteriors that fuse the 60+ port diagnostic constellation.",
+     "Optimization: constrained QPs for model-predictive control and Bayesian/trajectory optimization for scenario design."
+    ]
+   ],
+   [
+    "h3",
+    "One framework, two instantiations"
+   ],
+   [
+    "p",
+    "The same abstract objects appear on both machines but with different operators. Equilibrium reconstruction is a Grad-Shafranov inverse problem on the breeder and an ambipolar-potential solve on the burner. Stability analysis is ballooning and vertical-mode spectra on the breeder, min-B interchange and mirror-gate analysis on the burner. This shared structure is why one AI-native architecture serves both plants."
+   ],
+   [
+    "p",
+    "These machines are design-and-simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030; no hardware net-gain is claimed before FOAK. The mathematics below is therefore validated against multi-physics simulation and legacy device data, with a defined path to plant synchronization once hardware exists."
+   ],
+   [
+    "p",
+    "The burner carries four honest design-and-simulation gates that the math surfaces rather than hides: the plug coil is overstressed ~3-3.9x at the design bore; its operating regime sits 166-830x beyond any built device, so it is not post-dictable today; a commercial unit's He-3 demand is ~400x current domestic supply; and simulated availability of 0.86-0.995 is 30-100x short of the 0.99982 a hyperscale Tier III facility expects. Every optimizer and estimator here treats those as hard facts."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-equation",
+    "The Grad-Shafranov Equation"
+   ],
+   [
+    "ideal-mhd-energy-principle",
+    "Ideal MHD Energy Principle"
+   ],
+   [
+    "pinn-loss-construction",
+    "PINN Loss Construction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grad-shafranov-equation",
+  "title": "The Grad-Shafranov Equation",
+  "cat": "foundations-math",
+  "lede": "The breeder's axisymmetric equilibrium reduces to a single nonlinear elliptic PDE for the poloidal flux, and every equilibrium tool in the stack solves or inverts it.",
+  "body": [
+   [
+    "h2",
+    "Force balance in an axisymmetric plasma"
+   ],
+   [
+    "p",
+    "For a static, axisymmetric magnetized plasma the ideal-MHD force balance J x B = grad p, combined with Ampere's law and the divergence-free magnetic field, collapses to one scalar equation for the poloidal flux function psi(R,Z). This is the Grad-Shafranov (GS) equation. It is the single most-used equation in the breeder stack: the KRONOS-CTRL twin, PINN equilibrium solvers, and real-time reconstruction all rest on it."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Grad-Shafranov equation (poloidal flux psi(R,Z)):\n\n  Delta* psi  =  -mu0 * R^2 * p'(psi)  -  F(psi) * F'(psi)\n\nwith the elliptic (Shafranov) operator\n\n  Delta* psi  =  R * d/dR( (1/R) * dpsi/dR )  +  d^2psi/dZ^2\n              =  d^2psi/dR^2 - (1/R) dpsi/dR + d^2psi/dZ^2\n\n  p(psi)      : plasma pressure profile (free function)\n  F(psi)=R*Bt : poloidal-current / toroidal-field function (free)\n  ' = d/dpsi ,  mu0 = 4*pi*1e-7"
+    ]
+   ],
+   [
+    "h3",
+    "The two free functions"
+   ],
+   [
+    "p",
+    "The right-hand side depends on psi only through two free profile functions, p'(psi) and F F'(psi). Physically these encode the pressure gradient and the toroidal field/current. The problem is nonlinear because the source depends on the unknown solution through psi. In the breeder these profiles carry the negative-triangularity, high-field (16.84 T peak, 8 T on-axis) operating point at 9.86 MA."
+   ],
+   [
+    "h3",
+    "Fields recovered from psi"
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Magnetic field from the flux function:\n\n  B_R  = -(1/R) * dpsi/dZ\n  B_Z  =  (1/R) * dpsi/dR\n  B_t  =  F(psi) / R           (toroidal)\n\nToroidal plasma current density (from Delta* psi):\n\n  J_phi = R * p'(psi) + F*F'(psi)/(mu0 * R)"
+    ]
+   ],
+   [
+    "p",
+    "Once psi is known everywhere, the entire equilibrium follows algebraically: flux surfaces are level sets of psi, the last closed flux surface defines the plasma boundary, and the safety factor and current profile are integrals over psi. Boundary conditions come from external poloidal-field coils, which makes the practical breeder problem a free-boundary one, treated on its own page."
+   ],
+   [
+    "p",
+    "Because the operator is elliptic and self-adjoint under the weight 1/R, GS is well suited both to finite-element discretization and to physics-informed neural network solvers, and its structure is what lets a PINN carry the residual directly in its loss."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-free-boundary",
+    "Free-Boundary Grad-Shafranov"
+   ],
+   [
+    "grad-shafranov-weak-form-fem",
+    "Weak Form and FEM Discretization"
+   ],
+   [
+    "pinn-grad-shafranov-formulation",
+    "PINN for Grad-Shafranov"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grad-shafranov-free-boundary",
+  "title": "Free-Boundary Grad-Shafranov",
+  "cat": "foundations-math",
+  "lede": "In a real tokamak the plasma boundary is unknown a priori; it is set by external coil currents, turning equilibrium into a coupled interior-exterior free-boundary problem.",
+  "body": [
+   [
+    "h2",
+    "Why the boundary is free"
+   ],
+   [
+    "p",
+    "The fixed-boundary Grad-Shafranov problem assumes the last closed flux surface (LCFS) is given. In an operating breeder it is not: the plasma shape emerges from the balance between the plasma's own current and the currents in the poloidal-field (PF) coils. The AI stack must solve the free-boundary problem to relate coil currents to the negative-triangularity shape that MPC controls."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Free-boundary structure (domain split):\n\n  Plasma region  Omega_p:  Delta* psi = -mu0 R^2 p'(psi) - F F'(psi)\n  Vacuum region  Omega_v:  Delta* psi = -mu0 R * sum_k I_k * delta(x - x_k)\n\n  LCFS defined implicitly by:\n     psi(x) = psi_b  where  psi_b = max over limiter / X-point\n\n  Coupling: plasma current profile depends on psi, and psi in the\n  plasma depends on coil currents I_k in the vacuum region."
+    ]
+   ],
+   [
+    "h3",
+    "X-points and separatrix"
+   ],
+   [
+    "p",
+    "A diverted plasma has one or more X-points where the poloidal field vanishes (grad psi = 0 on the separatrix). Locating the X-point is itself a nonlinear root-find embedded in the equilibrium solve. For the breeder's shaped, negative-triangularity boundary this determines the divertor strike points that thermomechanics and divertor-expander control depend on."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Picard iteration for free-boundary GS (schematic)\npsi = psi_init\nfor it in range(max_it):\n    psi_bdy = locate_lcfs(psi)           # limiter or X-point\n    Jphi    = source(psi, psi_axis, psi_bdy, pprime, ffprime)\n    psi_pl  = solve_elliptic(Delta_star, Jphi)      # interior\n    psi_vac = greens_response(coil_currents)         # exterior\n    psi_new = psi_pl + psi_vac\n    if norm(psi_new - psi) < tol: break\n    psi = relax * psi_new + (1-relax) * psi          # under-relax"
+    ]
+   ],
+   [
+    "h3",
+    "The forward and inverse pairing"
+   ],
+   [
+    "p",
+    "The forward free-boundary map takes coil currents and profiles to a shape. Control needs the inverse: given a target negative-triangularity boundary, find the coil currents that produce it. That inverse is ill-conditioned and is where Green's-function methods, regularization, and learned surrogates enter. The breeder's shape controller ultimately commands PF coils, so this inverse map is the object MPC linearizes against."
+   ],
+   [
+    "p",
+    "Convergence is not guaranteed for arbitrary profiles; strongly shaped, high-beta targets can bifurcate or fail to converge. The stack treats non-convergence as a physical warning, not a numerical nuisance, and flags it to the operating-envelope logic."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-equation",
+    "The Grad-Shafranov Equation"
+   ],
+   [
+    "grad-shafranov-greens-function",
+    "Green's Functions and Coil Response"
+   ],
+   [
+    "equilibrium-reconstruction-inverse-problem",
+    "Equilibrium Reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grad-shafranov-negative-triangularity",
+  "title": "Negative-Triangularity Shaping Mathematics",
+  "cat": "foundations-math",
+  "lede": "The breeder runs at negative triangularity delta -0.30; parameterizing and controlling that inverted-D shape is a specific geometric problem layered on Grad-Shafranov.",
+  "body": [
+   [
+    "h2",
+    "Parameterizing the boundary"
+   ],
+   [
+    "p",
+    "The plasma boundary is described by a small set of shape parameters that the shape controller and twin share. Triangularity delta measures how the plasma cross-section deviates from an ellipse toward a D (positive) or an inverted D (negative). The breeder is canonically delta -0.30: the crescent points inward, a choice tied to edge stability and heat-flux handling."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Miller-style boundary parameterization:\n\n  R(theta) = R0 + a * cos(theta + arcsin(delta) * sin(theta))\n  Z(theta) = kappa * a * sin(theta)\n\n  R0     : major radius        a      : minor radius\n  kappa  : elongation          delta  : triangularity\n\n  Breeder canonical shape: delta = -0.30  (negative)\n  positive delta -> D pointing out ; negative -> D pointing in"
+    ]
+   ],
+   [
+    "h3",
+    "Why negative delta changes the physics"
+   ],
+   [
+    "p",
+    "Negative triangularity shifts the magnetic geometry so that the plasma edge accesses improved confinement without the strong edge pressure pedestal that drives edge-localized modes (ELMs). For the breeder this is a route to an ELM-free-like edge, reducing pulsed heat loads on the divertor. The trade is that negative-delta equilibria are harder to hold and interact differently with vertical stability, which the control math must respect."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# geometric moments the shape controller regulates\ndef shape_descriptors(R, Z):\n    R0 = 0.5*(R.max()+R.min()); a = 0.5*(R.max()-R.min())\n    kappa = 0.5*(Z.max()-Z.min())/a\n    R_upper = R[argmax(Z)]; R_lower = R[argmin(Z)]\n    delta = ((R0 - R_upper) + (R0 - R_lower)) / (2*a)\n    return R0, a, kappa, delta   # target delta approx -0.30"
+    ]
+   ],
+   [
+    "h3",
+    "Coupling to control"
+   ],
+   [
+    "p",
+    "The shape descriptors R0, a, kappa, delta are the controlled outputs; PF-coil currents are the inputs. The free-boundary GS solve provides the sensitivity matrix (Jacobian) from coil currents to descriptors, which MPC uses to hold delta near -0.30 against disturbances. Because negative-triangularity equilibria can be closer to vertical-instability limits, the shape and vertical-stability loops are co-designed rather than treated independently."
+   ],
+   [
+    "p",
+    "This shape target is a design-and-simulation choice validated in equilibrium and stability codes; it is not yet a measured operating point. The same parameterization will initialize reconstruction once FOAK hardware exists ~2030."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-free-boundary",
+    "Free-Boundary Grad-Shafranov"
+   ],
+   [
+    "vertical-stability-mathematics",
+    "Vertical Stability Mathematics"
+   ],
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grad-shafranov-weak-form-fem",
+  "title": "Weak Form and Finite-Element Discretization of Grad-Shafranov",
+  "cat": "foundations-math",
+  "lede": "Casting Grad-Shafranov in its weak form yields the finite-element system that offline solvers use to generate the equilibrium libraries PINNs and surrogates are trained on.",
+  "body": [
+   [
+    "h2",
+    "From strong to weak form"
+   ],
+   [
+    "p",
+    "The Grad-Shafranov operator is elliptic and self-adjoint with respect to the weight 1/R. Multiplying by a test function v, integrating over the poloidal plane, and integrating by parts moves one derivative onto v. This weak form is the basis of the finite-element solvers whose high-fidelity equilibria seed the L0 training libraries."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Weak form: find psi in H^1 such that for all test v\n\n  Integral_Omega  (1/R) grad(psi) . grad(v)  dR dZ\n      =  Integral_Omega  [ mu0 R p'(psi) + F F'(psi)/R ] v  dR dZ\n      +  boundary terms\n\nNote the 1/R weight makes the operator symmetric:\n  a(psi,v) = a(v,psi)  under this inner product."
+    ]
+   ],
+   [
+    "h3",
+    "Galerkin discretization"
+   ],
+   [
+    "p",
+    "Expanding psi in finite-element basis functions phi_j and testing against the same basis (Galerkin) gives a nonlinear algebraic system, because the source depends on psi. It is solved by Picard or Newton iteration; Newton needs the derivative of the source with respect to the nodal unknowns."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Discrete system:  K(psi) . psi = b(psi)\n\n  K_ij = Integral (1/R) grad(phi_i).grad(phi_j) dR dZ   (stiffness)\n  b_i  = Integral [ mu0 R p'(psi_h) + F F'(psi_h)/R ] phi_i dR dZ\n\nNewton step:  ( K - dS/dpsi ) delta_psi = -( K psi - b )\n  where  dS/dpsi = Jacobian of the nonlinear source term"
+    ]
+   ],
+   [
+    "h3",
+    "Why FEM here, PINN in the loop"
+   ],
+   [
+    "p",
+    "FEM gives controlled, convergent, mesh-refinable equilibria with rigorous error estimates - ideal offline where accuracy and provenance matter. But a fresh FEM solve per real-time step is too slow for the 1-100 ms L3 regime. So the stack uses FEM offline to produce ground truth, then distills PINN and neural-operator surrogates that reproduce the FEM solution manifold at inference speed."
+   ],
+   [
+    "ul",
+    [
+     "FEM strengths: convergence guarantees, adaptive refinement near X-points, provenance for validation.",
+     "FEM cost: assembly and factorization per nonlinear iteration, per equilibrium.",
+     "Role in stack: offline ground truth and benchmark for PINN/surrogate accuracy."
+    ]
+   ],
+   [
+    "p",
+    "Every learned equilibrium tool is benchmarked against FEM before it is trusted; the PINN-vs-FEM error is a tracked fidelity metric for the twin."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-equation",
+    "The Grad-Shafranov Equation"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ],
+   [
+    "neural-operators-deeponet-fno",
+    "Neural Operators: DeepONet and FNO"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "grad-shafranov-greens-function",
+  "title": "Green's Functions and Poloidal-Field Coil Response",
+  "cat": "foundations-math",
+  "lede": "The vacuum field of every PF coil is a Green's function of the Grad-Shafranov operator; superposing them turns shape control into a linear-algebra problem.",
+  "body": [
+   [
+    "h2",
+    "The elliptic Green's function"
+   ],
+   [
+    "p",
+    "Outside the plasma the Grad-Shafranov operator is linear, so the flux from any set of coil currents is a superposition of single-coil responses. The response of a unit toroidal current filament is the Green's function of the Delta* operator, expressible in closed form via complete elliptic integrals. This linearity is what makes real-time shape control tractable on the breeder."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Flux at (R,Z) from a unit ring current at (R',Z'):\n\n  G(R,Z; R',Z') = (mu0 / (2*pi)) * sqrt(R R') / k *\n                  [ (2 - k^2) K(k) - 2 E(k) ]\n\n  k^2 = 4 R R' / [ (R+R')^2 + (Z-Z')^2 ]\n  K,E : complete elliptic integrals of the 1st and 2nd kind\n\nTotal external flux:  psi_ext(x) = sum_c  G(x; x_c) * I_c"
+    ]
+   ],
+   [
+    "h3",
+    "Assembling the response matrix"
+   ],
+   [
+    "p",
+    "Evaluating the Green's function at the control points (boundary shape-control gaps, flux loops, X-point) for each coil builds a response matrix M mapping coil-current vector I to the flux/field observations. Shape control is then the linear inverse of M against a shaped target."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Response (Green's) matrix:\n\n  y = M I ,   M_[i,c] = G(x_i ; x_c)  (+ field derivatives for B)\n\n  y : observations at control points (flux, B_R, B_Z, gaps)\n  I : coil current vector\n\nDesired shape -> target y* -> solve for I:\n  I* = argmin || M I - y* ||^2 + lambda ||I||^2   (Tikhonov)"
+    ]
+   ],
+   [
+    "h3",
+    "Ill-conditioning and regularization"
+   ],
+   [
+    "p",
+    "M is typically ill-conditioned: many coil-current combinations produce nearly the same boundary, so a naive inverse amplifies noise and demands unphysical currents. Tikhonov regularization (the lambda term) or truncated SVD stabilizes the inverse, trading a little shape error for well-behaved, current-limited commands. The regularization weight is a tuning knob the shape controller exposes."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# truncated-SVD pseudo-inverse for coil currents\nU, s, Vt = svd(M)\nkeep = s > rcond * s[0]          # drop tiny singular values\nI_star = (Vt[keep].T / s[keep]) @ (U[:, keep].T @ y_star)\n# smaller 'keep' -> smoother, more robust, less exact shape"
+    ]
+   ],
+   [
+    "p",
+    "The Green's-function response matrix is also the linearization MPC uses locally: near an operating point, incremental coil moves map linearly to incremental shape changes, so the receding-horizon QP inherits this structure directly. Because the map is analytic, its sensitivities are exact rather than estimated, which keeps the controller's internal model faithful as the breeder moves around its negative-triangularity target."
+   ],
+   [
+    "p",
+    "The closed-form nature of the Green's function is what keeps this whole chain real-time. No mesh solve is needed to relate coils to observations in the vacuum region; a matrix built once from elliptic-integral evaluations, refreshed only as geometry changes, suffices. That efficiency is why coil-to-shape reasoning fits inside the control cycle for the breeder's 9.86 MA, high-field operating point."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-free-boundary",
+    "Free-Boundary Grad-Shafranov"
+   ],
+   [
+    "constrained-optimization-lagrangian",
+    "Constrained Optimization and Duality"
+   ],
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "equilibrium-reconstruction-inverse-problem",
+  "title": "Equilibrium Reconstruction as an Inverse Problem",
+  "cat": "foundations-math",
+  "lede": "Real-time reconstruction fits a Grad-Shafranov solution to magnetic and kinetic diagnostics, an ill-posed inverse problem regularized and accelerated for the control loop.",
+  "body": [
+   [
+    "h2",
+    "The reconstruction problem"
+   ],
+   [
+    "p",
+    "Equilibrium reconstruction infers the internal flux distribution psi and the free profiles p'(psi), F F'(psi) from external measurements: flux loops, Mirnov coils, and kinetic diagnostics such as Thomson scattering and interferometry. It is the breeder's most fundamental state-estimation task, feeding the KRONOS-CTRL twin and every shape and stability calculation."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Constrained least-squares (EFIT-style):\n\n  minimize   sum_m  ( (M_m[psi] - d_m) / sigma_m )^2  +  R[psi]\n  subject to Delta* psi = -mu0 R^2 p'(psi) - F F'(psi)   (GS constraint)\n\n  M_m[psi] : predicted value of diagnostic m (linear in psi)\n  d_m      : measured value ,  sigma_m : uncertainty\n  R[psi]   : regularization on profile smoothness"
+    ]
+   ],
+   [
+    "h3",
+    "Why it is ill-posed"
+   ],
+   [
+    "p",
+    "External magnetic measurements constrain the plasma boundary and total current well but the internal current profile only weakly - many internal profiles fit the same external signals. This is the classic magnetics-only degeneracy. Adding kinetic constraints (pressure from Thomson, density from interferometry, current direction from motional Stark or polarimetry) and profile regularization breaks the degeneracy."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Gauss-Newton reconstruction step (schematic)\n# unknowns: basis coeffs for pprime(psi), ffprime(psi)\nfor it in range(max_it):\n    psi   = solve_GS(pprime(c), ffprime(c))     # forward solve\n    r     = (predict(psi) - d) / sigma          # weighted residual\n    J     = jacobian_predict_wrt_c(psi, c)      # sensitivity\n    dc    = solve( J.T@J + gamma*Reg, -J.T@r )   # regularized GN\n    c    += dc\n    if norm(dc) < tol: break"
+    ]
+   ],
+   [
+    "h3",
+    "Real-time acceleration"
+   ],
+   [
+    "p",
+    "A full Gauss-Newton reconstruction is too slow for the fast control loop. The stack keeps the rigorous solve as ground truth and runs a PINN-based reconstruction that maps diagnostic vectors directly to psi and profiles in one forward pass, retrained against the offline solver. The PINN carries the Grad-Shafranov residual so its output is a physically admissible equilibrium, not just a regression fit."
+   ],
+   [
+    "ul",
+    [
+     "Inputs: flux loops, Mirnov coils, Thomson, interferometry, coil currents.",
+     "Outputs: psi(R,Z), p'(psi), F F'(psi), boundary shape, q profile.",
+     "Guarantee: GS residual bounded, so reconstructions are admissible equilibria.",
+     "Confidence: per-region uncertainty from diagnostic coverage and residual."
+    ]
+   ],
+   [
+    "p",
+    "Reconstruction confidence is reported, not assumed: where diagnostic coverage is sparse the uncertainty widens and downstream MPC enlarges its margins accordingly."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-equation",
+    "The Grad-Shafranov Equation"
+   ],
+   [
+    "pinn-inverse-problems",
+    "PINNs for Inverse Problems"
+   ],
+   [
+    "kalman-filter-derivation",
+    "The Kalman Filter"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "flux-coordinates-and-safety-factor",
+  "title": "Flux Coordinates and the Safety Factor",
+  "cat": "foundations-math",
+  "lede": "Straight-field-line flux coordinates turn the tangled 3D field into simple geometry, and the safety factor q(psi) they yield is the master stability parameter for the breeder.",
+  "body": [
+   [
+    "h2",
+    "Flux-surface labeling"
+   ],
+   [
+    "p",
+    "Once psi is known, nested flux surfaces are its level sets. Physics is naturally expressed in coordinates that follow these surfaces: a radial label (psi or a normalized rho), a poloidal angle, and the toroidal angle. Straight-field-line coordinates choose the poloidal angle so field lines are straight in the angle plane, which simplifies transport, turbulence, and stability analysis used throughout the twin."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Safety factor (field-line pitch):\n\n  q(psi) = (1 / 2pi) * Integral_0^2pi  ( B . grad phi ) / ( B . grad theta ) d theta\n         = (1 / 2pi) * Contour_int  ( F / R^2 ) * ( dl_p / |grad psi| )\n\n  q = number of toroidal transits per single poloidal transit\n  q measures magnetic shear:  s = (rho/q) dq/drho"
+    ]
+   ],
+   [
+    "h3",
+    "Why q governs stability"
+   ],
+   [
+    "p",
+    "Rational surfaces where q = m/n (m, n integers) are where resonant MHD modes and magnetic islands can grow. The q profile - its edge value q_a, its minimum q_min, and its shear s = (r/q) dq/dr - sets which instabilities are accessible. For the breeder at 9.86 MA the current and q profiles are engineered to keep dangerous rational surfaces out of high-pressure-gradient regions."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# safety factor on a flux surface from a traced contour\ndef q_of_psi(contour, F, psi):\n    dl = arc_lengths(contour)                # poloidal arc segments\n    gradpsi = grad_psi_on(contour)\n    integrand = (F / contour.R**2) / abs(gradpsi)\n    return (1/(2*pi)) * sum(integrand * dl)  # single-surface q"
+    ]
+   ],
+   [
+    "h3",
+    "Coordinates as the AI substrate"
+   ],
+   [
+    "p",
+    "Flux coordinates are also the spatial normalization the data fabric applies before any learning: mapping raw sensor positions onto a common rho grid lets GNNs and PINNs generalize across shots and shapes. A signal at 'rho = 0.8' means the same physical location regardless of how the boundary moved, which is essential for transfer between the breeder's varying equilibria."
+   ],
+   [
+    "ul",
+    [
+     "q_a (edge q): sets gross kink stability and disruption proximity.",
+     "q_min: if it drops through low rationals, tearing and NTMs threaten.",
+     "shear s: stabilizes ballooning at high s; low/negative shear enables other modes."
+    ]
+   ],
+   [
+    "p",
+    "The mapping from lab coordinates to flux coordinates is recomputed every reconstruction cycle, so the twin and its learned modules always operate in a geometry consistent with the current equilibrium."
+   ]
+  ],
+  "related": [
+   [
+    "equilibrium-reconstruction-inverse-problem",
+    "Equilibrium Reconstruction"
+   ],
+   [
+    "ballooning-mode-equation",
+    "The Ballooning Mode Equation"
+   ],
+   [
+    "spatial-normalization-flux-coordinates",
+    "Spatial Normalization in Flux Coordinates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bootstrap-current-and-profiles",
+  "title": "Bootstrap Current and Profile Self-Consistency",
+  "cat": "foundations-math",
+  "lede": "The plasma drives part of its own current; closing that self-consistency loop between pressure, current, and equilibrium is a fixed-point problem the twin must solve.",
+  "body": [
+   [
+    "h2",
+    "A self-driven current"
+   ],
+   [
+    "p",
+    "In a toroidal plasma the pressure gradient drives a neoclassical bootstrap current parallel to the field. This current shapes the q profile, which shapes the equilibrium, which shapes the pressure - a coupled loop. For the breeder, the bootstrap fraction affects how much external current drive the 9.86 MA target needs and where rational surfaces land."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Bootstrap current (schematic neoclassical form):\n\n  <J_bs . B> = -I(psi) p * [ L31 (dln p / dpsi)\n                            + L32 (dln Te / dpsi)\n                            + ... ]\n\n  L31, L32 : neoclassical transport coefficients (collisionality,\n             trapped-particle fraction, aspect ratio dependent)\n  Bootstrap fraction f_bs = I_bootstrap / I_plasma"
+    ]
+   ],
+   [
+    "h3",
+    "The fixed-point coupling"
+   ],
+   [
+    "p",
+    "The total current is external (ohmic + auxiliary drive) plus bootstrap. But bootstrap depends on the pressure and the equilibrium, which depend on the total current. A self-consistent equilibrium requires iterating the Grad-Shafranov solve and the bootstrap model to a fixed point."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# self-consistent equilibrium + bootstrap fixed point\np_prof, T_prof = initial_profiles()\nfor it in range(max_it):\n    psi   = solve_GS(from(p_prof, j_total))\n    q     = q_profile(psi)\n    j_bs  = bootstrap(p_prof, T_prof, psi)     # neoclassical\n    j_tot = j_ext + j_bs\n    if converged(j_tot, q): break\n    j_total = relax(j_tot)                     # under-relax to stabilize"
+    ]
+   ],
+   [
+    "h3",
+    "Why the AI cares"
+   ],
+   [
+    "p",
+    "The bootstrap loop is expensive and stiff, and it must be re-solved whenever profiles change - which is constantly during a scenario. The stack learns a surrogate for the bootstrap-consistent equilibrium map so scenario optimization and MPC can evaluate candidate profiles without a full nested iteration. The surrogate is trained on the offline self-consistent solver and carries an uncertainty band."
+   ],
+   [
+    "ul",
+    [
+     "High f_bs reduces external current-drive demand but complicates control.",
+     "Bootstrap-driven current can destabilize neoclassical tearing modes.",
+     "The q profile it produces feeds directly into the stability spectra."
+    ]
+   ],
+   [
+    "p",
+    "Bootstrap fraction is a design lever, not yet a measured quantity; the values used are simulation-based and will be re-anchored against reconstruction once the breeder operates."
+   ]
+  ],
+  "related": [
+   [
+    "flux-coordinates-and-safety-factor",
+    "Flux Coordinates and Safety Factor"
+   ],
+   [
+    "mhd-linear-stability-eigenproblem",
+    "Linear MHD Stability Eigenproblem"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Surrogates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ideal-mhd-energy-principle",
+  "title": "The Ideal MHD Energy Principle",
+  "cat": "foundations-math",
+  "lede": "Whether a breeder equilibrium is stable reduces to the sign of a single energy functional; its minimization defines the safe operating envelope the AI must respect.",
+  "body": [
+   [
+    "h2",
+    "Stability as an energy question"
+   ],
+   [
+    "p",
+    "Linearized ideal MHD asks whether a small displacement xi of the plasma from equilibrium releases or costs energy. The change in potential energy is a quadratic functional delta-W[xi]. If delta-W is positive for every allowed displacement, the equilibrium is stable; if any displacement makes it negative, that mode grows. This variational principle is the mathematical backbone of every breeder stability limit."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Energy principle:  delta-W[xi] = (1/2) Integral  [ stabilizing - driving ] dV\n\n  delta-W = (1/2) Integral {\n      |Q_perp|^2 / mu0                         (field-line bending, >0)\n    + B^2/mu0 |div_perp xi + 2 xi.kappa|^2      (compression, >0)\n    + gamma p |div xi|^2                        (plasma compression, >0)\n    - 2 (xi.grad p)(xi.kappa)                   (pressure/curvature drive)\n    - j_par (xi* x b).Q                         (current drive, kink)\n  } dV\n\n  Q = grad x (xi x B) ,  kappa = field-line curvature"
+    ]
+   ],
+   [
+    "h3",
+    "Reading the terms"
+   ],
+   [
+    "p",
+    "The first three terms are always stabilizing: bending, compressing, and squeezing field lines and plasma cost energy. The last two are the drives. The pressure-curvature term is negative (destabilizing) where the pressure gradient points the same way as the unfavorable field curvature - the origin of interchange and ballooning modes. The current-drive term feeds kink and tearing modes. Negative triangularity alters the curvature term favorably at the edge."
+   ],
+   [
+    "h3",
+    "From functional to eigenproblem"
+   ],
+   [
+    "p",
+    "Minimizing delta-W subject to a normalization on xi is a Rayleigh quotient, so the marginal stability question becomes a generalized eigenvalue problem. The smallest eigenvalue's sign is the stability verdict; its eigenvector is the mode structure the anomaly detectors watch for."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Rayleigh quotient (growth rate gamma):\n\n  gamma^2 = -  delta-W[xi] / K[xi]\n\n  K[xi] = (1/2) Integral rho |xi|^2 dV     (kinetic norm, >0)\n\n  gamma^2 > 0  -> unstable (exponential growth)\n  gamma^2 < 0  -> stable (oscillation)\n  gamma^2 = 0  -> marginal stability boundary"
+    ]
+   ],
+   [
+    "p",
+    "The AI stack does not re-minimize delta-W in the control loop; it learns the marginal-stability boundary in parameter space from offline eigenvalue solves, giving MPC a fast, differentiable constraint surface. Proximity to that surface is a monitored, reported quantity, and the protection failsafe never depends on the learned boundary alone."
+   ]
+  ],
+  "related": [
+   [
+    "mhd-linear-stability-eigenproblem",
+    "Linear MHD Stability Eigenproblem"
+   ],
+   [
+    "ballooning-mode-equation",
+    "The Ballooning Mode Equation"
+   ],
+   [
+    "pinn-mhd-stability",
+    "PINN for MHD Stability"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mhd-linear-stability-eigenproblem",
+  "title": "The Linear MHD Stability Eigenproblem",
+  "cat": "foundations-math",
+  "lede": "Linearizing ideal MHD about an equilibrium gives a self-adjoint force operator whose eigenvalues are growth rates; the AI learns its unstable manifold.",
+  "body": [
+   [
+    "h2",
+    "The linearized force operator"
+   ],
+   [
+    "p",
+    "Perturbing the ideal-MHD equations about a static equilibrium and assuming time dependence exp(gamma t) yields a generalized eigenvalue problem for the displacement xi. The force operator F is self-adjoint, which guarantees real gamma^2 - motions are either purely growing or purely oscillating, never overstable in ideal MHD. This structure is exploited by every stability code that seeds the breeder's training data."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Linearized ideal MHD eigenproblem:\n\n  F(xi) = -rho * gamma^2 * xi\n\n  F(xi) = grad( gamma_ad p div xi + xi.grad p )\n        + (1/mu0) (curl B) x Q + (1/mu0)(curl Q) x B\n\n  Q = curl(xi x B)\n\n  Self-adjoint: <eta, F(xi)> = <xi, F(eta)>  -> gamma^2 real"
+    ]
+   ],
+   [
+    "h3",
+    "Discrete generalized eigenproblem"
+   ],
+   [
+    "p",
+    "Discretizing xi on a flux-coordinate grid turns the operator equation into a matrix generalized eigenproblem. The most-unstable eigenpair is what matters, so iterative methods (shift-invert Arnoldi/Lanczos) target the extreme eigenvalues rather than the full spectrum."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# most-unstable ideal-MHD mode via shift-invert\n# A xi = gamma^2 B_mass xi   (A from force operator)\nfrom scipy.sparse.linalg import eigsh\nvals, vecs = eigsh(A, k=4, M=B_mass, sigma=sigma0,\n                   which='LM')   # near shift sigma0\ngamma2 = vals.max()\nunstable = gamma2 > 0            # positive -> growing mode\nmode = vecs[:, vals.argmax()]    # eigenvector = mode structure"
+    ]
+   ],
+   [
+    "h3",
+    "Toroidal mode-number decomposition"
+   ],
+   [
+    "p",
+    "Axisymmetry lets perturbations separate by toroidal mode number n: exp(i n phi). Each n is an independent eigenproblem. Low n (1, 2) are global kink/ballooning modes; the n = 0 problem is vertical stability. The breeder scans n to find the most-dangerous mode at each operating point."
+   ],
+   [
+    "ul",
+    [
+     "n = 0: vertical instability (axisymmetric), needs active feedback.",
+     "n = 1: external kink and resistive-wall modes.",
+     "intermediate n: ballooning modes, pressure-gradient driven.",
+     "high n: local ballooning, treated by the s-alpha equation."
+    ]
+   ],
+   [
+    "p",
+    "Because a full eigen-solve is far too slow for real time, the stack trains classifiers and regressors on offline eigenvalue databases to predict growth rates from equilibrium descriptors, giving the twin a continuous stability margin field it updates every cycle."
+   ]
+  ],
+  "related": [
+   [
+    "ideal-mhd-energy-principle",
+    "Ideal MHD Energy Principle"
+   ],
+   [
+    "resistive-wall-mode-mathematics",
+    "Resistive Wall Mode Mathematics"
+   ],
+   [
+    "vertical-stability-mathematics",
+    "Vertical Stability Mathematics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ballooning-mode-equation",
+  "title": "The Ballooning Mode Equation and s-alpha Space",
+  "cat": "foundations-math",
+  "lede": "High-toroidal-number pressure-driven modes reduce to a 1D ODE along the field line; its stability chart in shear-alpha space bounds the breeder's pressure gradient.",
+  "body": [
+   [
+    "h2",
+    "Ballooning transformation"
+   ],
+   [
+    "p",
+    "At high toroidal mode number n the two-dimensional stability problem separates: the mode localizes on a flux surface and varies rapidly across it but slowly along the field line. The ballooning transformation converts the eigenproblem into a single ordinary differential equation along the extended poloidal angle. This is the workhorse limit for the breeder's edge stability, where negative triangularity does its work."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Ballooning equation (along field-line coordinate theta):\n\n  d/dtheta [ (1 + Lambda^2) dF/dtheta ]\n      + alpha [ cos theta + Lambda sin theta ] F  =  0\n\n  Lambda = s*theta - alpha*sin(theta)\n  s     = (r/q) dq/dr             (magnetic shear)\n  alpha = -(2 mu0 R q^2 / B^2) dp/dr   (normalized pressure gradient)\n\n  Marginal stability -> boundary curve in the (s, alpha) plane"
+    ]
+   ],
+   [
+    "h3",
+    "The s-alpha stability chart"
+   ],
+   [
+    "p",
+    "Solving the ballooning ODE for marginal stability over a grid of shear s and normalized pressure gradient alpha produces the classic s-alpha diagram: a stable region, a first unstable region, and at high shear a second stable region. Where the breeder's edge sits on this chart determines whether the pressure pedestal is ballooning-limited."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# marginal ballooning boundary by shooting method\ndef ballooning_growth(s, alpha):\n    def rhs(theta, y):\n        F, dF = y\n        Lam = s*theta - alpha*sin(theta)\n        coef = 1 + Lam**2\n        d2F = -(alpha*(cos(theta)+Lam*sin(theta))*F\n                + dLam_terms(...)*dF) / coef\n        return [dF, d2F]\n    y = integrate(rhs, span=(-Nturns*pi, Nturns*pi), y0=[1,0])\n    return decay_rate(y)     # bounded -> stable ; growing -> unstable"
+    ]
+   ],
+   [
+    "h3",
+    "Negative triangularity in this chart"
+   ],
+   [
+    "p",
+    "Negative triangularity (delta -0.30) modifies the local magnetic geometry entering the coefficients, moving the edge operating point relative to the ballooning boundary and enabling good edge confinement without a steep, ELM-prone pedestal. The stack encodes the marginal curve as a differentiable constraint so scenario optimization keeps the edge pressure gradient inside the stable region by construction."
+   ],
+   [
+    "ul",
+    [
+     "alpha too high at low s: first-region ballooning instability.",
+     "Access to second stability: high shear can re-stabilize steep gradients.",
+     "Negative-delta geometry reshapes access to these regions at the edge."
+    ]
+   ],
+   [
+    "p",
+    "These boundaries are computed offline in simulation and used as design constraints; they will be re-validated against edge diagnostics once the breeder operates."
+   ]
+  ],
+  "related": [
+   [
+    "ideal-mhd-energy-principle",
+    "Ideal MHD Energy Principle"
+   ],
+   [
+    "grad-shafranov-negative-triangularity",
+    "Negative-Triangularity Shaping"
+   ],
+   [
+    "trajectory-optimization-scenario",
+    "Trajectory Optimization for Scenarios"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "resistive-wall-mode-mathematics",
+  "title": "Resistive Wall Mode Mathematics",
+  "cat": "foundations-math",
+  "lede": "A perfectly conducting wall stabilizes the external kink, but a real resistive wall lets it grow slowly; feedback control of that growth is a precise linear problem.",
+  "body": [
+   [
+    "h2",
+    "Wall stabilization and its limit"
+   ],
+   [
+    "p",
+    "The external kink mode (n = 1) can be stabilized by image currents in a nearby conducting wall - but only if the wall is perfect. A real, finite-conductivity wall lets flux diffuse through on its resistive time, so the mode reappears as a slowly growing resistive wall mode (RWM) with a growth rate set by the wall time, not the fast Alfven time. This slow timescale is exactly what makes feedback control feasible on the breeder."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "RWM dispersion (thin-wall model, schematic):\n\n  gamma * tau_wall  =  ( delta-W_infinity ) / ( -delta-W_b )\n\n  delta-W_infinity : energy with wall at infinity (no wall)\n  delta-W_b        : energy with ideal wall at wall radius\n  tau_wall = mu0 * sigma_wall * d * b   (wall resistive time)\n\n  Stable-with-ideal-wall but unstable-without -> RWM window\n  Growth rate ~ 1/tau_wall  (slow, milliseconds)"
+    ]
+   ],
+   [
+    "h3",
+    "Feedback as pole placement"
+   ],
+   [
+    "p",
+    "Active coils sense the growing radial field and drive currents to cancel it. Modeled as a low-order linear system, the RWM plus feedback is a pole-placement problem: choose controller gains so the closed-loop growth rate becomes negative. Because the open-loop growth is slow, modest gains suffice, but sensor noise and coil dynamics set the achievable margin."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# RWM feedback as a scalar state-space loop\n# x_dot = gamma*x + b*u  ; y = x + noise ; u = -K*y\n# closed loop: x_dot = (gamma - b*K) x - b*K*noise\ndef closed_loop_rate(gamma, b, K):\n    return gamma - b*K          # want < 0 for stability\n# margin shrinks as measurement noise or actuator lag grow"
+    ]
+   ],
+   [
+    "h3",
+    "Where it fits the stack"
+   ],
+   [
+    "p",
+    "The RWM controller is a fast inner loop; the AI supervises it rather than replacing it. The twin estimates delta-W margins and the mode amplitude from magnetics, and the anomaly ensemble flags a growing n = 1 signature as a disruption precursor. If the estimated growth outpaces the controller's authority, L3 requests a scenario change before the protection failsafe would trigger."
+   ],
+   [
+    "ul",
+    [
+     "Sensing: saddle loops and Mirnov arrays resolve the n = 1 radial field.",
+     "Actuation: dedicated in-vessel or ex-vessel control coils.",
+     "AI role: margin estimation, precursor detection, envelope enforcement."
+    ]
+   ],
+   [
+    "p",
+    "The RWM model is a design-and-simulation construct; wall time and mode couplings will be measured and the model updated after first plasma."
+   ]
+  ],
+  "related": [
+   [
+    "mhd-linear-stability-eigenproblem",
+    "Linear MHD Stability Eigenproblem"
+   ],
+   [
+    "vertical-stability-mathematics",
+    "Vertical Stability Mathematics"
+   ],
+   [
+    "kalman-filter-derivation",
+    "The Kalman Filter"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vertical-stability-mathematics",
+  "title": "Vertical Stability Mathematics",
+  "cat": "foundations-math",
+  "lede": "Elongated and negative-triangularity plasmas are vertically unstable; the n=0 axisymmetric mode grows on the wall time and demands continuous feedback control.",
+  "body": [
+   [
+    "h2",
+    "Why elongation destabilizes"
+   ],
+   [
+    "p",
+    "Shaping the plasma vertically (elongation kappa > 1) improves performance but makes the plasma column vertically unstable: a small vertical displacement grows because the external field gradient pushes it further. This is the axisymmetric n = 0 instability. The breeder's shaped, negative-triangularity cross-section must be actively balanced on the vertical axis at all times."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Vertical instability (rigid-displacement model):\n\n  m * d2Z/dt2  =  F_dest * Z  +  F_coil(I_c)\n\n  F_dest = I_p * dB_R_ext/dZ    (destabilizing field-index force)\n  Field decay index n_idx = -(R/B_Z) dB_Z/dR ;  n_idx < 0 required\n\n  Passive: wall eddy currents slow growth to tau_wall scale\n  Growth rate gamma_z ~ sqrt(F_dest/m)  without wall"
+    ]
+   ],
+   [
+    "h3",
+    "Passive plus active stabilization"
+   ],
+   [
+    "p",
+    "The conducting vessel slows the growth to the resistive-wall timescale (milliseconds), inside which active control coils can act. The control problem is to hold Z near zero using vertical-field coils, given noisy position estimates. It is a fast, low-order loop that the shape controller and MPC must not fight."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# vertical position controller (2-state model)\n# state x = [Z, Zdot]; input u = control-coil current\nA = [[0, 1],[gamma_z**2, -damp]]     # unstable: gamma_z^2 > 0\nB = [[0],[b_coil]]\nK = lqr(A, B, Q, R)                  # stabilizing gain\n# closed-loop eigenvalues moved into left half plane"
+    ]
+   ],
+   [
+    "h3",
+    "Coupling with shape control"
+   ],
+   [
+    "p",
+    "Vertical position and plasma shape share the same PF-coil set, so the vertical loop and the negative-triangularity shape loop are coupled multi-input multi-output control problems. The stack co-designs them: the fast vertical loop runs at high bandwidth, while MPC handles the slower shape targets, with an explicit allocation so coil authority is not double-booked. Negative-triangularity equilibria can sit closer to the vertical limit, tightening this coupling."
+   ],
+   [
+    "ul",
+    [
+     "Estimate Z and Zdot from magnetics faster than gamma_z.",
+     "Reserve control-coil headroom for the vertical loop under all shapes.",
+     "Report vertical stability margin as an envelope constraint to MPC."
+    ]
+   ],
+   [
+    "p",
+    "Loss of vertical control is a primary disruption pathway, so the vertical margin is a first-class monitored quantity, and its degradation is a precursor the anomaly ensemble is trained to catch early."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-negative-triangularity",
+    "Negative-Triangularity Shaping"
+   ],
+   [
+    "resistive-wall-mode-mathematics",
+    "Resistive Wall Mode Mathematics"
+   ],
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "tandem-mirror-equilibrium-mathematics",
+  "title": "Tandem-Mirror Equilibrium Mathematics",
+  "cat": "foundations-math",
+  "lede": "The burner is not a torus; its equilibrium is set by paraxial force balance and mirror confinement along an open field line, a different mathematics from Grad-Shafranov.",
+  "body": [
+   [
+    "h2",
+    "Open field lines and mirror confinement"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat. Its field lines are open, not nested tori, so Grad-Shafranov does not apply. Confinement comes from the magnetic mirror force plus an electrostatic ambipolar potential built by high-field end plugs. The equilibrium mathematics is one-dimensional along the axis in the paraxial approximation."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Magnetic moment invariance and the mirror force:\n\n  mu = m v_perp^2 / (2 B) = const  (adiabatic invariant)\n  Energy:  (1/2) m v^2 + q Phi = const\n\n  Reflection condition (loss cone):\n    particle reflects if  v_par^2 < v_perp0^2 (R_m - 1)\n    mirror ratio R_m = B_max / B_min\n    Burner: throat 17 T, plug 26.49 T set the mirror ratios"
+    ]
+   ],
+   [
+    "h3",
+    "Paraxial force balance"
+   ],
+   [
+    "p",
+    "In the paraxial (long-thin) limit, radial force balance across the narrow flux bundle relates plasma pressure, magnetic field, and field-line curvature. The axial variation of B, density, and potential is solved as a coupled 1D system. This replaces the 2D elliptic Grad-Shafranov solve with an axial two-point boundary-value problem."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Paraxial radial pressure balance (schematic):\n\n  d/dr [ p_perp + B^2/(2 mu0) ]  =  (curvature/anisotropy terms)\n\nAxial (parallel) force balance with anisotropy:\n  d p_par/dz + (p_par - p_perp) dlnB/dz = n q dPhi/dz\n\n  p_par, p_perp : parallel/perpendicular pressures (anisotropic)\n  Phi(z)        : ambipolar electrostatic potential"
+    ]
+   ],
+   [
+    "h3",
+    "Why this is a design-and-simulation study"
+   ],
+   [
+    "p",
+    "The tandem-mirror equilibrium the burner needs sits far outside any built device. The plug operating regime is 166-830x beyond experimental experience, so the equilibrium cannot be post-dicted against data today - it is a simulation construct. The stack treats every burner equilibrium quantity as carrying that extrapolation risk, and reports it, rather than presenting the solve as validated."
+   ],
+   [
+    "ul",
+    [
+     "State variables: B(z), n(z), Phi(z), p_par(z), p_perp(z) along axis.",
+     "Boundary data: plug/throat fields (26.49 T / 17 T), end-cell conditions.",
+     "Confinement set jointly by mirror ratio and ambipolar potential."
+    ]
+   ],
+   [
+    "p",
+    "The same PINN and estimation machinery used on the breeder is retargeted to this 1D axial operator, but the honesty requirement is stronger: with no comparable device, uncertainty bands dominate and are surfaced to every consumer."
+   ]
+  ],
+  "related": [
+   [
+    "ambipolar-potential-mathematics",
+    "Ambipolar Potential Mathematics"
+   ],
+   [
+    "mirror-interchange-stability",
+    "Mirror Interchange Stability"
+   ],
+   [
+    "pinn-burner-ambipolar-formulation",
+    "PINN for the Ambipolar Potential"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ambipolar-potential-mathematics",
+  "title": "Ambipolar Potential and Pastukhov Confinement",
+  "cat": "foundations-math",
+  "lede": "The tandem mirror confines ions with an electrostatic potential set by charge neutrality; the Pastukhov relation ties confinement time to that potential.",
+  "body": [
+   [
+    "h2",
+    "Charge neutrality sets the potential"
+   ],
+   [
+    "p",
+    "In the burner the end plugs raise the electron density locally, and quasineutrality forces an electrostatic potential Phi that confines the central-cell ions in a potential well. Solving for Phi is a nonlinear root problem: the potential must make ion and electron loss rates equal (ambipolarity) at every axial location. This potential is the burner's central control target, the analogue of the breeder's plasma shape."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Ambipolarity (equal particle loss rates):\n\n  Gamma_i(Phi) = Gamma_e(Phi)   at each axial cell\n\nQuasineutrality:\n  sum_s q_s n_s(Phi, B, T_s) = 0\n\nBoltzmann electrons (fast species):\n  n_e(z) = n_e0 * exp( e (Phi(z) - Phi_0) / T_e )"
+    ]
+   ],
+   [
+    "h3",
+    "Pastukhov confinement scaling"
+   ],
+   [
+    "p",
+    "The confinement time of ions trapped by both the magnetic mirror and the electrostatic potential follows the Pastukhov relation: it grows roughly exponentially with the ratio of confining potential to ion temperature, modulated by the mirror ratio and a logarithmic factor. This is why building and holding the potential is everything for the burner."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Pastukhov-type ion confinement time:\n\n  n tau_i  ~  ( R_m / log(R_m) ) * ( e*Phi_c / T_i ) *\n              exp( e*Phi_c / T_i ) * (collisional factor)\n\n  Phi_c : confining potential depth\n  R_m   : mirror ratio (set by plug/throat fields)\n  Strong (exponential) sensitivity to Phi_c / T_i"
+    ]
+   ],
+   [
+    "h3",
+    "The solver and its honesty"
+   ],
+   [
+    "p",
+    "The stack solves the coupled quasineutrality-ambipolarity system for Phi(z) as a nonlinear two-point problem, then uses Phi to predict confinement. But the operating regime is 166-830x beyond any device, so the Pastukhov extrapolation is un-post-dictable today; the He-3 fuel it presumes is ~400x current domestic supply. Both are reported as gates, not solved away."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# solve ambipolar potential profile (schematic)\ndef residual(Phi):\n    n = quasineutral_densities(Phi, B_profile, T)\n    return Gamma_i(Phi, n) - Gamma_e(Phi, n)   # ambipolarity\nPhi = newton_krylov(residual, Phi_guess)\ntau_i = pastukhov(Phi, R_m, T_i)\n# confidence band dominated by 166-830x regime extrapolation"
+    ]
+   ],
+   [
+    "p",
+    "Because confinement depends exponentially on Phi_c/T_i, small modeling errors become large confinement errors - a mathematical reason the burner is treated as a design study and never as a proven operating point."
+   ]
+  ],
+  "related": [
+   [
+    "tandem-mirror-equilibrium-mathematics",
+    "Tandem-Mirror Equilibrium"
+   ],
+   [
+    "mirror-interchange-stability",
+    "Mirror Interchange Stability"
+   ],
+   [
+    "pinn-burner-ambipolar-formulation",
+    "PINN for the Ambipolar Potential"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mirror-interchange-stability",
+  "title": "Mirror Interchange Stability and Minimum-B",
+  "cat": "foundations-math",
+  "lede": "Open-field mirrors are prone to flute/interchange instability; stability requires a magnetic well (minimum-B), and the burner's ability to build one is a live physics gate.",
+  "body": [
+   [
+    "h2",
+    "The interchange drive"
+   ],
+   [
+    "p",
+    "A simple magnetic mirror has unfavorable field-line curvature: plasma can interchange with vacuum and lower its energy, driving the flute (interchange) instability - the mirror analogue of the breeder's ballooning drive. Stability requires that field-line curvature be favorable on average, i.e. the field magnitude increases away from the plasma: a minimum-B or magnetic-well configuration."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Interchange stability criterion (average minimum-B):\n\n  Integral  dl / B  * ( flux-tube volume ) must satisfy\n     d/dpsi [ Integral dl / B ]  < 0   (well condition)\n\nEquivalently the average curvature is favorable:\n  < kappa . grad p >  < 0   (stabilizing)\n\n  A magnetic well means B increases off-axis in all directions."
+    ]
+   ],
+   [
+    "h3",
+    "Building a well in a tandem mirror"
+   ],
+   [
+    "p",
+    "Minimum-B is achieved with non-axisymmetric coils (historically Ioffe bars / baseball / yin-yang geometry) that raise B off-axis. The tension is fundamental: the high-field plug (26.49 T) and throat (17 T) that provide confinement must coexist with a field shape that keeps the well. Whether a feasible-stress coil set can deliver both simultaneously is precisely where a burner gate bites."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# average magnetic-well figure of merit along a flux tube\ndef well_depth(B_of_l, dl):\n    U = sum(dl / B_of_l)                 # specific flux-tube volume\n    return -dU_dpsi(U)                   # >0 -> magnetic well (stable)\n# stability requires well > 0 at the operating beta"
+    ]
+   ],
+   [
+    "h3",
+    "Why this is a gate, not a result"
+   ],
+   [
+    "p",
+    "At the design bore the plug coil is overstressed ~3-3.9x, so the specified field-and-well combination is infeasible as drawn. That is a structural-mechanics fact upstream of the plasma physics: without a feasible coil, the stabilizing minimum-B cannot be assumed. The stack therefore represents burner interchange stability with the coil-stress constraint bound to it, never reporting a stable well without also reporting the ~3-3.9x overstress."
+   ],
+   [
+    "ul",
+    [
+     "Interchange/flute mode is the dominant open-field MHD threat.",
+     "Minimum-B (magnetic well) is the stabilizing requirement.",
+     "Coil overstress ~3-3.9x means the well-providing geometry is not yet feasible."
+    ]
+   ],
+   [
+    "p",
+    "These are simulation findings for a machine that does not exist; they are stated plainly because they define what must be solved, not hidden to make the concept look finished."
+   ]
+  ],
+  "related": [
+   [
+    "tandem-mirror-equilibrium-mathematics",
+    "Tandem-Mirror Equilibrium"
+   ],
+   [
+    "ambipolar-potential-mathematics",
+    "Ambipolar Potential Mathematics"
+   ],
+   [
+    "ballooning-mode-equation",
+    "The Ballooning Mode Equation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mhd-stability-summary-matrix",
+  "title": "Stability-Problem Map Across Both Machines",
+  "cat": "foundations-math",
+  "lede": "The same variational stability question specializes to different operators on the breeder and the burner; this map pairs each mode with its equation and its AI treatment.",
+  "body": [
+   [
+    "h2",
+    "One principle, machine-specific operators"
+   ],
+   [
+    "p",
+    "Every stability limit in the stack descends from the ideal-MHD energy principle: an equilibrium is stable when no allowed displacement lowers the potential energy. What changes between machines is the geometry and therefore the operator, the dominant modes, and the honesty caveats attached. This page is the cross-reference the twin uses to route a stability query to the right module."
+   ],
+   [
+    "h3",
+    "Breeder (Hyperion) modes"
+   ],
+   [
+    "ul",
+    [
+     "Vertical n=0: rigid-shift eigenproblem; active PF feedback; wall-time growth.",
+     "External kink / RWM n=1: delta-W with wall; slow feedback-controllable growth.",
+     "Ballooning high-n: 1D s-alpha ODE; bounds edge pressure gradient at delta -0.30.",
+     "Tearing / NTM: resistive, rational-surface islands; q-profile dependent."
+    ]
+   ],
+   [
+    "h3",
+    "Burner (Aegis / MetroVolt) modes"
+   ],
+   [
+    "ul",
+    [
+     "Interchange / flute: average curvature; needs minimum-B magnetic well.",
+     "Mirror-mode / anisotropy: driven by p_perp > p_par pressure anisotropy.",
+     "Loss-cone / microinstabilities: velocity-space driven, kinetic not fluid."
+    ]
+   ],
+   [
+    "h3",
+    "Which math, which caveat"
+   ],
+   [
+    "p",
+    "The table below is the decision the twin encodes: given a machine and a mode, which mathematical object is solved and which honesty gate travels with the answer. The burner rows always carry an extrapolation or feasibility caveat because no comparable device exists."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Machine / Mode",
+      "Core object",
+      "Honesty caveat"
+     ],
+     [
+      [
+       "Breeder vertical n=0",
+       "rigid-shift eigenproblem",
+       "controllable; margin monitored"
+      ],
+      [
+       "Breeder kink/RWM n=1",
+       "delta-W with wall",
+       "slow growth; feedback needed"
+      ],
+      [
+       "Breeder ballooning",
+       "s-alpha ODE",
+       "design constraint, sim-based"
+      ],
+      [
+       "Burner interchange",
+       "minimum-B well integral",
+       "coil overstress 3-3.9x"
+      ],
+      [
+       "Burner confinement",
+       "Pastukhov / ambipolar",
+       "regime 166-830x beyond devices"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "Nothing in this map claims hardware net gain; all breeder limits are simulation-validated pending FOAK ~2030, and all burner limits carry the four gates. The map exists so no query is answered by the wrong operator or without its caveat."
+   ]
+  ],
+  "related": [
+   [
+    "ideal-mhd-energy-principle",
+    "Ideal MHD Energy Principle"
+   ],
+   [
+    "mirror-interchange-stability",
+    "Mirror Interchange Stability"
+   ],
+   [
+    "foundations-math-overview",
+    "Mathematical Foundations Overview"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-fundamentals",
+  "title": "Physics-Informed Neural Networks: Fundamentals",
+  "cat": "foundations-math",
+  "lede": "A PINN represents a field as a neural network and trains it to satisfy a PDE via automatic differentiation, turning solving into optimization.",
+  "body": [
+   [
+    "h2",
+    "The core idea"
+   ],
+   [
+    "p",
+    "A physics-informed neural network (PINN) approximates the solution of a PDE, say psi(R,Z) for the breeder equilibrium, by a neural network psi_theta with weights theta. Instead of fitting data alone, it is trained so its own derivatives satisfy the governing equation at sampled collocation points. Automatic differentiation gives those derivatives exactly, so the PDE residual becomes a loss to minimize."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "PDE:            N[psi](x) = 0   on domain Omega\nBoundary:       B[psi](x) = 0   on boundary dOmega\n\nPINN ansatz:    psi ~ psi_theta(x)   (neural network)\n\nResidual at x:  r_theta(x) = N[psi_theta](x)\n  computed with exact autodiff derivatives of psi_theta"
+    ]
+   ],
+   [
+    "h3",
+    "Why autodiff makes it work"
+   ],
+   [
+    "p",
+    "The differential operator is applied to the network itself. For Grad-Shafranov the loss needs second derivatives of psi_theta with respect to R and Z; autodiff produces these to machine precision, not by finite differences. This is what lets a mesh-free network satisfy an elliptic PDE. The same mechanism handles the burner's axial ambipolar operator."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# PDE residual via automatic differentiation (schematic)\ndef gs_residual(net, R, Z, pprime, ffprime):\n    psi = net(R, Z)\n    psi_R  = grad(psi, R)\n    psi_RR = grad(psi_R, R)\n    psi_ZZ = grad(grad(psi, Z), Z)\n    delta_star = psi_RR - psi_R / R + psi_ZZ\n    return delta_star + mu0*R**2*pprime(psi) + ffprime(psi)"
+    ]
+   ],
+   [
+    "h3",
+    "Universal approximation, with caveats"
+   ],
+   [
+    "p",
+    "Neural networks are universal approximators, so in principle psi_theta can represent the true solution. In practice PINNs have well-known training pathologies: stiff loss landscapes, spectral bias toward low frequencies, and competition between residual and boundary terms. The stack treats these seriously - covered on the loss-construction, conditioning, and hard-constraint pages - because an under-trained PINN is a wrong equilibrium, not just an inaccurate one."
+   ],
+   [
+    "ul",
+    [
+     "Mesh-free: no grid generation, natural for changing breeder shapes.",
+     "Inverse-ready: unknown profiles can be trained as extra parameters.",
+     "Fast at inference: one forward pass replaces an iterative solve.",
+     "Must be benchmarked against FEM before it is trusted in the twin."
+    ]
+   ],
+   [
+    "p",
+    "In the Kronos stack PINNs are always validated against the FEM ground truth and carry a residual-based confidence score; they accelerate the twin but never bypass the offline verification path."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-construction",
+    "PINN Loss Construction"
+   ],
+   [
+    "pinn-grad-shafranov-formulation",
+    "PINN for Grad-Shafranov"
+   ],
+   [
+    "pinn-ntk-conditioning",
+    "PINN Conditioning and Training Dynamics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-loss-construction",
+  "title": "PINN Loss Construction and Weighting",
+  "cat": "foundations-math",
+  "lede": "A PINN's loss sums PDE residual, boundary, and data terms; how those terms are weighted decides whether training converges to the physical solution.",
+  "body": [
+   [
+    "h2",
+    "The composite objective"
+   ],
+   [
+    "p",
+    "A PINN loss is a weighted sum of several objectives: the interior PDE residual, boundary/initial conditions, and any measured data. Each term is a mean-squared quantity over its own sample points. The weights balance terms that live on different scales and gradients, and getting them wrong is the most common reason a PINN converges to a plausible-looking but non-physical field."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Total loss:\n\n  L(theta) = w_pde * L_pde  + w_bc * L_bc  + w_data * L_data\n\n  L_pde  = (1/N_r) sum_i | N[psi_theta](x_i) |^2      (collocation)\n  L_bc   = (1/N_b) sum_j | B[psi_theta](x_j) |^2      (boundary)\n  L_data = (1/N_d) sum_k | psi_theta(x_k) - d_k |^2   (measurements)\n\n  weights w_* balance term scales and gradient magnitudes"
+    ]
+   ],
+   [
+    "h3",
+    "Adaptive weighting"
+   ],
+   [
+    "p",
+    "Fixed weights rarely work across a scenario. The stack uses gradient-based adaptive weighting: it rescales each term so no single loss dominates the shared backbone's gradients. A common rule sets weights from the ratio of gradient norms, updated during training."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# gradient-norm adaptive weighting (schematic)\ng_pde  = grad_norm(L_pde,  theta)\ng_bc   = grad_norm(L_bc,   theta)\ng_data = grad_norm(L_data, theta)\ng_bar  = (g_pde + g_bc + g_data) / 3\nw_pde  = g_bar / (g_pde + eps)\nw_bc   = g_bar / (g_bc  + eps)\nw_data = g_bar / (g_data+ eps)     # balance backbone gradients"
+    ]
+   ],
+   [
+    "h3",
+    "Physics-specific terms"
+   ],
+   [
+    "p",
+    "Beyond the raw PDE residual the breeder PINN adds terms that encode admissibility: monotonic flux from axis to boundary, positivity of pressure, and consistency of the reconstructed q profile with magnetics. For the burner, extra terms enforce quasineutrality and ambipolarity. These soft constraints steer training toward the physical branch of a nonlinear PDE that may have multiple solutions."
+   ],
+   [
+    "ul",
+    [
+     "Residual term: the governing PDE must hold in the interior.",
+     "Boundary term: LCFS / plug-throat conditions must be met.",
+     "Data term: available diagnostics anchor the solution.",
+     "Admissibility terms: sign, monotonicity, and conservation constraints."
+    ]
+   ],
+   [
+    "p",
+    "Loss weights are logged as provenance: because they change the solution a PINN converges to, they are part of the twin's reproducibility record, not a hidden hyperparameter."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-fundamentals",
+    "PINN Fundamentals"
+   ],
+   [
+    "pinn-hard-constraints",
+    "Hard Constraints in PINNs"
+   ],
+   [
+    "pinn-ntk-conditioning",
+    "PINN Conditioning and Training Dynamics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-grad-shafranov-formulation",
+  "title": "PINN Formulation for Grad-Shafranov",
+  "cat": "foundations-math",
+  "lede": "The breeder's equilibrium PINN encodes Delta* psi with the true source and negative-triangularity boundary, giving a mesh-free solver fast enough for the twin.",
+  "body": [
+   [
+    "h2",
+    "Setting up the equilibrium PINN"
+   ],
+   [
+    "p",
+    "The breeder equilibrium PINN represents psi(R,Z) as a network and drives its Grad-Shafranov residual to zero over collocation points inside the plasma, while matching the negative-triangularity boundary. Because the source depends on psi through the free profiles p'(psi) and F F'(psi), the loss couples the network to those profile parameterizations."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "PINN loss for Grad-Shafranov:\n\n  L = w_pde * mean_i | Delta* psi_theta(x_i)\n                       + mu0 R_i^2 p'(psi_theta)\n                       + F F'(psi_theta) |^2\n    + w_bc  * mean_j | psi_theta(x_j) - psi_b |^2   (LCFS, delta -0.30)\n    + w_ax  * | psi_theta(x_axis) - psi_axis |^2\n\n  Delta* from autodiff (see PINN fundamentals)"
+    ]
+   ],
+   [
+    "h3",
+    "Encoding the operating point"
+   ],
+   [
+    "p",
+    "The breeder's canonical parameters enter through normalization and the profile parameterization: 9.86 MA total current fixes the integral of J_phi, 16.84 T peak field and 8 T on-axis fix F near axis, and the boundary term carries delta -0.30. Non-dimensionalizing R, Z, and psi keeps the loss terms comparably scaled, which conditioning demands."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# equilibrium PINN training step (schematic)\ndef step(net, prof, coll_pts, bdy_pts):\n    r_pde = gs_residual(net, coll_pts, prof.pprime, prof.ffprime)\n    r_bc  = net(bdy_pts) - psi_boundary            # delta -0.30 shape\n    Ip    = integrate_Jphi(net, prof) - 9.86e6     # current constraint\n    L = w1*mse(r_pde) + w2*mse(r_bc) + w3*Ip**2\n    return L                                       # backprop -> theta"
+    ]
+   ],
+   [
+    "h3",
+    "Role in the loop"
+   ],
+   [
+    "p",
+    "Once trained over a family of profiles and shapes, the PINN evaluates a full equilibrium in one forward pass, feeding the KRONOS-CTRL twin's MHD module inside the 1-100 ms L3 budget. It is retrained offline against the FEM solver, and its per-point residual is exposed as a confidence field so the twin can down-weight regions where the PINN is straining."
+   ],
+   [
+    "p",
+    "This equilibrium PINN is a design-and-simulation tool validated against FEM; it will be re-anchored to reconstructed equilibria after FOAK first tritium ~2030, but it makes no net-gain claim."
+   ],
+   [
+    "h3",
+    "Training the profile family"
+   ],
+   [
+    "p",
+    "The PINN is not trained on a single equilibrium but on a parameterized family: profiles p'(psi) and F F'(psi) are drawn across their admissible ranges, and boundary shape descriptors are varied around delta -0.30. The network conditions on these parameters as extra inputs, so one trained model spans the operating space rather than a single point. This is what lets the twin query equilibria for candidate scenarios without retraining."
+   ],
+   [
+    "p",
+    "Curriculum helps: training starts on smooth, well-behaved profiles and progressively introduces steeper edge gradients and stronger shaping, so the network builds up the hard features rather than facing them cold. The current constraint against 9.86 MA and the axis and boundary conditions are enforced throughout, keeping every intermediate model a physically admissible equilibrium."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-equation",
+    "The Grad-Shafranov Equation"
+   ],
+   [
+    "pinn-hard-constraints",
+    "Hard Constraints in PINNs"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-hard-constraints",
+  "title": "Hard Constraints in PINNs",
+  "cat": "foundations-math",
+  "lede": "Boundary and physical constraints can be built into a PINN's architecture so they hold exactly, rather than being merely penalized in the loss.",
+  "body": [
+   [
+    "h2",
+    "Soft versus hard constraints"
+   ],
+   [
+    "p",
+    "Penalizing a boundary condition in the loss (soft constraint) lets the network violate it slightly wherever that lowers total loss. For equilibria feeding a control twin, a boundary that is only approximately satisfied is a shape error. Hard constraints instead build the condition into the network's functional form so it holds by construction, exactly, for any weights."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Hard-constraint ansatz (Dirichlet example):\n\n  psi_theta(x) = g(x) + D(x) * NN_theta(x)\n\n  g(x) : a function meeting the boundary values exactly\n  D(x) : a distance-like function, D = 0 on dOmega, >0 inside\n\n  Then psi_theta = g on dOmega for ANY theta  (exact BC)\n  NN only has to learn the interior correction"
+    ]
+   ],
+   [
+    "h3",
+    "Constructing the multiplier"
+   ],
+   [
+    "p",
+    "D(x) is an approximate signed-distance or level-set function for the plasma boundary; for the breeder's negative-triangularity shape it can be derived from the Miller parameterization. g(x) is any smooth extension carrying the boundary flux value. The network then only learns the interior, which both enforces the shape exactly and simplifies training."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# hard Dirichlet boundary via distance multiplier\ndef psi_hard(net, R, Z):\n    D = signed_distance_to_LCFS(R, Z)     # 0 on boundary, >0 inside\n    g = boundary_lift(R, Z)               # equals psi_b on boundary\n    return g + D * net(R, Z)              # BC exact for any weights"
+    ]
+   ],
+   [
+    "h3",
+    "Beyond boundaries"
+   ],
+   [
+    "p",
+    "Hard constraints also enforce structural physics: writing psi as psi_axis minus a nonnegative-squared term guarantees a single flux maximum on axis; parameterizing pressure as an exponential guarantees positivity. For the burner, the electron density can be written in Boltzmann form so quasineutrality is structurally consistent. Each hardwired constraint removes a way for training to produce a non-physical field."
+   ],
+   [
+    "ul",
+    [
+     "Exact boundary shape: no shape error from BC penalty trade-offs.",
+     "Guaranteed monotonic flux, positive pressure, correct sign conventions.",
+     "Smaller effective search space: faster, more robust convergence.",
+     "Fewer competing loss terms: better-conditioned optimization."
+    ]
+   ],
+   [
+    "p",
+    "Hard constraints are preferred wherever the physics is non-negotiable; soft penalties are reserved for approximate or data-derived conditions where some slack is physically reasonable."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-construction",
+    "PINN Loss Construction"
+   ],
+   [
+    "pinn-grad-shafranov-formulation",
+    "PINN for Grad-Shafranov"
+   ],
+   [
+    "pinn-fundamentals",
+    "PINN Fundamentals"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-collocation-sampling",
+  "title": "Collocation Sampling for PINNs",
+  "cat": "foundations-math",
+  "lede": "Where a PINN evaluates its PDE residual determines what it learns; residual-adaptive sampling concentrates points where the equilibrium is hardest.",
+  "body": [
+   [
+    "h2",
+    "The role of collocation points"
+   ],
+   [
+    "p",
+    "A PINN enforces its PDE only at the collocation points where the residual is evaluated. Too few points, or points in the wrong places, leave the equation unsatisfied between them. For the breeder equilibrium, the hard regions are near the magnetic axis, the X-point, and steep-gradient edge - exactly where uniform sampling under-resolves."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Residual-based adaptive refinement (RAR):\n\n  1. Sample candidate points S over Omega\n  2. Evaluate residual r(x) = |N[psi_theta](x)| on S\n  3. Add the top-k highest-residual points to the training set\n  4. Retrain; repeat\n\n  Concentrates collocation where the PDE is least satisfied\n  (axis, X-point, edge pedestal for the breeder)"
+    ]
+   ],
+   [
+    "h3",
+    "Importance sampling formulation"
+   ],
+   [
+    "p",
+    "Adaptive sampling can be framed as importance sampling of the residual: draw collocation points from a density proportional to the residual magnitude, so training effort tracks error. This reduces the number of points needed for a target accuracy, which matters when the offline PINN library must cover many shapes and profiles."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# residual-adaptive resampling each epoch (schematic)\ndef resample(net, pool, keep_frac=0.5, n_new=2000):\n    r = residual_magnitude(net, pool)\n    prob = r / r.sum()                       # ~ importance density\n    hard = choice(pool, size=n_new, p=prob)  # sample by residual\n    base = uniform_points(n_new)             # keep coverage\n    return concat(hard, base)"
+    ]
+   ],
+   [
+    "h3",
+    "Coverage versus concentration"
+   ],
+   [
+    "p",
+    "Pure residual chasing can starve regions that are currently easy but physically important. The stack mixes an adaptive set with a uniform baseline so global coverage is retained while effort concentrates on hard features. Boundary and axis points get dedicated dense sampling because errors there propagate into the shape descriptors MPC controls."
+   ],
+   [
+    "ul",
+    [
+     "Uniform baseline: guarantees global PDE coverage.",
+     "Residual-adaptive set: resolves axis, X-point, edge.",
+     "Boundary/axis dense sets: protect shape and current constraints.",
+     "Re-sample periodically as the network and profiles evolve."
+    ]
+   ],
+   [
+    "p",
+    "Sampling schedules are logged as provenance because, like loss weights, they influence the converged solution and must be reproducible for the twin's validation record."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-loss-construction",
+    "PINN Loss Construction"
+   ],
+   [
+    "pinn-grad-shafranov-formulation",
+    "PINN for Grad-Shafranov"
+   ],
+   [
+    "monte-carlo-and-variance-reduction",
+    "Monte Carlo and Variance Reduction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-ntk-conditioning",
+  "title": "PINN Conditioning and Training Dynamics",
+  "cat": "foundations-math",
+  "lede": "PINNs fail in characteristic ways - spectral bias and unbalanced gradients; the neural-tangent-kernel view explains why and guides fixes.",
+  "body": [
+   [
+    "h2",
+    "Why PINNs are hard to train"
+   ],
+   [
+    "p",
+    "PINN losses are notoriously stiff. Two pathologies dominate: spectral bias, where the network learns low-frequency structure long before sharp gradients like the edge pedestal; and gradient imbalance, where the PDE and boundary terms pull the shared weights at very different magnitudes. Understanding these prevents shipping a confidently wrong equilibrium into the twin."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Neural tangent kernel (NTK) view:\n\n  d(residual)/dt  ~  -K * residual\n\n  K : NTK matrix; its eigenvalues set convergence rates per mode\n  Large spread in eig(K) -> stiff training, slow high-freq modes\n\n  Spectral bias: high-frequency error decays slowly\n  Cure directions: feature scaling, Fourier features, weighting"
+    ]
+   ],
+   [
+    "h3",
+    "Diagnostics"
+   ],
+   [
+    "p",
+    "The stack monitors the eigenvalue spread of the NTK (or a cheap proxy: per-term gradient-norm ratios) during training. A widening spread signals the boundary and residual terms decoupling, which is when adaptive weighting and learning-rate rebalancing are applied. Loss curves alone hide these failures, so gradient diagnostics are logged."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# gradient-imbalance diagnostic\ngn_pde = grad_norm(L_pde, theta)\ngn_bc  = grad_norm(L_bc,  theta)\nratio  = gn_pde / (gn_bc + eps)\nif ratio > hi or ratio < lo:\n    rebalance_weights()      # restore comparable gradient scales"
+    ]
+   ],
+   [
+    "h3",
+    "Architectural remedies"
+   ],
+   [
+    "p",
+    "Fourier feature embeddings inject high-frequency basis functions so the network escapes spectral bias and can resolve steep edge gradients. Input normalization keeps R, Z, psi order-one. Adaptive activation and residual connections improve the loss landscape. These are applied deliberately for the breeder's steep-pedestal and the burner's sharp axial potential gradients."
+   ],
+   [
+    "ul",
+    [
+     "Fourier features: overcome spectral bias for sharp gradients.",
+     "Input/output normalization: keep loss terms comparably scaled.",
+     "Adaptive weighting: hold PDE and boundary gradients in balance.",
+     "NTK/gradient diagnostics: detect stiffness before it corrupts output."
+    ]
+   ],
+   [
+    "p",
+    "A PINN that will not condition is not forced into service; the stack falls back to the FEM solver or a reduced-order surrogate rather than trust an ill-trained network in the control twin."
+   ]
+  ],
+  "related": [
+   [
+    "pinn-fundamentals",
+    "PINN Fundamentals"
+   ],
+   [
+    "pinn-loss-construction",
+    "PINN Loss Construction"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-inverse-problems",
+  "title": "PINNs for Inverse Problems",
+  "cat": "foundations-math",
+  "lede": "By treating unknown coefficients as trainable parameters, a PINN reconstructs the breeder's hidden profiles and the burner's potential directly from diagnostics.",
+  "body": [
+   [
+    "h2",
+    "Forward becomes inverse"
+   ],
+   [
+    "p",
+    "The same PINN that solves a PDE forward can identify unknown terms in it. The unknown profiles - p'(psi) and F F'(psi) for the breeder, or the ambipolar potential parameters for the burner - are made trainable alongside the network weights, and the loss adds a data term matching diagnostics. Minimizing residual and data mismatch jointly recovers both the field and the hidden coefficients."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Inverse PINN objective:\n\n  minimize over (theta, lambda):\n    L_pde(theta, lambda) + w_data * L_data(theta)\n\n  theta  : network weights (the field psi)\n  lambda : unknown physical coefficients (profiles, potential)\n\n  PDE residual couples lambda to the field; data pins the field."
+    ]
+   ],
+   [
+    "h3",
+    "Regularization is essential"
+   ],
+   [
+    "p",
+    "Inverse problems are ill-posed: many profile choices fit the data. The PINN adds smoothness and physical-admissibility priors on lambda - monotonicity, sign, bounded curvature - so the recovered profiles are physical, not noise-fit. This mirrors the regularization in classical equilibrium reconstruction but is embedded in one differentiable objective."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# joint field + profile identification (schematic)\ntheta = init_net(); lam = init_profiles()\nfor it in range(max_it):\n    L = pde_residual(theta, lam) \\\n      + w_d * data_mismatch(theta, diagnostics) \\\n      + w_r * smoothness(lam) + w_s * sign_penalty(lam)\n    theta, lam = adam_step(L, [theta, lam])   # both trainable"
+    ]
+   ],
+   [
+    "h3",
+    "Application on both machines"
+   ],
+   [
+    "p",
+    "For the breeder this yields real-time equilibrium reconstruction that is a physically admissible Grad-Shafranov solution by construction, feeding the twin. For the burner it recovers the ambipolar potential profile consistent with quasineutrality from end-cell diagnostics - but with the standing caveat that the operating regime is 166-830x beyond any device, so the inversion is extrapolative and its uncertainty is reported, not suppressed."
+   ],
+   [
+    "ul",
+    [
+     "Breeder: recover p'(psi), F F'(psi), and psi from magnetics + kinetics.",
+     "Burner: recover Phi(z) consistent with quasineutrality and ambipolarity.",
+     "Output: field plus profiles plus a reported uncertainty band."
+    ]
+   ],
+   [
+    "p",
+    "Inverse PINNs share the twin's honesty rule: where diagnostics are sparse or the regime is extrapolative, the recovered coefficients carry wide bands and downstream control widens its margins."
+   ]
+  ],
+  "related": [
+   [
+    "equilibrium-reconstruction-inverse-problem",
+    "Equilibrium Reconstruction"
+   ],
+   [
+    "ambipolar-potential-mathematics",
+    "Ambipolar Potential Mathematics"
+   ],
+   [
+    "bayesian-inference-foundations",
+    "Bayesian Inference Foundations"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-burner-ambipolar-formulation",
+  "title": "PINN for the Burner Ambipolar Potential",
+  "cat": "foundations-math",
+  "lede": "The burner's 1D axial potential and density profiles are solved by a PINN that carries quasineutrality and ambipolarity as constraints, with extrapolation honesty built in.",
+  "body": [
+   [
+    "h2",
+    "A one-dimensional PINN"
+   ],
+   [
+    "p",
+    "The burner equilibrium is axial: fields, densities, and the ambipolar potential Phi(z) vary along the open field line. A PINN represents Phi(z) and species densities as networks of the axial coordinate, trained so the parallel force balance holds and quasineutrality plus ambipolarity are satisfied. It is lower-dimensional than the breeder's 2D solve but far more extrapolative."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Burner PINN residuals along z:\n\n  R1: d p_par/dz + (p_par - p_perp) dlnB/dz - n q dPhi/dz  = 0\n  R2: sum_s q_s n_s(Phi)                                  = 0   (quasineutral)\n  R3: Gamma_i(Phi) - Gamma_e(Phi)                         = 0   (ambipolar)\n\n  Networks: Phi_theta(z), n_s,theta(z)\n  Boundary: plug/throat fields (26.49 T / 17 T), end-cell states"
+    ]
+   ],
+   [
+    "h3",
+    "Structural constraints"
+   ],
+   [
+    "p",
+    "Electron density is written in Boltzmann form so quasineutrality is structurally near-satisfied, and the mirror-ratio dependence enters through B(z). The confining potential depth Phi_c is the key output; because Pastukhov confinement depends exponentially on Phi_c/T_i, the PINN is trained to resolve Phi accurately where that sensitivity is highest."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# 1D ambipolar PINN step (schematic)\ndef step(net_phi, net_n, z):\n    Phi = net_phi(z); n = boltzmann_and_ions(net_n, Phi, B(z))\n    r1 = parallel_force_balance(Phi, n, B(z))\n    r2 = quasineutrality(n)\n    r3 = ambipolarity(Phi, n)\n    return w1*mse(r1) + w2*mse(r2) + w3*mse(r3)"
+    ]
+   ],
+   [
+    "h3",
+    "Honesty is part of the model"
+   ],
+   [
+    "p",
+    "This PINN produces a self-consistent burner equilibrium in simulation, but the four gates travel with every output: the plug coil is overstressed ~3-3.9x at the design bore, the regime is 166-830x beyond any device, the He-3 demand is ~400x domestic supply, and simulated availability of 0.86-0.995 is 30-100x short of hyperscale Tier III's 0.99982. The PINN's confidence band is dominated by the regime extrapolation, and that band is reported to every consumer."
+   ],
+   [
+    "ul",
+    [
+     "Solves Phi(z), n_s(z), pressures along the open field line.",
+     "Exponential Phi_c/T_i sensitivity drives accuracy requirements.",
+     "Every result carries the four burner gates as reported caveats."
+    ]
+   ],
+   [
+    "p",
+    "The burner PINN is a design study for a machine that does not exist; it is used to explore and bound the concept, never to claim a validated operating point."
+   ]
+  ],
+  "related": [
+   [
+    "ambipolar-potential-mathematics",
+    "Ambipolar Potential Mathematics"
+   ],
+   [
+    "tandem-mirror-equilibrium-mathematics",
+    "Tandem-Mirror Equilibrium"
+   ],
+   [
+    "pinn-inverse-problems",
+    "PINNs for Inverse Problems"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pinn-vs-fem-benchmark",
+  "title": "PINN versus FEM: Benchmark and Roles",
+  "cat": "foundations-math",
+  "lede": "PINNs and finite elements are complementary; the stack quantifies where each wins and never lets a PINN into the twin without an FEM benchmark.",
+  "body": [
+   [
+    "h2",
+    "Two solvers, different strengths"
+   ],
+   [
+    "p",
+    "Finite elements give convergent, error-controlled solutions but cost an iterative solve per equilibrium. PINNs cost a large offline training but then evaluate in a single fast forward pass and generalize across a family of shapes and profiles. Neither replaces the other: FEM is the ground truth, PINNs are the in-loop accelerator."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Property",
+      "FEM",
+      "PINN"
+     ],
+     [
+      [
+       "accuracy guarantee",
+       "convergent, error-bounded",
+       "empirical, benchmarked"
+      ],
+      [
+       "per-solve cost",
+       "high (assemble+factorize)",
+       "low (one forward pass)"
+      ],
+      [
+       "setup cost",
+       "meshing per shape",
+       "training over a family"
+      ],
+      [
+       "inverse problems",
+       "outer optimization loop",
+       "native (trainable params)"
+      ],
+      [
+       "role in stack",
+       "offline ground truth",
+       "in-loop twin accelerator"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "The benchmark protocol"
+   ],
+   [
+    "p",
+    "Before a PINN enters the twin it is scored against FEM on a held-out set of equilibria spanning the breeder's shape and profile range. The metrics are field error, boundary-shape error (especially delta near -0.30), integrated current error against 9.86 MA, and q-profile error at rational surfaces. A PINN passes only if all stay within tolerance."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# PINN acceptance test against FEM ground truth\ndef benchmark(pinn, fem_cases):\n    for c in fem_cases:\n        psi_p = pinn(c.inputs); psi_f = fem_solve(c)\n        assert l2(psi_p - psi_f)      < tol_field\n        assert shape_err(psi_p, psi_f) < tol_shape   # delta, kappa\n        assert abs(Ip(psi_p) - Ip(psi_f)) < tol_Ip\n        assert q_err(psi_p, psi_f)     < tol_q\n    return 'accepted'"
+    ]
+   ],
+   [
+    "h3",
+    "Continuous drift monitoring"
+   ],
+   [
+    "p",
+    "Acceptance is not permanent. As profiles or operating points drift beyond the training distribution, the PINN's residual and its FEM disagreement grow. The stack tracks this drift and, past threshold, triggers retraining or falls back to FEM. The PINN-vs-FEM error is a live fidelity metric of the twin, not a one-time certificate."
+   ],
+   [
+    "ul",
+    [
+     "FEM: convergence guarantees, provenance, benchmark authority.",
+     "PINN: inference speed, cross-shape generalization, inverse-native.",
+     "Gate: no PINN in the twin without a passing FEM benchmark.",
+     "Monitor: track drift; retrain or fall back when it grows."
+    ]
+   ],
+   [
+    "p",
+    "This division keeps the fast path fast and the trusted path trustworthy, and it is why the twin can run learned equilibria without abandoning rigor."
+   ]
+  ],
+  "related": [
+   [
+    "grad-shafranov-weak-form-fem",
+    "Weak Form and FEM Discretization"
+   ],
+   [
+    "pinn-grad-shafranov-formulation",
+    "PINN for Grad-Shafranov"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Surrogates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-message-passing-mathematics",
+  "title": "Graph Neural Networks: Message-Passing Mathematics",
+  "cat": "foundations-math",
+  "lede": "The diagnostic constellation and the coupled subsystems are graphs; message passing is the mathematics that lets a network reason over their topology.",
+  "body": [
+   [
+    "h2",
+    "Fusion state as a graph"
+   ],
+   [
+    "p",
+    "Many objects in the stack are naturally graphs: the 60+ port diagnostic constellation (nodes = sensors, edges = physical/flux-surface proximity), and the coupled plant subsystems (nodes = magnet, plasma, blanket, DEC train). A graph neural network (GNN) processes these by passing messages along edges, so a node's updated state reflects its neighborhood - exactly the locality physics has."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Message-passing layer (one round):\n\n  m_ij = phi_msg( h_i, h_j, e_ij )        (message on edge i<-j)\n  a_i  = AGG_{j in N(i)} m_ij             (permutation-invariant)\n  h_i' = phi_upd( h_i, a_i )              (node update)\n\n  h_i : node feature ,  e_ij : edge feature (geometry, coupling)\n  AGG : sum / mean / attention (invariant to neighbor order)"
+    ]
+   ],
+   [
+    "h3",
+    "Why the aggregator must be invariant"
+   ],
+   [
+    "p",
+    "Physical neighbors have no intrinsic order, so the aggregation must be permutation-invariant - sum, mean, max, or attention-weighted sum. This invariance is what lets the same GNN handle a diagnostic being added or retired without retraining from scratch, a practical requirement across a machine's life and across the breeder-to-burner transfer."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# one message-passing round over the diagnostic graph\nfor i in nodes:\n    msgs = [phi_msg(h[i], h[j], e[i,j]) for j in neigh(i)]\n    a_i  = attention_sum(msgs)        # invariant aggregation\n    h[i] = gru(h[i], a_i)             # gated update keeps temporal state"
+    ]
+   ],
+   [
+    "h3",
+    "Depth equals reach"
+   ],
+   [
+    "p",
+    "Each message-passing round extends a node's receptive field by one hop; K rounds let information travel K edges. Too few rounds miss long-range coupling; too many cause over-smoothing, where node features collapse together. The stack tunes depth to the physical correlation length of the graph - short for local sensor imputation, longer for whole-machine coupling."
+   ],
+   [
+    "ul",
+    [
+     "Nodes: sensors, or subsystems, with feature vectors.",
+     "Edges: physical adjacency, flux-surface links, coupling strength.",
+     "Rounds K: receptive field radius; balance reach vs over-smoothing.",
+     "Aggregation: permutation-invariant, robust to node add/remove."
+    ]
+   ],
+   [
+    "p",
+    "Message passing is the shared substrate for the stack's two GNN roles - imputing dropped diagnostics and modeling coupled-subsystem dynamics - each covered on its own page."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-spectral-graph-theory",
+    "Spectral Graph Theory for GNNs"
+   ],
+   [
+    "gnn-coupled-subsystem-graph",
+    "GNNs for Coupled Subsystems"
+   ],
+   [
+    "gnn-equivariance-invariance",
+    "Equivariance and Invariance in GNNs"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-spectral-graph-theory",
+  "title": "Spectral Graph Theory for Diagnostics",
+  "cat": "foundations-math",
+  "lede": "The graph Laplacian's eigenvectors are the natural basis for sensor fields; spectral methods underlie smoothing, imputation, and anomaly detection on the constellation.",
+  "body": [
+   [
+    "h2",
+    "The graph Laplacian"
+   ],
+   [
+    "p",
+    "The mathematics behind graph learning starts with the Laplacian L = D - A, where A is the adjacency matrix of the diagnostic graph and D the degree matrix. Its eigenvectors form an orthogonal basis - a Fourier basis on the graph - ordered by smoothness. Signals from the sensor constellation decompose in this basis, separating coherent physical structure from noise."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Graph Laplacian and spectrum:\n\n  L = D - A          (combinatorial)\n  L_sym = I - D^-1/2 A D^-1/2   (normalized)\n\n  L u_k = lambda_k u_k\n  0 = lambda_0 <= lambda_1 <= ... <= lambda_{n-1}\n\n  small lambda_k -> smooth eigenvectors (low graph frequency)\n  large lambda_k -> oscillatory (high graph frequency)"
+    ]
+   ],
+   [
+    "h3",
+    "Graph Fourier and filtering"
+   ],
+   [
+    "p",
+    "Projecting a sensor signal onto the eigenvectors is the graph Fourier transform. Smoothing keeps low-frequency components (physically coherent fields), while high-frequency energy flags noise or a localized anomaly. This is the formal basis of the Laplacian smoothness term used in imputation, and of spectral anomaly scores."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# graph Fourier smoothing / anomaly energy (schematic)\nevals, U = eigh(L_sym)\nx_hat = U.T @ x                 # graph Fourier coefficients\nx_smooth = U @ (lowpass(evals) * x_hat)\nanomaly_energy = sum((evals > cut) * x_hat**2)   # high-freq power"
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters for the machines"
+   ],
+   [
+    "p",
+    "The diagnostic graph's smoothness prior encodes that neighboring sensors on the same flux surface should read consistently. When one drops, its value is inferred from the smooth part of the field; when one reads an implausible high-frequency spike relative to neighbors, spectral energy localizes the fault. Message-passing GNNs approximate localized spectral filters, which is why they inherit these guarantees while scaling better than full eigendecomposition."
+   ],
+   [
+    "ul",
+    [
+     "Laplacian eigenvectors: ordered smooth-to-oscillatory basis.",
+     "Smoothness prior: neighboring sensors agree on coherent fields.",
+     "High graph-frequency energy: localized fault / anomaly indicator.",
+     "GNN layers approximate polynomial spectral filters efficiently."
+    ]
+   ],
+   [
+    "p",
+    "Spectral theory gives the imputation and anomaly modules their mathematical justification; the GNN is the scalable, learnable realization of these filters on the live constellation."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-message-passing-mathematics",
+    "GNN Message-Passing Mathematics"
+   ],
+   [
+    "information-theory-sensor-selection",
+    "Information Theory for Sensor Selection"
+   ],
+   [
+    "gnn-coupled-subsystem-graph",
+    "GNNs for Coupled Subsystems"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-coupled-subsystem-graph",
+  "title": "Graph Neural Networks for Coupled Subsystems",
+  "cat": "foundations-math",
+  "lede": "The plant's physics couples magnet, plasma, blanket, and conversion train; a GNN over that coupling graph learns cross-subsystem dynamics the twin needs.",
+  "body": [
+   [
+    "h2",
+    "Coupling is a graph"
+   ],
+   [
+    "p",
+    "The machines are strongly coupled: the MHD equilibrium sets the neutron source, neutronics deposits heat, thermomechanics deforms geometry, and (on the burner) direct energy conversion sets the potential that changes confinement. Represent each subsystem as a node and each physical coupling as an edge, and the whole plant is a graph a GNN can model as a dynamical system."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Coupled-subsystem graph (nodes / edges):\n\n  nodes: {plasma/MHD, neutronics, thermomechanics, magnets,\n          power/DEC, fuel-cycle}\n  edges: physical couplings, each with a transfer relation\n\n  State update per twin step (learned message passing):\n    s_v(t+1) = f_v( s_v(t), AGG_{u~v} g_{uv}( s_u(t), s_v(t) ) )"
+    ]
+   ],
+   [
+    "h3",
+    "Learning the coupling operators"
+   ],
+   [
+    "p",
+    "Rather than hand-couple full solvers every step, the GNN learns the edge transfer relations from the offline high-fidelity coupled simulations. Each edge function g_uv approximates how one subsystem's state perturbs its neighbor. The node update integrates incoming influences, giving a fast surrogate for the weakly-coupled fixed-point solve KRONOS-CTRL otherwise runs."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# coupled-subsystem step as a GNN (schematic)\ndef twin_step(state, graph):\n    msgs = {}\n    for (u, v) in graph.edges:\n        msgs.setdefault(v, []).append(g_edge[u,v](state[u], state[v]))\n    new = {}\n    for v in graph.nodes:\n        new[v] = f_node[v](state[v], aggregate(msgs.get(v, [])))\n    return new     # one coupled advance, faster than nested solves"
+    ]
+   ],
+   [
+    "h3",
+    "Physics guardrails"
+   ],
+   [
+    "p",
+    "A learned coupling can violate conservation. The stack constrains the GNN to respect the invariants that must hold: energy and particle balance across edges, and sign conventions on transfers. Where a learned edge disagrees with the reference solver beyond tolerance, the twin falls back to the true coupled solve for that step. This keeps speed without abandoning conservation."
+   ],
+   [
+    "ul",
+    [
+     "Nodes = subsystems, edges = physical couplings with transfer laws.",
+     "Edge functions learned from offline coupled multiphysics runs.",
+     "Conservation and sign constraints imposed as guardrails.",
+     "Fallback to full solve when a learned edge exceeds tolerance."
+    ]
+   ],
+   [
+    "p",
+    "On the burner the DEC-to-confinement edge carries the extrapolation caveat: its transfer relation is drawn from a regime 166-830x beyond any device, so that edge's uncertainty dominates the coupled state and is reported."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-message-passing-mathematics",
+    "GNN Message-Passing Mathematics"
+   ],
+   [
+    "gnn-equivariance-invariance",
+    "Equivariance and Invariance in GNNs"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Surrogates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gnn-equivariance-invariance",
+  "title": "Equivariance and Invariance in Graph Networks",
+  "cat": "foundations-math",
+  "lede": "Symmetry is a modeling asset; building permutation, and where relevant geometric, symmetry into GNNs cuts data needs and enables breeder-to-burner transfer.",
+  "body": [
+   [
+    "h2",
+    "Two symmetries that matter"
+   ],
+   [
+    "p",
+    "A correct model of the sensor graph should not depend on the arbitrary order in which sensors are listed (permutation symmetry), and physical vector quantities should transform consistently under rotation/reflection (geometric symmetry). Encoding these directly means the network cannot waste capacity learning them from data, and it generalizes across configurations it has not seen."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Permutation equivariance / invariance:\n\n  For any node permutation P:\n    GNN_layer(P x, P A P^T) = P * GNN_layer(x, A)   (equivariant)\n    readout( P x ) = readout( x )                   (invariant)\n\n  Guaranteed if aggregation AGG is order-independent\n  (sum / mean / attention) -> node ordering irrelevant"
+    ]
+   ],
+   [
+    "h3",
+    "Why it enables transfer"
+   ],
+   [
+    "p",
+    "Permutation equivariance is what lets a GNN trained on the breeder's diagnostic topology apply to the burner's different sensor set, and lets sensors be added or retired mid-life without retraining. The learned message and update functions act on features and local structure, not on fixed node indices, so the model transfers where the physics is analogous."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# invariant graph readout (order-independent)\ndef readout(h_nodes):\n    return concat(sum(h_nodes, axis=0),\n                  mean(h_nodes, axis=0),\n                  max(h_nodes, axis=0))   # all permutation-invariant"
+    ]
+   ],
+   [
+    "h3",
+    "Geometric equivariance where needed"
+   ],
+   [
+    "p",
+    "For quantities that are vectors in space - field perturbations, displacements - the stack uses equivariant message functions so that rotating the inputs rotates the outputs identically. This keeps learned dynamics physically consistent and reduces the data needed to cover orientations, which matters given how little device-relevant data exists, especially for the burner."
+   ],
+   [
+    "ul",
+    [
+     "Permutation equivariance: node order irrelevant; enables transfer.",
+     "Robust to sensor add/remove without retraining from scratch.",
+     "Geometric equivariance: vector fields transform consistently.",
+     "Symmetry priors cut data demand and improve generalization."
+    ]
+   ],
+   [
+    "p",
+    "Symmetry is treated as free, verified physics knowledge: building it in is preferred over hoping the network learns it, particularly in the data-poor burner regime where every prior counts."
+   ]
+  ],
+  "related": [
+   [
+    "gnn-message-passing-mathematics",
+    "GNN Message-Passing Mathematics"
+   ],
+   [
+    "gnn-coupled-subsystem-graph",
+    "GNNs for Coupled Subsystems"
+   ],
+   [
+    "gnn-spectral-graph-theory",
+    "Spectral Graph Theory for Diagnostics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neural-operators-deeponet-fno",
+  "title": "Neural Operators: DeepONet and Fourier Neural Operators",
+  "cat": "foundations-math",
+  "lede": "Neural operators learn mappings between function spaces, so one trained model returns a whole equilibrium or field for a new profile, not a single point solution.",
+  "body": [
+   [
+    "h2",
+    "Learning operators, not functions"
+   ],
+   [
+    "p",
+    "A PINN solves one PDE instance; a neural operator learns the solution operator itself - the map from input functions (profiles, boundary data, coil currents) to output functions (the full field). Once trained, it returns an entire breeder equilibrium or burner potential profile for a new input in one pass, ideal for scenario sweeps and the twin's fast path."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Operator learning target:\n\n  G : a(x)  ->  u(x)      (input function -> solution function)\n\n  DeepONet:  G(a)(y) = sum_k  b_k(a) * t_k(y)\n     branch b_k : encodes input function a (sampled)\n     trunk  t_k : encodes query location y\n\n  Fourier Neural Operator (one layer):\n     u <- sigma( W u + F^-1( R . F u ) )\n     F : FFT ,  R : learned spectral weights (low modes)"
+    ]
+   ],
+   [
+    "h3",
+    "DeepONet structure"
+   ],
+   [
+    "p",
+    "A DeepONet factorizes the operator into a branch network that reads the input function and a trunk network that reads the query coordinate; their inner product gives the output at that point. This separation lets it evaluate the solution at any location and generalize across input functions drawn from the training distribution of breeder profiles."
+   ],
+   [
+    "h3",
+    "Fourier neural operators"
+   ],
+   [
+    "p",
+    "An FNO parameterizes the operator in the spectral domain: it transforms the field, multiplies low Fourier modes by learned weights, and transforms back. Because it acts on modes rather than a fixed grid, it is discretization-invariant - trainable at one resolution and evaluable at another - and efficient for the smooth, globally-coupled structure of equilibrium fields."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# FNO spectral convolution layer (schematic)\ndef fno_layer(u, R, W):\n    u_hat = rfft(u)\n    u_hat[:modes] = R @ u_hat[:modes]   # learned weights, low modes\n    return relu(irfft(u_hat) + W @ u)   # spectral + local mixing"
+    ]
+   ],
+   [
+    "h3",
+    "Role in the stack"
+   ],
+   [
+    "p",
+    "Neural operators are the twin's reduced-order accelerators for whole-field predictions and the engine behind fast scenario sweeps. Like PINNs they are benchmarked against FEM and carry uncertainty; on the burner their outputs inherit the 166-830x regime caveat. They speed exploration; they do not replace the verified offline solvers or the honesty attached to burner physics."
+   ],
+   [
+    "ul",
+    [
+     "DeepONet: branch-trunk factorization, query at any location.",
+     "FNO: spectral, discretization-invariant, efficient on smooth fields.",
+     "Use: whole-field twin acceleration and scenario sweeps.",
+     "Guardrail: FEM-benchmarked, uncertainty-reported, gates respected."
+    ]
+   ],
+   [
+    "p",
+    "Operator learning is where the stack gets the most speed per model: one operator covers a family of solves the twin would otherwise iterate one by one."
+   ]
+  ],
+  "related": [
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Surrogates"
+   ],
+   [
+    "pinn-vs-fem-benchmark",
+    "PINN vs FEM Benchmark"
+   ],
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-optimal-control-formulation",
+  "title": "Model-Predictive Control: The Optimal-Control Formulation",
+  "cat": "foundations-math",
+  "lede": "MPC plans actuation by solving a constrained optimal-control problem over a finite horizon each cycle, the core planner for breeder shape and burner potential.",
+  "body": [
+   [
+    "h2",
+    "Control as constrained optimization"
+   ],
+   [
+    "p",
+    "Model-predictive control (MPC) chooses actuator commands by solving, every control cycle, a finite-horizon optimal-control problem: minimize a cost that penalizes deviation from targets and control effort, subject to the plant model and hard operating constraints. It is the L3 planner that commands the breeder's PF coils and the burner's fueling/plug actuators, always inside a certified safe envelope."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Discrete-time MPC problem at time k:\n\n  minimize over u_0..u_{N-1}, x_1..x_N\n    sum_{i=0}^{N-1} [ (x_i - x_ref)' Q (x_i - x_ref)\n                     + u_i' R u_i ]  +  (x_N - x_ref)' P (x_N - x_ref)\n  subject to\n    x_{i+1} = f(x_i, u_i)          (model / linearization)\n    x_min <= x_i <= x_max          (state constraints, envelope)\n    u_min <= u_i <= u_max          (actuator limits)\n    du_min <= u_i - u_{i-1} <= du_max  (slew limits)"
+    ]
+   ],
+   [
+    "h3",
+    "The receding horizon"
+   ],
+   [
+    "p",
+    "MPC solves the whole horizon but applies only the first command, then re-solves next cycle with fresh state from the twin. This receding-horizon feedback rejects disturbances and model error: each solve corrects for what actually happened. The horizon length N trades foresight against solve time within the 1-100 ms L3 budget."
+   ],
+   [
+    "h3",
+    "Why MPC over simple feedback"
+   ],
+   [
+    "p",
+    "Unlike a PID loop, MPC handles multiple coupled inputs and outputs and, critically, respects hard constraints explicitly. The breeder's shape, vertical position, and current share coils with limited authority; the burner must hold the ambipolar potential without exceeding actuator and stress limits. MPC allocates effort across these under one constrained optimization rather than fighting loops."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# receding-horizon MPC loop (schematic)\nwhile running:\n    x0 = twin.estimate_state()        # from KRONOS-CTRL\n    U  = solve_ocp(x0, x_ref, model, constraints, N)  # QP solve\n    apply(U[0])                       # only first command\n    # next cycle re-solves with new x0 (feedback)"
+    ]
+   ],
+   [
+    "p",
+    "The plant model f is a linearization from the twin (Green's-function shape response for the breeder, ambipolar sensitivity for the burner), refreshed as the operating point moves. MPC never commands outside the envelope, and the L1 hardware failsafe remains authoritative beneath it - MPC optimizes; it does not override protection."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-receding-horizon-stability",
+    "MPC Receding Horizon and Stability"
+   ],
+   [
+    "mpc-constraints-kkt",
+    "MPC Constraints and KKT Conditions"
+   ],
+   [
+    "mpc-qp-solver-mathematics",
+    "MPC QP Solver Mathematics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-linear-quadratic-regulator",
+  "title": "The Linear-Quadratic Regulator Baseline",
+  "cat": "foundations-math",
+  "lede": "LQR is the unconstrained closed-form limit of MPC; its Riccati solution is the baseline gain and the terminal cost that makes MPC provably stable.",
+  "body": [
+   [
+    "h2",
+    "The clean special case"
+   ],
+   [
+    "p",
+    "Strip constraints and use an infinite horizon with a linear model and quadratic cost, and MPC collapses to the linear-quadratic regulator (LQR), which has a closed-form optimal feedback gain. LQR is both the fast inner-loop baseline (e.g. vertical stabilization) and the source of the terminal cost that certifies constrained MPC stability."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "LQR problem (infinite horizon):\n\n  min  sum_{k=0}^inf  x_k' Q x_k + u_k' R u_k\n  s.t. x_{k+1} = A x_k + B u_k\n\n  Optimal feedback:  u_k = -K x_k\n  K = (R + B' P B)^-1 B' P A\n\n  P solves the discrete algebraic Riccati equation (DARE):\n  P = A'P A - A'P B (R + B'P B)^-1 B'P A + Q"
+    ]
+   ],
+   [
+    "h3",
+    "The Riccati solution"
+   ],
+   [
+    "p",
+    "The matrix P solving the algebraic Riccati equation is the cost-to-go: x' P x is the optimal cost from state x under LQR. It yields the stabilizing gain K and, reused as the MPC terminal weight, guarantees that the finite-horizon plan behaves well beyond the horizon. Existence of a stabilizing P requires the pair (A,B) controllable and (A,Q^1/2) observable."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# LQR gain via the discrete Riccati equation\nfrom scipy.linalg import solve_discrete_are\nP = solve_discrete_are(A, B, Q, R)\nK = inv(R + B.T@P@B) @ (B.T@P@A)\n# u = -K x  stabilizes; x'Px is the optimal cost-to-go\neig_cl = eigvals(A - B@K)          # all inside unit circle"
+    ]
+   ],
+   [
+    "h3",
+    "Where LQR is used directly"
+   ],
+   [
+    "p",
+    "For fast, near-linear loops that rarely hit constraints - vertical position, resistive-wall-mode feedback - LQR runs directly at high bandwidth because it is a single matrix multiply. MPC takes over where constraints bind or targets change: shape control at delta -0.30, plug-density regulation. The two are co-designed so LQR's authority and MPC's plans do not conflict over shared actuators."
+   ],
+   [
+    "ul",
+    [
+     "Closed-form gain: cheapest possible optimal linear feedback.",
+     "Riccati P: reused as MPC terminal cost for stability guarantees.",
+     "Direct use: vertical stabilization, RWM feedback.",
+     "Requires controllability/observability of the linearized model."
+    ]
+   ],
+   [
+    "p",
+    "LQR is the mathematical anchor of the control layer: fast where it suffices, and the certificate that the constrained planner inherits its stability from."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ],
+   [
+    "mpc-receding-horizon-stability",
+    "MPC Receding Horizon and Stability"
+   ],
+   [
+    "vertical-stability-mathematics",
+    "Vertical Stability Mathematics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-constraints-kkt",
+  "title": "MPC Constraints and the KKT Conditions",
+  "cat": "foundations-math",
+  "lede": "Hard operating limits enter MPC as inequality constraints; the Karush-Kuhn-Tucker conditions define the optimum and expose which limits are active.",
+  "body": [
+   [
+    "h2",
+    "Constraints are the point of MPC"
+   ],
+   [
+    "p",
+    "The reason to use MPC rather than a linear regulator is that it enforces hard constraints exactly: actuator saturation, slew limits, and above all the safe operating envelope - stability margins, current and field limits, on the breeder, and stress and potential limits on the burner. The mathematics of constrained optimality is the KKT system."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "KKT conditions for  min f(z) s.t. g(z)<=0, h(z)=0 :\n\n  stationarity:  grad f + sum mu_i grad g_i + sum nu_j grad h_j = 0\n  primal feas.:  g_i(z) <= 0 ,  h_j(z) = 0\n  dual feas.:    mu_i >= 0\n  compl. slack:  mu_i * g_i(z) = 0\n\n  mu_i > 0  <=>  constraint i is ACTIVE (binding)"
+    ]
+   ],
+   [
+    "h3",
+    "Reading the multipliers"
+   ],
+   [
+    "p",
+    "Complementary slackness says each inequality is either inactive (its multiplier zero) or active (binding, multiplier positive). The active set is exactly the set of limits currently shaping the command - which envelope boundary the plasma is riding. The stack surfaces the active constraints to operators, so it is transparent which physical limit is governing at any instant."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# inspect active constraints from an MPC solve\nsol = solve_qp(H, g, A_ineq, b_ineq, A_eq, b_eq)\nactive = [i for i, mu in enumerate(sol.mu) if mu > tol]\n# active -> the binding limits (slew, field, margin) right now\nfor i in active: log_binding_constraint(i, sol.mu[i])"
+    ]
+   ],
+   [
+    "h3",
+    "Soft constraints and feasibility"
+   ],
+   [
+    "p",
+    "Some limits must never be crossed (hard); others are preferences that may be relaxed to keep the problem feasible. The stack uses slack variables with steep penalties for the soft class, so MPC degrades gracefully rather than returning no solution when disturbances push against many limits at once. Hard safety limits are never softened - they remain inviolable, and beneath them the L1 failsafe still guards the machine."
+   ],
+   [
+    "ul",
+    [
+     "Actuator box + slew limits: hard, from hardware.",
+     "Operating-envelope margins: mostly hard, from stability physics.",
+     "Comfort/target constraints: soft, slack-penalized for feasibility.",
+     "Active set = the limits currently governing; reported to operators."
+    ]
+   ],
+   [
+    "p",
+    "The KKT structure is not just theory: it tells the operator which physical boundary is binding and gives MPC a principled way to stay feasible under stress without ever violating a safety limit."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ],
+   [
+    "mpc-qp-solver-mathematics",
+    "MPC QP Solver Mathematics"
+   ],
+   [
+    "constrained-optimization-lagrangian",
+    "Constrained Optimization and Duality"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-receding-horizon-stability",
+  "title": "Receding Horizon, Terminal Cost, and Stability",
+  "cat": "foundations-math",
+  "lede": "A finite-horizon planner can be unstable unless a terminal cost and terminal set are chosen correctly; this is what makes MPC provably safe to run in a loop.",
+  "body": [
+   [
+    "h2",
+    "The stability problem"
+   ],
+   [
+    "p",
+    "Optimizing over a finite horizon and reapplying each cycle does not by itself guarantee the closed loop is stable - a short-sighted planner can walk the plant toward trouble just beyond its horizon. MPC stability theory fixes this with a terminal cost and a terminal constraint set chosen so the optimal cost acts as a Lyapunov function."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Lyapunov stability ingredients:\n\n  Terminal cost   V_f(x) = x' P x   (from LQR Riccati)\n  Terminal set    x_N in X_f        (invariant under LQR gain K)\n\n  If, inside X_f, the LQR control keeps x in X_f and\n     V_f(f(x,Kx)) - V_f(x) <= -( x'Qx + (Kx)'R(Kx) )\n  then the MPC value function V*(x) decreases each step:\n     V*(x_{k+1}) - V*(x_k) <= -( x_k'Q x_k + u_k'R u_k ) < 0"
+    ]
+   ],
+   [
+    "h3",
+    "Why the terminal set matters"
+   ],
+   [
+    "p",
+    "The terminal set is a region where a known stabilizing controller (LQR) keeps the state inside and satisfies all constraints. Requiring the horizon to end in that set means the plan can always be safely continued beyond the horizon by the fallback controller. Together with the terminal cost this yields a decreasing value function - a Lyapunov certificate of stability."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# construct terminal ingredients (schematic)\nP = solve_discrete_are(A, B, Q, R)     # terminal cost weight\nK = lqr_gain(A, B, Q, R)\nX_f = max_invariant_set(A - B@K, constraints)  # terminal set\n# MPC then requires x_N in X_f and uses x_N' P x_N as terminal cost"
+    ]
+   ],
+   [
+    "h3",
+    "Practical use in the stack"
+   ],
+   [
+    "p",
+    "For the breeder, the terminal set is a neighborhood of the negative-triangularity operating point where the LQR shape/vertical controller holds all margins; MPC plans to arrive there. For the burner, the terminal ingredients are defined around a candidate potential operating point in simulation. The Lyapunov guarantee is what lets MPC run continuously in the loop rather than as an occasional optimizer."
+   ],
+   [
+    "ul",
+    [
+     "Terminal cost: LQR Riccati P penalizes end-state deviation.",
+     "Terminal set: invariant region where fallback control is safe.",
+     "Result: value function decreases -> closed-loop stability.",
+     "Feasibility carried forward: a valid plan always extends safely."
+    ]
+   ],
+   [
+    "p",
+    "These guarantees are for the model; the stack also monitors model-plant mismatch, and if the twin's prediction drifts from reality the MPC shrinks its ambitions and hands off to the safe fallback rather than trusting a stale certificate."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-linear-quadratic-regulator",
+    "The Linear-Quadratic Regulator"
+   ],
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ],
+   [
+    "mpc-constraints-kkt",
+    "MPC Constraints and KKT Conditions"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-qp-solver-mathematics",
+  "title": "MPC QP Solver Mathematics",
+  "cat": "foundations-math",
+  "lede": "A linear-model MPC step is a quadratic program; solving it fast and reliably each cycle is what makes real-time predictive control feasible.",
+  "body": [
+   [
+    "h2",
+    "The quadratic program"
+   ],
+   [
+    "p",
+    "With a linear model and quadratic cost, the MPC optimal-control problem is a convex quadratic program (QP) in the stacked decision vector of predicted states and inputs. Convexity means a unique global optimum and reliable solvers - essential when a wrong or late command reaches machine actuators."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Condensed QP form:\n\n  min_z  (1/2) z' H z + g' z\n  s.t.   A_ineq z <= b_ineq ,  A_eq z = b_eq\n\n  z : stacked inputs (and states) over the horizon\n  H : block-diagonal from Q, R, P  (H symmetric PD -> convex)\n  constraints from envelope, actuator, slew limits"
+    ]
+   ],
+   [
+    "h3",
+    "Interior-point versus active-set versus ADMM"
+   ],
+   [
+    "p",
+    "Three solver families dominate. Interior-point methods follow the central path and converge in few, expensive iterations - good for large horizons. Active-set methods guess the binding constraints and are very fast when warm-started near the previous solution. ADMM (e.g. the OSQP style) splits the problem into cheap steps and is robust on embedded hardware. The stack chooses per loop by size and latency budget."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ADMM step for the MPC QP (OSQP-style, schematic)\nfor it in range(max_it):\n    x = solve_kkt(H + rho*A.T@A, -(g + A.T@(rho*z - y)))  # linear solve\n    z = clip(A@x + y/rho, lo, hi)          # projection onto box\n    y = y + rho*(A@x - z)                   # dual update\n    if primal_res()<eps and dual_res()<eps: break"
+    ]
+   ],
+   [
+    "h3",
+    "Warm starting and time bounds"
+   ],
+   [
+    "p",
+    "Because MPC re-solves a slightly changed problem each cycle, warm-starting from the previous solution slashes iterations - the optimum moves little between cycles. The stack also bounds solve time: it caps iterations and, if the QP has not converged, applies the best feasible iterate rather than missing the control deadline. A guaranteed feasible fallback command exists for every cycle."
+   ],
+   [
+    "ul",
+    [
+     "Convex QP: unique global optimum, dependable solvers.",
+     "Interior-point: few costly iterations, large horizons.",
+     "Active-set / ADMM: fast warm-started and embedded-friendly.",
+     "Bounded time: iteration cap + feasible fallback for hard real time."
+    ]
+   ],
+   [
+    "p",
+    "Solver choice and tolerances are part of the control-loop's timing budget, coordinated with the FPGA command handoff so the optimized command always arrives inside the deterministic deadline."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ],
+   [
+    "mpc-constraints-kkt",
+    "MPC Constraints and KKT Conditions"
+   ],
+   [
+    "constrained-optimization-lagrangian",
+    "Constrained Optimization and Duality"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kalman-filter-derivation",
+  "title": "The Kalman Filter",
+  "cat": "foundations-math",
+  "lede": "The Kalman filter is the optimal linear state estimator; it fuses the twin's model prediction with noisy diagnostics into a best estimate and its uncertainty.",
+  "body": [
+   [
+    "h2",
+    "Prediction plus correction"
+   ],
+   [
+    "p",
+    "The Kalman filter maintains a Gaussian belief about the plant state - a mean and a covariance - and updates it in two steps each cycle: predict the state forward with the model, then correct it with new measurements, weighting each by its uncertainty. It is the mathematical core of the KRONOS-CTRL twin's state estimate for both machines."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Linear model:  x_k = F x_{k-1} + B u_{k-1} + w,  w~N(0,Q)\nMeasurement:   z_k = H x_k + v,               v~N(0,R)\n\nPredict:\n  x^-_k = F x_{k-1} + B u_{k-1}\n  P^-_k = F P_{k-1} F' + Q\n\nUpdate:\n  K_k   = P^-_k H' (H P^-_k H' + R)^-1      (Kalman gain)\n  x_k   = x^-_k + K_k ( z_k - H x^-_k )      (innovation correction)\n  P_k   = (I - K_k H) P^-_k"
+    ]
+   ],
+   [
+    "h3",
+    "The gain balances trust"
+   ],
+   [
+    "p",
+    "The Kalman gain K is the crux: it weights the measurement against the prediction by their relative uncertainties. When diagnostics are precise (small R), K is large and the filter trusts sensors; when the model is confident (small P^-), K is small and it trusts the prediction. This is exactly how the twin should behave as the breeder's diagnostics degrade or drop."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# one Kalman cycle (schematic)\nx_pred = F @ x + B @ u\nP_pred = F @ P @ F.T + Q\ny = z - H @ x_pred                 # innovation\nS = H @ P_pred @ H.T + R           # innovation covariance\nK = P_pred @ H.T @ inv(S)          # gain\nx = x_pred + K @ y\nP = (I - K @ H) @ P_pred"
+    ]
+   ],
+   [
+    "h3",
+    "The innovation as a health signal"
+   ],
+   [
+    "p",
+    "The innovation - the gap between measured and predicted - and its covariance S are diagnostic gold. A whitened innovation that stays within its expected band means model and sensors agree; a persistent bias or an out-of-band spike signals a sensor fault, a model error, or an anomaly. The stack monitors innovations as a first-line consistency and anomaly check feeding the disruption-precursor ensemble."
+   ],
+   [
+    "ul",
+    [
+     "Optimal for linear-Gaussian systems; minimizes estimate variance.",
+     "Reports covariance P: the estimate carries its own uncertainty.",
+     "Gain adapts trust between model and measurements automatically.",
+     "Innovation monitoring: sensor-fault and anomaly detection for free."
+    ]
+   ],
+   [
+    "p",
+    "Real fusion dynamics are nonlinear, so the twin uses the extended/unscented and ensemble variants; the linear Kalman filter is the exact case and the conceptual foundation they all extend."
+   ]
+  ],
+  "related": [
+   [
+    "extended-unscented-kalman",
+    "Extended and Unscented Kalman Filters"
+   ],
+   [
+    "ensemble-kalman-filter",
+    "The Ensemble Kalman Filter"
+   ],
+   [
+    "state-estimation-observability",
+    "Observability and State Estimation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "extended-unscented-kalman",
+  "title": "Extended and Unscented Kalman Filters",
+  "cat": "foundations-math",
+  "lede": "Fusion dynamics are nonlinear; the EKF linearizes the model while the UKF propagates sample points, giving the twin nonlinear state estimation.",
+  "body": [
+   [
+    "h2",
+    "Handling nonlinearity"
+   ],
+   [
+    "p",
+    "The plant models - Grad-Shafranov evolution, ambipolar dynamics - are nonlinear, so the plain Kalman filter does not apply directly. The extended Kalman filter (EKF) linearizes the model about the current estimate each step; the unscented Kalman filter (UKF) instead propagates a small set of deterministically chosen sample points through the true nonlinear model. Both keep a Gaussian belief but differ in accuracy and cost."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "EKF: linearize with Jacobians each step\n  F_k = df/dx |_x^ ,  H_k = dh/dx |_x^\n  then apply Kalman predict/update with F_k, H_k\n\nUKF: unscented transform (sigma points)\n  choose 2n+1 sigma points X_i from (x^, P)\n  propagate: Y_i = f(X_i)\n  x^- = sum w_i Y_i ,  P^- = sum w_i (Y_i-x^-)(Y_i-x^-)' + Q"
+    ]
+   ],
+   [
+    "h3",
+    "EKF versus UKF trade"
+   ],
+   [
+    "p",
+    "The EKF is cheap but its first-order linearization degrades when dynamics are strongly nonlinear, and it needs Jacobians (available by autodiff from the PINN/twin models). The UKF captures mean and covariance to higher order without Jacobians, at the cost of multiple model evaluations. The stack picks per subsystem: EKF where near-linear and fast, UKF where nonlinearity bites, such as near stability boundaries."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# UKF predict via sigma points (schematic)\nX = sigma_points(x, P, alpha, kappa)    # 2n+1 points\nY = [f(Xi, u) for Xi in X]              # nonlinear propagation\nx_pred = sum(wm[i]*Y[i] for i in range(len(Y)))\nP_pred = sum(wc[i]*outer(Y[i]-x_pred, Y[i]-x_pred)\n             for i in range(len(Y))) + Q"
+    ]
+   ],
+   [
+    "h3",
+    "Where each is used"
+   ],
+   [
+    "p",
+    "For the breeder, near-equilibrium tracking of shape and current is well served by the EKF using twin Jacobians; near disruption-relevant boundaries, where the response curves sharply, the UKF's better covariance estimate matters. For the burner, strong nonlinearity in the ambipolar response favors the UKF, though its estimates inherit the 166-830x regime uncertainty and are reported as such."
+   ],
+   [
+    "ul",
+    [
+     "EKF: Jacobian-based, cheap, accurate near-linear regimes.",
+     "UKF: sigma-point, Jacobian-free, better for strong nonlinearity.",
+     "Selection per subsystem by nonlinearity and latency budget.",
+     "Both still report covariance; both feed innovation monitoring."
+    ]
+   ],
+   [
+    "p",
+    "When the state dimension is very large - a full field twin - even the UKF's covariance is unwieldy, and the stack turns to the ensemble Kalman filter covered next."
+   ]
+  ],
+  "related": [
+   [
+    "kalman-filter-derivation",
+    "The Kalman Filter"
+   ],
+   [
+    "ensemble-kalman-filter",
+    "The Ensemble Kalman Filter"
+   ],
+   [
+    "state-estimation-observability",
+    "Observability and State Estimation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ensemble-kalman-filter",
+  "title": "The Ensemble Kalman Filter",
+  "cat": "foundations-math",
+  "lede": "For high-dimensional field states the twin uses an ensemble of members to represent uncertainty, making Kalman updating tractable at plant scale.",
+  "body": [
+   [
+    "h2",
+    "Covariance without a covariance matrix"
+   ],
+   [
+    "p",
+    "The KRONOS-CTRL twin's full state - fields on a grid - can have very high dimension, where storing and propagating a dense covariance is infeasible. The ensemble Kalman filter (EnKF) represents the belief by an ensemble of state realizations and estimates covariance from their spread, so the Kalman update works with matrices sized by ensemble count, not state dimension."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "EnKF with N members {x_i}:\n\n  Forecast:  x_i^f = f(x_i, u) + w_i\n  Ensemble mean and anomalies:\n    xbar = (1/N) sum x_i^f ,  A = [x_i^f - xbar]\n  Sample covariance:  P^f = A A' / (N-1)\n\n  Update each member with perturbed observations:\n    x_i^a = x_i^f + K ( z + eps_i - H x_i^f )\n    K = P^f H' (H P^f H' + R)^-1     (via ensemble, low-rank)"
+    ]
+   ],
+   [
+    "h3",
+    "Why ensembles scale"
+   ],
+   [
+    "p",
+    "The gain is computed through the ensemble anomalies, so cost scales with the number of members (tens to hundreds), not the millions of state variables. The ensemble also propagates through the true nonlinear model, capturing non-Gaussian structure the EKF misses. This is the practical estimator for a field-scale digital twin."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# EnKF update (schematic, low-rank via ensemble)\nXf = [model(xi, u) for xi in ensemble]      # forecast members\nXbar = mean(Xf); A = stack(Xf) - Xbar\nHX = [H(xi) for xi in Xf]; Hbar = mean(HX); Ah = stack(HX)-Hbar\nS = (Ah.T@Ah)/(N-1) + R\nfor i in range(N):\n    ensemble[i] = Xf[i] + (A.T@Ah)/(N-1) @ inv(S) @ (z+pert[i]-HX[i])"
+    ]
+   ],
+   [
+    "h3",
+    "Localization and inflation"
+   ],
+   [
+    "p",
+    "Finite ensembles produce spurious long-range correlations and tend to under-spread. The stack applies localization (damping covariance between physically distant points using the flux-coordinate metric) and covariance inflation (modestly enlarging spread) to keep the filter consistent - standard, necessary corrections for a real high-dimensional twin."
+   ],
+   [
+    "ul",
+    [
+     "Cost scales with ensemble size, not state dimension.",
+     "Nonlinear propagation captures non-Gaussian structure.",
+     "Localization removes spurious distant correlations.",
+     "Inflation prevents ensemble collapse / filter divergence."
+    ]
+   ],
+   [
+    "p",
+    "The EnKF also naturally supplies the twin's per-region confidence: ensemble spread is the uncertainty MPC reads to widen margins where the estimate is weak, and on the burner it carries the regime-extrapolation caveat."
+   ]
+  ],
+  "related": [
+   [
+    "extended-unscented-kalman",
+    "Extended and Unscented Kalman Filters"
+   ],
+   [
+    "kalman-filter-derivation",
+    "The Kalman Filter"
+   ],
+   [
+    "bayesian-inference-foundations",
+    "Bayesian Inference Foundations"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "state-estimation-observability",
+  "title": "Observability and State Estimation",
+  "cat": "foundations-math",
+  "lede": "Whether the twin can infer the internal state from external diagnostics is a precise property - observability - that governs where estimates are trustworthy.",
+  "body": [
+   [
+    "h2",
+    "Can the state be seen?"
+   ],
+   [
+    "p",
+    "Before trusting any estimator, one must ask whether the measurements even determine the state. Observability is that property: a system is observable if its full internal state can be reconstructed from the output history. For the breeder, magnetics alone leave the internal current profile weakly observable - the formal reason kinetic diagnostics are needed."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Linear observability (discrete):\n\n  Observability matrix\n    O = [ H ; H F ; H F^2 ; ... ; H F^{n-1} ]\n\n  System observable  <=>  rank(O) = n (full)\n\nObservability Gramian (informativeness):\n  W_o = sum_{k=0}^{inf} (F')^k H' H F^k\n  eigenvalues of W_o -> how strongly each mode is observed"
+    ]
+   ],
+   [
+    "h3",
+    "Degrees of observability"
+   ],
+   [
+    "p",
+    "Observability is not just yes/no. The observability Gramian's eigenvalues quantify how strongly each state direction is seen; small eigenvalues mark near-unobservable modes where estimates rest on the model, not data. The stack maps these weak directions so the twin knows which parts of its state are diagnostic-backed and which are model-inferred - and widens uncertainty accordingly."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# observability check + weak-direction map\nO = observability_matrix(F, H)\nassert matrix_rank(O) == n            # full observability?\nWo = observability_gramian(F, H)\nw, V = eigh(Wo)\nweak = V[:, w < w.max()*ratio]        # poorly-observed directions\n# widen twin uncertainty along 'weak'; flag to MPC"
+    ]
+   ],
+   [
+    "h3",
+    "Sensor placement and honesty"
+   ],
+   [
+    "p",
+    "Observability drives diagnostic design: sensors are placed to make the safety-critical states - shape descriptors, stability margins, plug potential - strongly observable. Where coverage is inherently thin, the stack does not pretend otherwise; it reports a degraded-observability condition rather than a confident but unsupported estimate. On the burner, whole regions are only model-observable given the absence of a comparable device, which is stated plainly."
+   ],
+   [
+    "ul",
+    [
+     "Observability matrix rank: can the state be reconstructed at all.",
+     "Gramian eigenvalues: how strongly each mode is measured.",
+     "Weak directions rely on the model; uncertainty widened there.",
+     "Drives sensor placement and honest degraded-observability flags."
+    ]
+   ],
+   [
+    "p",
+    "Observability analysis is the bridge from raw diagnostics to trustworthy state: it tells the estimator, and the operators, exactly how much of the machine they can actually see."
+   ]
+  ],
+  "related": [
+   [
+    "kalman-filter-derivation",
+    "The Kalman Filter"
+   ],
+   [
+    "information-theory-sensor-selection",
+    "Information Theory for Sensor Selection"
+   ],
+   [
+    "equilibrium-reconstruction-inverse-problem",
+    "Equilibrium Reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bayesian-inference-foundations",
+  "title": "Bayesian Inference Foundations",
+  "cat": "foundations-math",
+  "lede": "Bayes' rule is how the stack turns diagnostics and priors into calibrated posteriors, the basis of every uncertainty estimate the twin reports.",
+  "body": [
+   [
+    "h2",
+    "From prior to posterior"
+   ],
+   [
+    "p",
+    "Bayesian inference updates belief about unknown quantities - profiles, calibration factors, model parameters - by combining a prior with the likelihood of observed diagnostics. The result is a posterior distribution, not a point estimate, so every inferred quantity carries honest uncertainty. This is the foundation of the stack's uncertainty quantification."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Bayes' rule:\n\n  p(theta | D) = p(D | theta) p(theta) / p(D)\n\n  p(theta)     : prior (physics knowledge, past shots)\n  p(D | theta) : likelihood (diagnostic model + noise)\n  p(theta | D) : posterior (updated belief)\n  p(D)         : evidence = Integral p(D|theta) p(theta) dtheta"
+    ]
+   ],
+   [
+    "h3",
+    "Priors carry physics"
+   ],
+   [
+    "p",
+    "Priors are where known physics enters: profile smoothness, positivity of pressure, plausible ranges for transport coefficients, and - for the burner - the extrapolation risk of an untested regime encoded as a deliberately wide prior. A well-chosen prior regularizes ill-posed reconstructions and prevents overconfident fits to noisy diagnostics."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# posterior via log-prob (schematic)\ndef log_posterior(theta, data):\n    lp = log_prior(theta)                 # physics constraints\n    resid = (forward_model(theta) - data) / sigma\n    ll = -0.5 * sum(resid**2)             # Gaussian likelihood\n    return lp + ll                        # up to the evidence const"
+    ]
+   ],
+   [
+    "h3",
+    "The evidence and model comparison"
+   ],
+   [
+    "p",
+    "The evidence p(D) - the denominator - is the probability of the data under the whole model. Comparing evidences across competing models (e.g. different transport closures) is principled model selection, automatically penalizing needless complexity. The stack uses this to choose between candidate twin sub-models rather than overfitting the most flexible one."
+   ],
+   [
+    "ul",
+    [
+     "Output is a distribution: calibrated uncertainty, not a point.",
+     "Priors inject physics and encode extrapolation risk (burner).",
+     "Likelihood carries the diagnostic forward model and noise.",
+     "Evidence enables honest model comparison and complexity control."
+    ]
+   ],
+   [
+    "p",
+    "Exact posteriors are rarely closed-form, so the stack computes them with the tools on the following pages: Gaussian processes for smooth surrogates, MCMC/HMC for sampling, and variational inference for speed. All share this foundation, and all report the uncertainty the machines' safety case requires."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-processes-mathematics",
+    "Gaussian Processes"
+   ],
+   [
+    "bayesian-uq-mcmc-hmc",
+    "MCMC and Hamiltonian Monte Carlo"
+   ],
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gaussian-processes-mathematics",
+  "title": "Gaussian Processes",
+  "cat": "foundations-math",
+  "lede": "A Gaussian process is a distribution over functions; it gives the stack calibrated surrogates with built-in error bars, ideal for scarce fusion data.",
+  "body": [
+   [
+    "h2",
+    "A prior over functions"
+   ],
+   [
+    "p",
+    "A Gaussian process (GP) places a prior directly on functions: any finite set of points is jointly Gaussian, with correlations set by a kernel. Conditioning on observations yields a posterior mean (the surrogate prediction) and posterior variance (its uncertainty) in closed form. GPs are the stack's default surrogate where data is scarce and honest error bars are essential."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "GP: f ~ GP( m(x), k(x,x') )\n\nPosterior at test points X* given data (X, y):\n  mean = K*  (K + sigma^2 I)^-1 y\n  cov  = K** - K* (K + sigma^2 I)^-1 K*'\n\n  K   = k(X, X)   (train-train)\n  K*  = k(X*, X)  (test-train)\n  common kernel: k(x,x') = s^2 exp(-||x-x'||^2 / 2 l^2)  (RBF)"
+    ]
+   ],
+   [
+    "h3",
+    "Kernels encode assumptions"
+   ],
+   [
+    "p",
+    "The kernel is where prior knowledge lives: smoothness (RBF), roughness (Matern), periodicity, or length scales that differ per input. Hyperparameters - length scale, signal and noise variance - are learned by maximizing the marginal likelihood, which trades data fit against smoothness automatically, guarding against overfit on small datasets."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# GP marginal likelihood for hyperparameter fit (schematic)\ndef nll(params, X, y):\n    K = kernel(X, X, params) + params.noise*I\n    L = cholesky(K)\n    a = cho_solve(L, y)\n    return 0.5*y@a + sum(log(diag(L))) + 0.5*n*log(2*pi)\nparams = minimize(nll, init, args=(X, y))   # maximize evidence"
+    ]
+   ],
+   [
+    "h3",
+    "Where GPs serve the machines"
+   ],
+   [
+    "p",
+    "GPs surrogate expensive maps - a scalar stability margin versus operating parameters, a confinement metric versus profiles - with uncertainty that grows away from data. That growing variance is exactly what scenario optimization needs to avoid overconfident extrapolation, and it is central to the burner, where the GP's error bars balloon in the 166-830x regime rather than pretending to knowledge that does not exist."
+   ],
+   [
+    "ul",
+    [
+     "Closed-form posterior mean and variance: calibrated by construction.",
+     "Kernel encodes smoothness/length scales as explicit priors.",
+     "Hyperparameters fit by marginal likelihood: overfit-resistant.",
+     "Variance grows off-data: honest extrapolation, key for the burner."
+    ]
+   ],
+   [
+    "p",
+    "The cubic cost of the exact GP limits dataset size, so the stack uses sparse/inducing-point approximations for larger problems - trading a little fidelity for scale while keeping the calibrated uncertainty that motivates using a GP at all."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-inference-foundations",
+    "Bayesian Inference Foundations"
+   ],
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ],
+   [
+    "surrogate-reduced-order-models",
+    "Reduced-Order Surrogates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bayesian-uq-mcmc-hmc",
+  "title": "MCMC and Hamiltonian Monte Carlo",
+  "cat": "foundations-math",
+  "lede": "When posteriors have no closed form, the stack samples them; Hamiltonian Monte Carlo makes high-dimensional fusion inference tractable.",
+  "body": [
+   [
+    "h2",
+    "Sampling a posterior"
+   ],
+   [
+    "p",
+    "Most posteriors over profiles and model parameters cannot be written down, but they can be sampled. Markov chain Monte Carlo (MCMC) builds a chain whose stationary distribution is the posterior; averaging over samples yields any expectation, credible interval, or marginal. This is the stack's gold-standard uncertainty quantification for offline analysis and calibration."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Metropolis-Hastings step:\n  propose theta' ~ q(theta'|theta)\n  accept with prob  a = min(1, [p(theta'|D) q(theta|theta')] /\n                                [p(theta|D)  q(theta'|theta)] )\n\nHamiltonian Monte Carlo introduces momentum p:\n  H(theta,p) = -log p(theta|D) + (1/2) p' M^-1 p\n  simulate Hamiltonian dynamics (leapfrog) -> distant, accepted moves"
+    ]
+   ],
+   [
+    "h3",
+    "Why HMC for high dimensions"
+   ],
+   [
+    "p",
+    "Random-walk MCMC mixes poorly when parameters are many and correlated - as profile coefficients are. Hamiltonian Monte Carlo uses gradients of the log-posterior (available by autodiff through the twin models) to propose distant, high-acceptance moves, exploring the posterior far more efficiently. The No-U-Turn variant removes manual step tuning."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# leapfrog integrator at the heart of HMC (schematic)\ndef leapfrog(theta, p, eps, grad_logpost, M_inv):\n    p = p + 0.5*eps*grad_logpost(theta)\n    theta = theta + eps*(M_inv @ p)\n    p = p + 0.5*eps*grad_logpost(theta)\n    return theta, p   # proposes a far state along an energy contour"
+    ]
+   ],
+   [
+    "h3",
+    "Diagnostics and honest use"
+   ],
+   [
+    "p",
+    "Samples are only trustworthy if the chains converged. The stack checks the potential-scale-reduction R-hat across multiple chains, the effective sample size, and divergence counts. Reported credible intervals come only from converged, well-mixed chains. For the burner, wide priors plus scarce constraints yield deliberately broad posteriors - a faithful picture of an untested regime, not a defect to be tuned away."
+   ],
+   [
+    "ul",
+    [
+     "MCMC: samples any posterior, no closed form needed.",
+     "HMC/NUTS: gradient-guided, efficient in high dimensions.",
+     "Convergence checks: R-hat, effective sample size, divergences.",
+     "Broad burner posteriors are honest, not fixed by re-tuning."
+    ]
+   ],
+   [
+    "p",
+    "MCMC is too slow for the control loop, so it runs offline to calibrate priors and validate the fast variational and ensemble estimators that operate in real time - the rigorous reference behind the quick methods."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-inference-foundations",
+    "Bayesian Inference Foundations"
+   ],
+   [
+    "variational-inference-uq",
+    "Variational Inference"
+   ],
+   [
+    "uncertainty-quantification",
+    "Uncertainty Quantification"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "variational-inference-uq",
+  "title": "Variational Inference for Fast Uncertainty",
+  "cat": "foundations-math",
+  "lede": "Variational inference turns posterior estimation into optimization, giving the twin approximate uncertainty fast enough for near-real-time use.",
+  "body": [
+   [
+    "h2",
+    "Inference as optimization"
+   ],
+   [
+    "p",
+    "Sampling posteriors with MCMC is accurate but slow. Variational inference (VI) instead posits a tractable family of distributions and finds the member closest to the true posterior by optimization. It trades exactness for speed, delivering approximate but useful uncertainty at a fraction of MCMC's cost - suitable where the twin needs UQ quickly."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Minimize KL to the posterior by maximizing the ELBO:\n\n  log p(D) = ELBO(q) + KL( q(theta) || p(theta|D) )\n\n  ELBO(q) = E_q[ log p(D, theta) ] - E_q[ log q(theta) ]\n\n  maximize ELBO over variational params phi of q_phi\n  KL >= 0  ->  ELBO is a lower bound on the evidence"
+    ]
+   ],
+   [
+    "h3",
+    "The evidence lower bound"
+   ],
+   [
+    "p",
+    "Because the KL divergence is nonnegative, the evidence decomposes into the ELBO plus that KL; maximizing the ELBO minimizes the gap to the true posterior. With a reparameterization trick, the ELBO's gradient is estimated by sampling and backpropagation, so VI plugs directly into the same autodiff machinery as the PINNs and neural surrogates."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# ELBO gradient via reparameterization (schematic)\ndef elbo(phi, data):\n    eps = randn(S, dim)\n    theta = mu(phi) + softplus(sig(phi)) * eps   # sample q_phi\n    lp = log_joint(theta, data)                  # log p(D,theta)\n    lq = log_q(theta, phi)                        # log q_phi\n    return mean(lp - lq)                          # maximize this"
+    ]
+   ],
+   [
+    "h3",
+    "Cost and caveats"
+   ],
+   [
+    "p",
+    "VI is fast and scalable, but a mean-field or Gaussian family can underestimate variance and miss posterior correlations or multimodality. The stack uses VI for quick, near-real-time uncertainty and periodically checks it against offline MCMC; where VI under-reports uncertainty, its intervals are inflated or it defers to sampling. On the burner, VI is never allowed to shrink the honest extrapolation uncertainty that MCMC and wide priors establish."
+   ],
+   [
+    "ul",
+    [
+     "Fast: optimization instead of sampling.",
+     "Autodiff-native: shares machinery with PINNs and surrogates.",
+     "Risk: may underestimate variance / miss multimodality.",
+     "Validated against MCMC; never used to mask burner uncertainty."
+    ]
+   ],
+   [
+    "p",
+    "Together the trio - GP, MCMC/HMC, VI - gives the stack a spectrum from rigorous-slow to approximate-fast, chosen by the latency and stakes of each uncertainty question."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-uq-mcmc-hmc",
+    "MCMC and Hamiltonian Monte Carlo"
+   ],
+   [
+    "bayesian-inference-foundations",
+    "Bayesian Inference Foundations"
+   ],
+   [
+    "uncertainty-quantification",
+    "Uncertainty Quantification"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "constrained-optimization-lagrangian",
+  "title": "Constrained Optimization, Lagrangians, and Duality",
+  "cat": "foundations-math",
+  "lede": "The Lagrangian and its dual underlie MPC, reconstruction, and scenario design; they turn constrained problems into solvable stationarity conditions.",
+  "body": [
+   [
+    "h2",
+    "The Lagrangian"
+   ],
+   [
+    "p",
+    "Nearly every optimization in the stack is constrained - by physics, actuator limits, or the safe envelope. The Lagrangian folds constraints into the objective with multipliers, converting a constrained problem into a stationarity problem. It is the shared mathematical spine of MPC, equilibrium reconstruction, and scenario optimization."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Primal:  min f(x) s.t. g_i(x)<=0, h_j(x)=0\n\nLagrangian:\n  L(x, mu, nu) = f(x) + sum_i mu_i g_i(x) + sum_j nu_j h_j(x)\n\nStationarity:  grad_x L = 0\nDual function: d(mu,nu) = min_x L(x,mu,nu)\nDual problem:  max_{mu>=0, nu} d(mu, nu)"
+    ]
+   ],
+   [
+    "h3",
+    "Weak and strong duality"
+   ],
+   [
+    "p",
+    "The dual function is always a lower bound on the primal optimum (weak duality); for convex problems satisfying a constraint qualification the bound is tight (strong duality), so primal and dual optima coincide. Convex problems - the QPs in MPC, Tikhonov-regularized reconstruction - enjoy strong duality, which is why they solve reliably and their multipliers are meaningful."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# multipliers reveal constraint sensitivities (shadow prices)\nsol = solve_constrained(f, g, h)\n# dL*/db_i = -mu_i : how the optimum changes as limit i moves\nfor i, mu in enumerate(sol.mu):\n    sensitivity[i] = -mu     # marginal effect of relaxing limit i"
+    ]
+   ],
+   [
+    "h3",
+    "Multipliers as sensitivities"
+   ],
+   [
+    "p",
+    "The optimal multipliers measure how much the objective would improve if a constraint were relaxed - the sensitivity of the solution to each limit. In control terms this tells the stack which physical limit is most costly to the objective right now, guiding scenario redesign and informing operators which envelope boundary is the true bottleneck. The KKT conditions are exactly the Lagrangian stationarity plus feasibility and complementarity."
+   ],
+   [
+    "ul",
+    [
+     "Lagrangian: constraints absorbed via multipliers.",
+     "Strong duality (convex): dual optimum equals primal optimum.",
+     "Multipliers = shadow prices: sensitivity to each constraint.",
+     "Foundation shared by MPC, reconstruction, scenario design."
+    ]
+   ],
+   [
+    "p",
+    "Duality is not abstract here: it is how the stack solves constrained problems efficiently and how it explains, in physical terms, which constraint is governing a given operating point."
+   ]
+  ],
+  "related": [
+   [
+    "mpc-constraints-kkt",
+    "MPC Constraints and KKT Conditions"
+   ],
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ],
+   [
+    "trajectory-optimization-scenario",
+    "Trajectory Optimization for Scenarios"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "bayesian-optimization-scenario-design",
+  "title": "Bayesian Optimization for Scenario Design",
+  "cat": "foundations-math",
+  "lede": "Choosing operating points and profiles is expensive to evaluate; Bayesian optimization finds good scenarios in few costly simulations by balancing exploration and exploitation.",
+  "body": [
+   [
+    "h2",
+    "Optimizing an expensive black box"
+   ],
+   [
+    "p",
+    "Designing a scenario - the profiles, shape, and actuator schedule that meet targets while respecting stability - means optimizing an objective that costs a full simulation to evaluate. Bayesian optimization (BO) is built for exactly this: it fits a probabilistic surrogate (usually a GP) to past evaluations and uses it to choose the next most-informative point, minimizing the number of expensive runs."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Bayesian optimization loop:\n  1. Fit GP surrogate to data { (x_i, y_i) }\n  2. Maximize acquisition a(x) to pick next x*\n  3. Evaluate expensive objective y* = F(x*)\n  4. Augment data; repeat\n\nExpected Improvement acquisition:\n  EI(x) = E[ max(0, f_best - f(x)) ]\n        = (f_best-mu) Phi(z) + sigma phi(z),  z=(f_best-mu)/sigma"
+    ]
+   ],
+   [
+    "h3",
+    "Acquisition functions balance the trade"
+   ],
+   [
+    "p",
+    "The acquisition function turns the surrogate's mean and variance into a score for where to sample next. Expected improvement, upper-confidence-bound, and knowledge-gradient all trade exploitation (sample where the mean is good) against exploration (sample where variance is high). This is how BO avoids wasting simulations while still discovering better regions of scenario space."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# one BO iteration (schematic)\ngp.fit(X, y)\ndef acq(x):                      # upper confidence bound\n    mu, sd = gp.predict(x)\n    return mu + beta*sd          # exploit + explore\nx_next = maximize(acq, bounds)   # cheap inner optimization\ny_next = expensive_simulation(x_next)\nX, y = append(X, x_next), append(y, y_next)"
+    ]
+   ],
+   [
+    "h3",
+    "Constraints and honesty"
+   ],
+   [
+    "p",
+    "Scenario design is constrained: stability margins, actuator limits, and the operating envelope. Constrained BO models feasibility with its own surrogate and weights the acquisition by the probability of satisfying constraints, so it searches only admissible scenarios. For the burner, the surrogate's variance stays large across the 166-830x regime, so BO is honest that it is exploring an untested space - it proposes candidates for study, not validated operating points, and never optimizes away the four gates."
+   ],
+   [
+    "ul",
+    [
+     "Sample-efficient: few expensive simulations to a good design.",
+     "Acquisition balances exploration and exploitation explicitly.",
+     "Constrained BO respects stability and envelope feasibility.",
+     "Burner: wide surrogate variance keeps proposals honest."
+    ]
+   ],
+   [
+    "p",
+    "BO is the outer optimizer over scenarios; trajectory optimization then refines the time-dependent path within a chosen scenario, and MPC executes it in the loop."
+   ]
+  ],
+  "related": [
+   [
+    "gaussian-processes-mathematics",
+    "Gaussian Processes"
+   ],
+   [
+    "trajectory-optimization-scenario",
+    "Trajectory Optimization for Scenarios"
+   ],
+   [
+    "neural-operators-deeponet-fno",
+    "Neural Operators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "trajectory-optimization-scenario",
+  "title": "Trajectory Optimization for Scenario Design",
+  "cat": "foundations-math",
+  "lede": "A scenario is a time-dependent path in state and actuation; direct collocation turns designing it into a large, structured nonlinear program.",
+  "body": [
+   [
+    "h2",
+    "Designing the whole path"
+   ],
+   [
+    "p",
+    "Beyond a single operating point, a scenario is a trajectory: how current, shape, fueling, and heating evolve from breakdown to flat-top and back, or how the burner reaches and holds its potential. Trajectory optimization designs this path to meet objectives while satisfying dynamics and constraints at every instant. It is the offline planner whose output MPC tracks."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Direct collocation transcription:\n\n  min  Integral_0^T  L(x(t), u(t)) dt  +  E(x(T))\n  s.t. xdot = f(x, u)         (dynamics, enforced at nodes)\n       path constraints g(x,u) <= 0\n       boundary conditions on x(0), x(T)\n\n  Discretize on N nodes; enforce dynamics via collocation:\n     x_{k+1} - x_k = (h/2)( f_k + f_{k+1} )   (trapezoidal)\n  -> large sparse nonlinear program in {x_k, u_k}"
+    ]
+   ],
+   [
+    "h3",
+    "Direct versus indirect methods"
+   ],
+   [
+    "p",
+    "Direct methods discretize states and controls and hand the resulting nonlinear program to a solver; they are robust and handle path constraints naturally. Indirect methods derive optimality conditions (Pontryagin's principle) first, then solve - accurate but delicate. The stack uses direct collocation for scenario design because envelope and actuator constraints are first-class and the sparse NLP solves reliably."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# direct-collocation NLP assembly (schematic)\nvars = stack([x_k for k in range(N)] + [u_k for k in range(N)])\ncons = []\nfor k in range(N-1):\n    cons.append(x[k+1]-x[k] - 0.5*h*(f(x[k],u[k])+f(x[k+1],u[k+1])))\ncons += path_constraints(x, u) + boundary(x[0], x[N-1])\nsol = nlp_solve(objective(x,u), cons, bounds)   # SQP / interior-point"
+    ]
+   ],
+   [
+    "h3",
+    "Feeding the control loop"
+   ],
+   [
+    "p",
+    "The optimized trajectory becomes the reference MPC tracks, and its terminal state defines the operating point around which the terminal set and cost are built. For the breeder this plans the negative-triangularity ramp within stability limits; for the burner it explores candidate paths to the ambipolar operating point in simulation, carrying the regime and coil-stress caveats so the plan is understood as a design study, not a schedule for existing hardware."
+   ],
+   [
+    "ul",
+    [
+     "Optimizes the full time-dependent path, not one point.",
+     "Direct collocation: constraints at every node, robust NLP.",
+     "Output = MPC reference and terminal ingredients.",
+     "Burner trajectories carry the honest gates as caveats."
+    ]
+   ],
+   [
+    "p",
+    "Trajectory optimization sits between Bayesian scenario search (which picks the regime) and MPC (which executes in feedback), completing the optimization stack from design to real-time control."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ],
+   [
+    "mpc-optimal-control-formulation",
+    "MPC Optimal-Control Formulation"
+   ],
+   [
+    "constrained-optimization-lagrangian",
+    "Constrained Optimization and Duality"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "monte-carlo-and-variance-reduction",
+  "title": "Monte Carlo and Variance Reduction",
+  "cat": "foundations-math",
+  "lede": "Monte Carlo integrates the high-dimensional problems fusion poses - neutron transport and uncertainty propagation - and variance reduction makes it affordable.",
+  "body": [
+   [
+    "h2",
+    "Estimation by sampling"
+   ],
+   [
+    "p",
+    "Monte Carlo estimates integrals and expectations by random sampling, with error that falls as one over the square root of sample count regardless of dimension. That dimension-independence is why it is the method of choice for neutron transport in the breeder blanket, for propagating parameter uncertainty through the twin, and for the sampling inside Bayesian UQ."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Monte Carlo estimator:\n  I = E_p[ h(x) ] ~ (1/N) sum_i h(x_i),  x_i ~ p\n  standard error ~ sigma_h / sqrt(N)   (independent of dimension)\n\nImportance sampling (variance reduction):\n  I = E_q[ h(x) p(x)/q(x) ],  x_i ~ q\n  choose q to concentrate samples where h*p is large"
+    ]
+   ],
+   [
+    "h3",
+    "Why variance reduction matters"
+   ],
+   [
+    "p",
+    "Plain Monte Carlo converges slowly - halving the error needs four times the samples. For neutronics, where rare events (a neutron reaching a specific location) dominate a quantity of interest, this is prohibitive. Variance-reduction techniques get the same accuracy from far fewer histories, which is what makes the breeder's 14 MeV neutron transport and activation studies tractable offline."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# importance sampling estimator (schematic)\nx = sample_from(q, N)\nw = target_p(x) / q(x)              # importance weights\nest = mean(w * h(x))               # unbiased for E_p[h]\ness = sum(w)**2 / sum(w**2)        # effective sample size check"
+    ]
+   ],
+   [
+    "h3",
+    "Techniques in use"
+   ],
+   [
+    "p",
+    "The stack applies importance sampling (bias draws toward rare, important events), stratification (partition the domain and sample each part), control variates (subtract a correlated known-mean quantity), and antithetic variates (paired negatively-correlated samples). For neutronics specifically, weight-window and splitting/Russian-roulette methods guide histories toward the tally region. Each preserves an unbiased estimate while shrinking variance."
+   ],
+   [
+    "ul",
+    [
+     "Convergence 1/sqrt(N), independent of dimension.",
+     "Importance sampling: concentrate on rare, important events.",
+     "Stratification, control variates, antithetic variates.",
+     "Neutronics: weight windows and splitting toward the tally."
+    ]
+   ],
+   [
+    "p",
+    "Monte Carlo results feed the twin's neutronics module and the Bayesian uncertainty estimates; variance reduction is what keeps these within the offline compute budget while preserving statistical rigor."
+   ]
+  ],
+  "related": [
+   [
+    "bayesian-uq-mcmc-hmc",
+    "MCMC and Hamiltonian Monte Carlo"
+   ],
+   [
+    "pinn-collocation-sampling",
+    "Collocation Sampling for PINNs"
+   ],
+   [
+    "information-theory-sensor-selection",
+    "Information Theory for Sensor Selection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "information-theory-sensor-selection",
+  "title": "Information Theory for Sensor Selection",
+  "cat": "foundations-math",
+  "lede": "Which diagnostics to trust, place, or prioritize is an information question; entropy and mutual information quantify how much each sensor tells the twin.",
+  "body": [
+   [
+    "h2",
+    "Measuring information"
+   ],
+   [
+    "p",
+    "Not all diagnostics are equally informative about the states the twin needs. Information theory quantifies this: entropy measures uncertainty in a quantity, and mutual information measures how much observing a sensor reduces uncertainty about the state. These let the stack rank, place, and prioritize diagnostics on a principled basis rather than by intuition."
+   ],
+   [
+    "code",
+    [
+     "text",
+     "Entropy and mutual information:\n\n  H(X)   = - sum p(x) log p(x)            (uncertainty in X)\n  I(X;Y) = H(X) - H(X|Y)                  (info Y gives about X)\n         = KL( p(x,y) || p(x)p(y) )\n\nGaussian case (state x, measurement y):\n  I(x;y) = 0.5 * log( det(P_prior) / det(P_post) )"
+    ]
+   ],
+   [
+    "h3",
+    "Optimal experiment design"
+   ],
+   [
+    "p",
+    "Choosing a sensor set to maximize information about the state is Bayesian optimal experiment design. Common criteria come from the posterior covariance: D-optimality maximizes the information determinant, A-optimality minimizes total posterior variance. These connect directly to the observability Gramian - sensors are chosen to make safety-critical states strongly observable."
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# greedy D-optimal sensor selection (schematic)\nselected = []\nfor _ in range(budget):\n    best = argmax_over_candidates(\n        lambda s: logdet(info_matrix(selected + [s])))\n    selected.append(best)     # add sensor with most added information\n# maximizes reduction in posterior uncertainty"
+    ]
+   ],
+   [
+    "h3",
+    "Use across the stack"
+   ],
+   [
+    "p",
+    "Mutual information ranks which sensors most reduce uncertainty in shape, current, or plug potential, guiding both diagnostic placement and how the estimator weights channels. It also drives active learning: the twin proposes the measurement or scenario that would most reduce model uncertainty. On the burner, information analysis exposes how little the sparse, extrapolative diagnostic picture constrains the state - reinforcing, not hiding, the regime caveat."
+   ],
+   [
+    "ul",
+    [
+     "Entropy: how uncertain a quantity is.",
+     "Mutual information: how much a sensor reduces that uncertainty.",
+     "D-/A-optimality: principled sensor placement and prioritization.",
+     "Active learning: pick the most informative next measurement."
+    ]
+   ],
+   [
+    "p",
+    "Information theory ties the estimation and optimization layers together: it decides where to look, and observability decides whether what is seen is enough - both feeding the twin's honest account of what it does and does not know."
+   ]
+  ],
+  "related": [
+   [
+    "state-estimation-observability",
+    "Observability and State Estimation"
+   ],
+   [
+    "gnn-spectral-graph-theory",
+    "Spectral Graph Theory for Diagnostics"
+   ],
+   [
+    "bayesian-optimization-scenario-design",
+    "Bayesian Optimization for Scenario Design"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

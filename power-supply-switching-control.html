@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Coil Power-Supply Switching Control · Kronos Fusion Energy"><meta property="og:description" content="Fast switching supplies drive the coil currents both machines depend on; L1 controls their switching deterministically to deliver clean, bounded current."><meta property="og:url" content="https://kronosfusionenergy.com/ai/power-supply-switching-control.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -424,7 +424,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <ul><li>Gate timing referenced to the shared clock to bound jitter.</li><li>Current, voltage, and di/dt limits enforced locally.</li><li>Coordinated turn-on/off to avoid cross-supply transients.</li><li>Fast, controlled ramp paths for current ramp-down and dumps.</li></ul>
 <p>The supplies also participate in protection: a controlled current ramp-down for disruption handling, or a coordinated de-energization during a magnet event, is executed through the same supplies under L1's timing guarantees. Their di/dt limits protect both the coil insulation and the plasma from abrupt field changes.</p>
 <h3>Both machines&#x27; coil sets</h3>
-<p>The breeder's central solenoid, toroidal-field, PF and vertical-control coils, and the burner's plug, throat, and central-cell magnets are all driven this way. Different power levels and dynamics, one control discipline: deterministic switching that makes coil current a clean, bounded actuator for the loops above.</p><div class="related"><h3>Related</h3><a href="./rt-compute-actuators.html">Real-time compute actuators &rarr;</a><a href="./pf-shaping-coils-negative-triangularity.html">PF shaping coils and negative triangularity &rarr;</a><a href="./plasma-current-feedback.html">Plasma current feedback &rarr;</a></div></main></div><div class="kfe-embed">
+<p>The breeder's central solenoid, toroidal-field, PF and vertical-control coils, and the burner's plug, throat, and central-cell magnets are all driven this way. Different power levels and dynamics, one control discipline: deterministic switching that makes coil current a clean, bounded actuator for the loops above.</p><div class="related"><h3>Related</h3><a href="./rt-compute-actuators.html">Real-time compute actuators &rarr;</a><a href="./pf-shaping-coils-negative-triangularity.html">PF shaping coils and negative triangularity &rarr;</a><a href="./plasma-current-feedback.html">Plasma current feedback &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

@@ -1,0 +1,3938 @@
+[
+ {
+  "slug": "control-plane-architecture-overview",
+  "title": "L1 Control Plane Architecture Overview",
+  "cat": "l1-control-plane",
+  "lede": "The L1 tier is Kronos's hard real-time layer: edge FPGAs and PLCs that convert model intent into microsecond-deterministic actuation for both machines.",
+  "body": [
+   [
+    "h2",
+    "What L1 is"
+   ],
+   [
+    "p",
+    "The Control Plane (L1) sits between the offline Foundation tier (L0) and the Twin/AI tier (L3), but it is not a place where learning happens. L1 exists to guarantee <b>bounded latency</b> and <b>bounded jitter</b> on every command path that can move energy or open a fault. It hosts the edge FPGA fabric, the deterministic PLC layer, and the actuator drivers that touch the breeder (Hyperion) and the burner (Aegis / MetroVolt)."
+   ],
+   [
+    "p",
+    "Kronos's design principle is a strict separation of concerns: intelligence proposes, hardware disposes. L3's model-predictive control (MPC) agents compute setpoint trajectories on a 50&ndash;100 ms predictive shadow; L1 accepts those setpoints as advisory targets and enforces them through control loops whose worst-case timing is provable, not statistical."
+   ],
+   [
+    "h2",
+    "The layer boundary"
+   ],
+   [
+    "p",
+    "Every command crossing into L1 passes a validation gate: range checks, rate-of-change limits, and cross-consistency against the measured state vector. A setpoint that violates a hardware envelope is clamped or rejected at the FPGA edge before it ever reaches a coil supply or a beam modulator. This is why the failsafe path can be certified independently of any machine-learning component."
+   ],
+   [
+    "h3",
+    "Both machines, one discipline"
+   ],
+   [
+    "ul",
+    [
+     "Breeder (Hyperion): equilibrium, vertical stability, negative-triangularity shape control, disruption avoidance.",
+     "Burner (Aegis / MetroVolt): end-plug density, ambipolar potential, direct-energy-conversion (DEC) grid modulation.",
+     "Shared: quench protection, vacuum interlocks, deterministic clock distribution, watchdog supervision."
+    ]
+   ],
+   [
+    "p",
+    "The remainder of this category documents each loop, its timing budget, and how determinism is preserved from sensor feedthrough to actuator gate. The organizing constraint throughout is the <a href=./sub-10us-command-boundary.html>sub-10&micro;s command boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "sub-10us-command-boundary",
+    "The sub-10 microsecond command boundary"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "fpga-vs-cpu-vs-gpu-control",
+    "FPGA vs CPU vs GPU for control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sub-10us-command-boundary",
+  "title": "The Sub-10-Microsecond Command Boundary",
+  "cat": "l1-control-plane",
+  "lede": "Every safety-critical actuation on both machines must complete inside a 10-microsecond deterministic window, from validated command to physical gate.",
+  "body": [
+   [
+    "h2",
+    "The hard boundary"
+   ],
+   [
+    "p",
+    "Kronos fixes a design contract: any command on a protection or fast-stability path completes within <b>10 &micro;s</b> of the triggering condition, worst case, including jitter. This is not an average; it is a bound the fabric must satisfy on its slowest cycle. The number is chosen to sit below the fastest physically relevant instability growth times the control system is asked to arrest."
+   ],
+   [
+    "h3",
+    "Why 10 microseconds"
+   ],
+   [
+    "p",
+    "On the breeder, vertical displacement events (VDEs) of an elongated, negative-triangularity plasma grow on millisecond timescales, but the ideal MHD and current-quench precursors that must be sensed and acted on impose sub-millisecond sampling. Reserving a 10 &micro;s actuation floor leaves ample margin against the fastest loop while keeping the timing budget provable. On the burner, DEC grid transients and end-plug microstability demand comparably tight response on the collector modulation path."
+   ],
+   [
+    "h2",
+    "Budget decomposition"
+   ],
+   [
+    "p",
+    "The 10 &micro;s is not spent in one place. A representative allocation on the fast protection path:"
+   ],
+   [
+    "ul",
+    [
+     "Analog acquisition + anti-alias settle: ~1.5 &micro;s",
+     "Signal validation + spatial normalization in fabric: ~2 &micro;s",
+     "Decision logic (threshold / voting): ~1 &micro;s",
+     "Deterministic link to actuator driver: ~2 &micro;s",
+     "Gate propagation + driver turn-on: ~2 &micro;s",
+     "Margin reserve: ~1.5 &micro;s"
+    ]
+   ],
+   [
+    "p",
+    "Because each term has a proven worst-case execution time (WCET), the sum is a certified bound rather than a hopeful mean. Any path that cannot be bounded is not permitted to carry a protection function."
+   ],
+   [
+    "h3",
+    "What lives outside the boundary"
+   ],
+   [
+    "p",
+    "Model inference, trajectory optimization, and anything with data-dependent runtime lives at L3 and is treated as advisory. The boundary is the firewall: L1 will always act within 10 &micro;s using deterministic logic even if every upstream model is unavailable. See <a href=./determinism-vs-learning.html>determinism vs learning</a>."
+   ]
+  ],
+  "related": [
+   [
+    "hard-real-time-bounds",
+    "Hard real-time bounds"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ],
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "edge-fpga-microsecond-actuation",
+  "title": "Edge FPGA Microsecond-Deterministic Actuation",
+  "cat": "l1-control-plane",
+  "lede": "Field-programmable gate arrays at the machine edge execute control logic in fixed clock cycles, giving cycle-exact, jitter-free actuation for both machines.",
+  "body": [
+   [
+    "h2",
+    "Why FPGAs at the edge"
+   ],
+   [
+    "p",
+    "A general-purpose CPU running an operating system cannot promise when an instruction retires; caches, interrupts, and schedulers introduce variance. Kronos places the fastest control and all protection logic on <b>FPGA fabric</b> physically adjacent to the machine, where a computation compiled to gates executes in a known, fixed number of clock cycles every time."
+   ],
+   [
+    "h3",
+    "Cycle-exact execution"
+   ],
+   [
+    "p",
+    "At a fabric clock of, say, 200 MHz (5 ns/cycle), a pipeline of depth N completes in exactly N&middot;5 ns regardless of input values. There is no instruction fetch, no branch misprediction, no cache miss. Latency equals pipeline depth times clock period, plus fixed I/O, which is why the <a href=./sub-10us-command-boundary.html>10 &micro;s boundary</a> is achievable with margin."
+   ],
+   [
+    "h2",
+    "What runs in fabric"
+   ],
+   [
+    "ul",
+    [
+     "Breeder: real-time equilibrium reconstruction feeding PF-coil current loops; vertical position control; disruption precursor thresholds.",
+     "Burner: end-plug density loop, ambipolar potential estimator, DEC collector-grid modulation waveform synthesis.",
+     "Both: quench precursor comparators, interlock voting, watchdog and heartbeat logic."
+    ]
+   ],
+   [
+    "h3",
+    "Fixed-point discipline"
+   ],
+   [
+    "p",
+    "Fabric control math is implemented in fixed-point arithmetic with statically analyzed word growth, so numerical range and rounding are known at synthesis time. Where a gain matrix K multiplies a state vector x to form an actuation u = -Kx, the multiply-accumulate tree is fully unrolled and pipelined; the result is available every clock with deterministic quantization error bounded at design time."
+   ],
+   [
+    "p",
+    "Reprogrammability matters: the same board can host the breeder's shape controller or the burner's plug controller by loading a different bitstream. This lets Kronos share a hardened control-plane platform across both machines while keeping each loop specialized. Retraining and model updates happen offline at L0; the validated bitstream is the only thing that ever changes on the edge."
+   ]
+  ],
+  "related": [
+   [
+    "fpga-vs-cpu-vs-gpu-control",
+    "FPGA vs CPU vs GPU for control"
+   ],
+   [
+    "fpga-fabric-selection",
+    "FPGA fabric selection"
+   ],
+   [
+    "rt-compute-actuators",
+    "Real-time compute actuators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "hard-real-time-bounds",
+  "title": "Hard Real-Time Bounds",
+  "cat": "l1-control-plane",
+  "lede": "A control action is only correct if it is also on time; L1 treats deadlines as functional requirements with provable worst-case bounds.",
+  "body": [
+   [
+    "h2",
+    "Soft vs hard real time"
+   ],
+   [
+    "p",
+    "In soft real-time systems a missed deadline degrades quality. In Kronos's L1, a missed deadline on a protection or fast-stability loop is a fault, indistinguishable from a wrong answer. A vertical-stability command that arrives late for the breeder plasma, or a DEC modulation update that slips on the burner, is not merely suboptimal &mdash; it can allow an event the loop existed to prevent."
+   ],
+   [
+    "h3",
+    "The deadline model"
+   ],
+   [
+    "p",
+    "Each loop is characterized by a period T and a deadline D &le; T. For every task the system proves that its worst-case response time R satisfies R &le; D under all admissible input and interference conditions. Because L1 avoids preemptive multitasking on its critical paths &mdash; logic is spatial in the FPGA rather than time-shared &mdash; interference terms are eliminated by construction rather than bounded by analysis alone."
+   ],
+   [
+    "h2",
+    "Composability"
+   ],
+   [
+    "p",
+    "Bounds must compose. If acquisition is bounded by A, processing by C, and delivery by L, the end-to-end bound is A + C + L only when the three stages do not contend for a shared resource. Kronos enforces this with dedicated fabric regions, dedicated links, and a time-triggered schedule so that adding one loop cannot inflate another's worst case."
+   ],
+   [
+    "ul",
+    [
+     "No unbounded loops or data-dependent iteration on critical paths.",
+     "No dynamic memory allocation in the actuation datapath.",
+     "No shared mutable state between independent protection channels.",
+     "Every path has a synthesis-time WCET, archived with the bitstream."
+    ]
+   ],
+   [
+    "h3",
+    "Consequences for design"
+   ],
+   [
+    "p",
+    "Hard bounds force honesty about what can be computed in time. Complex model inference cannot meet a 10 &micro;s deadline, so it is placed at L3 as advisory. L1 carries only what is provably fast. This is the architectural reason Kronos separates <a href=./determinism-vs-learning.html>determinism from learning</a> rather than embedding a network in the fast loop."
+   ]
+  ],
+  "related": [
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ],
+   [
+    "sub-10us-command-boundary",
+    "The sub-10 microsecond command boundary"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "timing-budgets-and-jitter",
+  "title": "Timing Budgets and Jitter",
+  "cat": "l1-control-plane",
+  "lede": "Determinism is defined by the spread of latency, not its average; L1 engineers jitter down to nanoseconds so worst-case equals typical-case.",
+  "body": [
+   [
+    "h2",
+    "Jitter is the enemy"
+   ],
+   [
+    "p",
+    "A loop with 3 &micro;s mean latency but 20 &micro;s tail is useless for protection; the tail is what the plasma or the DEC train experiences on a bad cycle. Kronos specifies loops by their <b>worst case</b> and by peak-to-peak jitter, and drives jitter toward the clock period so the distribution collapses onto a single value."
+   ],
+   [
+    "h3",
+    "Sources of jitter"
+   ],
+   [
+    "ul",
+    [
+     "Clock domain crossings and metastability resolution.",
+     "Arbitration for shared links or memory.",
+     "Interrupt latency and OS scheduling (eliminated by keeping critical logic in fabric).",
+     "Analog front-end settling and ADC conversion variability.",
+     "Network media access on non-deterministic fabrics (avoided via time-triggered links)."
+    ]
+   ],
+   [
+    "h2",
+    "Mitigation"
+   ],
+   [
+    "p",
+    "Kronos uses a single distributed clock reference (see <a href=./clock-distribution-synchronization.html>clock distribution</a>), synchronous logic across each protection channel, and time-triggered communication so a frame's transmission slot is scheduled, not contended. Where a domain crossing is unavoidable, dual-flop synchronizers with computed mean-time-between-failure keep metastability negligible over the machine lifetime."
+   ],
+   [
+    "h3",
+    "A worked budget"
+   ],
+   [
+    "p",
+    "Consider the breeder vertical-stability inner loop targeting a 100 &micro;s period. Acquisition of Mirnov and flux-loop signals: 1.5 &micro;s worst case. Fabric equilibrium delta computation: 3 &micro;s. PF-coil current-demand update over a time-triggered link: 2 &micro;s. Power-supply gate response: 3 &micro;s. Sum 9.5 &micro;s, jitter under 200 ns, comfortably inside both the 10 &micro;s protection floor and the 100 &micro;s period."
+   ],
+   [
+    "p",
+    "Budgets are living documents kept beside the bitstream. Any change &mdash; a new sensor tap, a deeper filter &mdash; is re-costed against the budget before synthesis, so timing never regresses silently. Jitter measurements from commissioning are folded back to validate the analytical bounds."
+   ]
+  ],
+  "related": [
+   [
+    "clock-distribution-synchronization",
+    "Clock distribution and synchronization"
+   ],
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ],
+   [
+    "hard-real-time-bounds",
+    "Hard real-time bounds"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "worst-case-execution-time",
+  "title": "Worst-Case Execution Time (WCET)",
+  "cat": "l1-control-plane",
+  "lede": "L1 certifies every critical path by its provable worst-case execution time, computed from fabric structure rather than measured averages.",
+  "body": [
+   [
+    "h2",
+    "Definition"
+   ],
+   [
+    "p",
+    "WCET is the maximum time a computation can take over all admissible inputs and system states. For Kronos's control plane, WCET is not an empirical maximum from a test campaign; it is derived from the structure of the logic itself, then confirmed by measurement. Only when the analytic bound and the measured bound agree is a path admitted to a protection function."
+   ],
+   [
+    "h3",
+    "Why fabric makes WCET tractable"
+   ],
+   [
+    "p",
+    "On a CPU, WCET analysis must account for caches, pipelines, speculation, and OS interference, producing loose and fragile bounds. On FPGA fabric, a fully pipelined datapath has a WCET equal to its depth times the clock period &mdash; input-independent by construction. A depth-30 pipeline at 5 ns/cycle has a WCET of 150 ns, exactly, with no data dependence."
+   ],
+   [
+    "h2",
+    "Handling data-dependent logic"
+   ],
+   [
+    "p",
+    "Where an algorithm has variable iteration &mdash; an iterative equilibrium solve, for example &mdash; L1 either bounds the iteration count with a hard cap and a defined fallback, or moves the algorithm off the critical path entirely. A capped Newton step for the breeder's fast equilibrium delta runs a fixed number of iterations and returns the best available correction; the uncapped high-fidelity solve lives at L3."
+   ],
+   [
+    "ul",
+    [
+     "Loops bounded by static maximum trip counts.",
+     "No recursion on critical paths.",
+     "Memory access patterns fixed and pre-analyzed.",
+     "Fallback output defined for the capped case, itself within WCET."
+    ]
+   ],
+   [
+    "h3",
+    "Certification artifact"
+   ],
+   [
+    "p",
+    "Each protection bitstream ships with a WCET report: per-stage bounds, the composed end-to-end bound, and the margin against the deadline. This artifact is versioned with the bitstream and reviewed when either changes. It is the evidence that the <a href=./sub-10us-command-boundary.html>sub-10 &micro;s boundary</a> is met, not assumed."
+   ]
+  ],
+  "related": [
+   [
+    "hard-real-time-bounds",
+    "Hard real-time bounds"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ],
+   [
+    "sub-10us-command-boundary",
+    "The sub-10 microsecond command boundary"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "determinism-vs-learning",
+  "title": "Determinism vs Learning",
+  "cat": "l1-control-plane",
+  "lede": "Kronos separates the provably-timed control plane from the data-driven models above it, so intelligence can improve without ever endangering the deadline.",
+  "body": [
+   [
+    "h2",
+    "Two different jobs"
+   ],
+   [
+    "p",
+    "Learning systems generalize from data; their runtime and outputs are data-dependent and, for deep networks, hard to bound. Control-plane logic must be timed and, on protection paths, provably correct. Kronos does not force these opposing properties into one component. It layers them: L3 learns, L1 acts."
+   ],
+   [
+    "h3",
+    "The handoff"
+   ],
+   [
+    "p",
+    "L3's MPC agents produce setpoint trajectories on a 50&ndash;100 ms shadow horizon &mdash; coil current profiles for the breeder's shape, plug-cell power for the burner, DEC grid schedules. These arrive at L1 as advisory targets. L1 validates them against static envelopes and executes them with deterministic loops. If the trajectory stops arriving, L1 holds the last valid target and its fast loops keep the machine safe."
+   ],
+   [
+    "h2",
+    "Why the network is never in the fast loop"
+   ],
+   [
+    "ul",
+    [
+     "A neural network's inference time varies with implementation and load; it cannot certify a 10 &micro;s WCET on protection paths.",
+     "Model outputs can be out-of-distribution; deterministic clamps bound them regardless.",
+     "Retraining changes behavior; the fast loop must not change behavior without re-certification.",
+     "A failsafe that depends on a model is not a failsafe."
+    ]
+   ],
+   [
+    "h3",
+    "Where learning helps most"
+   ],
+   [
+    "p",
+    "Learning shines exactly where determinism is not required: predicting a breeder disruption precursor tens of milliseconds early so the deterministic avoidance loop is armed sooner; imputing a dropped diagnostic so the state vector stays complete; anticipating burner plug drift. Each raises the quality of the target L1 receives without touching L1's guarantees. The <a href=./autonomous-hardware-failsafe.html>autonomous hardware failsafe</a> is the extreme case: it has zero AI dependency by design."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ],
+   [
+    "fpga-vs-cpu-vs-gpu-control",
+    "FPGA vs CPU vs GPU for control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fpga-vs-cpu-vs-gpu-control",
+  "title": "FPGA vs CPU vs GPU for Control",
+  "cat": "l1-control-plane",
+  "lede": "Each compute fabric has a place in Kronos: GPUs for offline training, CPUs for coordination, FPGAs for the timed control and protection paths.",
+  "body": [
+   [
+    "h2",
+    "The right tool per tier"
+   ],
+   [
+    "p",
+    "Kronos does not favor one silicon; it matches fabric to requirement. GPUs deliver throughput for offline multi-physics and model training at L0. CPUs give flexible, ordered coordination at L2/L3. FPGAs give bounded, jitter-free timing at L1. Only the FPGA can promise a cycle-exact deadline, which is why it owns the fast loops on both machines."
+   ],
+   [
+    "h3",
+    "Latency and determinism"
+   ],
+   [
+    "ul",
+    [
+     "CPU: microsecond-to-millisecond response, but variance from caches, interrupts, and scheduling makes worst-case bounds loose.",
+     "GPU: enormous parallel throughput, but kernel launch and batching add latency and jitter unfit for a 10 &micro;s deadline.",
+     "FPGA: sub-microsecond, cycle-exact response with WCET fixed by pipeline depth."
+    ]
+   ],
+   [
+    "h2",
+    "A comparison"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Fabric",
+      "Deterministic",
+      "Fast loop role"
+     ],
+     [
+      [
+       "FPGA",
+       "yes",
+       "protection + inner loops"
+      ],
+      [
+       "CPU",
+       "no",
+       "supervisory + config"
+      ],
+      [
+       "GPU",
+       "no",
+       "offline training only"
+      ]
+     ]
+    ]
+   ],
+   [
+    "h3",
+    "Throughput vs timing"
+   ],
+   [
+    "p",
+    "The GPU wins on floating-point throughput per watt for large batched work &mdash; exactly what L0's Monte Carlo neutronics and surrogate training need. But throughput is not timing. A control loop needs the same small computation to complete before a fixed deadline every cycle, which favors spatial fabric over time-shared cores. Kronos therefore trains on GPUs, then compiles the resulting gains and thresholds into FPGA fabric."
+   ],
+   [
+    "p",
+    "CPUs remain essential for what is not on the critical path: loading bitstreams, mediating the <a href=./mpc-to-fpga-command-handoff.html>MPC handoff</a>, logging to the L2 archive, and running the PLC supervisory logic. The architecture is a division of labor, not a contest."
+   ]
+  ],
+  "related": [
+   [
+    "edge-fpga-microsecond-actuation",
+    "Edge FPGA microsecond-deterministic actuation"
+   ],
+   [
+    "determinism-vs-learning",
+    "Determinism vs learning"
+   ],
+   [
+    "real-time-linux-vs-fpga",
+    "Real-time Linux vs FPGA"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "autonomous-hardware-failsafe",
+  "title": "The Autonomous Hardware Failsafe",
+  "cat": "l1-control-plane",
+  "lede": "A self-contained hardware chain detects a magnet delta-T precursor and dumps the quench with zero latency and zero dependence on any AI or software.",
+  "body": [
+   [
+    "h2",
+    "The last line, by design independent"
+   ],
+   [
+    "p",
+    "Kronos's most important safety property is that the magnet protection path <b>does not depend on intelligence of any kind</b>. No model, no CPU, no software scheduler participates in the decision to protect a high-field REBCO magnet. A dedicated hardware chain senses the earliest thermal precursor of a quench and commits the energy dump on its own timing."
+   ],
+   [
+    "h3",
+    "The chain"
+   ],
+   [
+    "p",
+    "Distributed thermometry and co-wound sensing across the REBCO winding produce a local temperature-rise signal &Delta;T. When the rate or magnitude of &Delta;T crosses a hardwired comparator threshold &mdash; the signature of a normal zone forming &mdash; the comparator drives a switching element (a VOx / metal-oxide bypass path) that diverts current out of the affected winding into an external dump, converting stored magnetic energy to heat outside the coil."
+   ],
+   [
+    "ul",
+    [
+     "Sensing: co-wound voltage taps + fiber/RTD thermometry, analog.",
+     "Decision: fixed-threshold comparator, no programmable logic in the trip path.",
+     "Action: VOx quench-bypass dump element, latching.",
+     "Result: current commutated to external resistor bank; coil energy removed."
+    ]
+   ],
+   [
+    "h2",
+    "Why zero-AI matters"
+   ],
+   [
+    "p",
+    "A REBCO magnet at the breeder's 16.84 T peak field, or the burner's 26.49 T plug, stores large magnetic energy. A local normal zone that is not de-energized fast enough can drive destructive local heating. The protection therefore must work when everything smarter has failed: no network, no power to the compute racks, no valid model. By construction the failsafe uses only local analog sensing and a passive-biased switching element."
+   ],
+   [
+    "h3",
+    "Relationship to L1"
+   ],
+   [
+    "p",
+    "The FPGA control plane runs a faster, richer <a href=./quench-detection-hardware.html>quench-precursor estimator</a> that can act earlier and more selectively. But the hardware failsafe underneath it is the floor: even if the FPGA path is disabled, the &Delta;T &rarr; dump chain fires. Intelligence lowers the probability of ever reaching the floor; the floor guarantees safety when it is reached."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-delta-t-precursor",
+    "Magnet delta-T quench precursor"
+   ],
+   [
+    "vox-quench-bypass-dump",
+    "VOx quench-bypass dump"
+   ],
+   [
+    "quench-detection-hardware",
+    "Quench detection hardware"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "magnet-delta-t-precursor",
+  "title": "Magnet Delta-T Quench Precursor",
+  "cat": "l1-control-plane",
+  "lede": "The earliest reliable sign of a quench in a high-field REBCO magnet is a localized temperature rise; L1 senses its rate to trip before a normal zone spreads.",
+  "body": [
+   [
+    "h2",
+    "The physics of the precursor"
+   ],
+   [
+    "p",
+    "A quench begins when a small region of REBCO conductor exceeds its current-sharing temperature and transitions from superconducting to normal. Ohmic heating in that normal zone raises the local temperature, and the zone can propagate. Because REBCO has a slow normal-zone propagation velocity, detection cannot wait for the zone to grow &mdash; the local <b>&Delta;T</b> and its time derivative are the actionable early signature."
+   ],
+   [
+    "h3",
+    "Sensing approach"
+   ],
+   [
+    "p",
+    "Kronos co-instruments the winding: distributed fiber thermometry and resistance thermometers report absolute temperature; co-wound voltage taps report the resistive voltage that appears as soon as a segment goes normal. The trip criterion combines a temperature-rate threshold d(&Delta;T)/dt and a resistive-voltage threshold, so a genuine normal zone is separated from inductive pickup and coolant transients."
+   ],
+   [
+    "h2",
+    "Detection math"
+   ],
+   [
+    "p",
+    "In the simplest form the balance is C dT/dt = Q_joule &minus; Q_cooling, where a forming normal zone injects Q_joule = I&sup2;R_normal locally. The comparator watches for d(&Delta;T)/dt exceeding a bound that cooling cannot produce, catching the event while R_normal is still small and the current can still be commutated cleanly."
+   ],
+   [
+    "ul",
+    [
+     "Temperature-rate threshold catches the thermal runaway onset.",
+     "Resistive-voltage threshold confirms a true normal transition.",
+     "Both are hardwired comparators on the failsafe path &mdash; no software.",
+     "The FPGA estimator adds spatial localization for selective response."
+    ]
+   ],
+   [
+    "h3",
+    "Two machines, same hazard"
+   ],
+   [
+    "p",
+    "The breeder's toroidal-field and PF coils and the burner's 26.49 T plug / 17 T throat magnets share this hazard and this precursor logic. Thresholds differ with operating field and conductor margin, but the &Delta;T-rate detection principle is common, feeding the same <a href=./vox-quench-bypass-dump.html>bypass dump</a> action."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "vox-quench-bypass-dump",
+    "VOx quench-bypass dump"
+   ],
+   [
+    "rebco-strain-and-quench-sensing",
+    "REBCO strain and quench sensing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vox-quench-bypass-dump",
+  "title": "VOx Quench-Bypass Dump",
+  "cat": "l1-control-plane",
+  "lede": "When the precursor trips, a metal-oxide switching element commutates coil current into an external dump, removing stored magnetic energy from the winding.",
+  "body": [
+   [
+    "h2",
+    "Function"
+   ],
+   [
+    "p",
+    "The dump element's job is to take current out of a threatened winding fast enough that Joule heating in the forming normal zone stays below the conductor's damage limit. Kronos uses a VOx (vanadium/metal-oxide) switching path biased so that, on a trip, it opens a low-impedance route from the coil into an external resistive dump bank, forcing the magnetic energy to dissipate outside the cold mass."
+   ],
+   [
+    "h3",
+    "Energy accounting"
+   ],
+   [
+    "p",
+    "The stored energy E = &frac12; L I&sup2; must go somewhere. If it stays in the coil it appears as local heating at the normal zone; if it is commutated to an external resistor R_d it dissipates there as the current decays with time constant &tau; = L / (R_d + R_normal). The design sizes R_d so &tau; is short enough to protect the conductor yet not so short that induced voltages exceed insulation limits."
+   ],
+   [
+    "h2",
+    "Why a passive-biased element"
+   ],
+   [
+    "p",
+    "Speed and independence drive the choice. The switching path is biased so that loss of control power, or a trip signal from the analog comparator, causes it to act &mdash; a <a href=./fail-safe-vs-fail-operational.html>fail-safe</a> disposition. It does not wait for a command from any processor. This is what lets the whole chain, from <a href=./magnet-delta-t-precursor.html>&Delta;T precursor</a> to dump, carry a zero-AI, zero-software guarantee."
+   ],
+   [
+    "ul",
+    [
+     "Latching: once tripped, stays tripped until a deliberate reset.",
+     "Voltage-clamped: induced dump voltage held within insulation margin.",
+     "Redundant: multiple channels so one element's failure does not defeat protection.",
+     "Instrumented: L2 logs the event, but logging is not in the trip path."
+    ]
+   ],
+   [
+    "h3",
+    "Coordination with slower dumps"
+   ],
+   [
+    "p",
+    "The fast bypass handles the initial commutation; a coordinated slow dump then brings the full magnet system to a safe state. On both the breeder toroidal/PF set and the burner plug magnets, the sequence is staged so the fastest element protects the local conductor and the system-level dump follows within its own bounded time."
+   ]
+  ],
+  "related": [
+   [
+    "magnet-delta-t-precursor",
+    "Magnet delta-T quench precursor"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "fail-safe-vs-fail-operational",
+    "Fail-safe vs fail-operational"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "quench-detection-hardware",
+  "title": "Quench Detection Hardware",
+  "cat": "l1-control-plane",
+  "lede": "Above the passive failsafe, an FPGA estimator fuses co-wound voltage, thermometry, and REBCO strain to detect quenches earlier and localize them.",
+  "body": [
+   [
+    "h2",
+    "Two tiers of protection"
+   ],
+   [
+    "p",
+    "The passive <a href=./autonomous-hardware-failsafe.html>failsafe</a> is the floor. Above it, L1 runs an FPGA-based quench detector that is faster and smarter than a single comparator: it fuses multiple signals to reject false trips and to localize the event, so response can be selective rather than dumping the entire magnet on every anomaly."
+   ],
+   [
+    "h3",
+    "Signal fusion"
+   ],
+   [
+    "p",
+    "The estimator combines co-wound voltage taps (resistive voltage), distributed thermometry (&Delta;T and its rate), and REBCO strain gauges (mechanical disturbance that can precede a conductor motion event). A bridge subtraction cancels the inductive component of tap voltage, V_res = V_tap &minus; M dI/dt, isolating the resistive term that signals a normal zone. This runs in fabric every clock, so detection latency is a fixed pipeline depth."
+   ],
+   [
+    "h2",
+    "False-trip rejection"
+   ],
+   [
+    "p",
+    "Spurious dumps are costly to availability, so the detector requires coincidence: a resistive-voltage rise <b>and</b> a temperature-rate rise in the same conductor region within a short window. Inductive pickup from a fast current ramp lacks the thermal signature; a coolant transient lacks the resistive signature. Only a true normal zone shows both."
+   ],
+   [
+    "ul",
+    [
+     "V_res isolation via inductive-term cancellation.",
+     "Temperature-rate coincidence gate.",
+     "REBCO strain as an early mechanical cue.",
+     "Spatial localization from segmented taps to target the response."
+    ]
+   ],
+   [
+    "h3",
+    "Handoff to action"
+   ],
+   [
+    "p",
+    "When the FPGA detector confirms a quench it commands the <a href=./vox-quench-bypass-dump.html>bypass dump</a> and coordinated slow dump, and raises the machine's protective interlocks. Critically, it can only act faster than the passive floor, never slower: if the FPGA path is unavailable, the analog comparator chain still fires. Both machines share this hardware, tuned to the breeder's 16.84 T and the burner's 26.49 T operating points."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "rebco-strain-and-quench-sensing",
+    "REBCO strain and quench sensing"
+   ],
+   [
+    "redundancy-voting-triple-modular",
+    "Triple-modular redundancy and voting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rebco-strain-and-quench-sensing",
+  "title": "REBCO Strain and Quench Sensing",
+  "cat": "l1-control-plane",
+  "lede": "REBCO tape is strain-sensitive; L1 reads distributed strain gauges to catch conductor disturbances that can precede a thermal quench.",
+  "body": [
+   [
+    "h2",
+    "Why strain matters for REBCO"
+   ],
+   [
+    "p",
+    "REBCO conductor carries current density that degrades if strain exceeds an irreversible limit, and mechanical disturbances &mdash; conductor motion, epoxy cracking, differential thermal contraction &mdash; can deposit energy that seeds a normal zone. Kronos instruments the high-field windings with strain gauges so that mechanical precursors are visible to L1 alongside thermal and electrical ones."
+   ],
+   [
+    "h3",
+    "The ICE-PISTON connection"
+   ],
+   [
+    "p",
+    "Kronos's cryogenic <a href=./ice-piston-preload-control.html>ICE-PISTON preload cycle</a> applies controlled mechanical preload to the magnet structure. Strain sensing closes the loop on that preload: L1 confirms the winding is held within its strain envelope through cooldown and energization. A strain excursion outside the envelope is both a structural-health flag and a quench-risk flag."
+   ],
+   [
+    "h2",
+    "Sensing and use"
+   ],
+   [
+    "ul",
+    [
+     "Distributed gauges report local strain &epsilon; across the winding pack.",
+     "L1 compares &epsilon; against a static irreversible-strain envelope.",
+     "Sudden strain steps (conductor motion) arm the quench detector.",
+     "Slow strain drift feeds L2/L3 structural-health monitoring."
+    ]
+   ],
+   [
+    "p",
+    "At the breeder peak field of 16.84 T and the burner plug field of 26.49 T, Lorentz loads on the conductor are severe, so the strain margin is a first-class operating constraint, not a diagnostic afterthought. The fast path treats a strain step as a coincidence input to <a href=./quench-detection-hardware.html>quench detection</a>; the slow path trends strain to predict fatigue."
+   ],
+   [
+    "h3",
+    "Determinism at the edge"
+   ],
+   [
+    "p",
+    "Strain acquisition sits in the same deterministic front end as the other magnet diagnostics, sampled through cryo-rated feedthroughs and normalized in fabric so its contribution to the trip decision has a fixed, bounded latency. Mechanical, thermal, and electrical cues thus arrive on a common clock, which is what allows the coincidence logic to be tight."
+   ]
+  ],
+  "related": [
+   [
+    "quench-detection-hardware",
+    "Quench detection hardware"
+   ],
+   [
+    "ice-piston-preload-control",
+    "ICE-PISTON preload control"
+   ],
+   [
+    "magnet-delta-t-precursor",
+    "Magnet delta-T quench precursor"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ice-piston-preload-control",
+  "title": "ICE-PISTON Preload Control",
+  "cat": "l1-control-plane",
+  "lede": "L1 sequences the cryogenic ICE-PISTON cycle that preloads the high-field magnets, keeping REBCO strain inside its envelope through cooldown and energization.",
+  "body": [
+   [
+    "h2",
+    "What the ICE-PISTON does"
+   ],
+   [
+    "p",
+    "High-field REBCO magnets must be mechanically preloaded so that Lorentz forces during energization do not drive conductor motion or exceed the irreversible strain limit. Kronos's ICE-PISTON is a cryogenic preload mechanism that applies and maintains this clamping force as the magnet cools and charges. L1 controls its sequence deterministically and verifies it against strain feedback."
+   ],
+   [
+    "h3",
+    "The sequence"
+   ],
+   [
+    "p",
+    "Preload is not a single step. As the cold mass contracts during cooldown, the preload set-point tracks a schedule; as current ramps to the operating field, Lorentz load rises and the mechanism holds the structure in compression. L1 executes this as a state machine with interlocks: each phase transition requires strain, temperature, and force to be within window before the next phase is allowed."
+   ],
+   [
+    "ul",
+    [
+     "Cooldown: preload tracks thermal contraction of the winding pack.",
+     "Energization: preload maintained against rising Lorentz load.",
+     "Steady field: strain held inside the REBCO envelope.",
+     "Fault: controlled release path coordinated with the quench dump."
+    ]
+   ],
+   [
+    "h2",
+    "Coupling to protection"
+   ],
+   [
+    "p",
+    "Preload and quench protection are linked. Loss of preload can allow conductor motion, which can seed a quench; a quench dump changes the force state, which the preload control must accommodate. L1 therefore runs the ICE-PISTON loop and the quench logic on the same clock domain so their interactions are deterministic, not racy."
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "The principle applies to the breeder's toroidal and PF magnets and to the burner's 26.49 T plug and 17 T throat magnets, where the higher field makes preload margin even tighter. In every case the goal is the same: keep the REBCO within its <a href=./rebco-strain-and-quench-sensing.html>strain envelope</a> across all thermal and electromagnetic states, verified in real time."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-strain-and-quench-sensing",
+    "REBCO strain and quench sensing"
+   ],
+   [
+    "quench-detection-hardware",
+    "Quench detection hardware"
+   ],
+   [
+    "structural-health-monitoring-loop",
+    "Structural health monitoring loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plc-deterministic-controls",
+  "title": "PLC Deterministic Controls",
+  "cat": "l1-control-plane",
+  "lede": "Programmable logic controllers run the plant's slower deterministic sequencing and interlocks, complementing the FPGA fast loops with certified logic.",
+  "body": [
+   [
+    "h2",
+    "Where PLCs fit"
+   ],
+   [
+    "p",
+    "Not every deterministic function needs microsecond timing. Vacuum sequencing, cryoplant states, cooling-water permissives, and the machine's overall operating-state interlocks run on <b>programmable logic controllers</b> with scan-cycle determinism in the millisecond range. PLCs give Kronos a certified, auditable layer for plant-protection logic that changes rarely and must be transparent to operators and reviewers."
+   ],
+   [
+    "h3",
+    "Scan-cycle model"
+   ],
+   [
+    "p",
+    "A PLC executes a fixed scan: read inputs, evaluate logic, write outputs, repeat. The scan time is bounded and stable, so a permissive computed this scan is acted on by the next with known latency. This is deterministic in the same spirit as the FPGA loops, just at a coarser timescale suited to fluidic and thermal plant that cannot move in microseconds anyway."
+   ],
+   [
+    "h2",
+    "Division of labor with FPGA"
+   ],
+   [
+    "ul",
+    [
+     "FPGA: plasma stability, DEC modulation, quench detection &mdash; microsecond loops.",
+     "PLC: vacuum, cryo, cooling, gas delivery permissives &mdash; millisecond sequencing.",
+     "Hardware failsafe: magnet quench dump &mdash; zero-latency analog, below both."
+    ]
+   ],
+   [
+    "p",
+    "The PLC layer also owns the master operating-state machine: which subsystems must be proven safe before the plasma or plug is energized. It gates the FPGA controllers' authority &mdash; an FPGA loop is only allowed to command an actuator when the PLC permissives for that subsystem are satisfied."
+   ],
+   [
+    "h3",
+    "Auditability"
+   ],
+   [
+    "p",
+    "PLC logic is written in transparent, reviewable form (ladder / structured text) precisely because plant-protection interlocks must be inspectable by safety reviewers. Kronos keeps this logic separate from the AI stack; a reviewer can read the interlock that isolates the vacuum system without understanding any model. This separation is deliberate and mirrors the <a href=./determinism-vs-learning.html>determinism-vs-learning</a> boundary at the plant scale."
+   ]
+  ],
+  "related": [
+   [
+    "vacuum-interlocks",
+    "Deterministic vacuum interlocks"
+   ],
+   [
+    "interlock-logic-hardware",
+    "Interlock logic hardware"
+   ],
+   [
+    "control-safety-integrity-levels",
+    "Control safety integrity levels"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vacuum-interlocks",
+  "title": "Deterministic Vacuum Interlocks",
+  "cat": "l1-control-plane",
+  "lede": "PLC-enforced vacuum interlocks protect both machines' vessels by making unsafe valve and pump states physically unreachable.",
+  "body": [
+   [
+    "h2",
+    "Purpose"
+   ],
+   [
+    "p",
+    "The breeder's spherical-tokamak vessel and the burner's tandem-mirror vessel operate under high vacuum. A wrong valve sequence &mdash; venting to atmosphere while hot, or isolating a running turbopump &mdash; can damage equipment or breach containment. Kronos's vacuum interlocks are deterministic PLC logic that permits only safe transitions and blocks the rest, independent of operator intent or higher-level software."
+   ],
+   [
+    "h3",
+    "Permissive logic"
+   ],
+   [
+    "p",
+    "Each actuator &mdash; gate valve, roughing valve, turbopump, gauge isolation &mdash; carries a permissive derived from pressure gauges, pump status, and neighboring valve states. A valve opens only when its permissive is true. The logic is combinational and latched where sequences matter, so the safe state is the default and unsafe commands are simply not issued."
+   ],
+   [
+    "h2",
+    "Example interlock"
+   ],
+   [
+    "truth",
+    [
+     [
+      "Pump running",
+      "Downstream P ok",
+      "Open high-vac valve"
+     ],
+     [
+      [
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "1",
+       "1",
+       "1"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The table shows a single high-vacuum gate valve permissive: it may open only when the backing pump is running and downstream pressure is within range. Every other combination holds the valve closed. Real interlocks compose many such conditions, but each remains a transparent boolean the PLC evaluates every scan."
+   ],
+   [
+    "h3",
+    "Coupling to the fuel cycle"
+   ],
+   [
+    "p",
+    "Vacuum interlocks are the substrate for gas delivery and pumping. The <a href=./gas-puffing-servo-valves.html>gas-puff servo valves</a> and the fuel-cycle isotope handling both depend on a proven vacuum state; the PLC will not enable fueling actuators unless the vessel vacuum permissives hold. This keeps the fast fueling loops from ever acting into an unsafe plant state, on either machine."
+   ]
+  ],
+  "related": [
+   [
+    "plc-deterministic-controls",
+    "PLC deterministic controls"
+   ],
+   [
+    "interlock-logic-hardware",
+    "Interlock logic hardware"
+   ],
+   [
+    "gas-puffing-servo-valves",
+    "Gas-puffing servo valves"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "interlock-logic-hardware",
+  "title": "Interlock Logic Hardware",
+  "cat": "l1-control-plane",
+  "lede": "Machine-protection interlocks are implemented in dedicated hardware whose safe state is the default, so a failure denies rather than grants dangerous action.",
+  "body": [
+   [
+    "h2",
+    "Interlocks as a safety layer"
+   ],
+   [
+    "p",
+    "An interlock is a permissive: a condition that must be true for an action to be allowed. Kronos implements the machine-protection interlock matrix in dedicated logic &mdash; PLC and hardwired relay/comparator chains &mdash; separate from the control loops that request actions. The interlock layer does not optimize anything; it only says yes or no, and it says no by default."
+   ],
+   [
+    "h3",
+    "Design rules"
+   ],
+   [
+    "ul",
+    [
+     "De-energize-to-trip: loss of power or signal forces the safe state.",
+     "Independence: the interlock chain does not share components with the loop it guards.",
+     "Simplicity: logic is inspectable so it can be certified.",
+     "Latching: a trip persists until deliberate, evaluated reset."
+    ]
+   ],
+   [
+    "h2",
+    "Composition"
+   ],
+   [
+    "p",
+    "Interlocks compose as a conjunction of permissives. An actuator's enable is the AND of every relevant safety condition; if any is false the enable drops. Because the composition is boolean and static, its behavior is fully enumerable &mdash; there are no data-dependent surprises. This is what lets a safety reviewer sign off on the interlock matrix line by line."
+   ],
+   [
+    "h3",
+    "Interlocks and controllers"
+   ],
+   [
+    "p",
+    "The FPGA and PLC controllers request actuation; the interlock layer grants or denies it. A breeder PF-coil supply cannot be driven unless coil-protection, cooling, and vacuum permissives are satisfied; a burner DEC grid cannot be energized unless the plug and vacuum states are proven. The interlock is thus the arbiter between intelligent intent and physical authority, upstream of the <a href=./actuator-command-arbitration.html>command arbitration</a> layer and consistent with the <a href=./autonomous-hardware-failsafe.html>hardware failsafe</a> philosophy."
+   ]
+  ],
+  "related": [
+   [
+    "vacuum-interlocks",
+    "Deterministic vacuum interlocks"
+   ],
+   [
+    "plc-deterministic-controls",
+    "PLC deterministic controls"
+   ],
+   [
+    "actuator-command-arbitration",
+    "Actuator command arbitration"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "synchronized-gates",
+  "title": "Synchronized Actuation Gates",
+  "cat": "l1-control-plane",
+  "lede": "Multiple actuators must fire on a common time base; L1 uses synchronized gates so coordinated commands take effect at the same deterministic instant.",
+  "body": [
+   [
+    "h2",
+    "Why synchronization matters"
+   ],
+   [
+    "p",
+    "Many control actions are only correct if several actuators move together. Shaping the breeder plasma means updating several PF-coil currents in a coordinated set; modulating the burner DEC means switching collector-grid stages in phase. If these updates land at different times, the intended field or waveform is distorted. Kronos gates coordinated commands so they take effect on the same clock edge."
+   ],
+   [
+    "h3",
+    "The gate mechanism"
+   ],
+   [
+    "p",
+    "Command values are precomputed and staged at each actuator driver, then released simultaneously by a shared <b>gate signal</b> distributed on the deterministic clock network. This decouples <i>when a value is computed</i> from <i>when it takes effect</i>: the fabric can prepare each actuator's next value at its own pace, but all of them commit at the scheduled gate edge, eliminating skew."
+   ],
+   [
+    "h2",
+    "Skew budget"
+   ],
+   [
+    "ul",
+    [
+     "Clock distribution skew: held to nanoseconds across the machine.",
+     "Driver staging: values latched before the gate, so release is uniform.",
+     "Gate propagation: matched-length links keep arrival spread minimal.",
+     "Result: coordinated set effective within a tight, bounded window."
+    ]
+   ],
+   [
+    "p",
+    "The gate model also makes multi-actuator timing analyzable. Because commit happens on a scheduled edge, the coordinated update inherits the determinism of the clock, and the timing budget for the group is the same as for a single actuator plus the bounded skew."
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder, synchronized gates preserve the <a href=./shape-control-negative-triangularity.html>negative-triangularity shape</a> by moving all shaping coils as one; on the burner they keep the multi-stage DEC train phased. The same gating primitive serves both, distributed by the shared <a href=./clock-distribution-synchronization.html>clock network</a>."
+   ]
+  ],
+  "related": [
+   [
+    "clock-distribution-synchronization",
+    "Clock distribution and synchronization"
+   ],
+   [
+    "shape-control-negative-triangularity",
+    "Shape control: negative triangularity"
+   ],
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "clock-distribution-synchronization",
+  "title": "Clock Distribution and Synchronization",
+  "cat": "l1-control-plane",
+  "lede": "A single low-jitter time reference is fanned out across the control plane so every FPGA, driver, and diagnostic shares one deterministic clock.",
+  "body": [
+   [
+    "h2",
+    "One clock, everywhere"
+   ],
+   [
+    "p",
+    "Determinism across a distributed system requires a common notion of time. Kronos distributes a single low-jitter master clock and a synchronized time-of-day to every L1 node &mdash; FPGA controllers, actuator drivers, and the deterministic front end. Shared time is what makes <a href=./synchronized-gates.html>synchronized gates</a>, time-triggered links, and correlated diagnostics possible."
+   ],
+   [
+    "h3",
+    "Fan-out and skew"
+   ],
+   [
+    "p",
+    "The reference is fanned out through matched-length paths and clock buffers so that phase skew between nodes stays in the nanosecond range. Skew is budgeted like latency: every node's clock arrival is characterized, and the worst-case skew feeds the timing and jitter budgets of every cross-node operation."
+   ],
+   [
+    "h2",
+    "Time-triggered operation"
+   ],
+   [
+    "ul",
+    [
+     "Sampling instants aligned across diagnostics for coherent state vectors.",
+     "Communication slots scheduled, not contended, on the deterministic fabric.",
+     "Actuation gates released on shared clock edges.",
+     "Event timestamps consistent across the L2 archive for later correlation."
+    ]
+   ],
+   [
+    "p",
+    "Aligned sampling matters for physics: the breeder's Grad-Shafranov reconstruction is only valid if Mirnov coils, flux loops, and interferometry are sampled at the same instant; the burner's ambipolar-potential estimate needs its inputs time-coherent. A shared clock guarantees that the state vector is a snapshot, not a smear."
+   ],
+   [
+    "h3",
+    "Holdover and integrity"
+   ],
+   [
+    "p",
+    "If the master reference is disturbed, nodes hold over on local oscillators with characterized drift, and the system flags degraded synchronization. Loss of clock integrity is itself an interlock condition: coordinated actuation that depends on tight skew is inhibited until synchronization is restored, defaulting to the safe behavior consistent with the rest of L1."
+   ]
+  ],
+  "related": [
+   [
+    "synchronized-gates",
+    "Synchronized actuation gates"
+   ],
+   [
+    "deterministic-network-fabric",
+    "Deterministic network fabric"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deterministic-network-fabric",
+  "title": "Deterministic Network Fabric",
+  "cat": "l1-control-plane",
+  "lede": "Control traffic rides a time-triggered network where every frame has a scheduled slot, so communication latency is bounded and jitter is negligible.",
+  "body": [
+   [
+    "h2",
+    "Why not standard Ethernet"
+   ],
+   [
+    "p",
+    "Best-effort networking shares a medium by contention; under load, latency has a long tail. That is unacceptable for a control plane with a 10 &micro;s deadline. Kronos runs control traffic on a <b>time-triggered</b> deterministic fabric where each critical message is assigned a fixed transmission slot on the shared clock, so its delivery time is scheduled rather than raced for."
+   ],
+   [
+    "h3",
+    "Slotted schedule"
+   ],
+   [
+    "p",
+    "The network's communication schedule is computed offline and loaded as a table. State-vector frames, setpoint frames, and gate signals each occupy known slots in a repeating cycle. Because two critical frames never share a slot, there is no queuing delay and no collision; end-to-end transport latency is a constant plus bounded skew."
+   ],
+   [
+    "h2",
+    "Traffic classes"
+   ],
+   [
+    "ul",
+    [
+     "Time-triggered: protection and fast-loop frames, hard-scheduled.",
+     "Rate-constrained: telemetry to L2, bandwidth-limited but bounded.",
+     "Best-effort: configuration and logging, only in unused slots."
+    ]
+   ],
+   [
+    "p",
+    "Segregating classes ensures that non-critical traffic &mdash; pushing telemetry to the petabyte archive, loading a new bitstream &mdash; can never delay a protection frame. The best-effort class is literally confined to slots the critical schedule leaves free."
+   ],
+   [
+    "h3",
+    "Determinism end to end"
+   ],
+   [
+    "p",
+    "Combined with the shared <a href=./clock-distribution-synchronization.html>clock</a>, the fabric extends L1's timing guarantees across the whole machine: a sensor sampled on one node, processed on an FPGA on another, and acted on by a driver on a third all stay inside the composed <a href=./timing-budgets-and-jitter.html>timing budget</a>. This is what lets both the breeder and burner control planes be physically distributed yet behave as one deterministic system."
+   ]
+  ],
+  "related": [
+   [
+    "clock-distribution-synchronization",
+    "Clock distribution and synchronization"
+   ],
+   [
+    "state-vector-ingress",
+    "High-bandwidth state-vector ingress"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "state-vector-ingress",
+  "title": "High-Bandwidth State-Vector Ingress",
+  "cat": "l1-control-plane",
+  "lede": "L1 assembles a coherent plasma or plug state vector every control cycle from dozens of diagnostics, validated and time-aligned in fabric.",
+  "body": [
+   [
+    "h2",
+    "The state vector"
+   ],
+   [
+    "p",
+    "A controller acts on a state estimate x: for the breeder, quantities like plasma current, vertical and radial position, shape moments, and stored energy; for the burner, plug density, ambipolar potential, and mirror-cell conditions. L1's ingress path builds this vector every cycle from the diagnostics constellation and hands a validated, time-coherent x to the control loops."
+   ],
+   [
+    "h3",
+    "Feeding the estimate"
+   ],
+   [
+    "p",
+    "Inputs arrive from Thomson scattering, interferometry, Mirnov coils, flux loops, ECE, fast-ion trackers, neutron flux, and magnet strain, through cryo-rated vacuum feedthroughs. Each channel is sampled on the shared clock so the assembled vector is a single-instant snapshot. Fabric performs range checks, spatial normalization, and unit conversion before any value enters x."
+   ],
+   [
+    "h2",
+    "Validation before use"
+   ],
+   [
+    "ul",
+    [
+     "Range and rate checks reject impossible readings.",
+     "Cross-checks compare redundant or physically related channels.",
+     "Dropped channels are flagged; L3's GNN imputer can fill them.",
+     "A validity mask travels with x so downstream logic knows what to trust."
+    ]
+   ],
+   [
+    "p",
+    "Validation is not optional decoration; a controller acting on a corrupted position estimate can drive the plasma the wrong way. By validating at ingress, L1 ensures the fast loops act only on trustworthy state, and the failsafe never depends on a diagnostic it cannot verify."
+   ],
+   [
+    "h3",
+    "Bandwidth and determinism"
+   ],
+   [
+    "p",
+    "Ingress is high-bandwidth &mdash; many channels at sub-microsecond sampling &mdash; yet it must stay deterministic. Kronos handles this with parallel fabric front ends, one region per channel group, so aggregate bandwidth scales spatially without lengthening any single channel's <a href=./worst-case-execution-time.html>WCET</a>. The coherent x is then published to the control loops and, in parallel, streamed to the L2 archive."
+   ]
+  ],
+  "related": [
+   [
+    "deterministic-io-feedthroughs",
+    "Deterministic I/O feedthroughs"
+   ],
+   [
+    "sensor-to-actuator-pipeline",
+    "Sensor-to-actuator pipeline"
+   ],
+   [
+    "clock-distribution-synchronization",
+    "Clock distribution and synchronization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "deterministic-io-feedthroughs",
+  "title": "Deterministic I/O Through Cryo-Rated Feedthroughs",
+  "cat": "l1-control-plane",
+  "lede": "Analog telemetry crosses the vacuum and cryogenic boundary through rated feedthroughs into a fabric front end that samples at sub-microsecond intervals.",
+  "body": [
+   [
+    "h2",
+    "Crossing the boundary"
+   ],
+   [
+    "p",
+    "Diagnostics live inside a high-vacuum, partly cryogenic environment; the control fabric lives outside it. Signals cross through <b>cryo-rated vacuum feedthroughs</b> engineered to preserve signal integrity while maintaining vacuum and thermal isolation. This physical interface is the first link in the deterministic chain, and its fidelity sets the noise floor for everything downstream."
+   ],
+   [
+    "h3",
+    "Front-end sampling"
+   ],
+   [
+    "p",
+    "On the outside, each analog line meets an anti-alias filter and an ADC clocked from the shared reference. Sampling instants are aligned across channels so the assembled state is coherent. Conversion latency and filter settling are part of the channel's fixed timing budget, so acquisition contributes a known constant to the loop's WCET."
+   ],
+   [
+    "h2",
+    "Signal integrity"
+   ],
+   [
+    "ul",
+    [
+     "Shielding and differential routing to reject the machine's EM environment.",
+     "Ground discipline to avoid loops through the vessel structure.",
+     "Characterized bandwidth per channel so aliasing is controlled.",
+     "Feedthrough thermal design to keep drift within calibration limits."
+    ]
+   ],
+   [
+    "p",
+    "The electromagnetic environment near a high-field magnet and a pulsed plasma is hostile; a sloppy front end would inject jitter and noise that no downstream cleverness can remove. Kronos treats the analog front end as a determinism-critical component, not plumbing."
+   ],
+   [
+    "h3",
+    "From feedthrough to state"
+   ],
+   [
+    "p",
+    "Once digitized and validated, channels flow into <a href=./state-vector-ingress.html>state-vector ingress</a>. Because the feedthrough-to-ADC path is deterministic, the whole <a href=./sensor-to-actuator-pipeline.html>sensor-to-actuator pipeline</a> can carry a provable end-to-end bound. The same interface class serves the breeder's tokamak diagnostics and the burner's mirror diagnostics; only channel counts and placements differ."
+   ]
+  ],
+  "related": [
+   [
+    "state-vector-ingress",
+    "High-bandwidth state-vector ingress"
+   ],
+   [
+    "sensor-to-actuator-pipeline",
+    "Sensor-to-actuator pipeline"
+   ],
+   [
+    "diagnostics-constellation-timing",
+    "Diagnostics constellation timing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostics-constellation-timing",
+  "title": "Diagnostics Constellation Timing",
+  "cat": "l1-control-plane",
+  "lede": "Thomson, interferometry, Mirnov, flux loops, ECE, fast-ion, and neutron channels are time-aligned so the control state is a single coherent snapshot.",
+  "body": [
+   [
+    "h2",
+    "A constellation, not a sensor"
+   ],
+   [
+    "p",
+    "Control of either machine draws on many diagnostics at once. The breeder equilibrium needs magnetics (Mirnov coils, flux loops) plus profile diagnostics (Thomson scattering, interferometry, ECE); disruption avoidance adds fast-ion and neutron-flux cues. The burner needs density and potential diagnostics across its mirror cells. L1 treats these as one <b>constellation</b> whose members must be sampled coherently."
+   ],
+   [
+    "h3",
+    "Why alignment matters"
+   ],
+   [
+    "p",
+    "Equilibrium reconstruction solves for a self-consistent state; feeding it magnetics from one instant and profiles from another produces a physically inconsistent solution. Kronos samples every constellation member on the shared clock, so the reconstruction operates on a true snapshot. Time-alignment error directly becomes state-estimate error, so it is budgeted in nanoseconds."
+   ],
+   [
+    "h2",
+    "Per-channel character"
+   ],
+   [
+    "ul",
+    [
+     "Mirnov coils / flux loops: fast magnetics for equilibrium and MHD.",
+     "Thomson / interferometry / ECE: density and temperature profiles.",
+     "Fast-ion trackers: energetic-particle behavior, disruption cues.",
+     "Neutron flux: fusion-rate proxy, coherent with the magnetics."
+    ]
+   ],
+   [
+    "p",
+    "Channels differ in native rate and latency, so L1 aligns them to a common cadence: fast magnetics may sample far above the control rate and be decimated coherently, while slower profile diagnostics are timestamped and interpolated to the control instant. The shared clock makes both operations exact rather than approximate."
+   ],
+   [
+    "h3",
+    "Handling dropouts"
+   ],
+   [
+    "p",
+    "Any channel can drop. The ingress path flags the gap and marks the state vector's validity mask; L3's GNN can impute the missing value from the sensor topology while L1 continues on the reduced-but-known state. Because the failsafe path never relies on imputed data, a dropout degrades quality, not safety, consistent with <a href=./determinism-vs-learning.html>the determinism boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "state-vector-ingress",
+    "High-bandwidth state-vector ingress"
+   ],
+   [
+    "deterministic-io-feedthroughs",
+    "Deterministic I/O feedthroughs"
+   ],
+   [
+    "clock-distribution-synchronization",
+    "Clock distribution and synchronization"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sensor-to-actuator-pipeline",
+  "title": "The Sensor-to-Actuator Pipeline",
+  "cat": "l1-control-plane",
+  "lede": "From feedthrough to physical gate, L1 is one deterministic pipeline whose stages each carry a bounded latency that composes into a certified whole.",
+  "body": [
+   [
+    "h2",
+    "End to end"
+   ],
+   [
+    "p",
+    "The control plane is best understood as a single pipeline: sense, validate, estimate, decide, deliver, actuate. Each stage runs in deterministic fabric or on the time-triggered fabric, and each has a proven worst-case latency. The end-to-end bound is the composition of the stages, which is what the <a href=./sub-10us-command-boundary.html>10 &micro;s boundary</a> and the loop budgets are built from."
+   ],
+   [
+    "h3",
+    "The stages"
+   ],
+   [
+    "ul",
+    [
+     "Sense: analog through cryo-rated feedthroughs, ADC on shared clock.",
+     "Validate: range/rate/cross checks, validity mask.",
+     "Estimate: assemble the state vector x, spatial normalization.",
+     "Decide: control law u = -K x (with feedforward), or threshold logic.",
+     "Deliver: setpoint over the deterministic fabric to the driver.",
+     "Actuate: staged value released on a synchronized gate."
+    ]
+   ],
+   [
+    "h2",
+    "Composition of bounds"
+   ],
+   [
+    "p",
+    "Because stages do not contend for shared resources, their bounds add: R = R_sense + R_validate + R_estimate + R_decide + R_deliver + R_actuate. Each term is fixed by fabric depth, link schedule, or driver characteristics, so R is a certified constant. This additive structure is why Kronos can grow the pipeline without eroding its guarantees &mdash; a new stage adds its bound and nothing else."
+   ],
+   [
+    "h3",
+    "Two machines through one pipeline"
+   ],
+   [
+    "p",
+    "The same pipeline shape serves both machines; only the estimate and decide stages differ. The breeder decides PF-coil currents from an equilibrium estimate; the burner decides plug power and DEC modulation from a density/potential estimate. Sense, validate, deliver, and actuate are common infrastructure, which is how Kronos shares a hardened control platform across the fleet."
+   ]
+  ],
+  "related": [
+   [
+    "state-vector-ingress",
+    "High-bandwidth state-vector ingress"
+   ],
+   [
+    "rt-compute-actuators",
+    "Real-time compute actuators"
+   ],
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "rt-compute-actuators",
+  "title": "Real-Time Compute Actuators",
+  "cat": "l1-control-plane",
+  "lede": "The bridge from digital command to physical effect is the actuator driver: deterministic RT-compute stages that turn setpoints into coil currents, beam power, and grid voltages.",
+  "body": [
+   [
+    "h2",
+    "What an RT-compute actuator is"
+   ],
+   [
+    "p",
+    "Between the control law and the physics sits the actuator driver &mdash; the real-time compute stage that receives a validated setpoint and drives the physical device to match it. Kronos's drivers are deterministic: they close a fast inner loop on the device (current, voltage, flow) so that the higher control loop can treat the actuator as a predictable, bounded-latency element."
+   ],
+   [
+    "h3",
+    "Inner-loop closure"
+   ],
+   [
+    "p",
+    "Each actuator carries its own fast regulator. A PF-coil supply regulates output current to the commanded value; a beam modulator regulates delivered power; a DEC grid driver regulates collector voltage; a servo valve regulates flow. These inner loops run in fabric at the driver, so the outer plasma/plug loop sees a clean first-order response instead of raw device dynamics."
+   ],
+   [
+    "h2",
+    "Determinism at the device"
+   ],
+   [
+    "ul",
+    [
+     "Setpoint staged and released on a synchronized gate.",
+     "Inner regulator closes with bounded response time.",
+     "Local limits clamp commands to the device's safe envelope.",
+     "Driver status returns to L1 for supervision and arbitration."
+    ]
+   ],
+   [
+    "p",
+    "Local envelope clamping is a second safety layer: even a valid-looking setpoint is bounded at the driver to what the device can survive, so no single upstream fault can overdrive a coil, beam, or grid. This complements the interlock and arbitration layers above."
+   ],
+   [
+    "h3",
+    "The actuator set"
+   ],
+   [
+    "p",
+    "Across both machines the actuator families are: shaping and position coils, heating (neutral-beam and RF) modulators, fueling valves and pellet injectors, and &mdash; on the burner &mdash; the DEC collector-grid drivers. Each is documented in this category with its own loop and timing. Together they are the physical vocabulary the intelligent stack speaks through, always via L1's deterministic drivers. See <a href=./actuator-command-arbitration.html>command arbitration</a> for how competing requests are resolved."
+   ]
+  ],
+  "related": [
+   [
+    "actuator-command-arbitration",
+    "Actuator command arbitration"
+   ],
+   [
+    "neutral-beam-injection-actuator",
+    "Neutral-beam injection actuator"
+   ],
+   [
+    "pf-shaping-coils-negative-triangularity",
+    "PF shaping coils and negative triangularity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "actuator-command-arbitration",
+  "title": "Actuator Command Arbitration",
+  "cat": "l1-control-plane",
+  "lede": "When multiple controllers request the same actuator, L1 arbitrates by fixed priority so protection always outranks optimization.",
+  "body": [
+   [
+    "h2",
+    "The contention problem"
+   ],
+   [
+    "p",
+    "An actuator can be the target of several requests: the fast stability loop, the MPC trajectory, and a protection action may all want a PF coil or a beam at once. L1 resolves this with deterministic <b>arbitration</b> &mdash; a fixed, inspectable priority that decides which request reaches the driver, with no ambiguity and no data-dependent ordering."
+   ],
+   [
+    "h3",
+    "Priority order"
+   ],
+   [
+    "ul",
+    [
+     "1. Hardware failsafe / interlock: absolute, cannot be overridden.",
+     "2. Fast protection loop (e.g. disruption avoidance, quench response).",
+     "3. Fast stability loop (vertical/radial position, plug density).",
+     "4. MPC advisory trajectory (shape, DEC schedule optimization)."
+    ]
+   ],
+   [
+    "p",
+    "The order encodes the architecture's values: safety before stability, stability before optimization. A protection action pre-empts any optimization instantly; an MPC setpoint is honored only when nothing more urgent is asserting. Because the priority is static, arbitration adds a fixed, tiny latency and never a variable one."
+   ],
+   [
+    "h2",
+    "Clean handover"
+   ],
+   [
+    "p",
+    "Arbitration must not cause transients. When a higher-priority source takes over, the driver's inner loop bumplessly transfers from the previous command, and when control returns, the lower-priority source resumes from the current state rather than a stale target. This prevents the actuator from stepping when authority changes hands."
+   ],
+   [
+    "h3",
+    "Auditability"
+   ],
+   [
+    "p",
+    "Every arbitration outcome is timestamped to the L2 archive: which source held authority, when, and why it changed. This record makes the machine's behavior reconstructable after the fact. Arbitration sits below the <a href=./interlock-logic-hardware.html>interlock layer</a> &mdash; interlocks decide whether any action is permitted at all, arbitration decides which permitted request wins &mdash; and above the <a href=./rt-compute-actuators.html>drivers</a> that execute it."
+   ]
+  ],
+  "related": [
+   [
+    "interlock-logic-hardware",
+    "Interlock logic hardware"
+   ],
+   [
+    "rt-compute-actuators",
+    "Real-time compute actuators"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "neutral-beam-injection-actuator",
+  "title": "Neutral-Beam Injection Actuator",
+  "cat": "l1-control-plane",
+  "lede": "Neutral-beam heating is a primary actuator on both machines; L1 modulates delivered beam power deterministically for heating, current drive, and fast protection.",
+  "body": [
+   [
+    "h2",
+    "Beams as an actuator"
+   ],
+   [
+    "p",
+    "Neutral-beam injection (NBI) delivers energetic neutral atoms that ionize and heat the plasma, and can drive current and momentum. For control, NBI is an actuator whose <b>delivered power</b> and, where steerable, deposition location are commanded by L1. The breeder uses beam power for heating and current-profile influence; the burner uses beams to sustain the plug and mirror-cell populations."
+   ],
+   [
+    "h3",
+    "Deterministic modulation"
+   ],
+   [
+    "p",
+    "The beam driver closes a fast inner loop on delivered power, tracking L1's setpoint. Power can be modulated on the control timescale for feedback on stored energy or plug density. Because delivered power is a physical quantity with device limits, the driver clamps commands to the beam's safe operating envelope locally."
+   ],
+   [
+    "h2",
+    "Fast protection: beam notching"
+   ],
+   [
+    "p",
+    "NBI participates in protection through <a href=./beam-notching-fast-protection.html>notching</a>: on a disruption precursor or a plug fault, L1 can cut or notch beam power within the deterministic window to remove drive from an evolving instability. This is a fast, reversible actuation that buys time for slower mitigation, and it is arbitrated below protection priority."
+   ],
+   [
+    "ul",
+    [
+     "Command variable: delivered beam power (and steering, where available).",
+     "Inner loop: driver regulates power with bounded response.",
+     "Protection: fast notch/cut on precursor within the 10 &micro;s class.",
+     "Envelope: local clamps to beam-source and duct limits."
+    ]
+   ],
+   [
+    "h3",
+    "Two roles, two machines"
+   ],
+   [
+    "p",
+    "On the breeder (Hyperion), beams contribute to reaching and holding the operating point that yields Q_sci 3.424 and 88.7 MW of fusion power, and to current-profile control alongside the 9.86 MA plasma current. On the burner, beams sustain the end-plug and central-cell populations that hold the ambipolar potential. In both, L1 treats the beam as a fast, envelope-limited power actuator."
+   ]
+  ],
+  "related": [
+   [
+    "beam-notching-fast-protection",
+    "Beam notching for fast protection"
+   ],
+   [
+    "end-plug-density-control",
+    "End-plug density control"
+   ],
+   [
+    "rt-compute-actuators",
+    "Real-time compute actuators"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "beam-notching-fast-protection",
+  "title": "Beam Notching for Fast Protection",
+  "cat": "l1-control-plane",
+  "lede": "Cutting or notching neutral-beam power within microseconds removes drive from an evolving instability, a fast reversible protection actuation on both machines.",
+  "body": [
+   [
+    "h2",
+    "What notching does"
+   ],
+   [
+    "p",
+    "Beam notching is the rapid, brief removal of neutral-beam power. When L1 detects a fast precursor &mdash; a disruption cue on the breeder or a plug/potential fault on the burner &mdash; cutting beam drive can arrest an instability that the beam was feeding, or protect beam hardware from an adverse plasma state. It is fast, reversible, and low-regret, which makes it a first-response protection lever."
+   ],
+   [
+    "h3",
+    "Timing"
+   ],
+   [
+    "p",
+    "Notching must land inside the fast-protection window. The command path &mdash; precursor detection, arbitration at protection priority, delivery to the beam driver, and power cut &mdash; is engineered within the deterministic bound so the notch takes effect before the instability has grown. The beam driver supports a fast power step precisely so this actuation is available on demand."
+   ],
+   [
+    "h2",
+    "Why reversible protection matters"
+   ],
+   [
+    "ul",
+    [
+     "A notch removes drive without terminating the discharge.",
+     "If the precursor clears, power ramps back and operation continues.",
+     "If it does not, slower mitigation proceeds with time bought.",
+     "Low false-trip cost encourages sensitive, early triggering."
+    ]
+   ],
+   [
+    "p",
+    "Because a notch is cheap to recover from, L1 can afford to trigger it on relatively early, uncertain precursors &mdash; the opposite trade-off from a magnet dump, which is protective but disruptive. This graded response, from notch to full mitigation, lets the control plane match action severity to threat confidence."
+   ],
+   [
+    "h3",
+    "Coordination"
+   ],
+   [
+    "p",
+    "Notching is one member of a coordinated protection repertoire that also includes gas/impurity actuation and, at the extreme, discharge termination. L1 sequences these by severity, with the <a href=./autonomous-hardware-failsafe.html>magnet failsafe</a> underneath as the independent floor. On the burner, the analogous fast lever pairs beam notching with <a href=./dec-fault-ride-through.html>DEC fault ride-through</a> to protect the conversion train."
+   ]
+  ],
+  "related": [
+   [
+    "neutral-beam-injection-actuator",
+    "Neutral-beam injection actuator"
+   ],
+   [
+    "disruption-avoidance-actuation",
+    "Disruption avoidance actuation"
+   ],
+   [
+    "dec-fault-ride-through",
+    "DEC fault ride-through"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pf-shaping-coils-negative-triangularity",
+  "title": "PF Shaping Coils and Negative Triangularity",
+  "cat": "l1-control-plane",
+  "lede": "Poloidal-field coils are the breeder's shape actuators; L1 drives their currents to hold the negative-triangularity, delta -0.30 boundary that defines the ELM-free regime.",
+  "body": [
+   [
+    "h2",
+    "Shape is an actuated quantity"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a spherical tokamak whose plasma boundary shape is not incidental &mdash; it is a controlled target. Poloidal-field (PF) coils produce the fields that set elongation, triangularity, and X-point location. L1 drives each PF-coil current so the reconstructed boundary matches the design shape: negative triangularity of <b>&delta; = &minus;0.30</b> at aspect ratio 2.5, major radius R0 1.2 m."
+   ],
+   [
+    "h3",
+    "Why negative triangularity"
+   ],
+   [
+    "p",
+    "A negative-triangularity boundary is pursued for its edge behavior: it can access good confinement while suppressing the edge-localized modes (ELMs) that damage plasma-facing components in conventional shapes. Holding &delta; = &minus;0.30 precisely is therefore a control objective, because the favorable regime depends on maintaining the shape against the plasma's tendency to relax toward positive triangularity."
+   ],
+   [
+    "h2",
+    "The control law"
+   ],
+   [
+    "p",
+    "L1 measures boundary shape moments from magnetics (flux loops, Mirnov coils) via fast equilibrium reconstruction, forms the error against the target moments, and computes PF-current corrections u = -K(x - x_ref). The gain K is designed offline from the machine's response model; L1 executes the multiply-accumulate in fabric each cycle and releases the coordinated coil update on a <a href=./synchronized-gates.html>synchronized gate</a>."
+   ],
+   [
+    "ul",
+    [
+     "Command: PF-coil current set, updated coordinately.",
+     "Target: shape moments including &delta; = &minus;0.30, defined X-point.",
+     "Feedback: fast magnetics + equilibrium reconstruction.",
+     "Constraint: coil current, field, and force limits clamped at drivers."
+    ]
+   ],
+   [
+    "h3",
+    "Coupling to stability"
+   ],
+   [
+    "p",
+    "Shape control shares the PF/coil system with <a href=./vertical-stability-control.html>vertical stabilization</a> and <a href=./radial-position-control.html>radial position control</a>. L1 runs these on a common clock so their commands superpose cleanly on the coils, and arbitration ensures a stability action pre-empts a shape refinement when the two compete for the same actuator."
+   ]
+  ],
+  "related": [
+   [
+    "shape-control-negative-triangularity",
+    "Shape control: negative triangularity"
+   ],
+   [
+    "vertical-stability-control",
+    "Vertical stability control"
+   ],
+   [
+    "equilibrium-reconstruction-realtime",
+    "Real-time equilibrium reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "shape-control-negative-triangularity",
+  "title": "Shape Control: Negative Triangularity",
+  "cat": "l1-control-plane",
+  "lede": "Maintaining the breeder's delta -0.30 boundary is a continuous feedback task; L1 tracks shape moments and corrects the plasma-facing profile in real time.",
+  "body": [
+   [
+    "h2",
+    "The shape target"
+   ],
+   [
+    "p",
+    "The breeder's confinement and edge strategy rest on a specific boundary: negative triangularity &delta; = &minus;0.30. Triangularity measures how the plasma cross-section is 'pushed in' at top and bottom relative to the midplane; a negative value bends the boundary the opposite way from a conventional D-shape. Holding it steady is the shape controller's continuous job."
+   ],
+   [
+    "h3",
+    "Representing the shape"
+   ],
+   [
+    "p",
+    "L1 does not track the boundary point-by-point; it tracks a small set of geometric moments &mdash; elongation &kappa;, triangularity &delta;, X-point position, and gaps to the wall. These moments are computed from magnetics each cycle. The controller regulates the moment vector to its reference, which is more robust and lower-latency than reconstructing the full boundary contour in the fast loop."
+   ],
+   [
+    "h2",
+    "Disturbances the loop rejects"
+   ],
+   [
+    "ul",
+    [
+     "Plasma's tendency to relax toward positive triangularity.",
+     "Current-profile evolution changing the internal inductance.",
+     "Pressure changes from heating and fueling transients.",
+     "Coil and supply nonidealities corrected by the inner current loops."
+    ]
+   ],
+   [
+    "p",
+    "Each disturbance perturbs the moment vector; the feedback law returns PF-coil currents to restore it. Because the favorable ELM-free behavior is tied to the shape, tight moment regulation is not cosmetic &mdash; letting &delta; drift toward zero would forfeit the regime the machine was designed around."
+   ],
+   [
+    "h3",
+    "Interaction with the edge"
+   ],
+   [
+    "p",
+    "Shape control and edge control are linked. The negative-triangularity boundary is what enables the <a href=./elm-free-regime-control.html>ELM-free edge</a>; sustaining that edge in turn depends on holding the shape. L1 runs both objectives on the shared clock, with shape as the slower geometric regulator and the edge state monitored for any sign the regime is being lost. The physical actuators are the <a href=./pf-shaping-coils-negative-triangularity.html>PF shaping coils</a>."
+   ]
+  ],
+  "related": [
+   [
+    "pf-shaping-coils-negative-triangularity",
+    "PF shaping coils and negative triangularity"
+   ],
+   [
+    "elm-free-regime-control",
+    "ELM-free regime control"
+   ],
+   [
+    "equilibrium-reconstruction-realtime",
+    "Real-time equilibrium reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "elm-free-regime-control",
+  "title": "ELM-Free Regime Control",
+  "cat": "l1-control-plane",
+  "lede": "The negative-triangularity edge suppresses edge-localized modes; L1 monitors edge conditions to keep the breeder in the ELM-free regime it was designed for.",
+  "body": [
+   [
+    "h2",
+    "The ELM problem"
+   ],
+   [
+    "p",
+    "Edge-localized modes (ELMs) are periodic edge instabilities that expel bursts of energy onto plasma-facing components. In high-confinement operation they can impose damaging transient heat loads on the divertor. The breeder's negative-triangularity design aims to access good confinement while avoiding the edge conditions that drive large ELMs &mdash; an ELM-free operating regime."
+   ],
+   [
+    "h3",
+    "Control objective"
+   ],
+   [
+    "p",
+    "L1's role is to keep the plasma inside that regime. This means holding the <a href=./shape-control-negative-triangularity.html>shape</a> at &delta; = &minus;0.30 and managing the edge pressure gradient and density so the edge does not cross into an ELMy state. The controller watches edge diagnostics for precursors that the regime is being approached at its boundary and adjusts fueling and shape to stay clear."
+   ],
+   [
+    "h2",
+    "Edge monitoring"
+   ],
+   [
+    "ul",
+    [
+     "Edge profile diagnostics (Thomson, ECE) for pressure gradient trends.",
+     "Magnetics for edge MHD activity.",
+     "Fueling and shape actuation to keep the edge in the safe window.",
+     "Divertor loads watched via the thermal-protection loop."
+    ]
+   ],
+   [
+    "p",
+    "Because the ELM-free regime is a physics operating point rather than a hardwired safety limit, its control is a quality-and-longevity objective: staying in it protects the divertor and preserves confinement. L3 models can predict drift toward the regime edge and pre-position the controls; L1 executes the corrections deterministically."
+   ],
+   [
+    "h3",
+    "Why it protects hardware"
+   ],
+   [
+    "p",
+    "An ELM-free edge means the divertor and first wall see steadier heat flux rather than damaging bursts, which is why edge control is tied to the <a href=./plasma-facing-thermal-protection-loop.html>plasma-facing thermal-protection loop</a> and the divertor/expander control. Maintaining the regime is thus simultaneously a performance and a component-life strategy for the breeder."
+   ]
+  ],
+  "related": [
+   [
+    "shape-control-negative-triangularity",
+    "Shape control: negative triangularity"
+   ],
+   [
+    "plasma-facing-thermal-protection-loop",
+    "Plasma-facing thermal-protection loop"
+   ],
+   [
+    "divertor-expander-control",
+    "Divertor and expander control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "vertical-stability-control",
+  "title": "Vertical Stability Control",
+  "cat": "l1-control-plane",
+  "lede": "An elongated plasma is vertically unstable on millisecond timescales; L1 runs a fast feedback loop on the breeder to arrest vertical displacement before it grows.",
+  "body": [
+   [
+    "h2",
+    "The instability"
+   ],
+   [
+    "p",
+    "A vertically elongated tokamak plasma sits in an unstable equilibrium in the vertical direction: a small upward or downward displacement produces a force that pushes it further. Left uncontrolled this grows on the vertical instability timescale &mdash; milliseconds &mdash; and can lead to a vertical displacement event (VDE) and disruption. Active feedback is mandatory."
+   ],
+   [
+    "h3",
+    "The fast loop"
+   ],
+   [
+    "p",
+    "L1 estimates the plasma's vertical position z from magnetics each cycle and drives a fast vertical-control coil (or a designated PF-coil combination) to produce a restoring radial field. The loop is a stabilizer: u = -(k_p z + k_d dz/dt), where the derivative term damps the growth. It runs well inside the instability timescale, with a period around 100 &micro;s and worst-case latency inside the 10 &micro;s protection class for its innermost action."
+   ],
+   [
+    "h2",
+    "Why it is a protection-class loop"
+   ],
+   [
+    "ul",
+    [
+     "Growth is exponential; late action cannot recover.",
+     "Runs on deterministic fabric, not on any learning component.",
+     "Derivative damping requires low-jitter, coherent sampling.",
+     "Coordinated with radial and shape loops on the shared clock."
+    ]
+   ],
+   [
+    "p",
+    "Because a missed vertical-control deadline can end in a disruption, this loop exemplifies why L1 exists. It cannot wait on model inference or tolerate scheduling jitter; it must act on the deterministic pipeline every cycle. The controller gains come from an offline model, but their execution is pure fabric."
+   ],
+   [
+    "h3",
+    "Relationship to disruptions"
+   ],
+   [
+    "p",
+    "Vertical control is the first defense against VDE-driven disruptions. When it detects that displacement is exceeding what it can recover, it escalates to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a> and, if needed, mitigation. The 9.86 MA plasma current makes a disruption energetic, which is why the vertical loop is engineered with margin and coordinated tightly with the current-feedback loop."
+   ]
+  ],
+  "related": [
+   [
+    "radial-position-control",
+    "Radial position control"
+   ],
+   [
+    "disruption-avoidance-actuation",
+    "Disruption avoidance actuation"
+   ],
+   [
+    "plasma-current-feedback",
+    "Plasma current feedback"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "radial-position-control",
+  "title": "Radial Position Control",
+  "cat": "l1-control-plane",
+  "lede": "L1 regulates the breeder plasma's major-radius position against the design R0 of 1.2 m, keeping wall gaps and the equilibrium centered.",
+  "body": [
+   [
+    "h2",
+    "Holding the plasma centered"
+   ],
+   [
+    "p",
+    "The plasma's radial position &mdash; its major radius R relative to the design R0 of 1.2 m &mdash; must be regulated so the boundary keeps proper clearance from the inner and outer walls and the equilibrium stays where the shape controller expects it. Radial drift changes the plasma-wall gaps and couples into shape and stability, so L1 controls it as a dedicated loop."
+   ],
+   [
+    "h3",
+    "Force balance"
+   ],
+   [
+    "p",
+    "Radial position is set by the balance between the plasma's outward hoop and tire-tube forces and the vertical (radial-field) component produced by the PF system. L1 estimates R from magnetics and adjusts the equilibrium field so the plasma sits at R0. Because the spherical tokamak has a tight aspect ratio of 2.5, inner-wall clearance is precious and radial control must be accurate."
+   ],
+   [
+    "h2",
+    "The loop"
+   ],
+   [
+    "ul",
+    [
+     "Estimate R and radial velocity from flux loops and Mirnov coils.",
+     "Compute the equilibrium-field correction to restore R0.",
+     "Command the relevant PF-coil currents, coordinated with shape.",
+     "Clamp to coil and gap limits at the drivers."
+    ]
+   ],
+   [
+    "p",
+    "Radial and vertical control share the PF/coil system and the same fast magnetics, so L1 runs them on a common clock and lets them superpose on the coils. Arbitration ensures that when vertical stability &mdash; the faster, more dangerous instability &mdash; needs the coils, it takes precedence over radial trimming."
+   ],
+   [
+    "h3",
+    "Coupling to shape and current"
+   ],
+   [
+    "p",
+    "Radial position, boundary shape, and plasma current are coupled through the same equilibrium. A change in <a href=./plasma-current-feedback.html>plasma current</a> or internal profile shifts the natural radial position, which the loop corrects. Keeping R at R0 is a precondition for the <a href=./shape-control-negative-triangularity.html>shape controller</a> to hold &delta; = &minus;0.30 accurately, since shape moments are referenced to a centered equilibrium."
+   ]
+  ],
+  "related": [
+   [
+    "vertical-stability-control",
+    "Vertical stability control"
+   ],
+   [
+    "plasma-current-feedback",
+    "Plasma current feedback"
+   ],
+   [
+    "shape-control-negative-triangularity",
+    "Shape control: negative triangularity"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plasma-current-feedback",
+  "title": "Plasma Current Feedback",
+  "cat": "l1-control-plane",
+  "lede": "L1 regulates the breeder plasma current toward its 9.86 MA operating value, coordinating the central solenoid and PF system deterministically.",
+  "body": [
+   [
+    "h2",
+    "Current as the master parameter"
+   ],
+   [
+    "p",
+    "Plasma current I_p sets the poloidal field, the confinement, and the stability margins; the breeder's operating point targets <b>9.86 MA</b>. L1 regulates I_p by controlling the loop voltage the central solenoid and PF system impose, tracking a programmed current waveform through ramp-up, flat-top, and ramp-down."
+   ],
+   [
+    "h3",
+    "The regulation"
+   ],
+   [
+    "p",
+    "L1 measures I_p from Rogowski/flux magnetics and compares against the reference waveform. The error drives the solenoid current-ramp command; because the plasma is inductively coupled, the controller accounts for mutual inductances so a solenoid change produces the intended I_p change without disturbing position and shape more than necessary. The control math is a coordinated multi-coil law executed in fabric."
+   ],
+   [
+    "h2",
+    "Coupling and decoupling"
+   ],
+   [
+    "ul",
+    [
+     "I_p, position, and shape share the same coil system.",
+     "The controller uses a decoupling matrix so each objective is addressable.",
+     "Current ramp rate is limited to respect field and force constraints.",
+     "Flat-top I_p held at 9.86 MA while shape and stability loops operate."
+    ]
+   ],
+   [
+    "p",
+    "Decoupling matters: a naive solenoid change would move the plasma radially and distort the shape. L1 applies a transformation so current, radial position, and shape can be commanded semi-independently, then lets the individual loops trim the residual coupling. This keeps the 9.86 MA flat-top stable while &delta; = &minus;0.30 is maintained."
+   ],
+   [
+    "h3",
+    "Disruptions and the current"
+   ],
+   [
+    "p",
+    "The stored energy in a 9.86 MA current is what makes a disruption consequential, so current control is tightly bound to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a>. A controlled ramp-down is one mitigation path; an uncontrolled current quench is the event the protection stack exists to prevent or soften. L1 therefore treats I_p regulation and disruption handling as one coordinated problem."
+   ]
+  ],
+  "related": [
+   [
+    "radial-position-control",
+    "Radial position control"
+   ],
+   [
+    "disruption-avoidance-actuation",
+    "Disruption avoidance actuation"
+   ],
+   [
+    "equilibrium-reconstruction-realtime",
+    "Real-time equilibrium reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "equilibrium-reconstruction-realtime",
+  "title": "Real-Time Equilibrium Reconstruction",
+  "cat": "l1-control-plane",
+  "lede": "L1 solves a fast, bounded Grad-Shafranov reconstruction each cycle to give the shape and position loops a physically consistent state estimate.",
+  "body": [
+   [
+    "h2",
+    "Why reconstruct in real time"
+   ],
+   [
+    "p",
+    "Shape, position, and current loops all act on the plasma equilibrium, but the equilibrium is not directly measured &mdash; it is inferred from magnetics. L1 runs a fast <b>equilibrium reconstruction</b> every control cycle, solving a reduced form of the Grad-Shafranov equation constrained by the measured flux loops and Mirnov coils, to produce a consistent boundary, position, and moment set."
+   ],
+   [
+    "h3",
+    "The Grad-Shafranov constraint"
+   ],
+   [
+    "p",
+    "In axisymmetric equilibrium the poloidal flux &psi; satisfies the Grad-Shafranov equation, R &part;/&part;R((1/R)&part;&psi;/&part;R) + &part;&sup2;&psi;/&part;z&sup2; = &minus;&mu;0 R&sup2; p'(&psi;) &minus; FF'(&psi;). The full solve is nonlinear and iterative; the fast in-loop version is bounded &mdash; a fixed number of iterations or a linearized update &mdash; so its WCET is known. The high-fidelity reconstruction runs at L3 as the digital twin's equilibrium module."
+   ],
+   [
+    "h2",
+    "Bounded computation"
+   ],
+   [
+    "ul",
+    [
+     "Fixed iteration cap with a defined fallback for the fast solve.",
+     "Fixed-point arithmetic with analyzed word growth in fabric.",
+     "Outputs: boundary moments, R, z, I_p-consistent flux state.",
+     "Validity mask propagated from the diagnostics that feed it."
+    ]
+   ],
+   [
+    "p",
+    "The design accepts a slightly lower-fidelity but strictly-timed estimate in the fast loop, because a controller needs a consistent answer on time more than a perfect answer late. The twin's richer reconstruction corrects and audits the fast estimate on the 50&ndash;100 ms shadow horizon."
+   ],
+   [
+    "h3",
+    "PINN acceleration"
+   ],
+   [
+    "p",
+    "Kronos's L3 uses physics-informed neural networks (PINNs) trained to satisfy Grad-Shafranov, which can produce equilibria far faster than iterative solvers. Their role is to sharpen the advisory target and the twin, not to sit in the deterministic loop; the fast in-fabric solve remains the certified estimator that the <a href=./shape-control-negative-triangularity.html>shape</a> and <a href=./vertical-stability-control.html>stability</a> loops depend on."
+   ]
+  ],
+  "related": [
+   [
+    "shape-control-negative-triangularity",
+    "Shape control: negative triangularity"
+   ],
+   [
+    "plasma-current-feedback",
+    "Plasma current feedback"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-avoidance-actuation",
+  "title": "Disruption Avoidance Actuation",
+  "cat": "l1-control-plane",
+  "lede": "L1 arms and fires a graded response to disruption precursors on the breeder, from beam notching and shape trims to controlled ramp-down and mitigation.",
+  "body": [
+   [
+    "h2",
+    "Avoid, then mitigate"
+   ],
+   [
+    "p",
+    "A disruption is a sudden loss of confinement that dumps the plasma's thermal and magnetic energy, potentially damaging the vessel and stressing the magnets. Kronos's strategy is avoidance first: detect precursors early and actuate to steer the plasma back to safety, escalating to mitigation only if avoidance fails. At 9.86 MA the stakes make this the breeder's central protection problem."
+   ],
+   [
+    "h3",
+    "Graded response"
+   ],
+   [
+    "ul",
+    [
+     "Early, low-confidence precursor: shape/position trim, gentle actuation.",
+     "Firmer precursor: beam notching, fueling adjustment to cool the edge.",
+     "Imminent disruption: controlled current ramp-down.",
+     "Unavoidable: mitigation (impurity/mass injection) to spread the load."
+    ]
+   ],
+   [
+    "p",
+    "Each rung matches action severity to threat confidence, echoing the <a href=./beam-notching-fast-protection.html>notching</a> philosophy: cheap, reversible actions on weak evidence; strong, disruptive actions only when the event is certain. This minimizes both missed disruptions and needless terminations."
+   ],
+   [
+    "h2",
+    "Where learning helps, where it does not"
+   ],
+   [
+    "p",
+    "L3's anomaly-detection ensembles predict disruption precursors tens of milliseconds ahead, arming the L1 loops earlier than thresholds alone could. But the actuation itself &mdash; the notch, the ramp, the mitigation trigger &mdash; is deterministic L1 logic. A predicted disruption changes when the deterministic response is armed, not whether it can fire. The final mitigation trigger also has a threshold-based fallback that needs no model."
+   ],
+   [
+    "h3",
+    "Coordination with the stack"
+   ],
+   [
+    "p",
+    "Disruption avoidance sits at high arbitration priority, above shape and current optimization but below the <a href=./autonomous-hardware-failsafe.html>magnet failsafe</a>. It coordinates with <a href=./vertical-stability-control.html>vertical stability</a> (VDEs are a common trigger) and with current control (ramp-down is a shared actuation). The whole sequence executes inside L1's timing guarantees."
+   ]
+  ],
+  "related": [
+   [
+    "vertical-stability-control",
+    "Vertical stability control"
+   ],
+   [
+    "beam-notching-fast-protection",
+    "Beam notching for fast protection"
+   ],
+   [
+    "disruption-mitigation-injection",
+    "Disruption mitigation injection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "disruption-mitigation-injection",
+  "title": "Disruption Mitigation Injection",
+  "cat": "l1-control-plane",
+  "lede": "When a breeder disruption is unavoidable, L1 fires mass or impurity injection on a deterministic trigger to radiate energy uniformly and spare the vessel.",
+  "body": [
+   [
+    "h2",
+    "The last controlled action before a disruption"
+   ],
+   [
+    "p",
+    "If avoidance fails, the goal shifts to making the disruption as benign as possible. Mitigation injects material &mdash; impurity gas or pellets &mdash; that radiates the plasma's thermal energy broadly rather than letting it dump onto a small area, and that controls the runaway-electron and halo-current pathways. L1 owns the deterministic trigger for this one-shot actuation."
+   ],
+   [
+    "h3",
+    "Why timing is absolute"
+   ],
+   [
+    "p",
+    "Mitigation only helps if the material arrives and assimilates before the thermal quench deposits its energy. That imposes a hard deadline from trigger to material delivery. L1 fires the injector on a bounded path, and the trigger itself has a threshold-based fallback independent of any model, because a mitigation system that could miss its window would be worse than useless."
+   ],
+   [
+    "h2",
+    "What it protects"
+   ],
+   [
+    "ul",
+    [
+     "Spreads thermal load to avoid localized wall melting.",
+     "Radiates energy to soften the thermal quench.",
+     "Manages current-quench rate to limit halo and eddy forces.",
+     "Suppresses runaway-electron seed growth where applicable."
+    ]
+   ],
+   [
+    "p",
+    "At 9.86 MA and with the breeder's stored energy, an unmitigated disruption imposes severe electromagnetic and thermal loads. Mitigation does not prevent the disruption; it converts a potentially damaging event into a survivable one, which is why it is the terminal rung of the <a href=./disruption-avoidance-actuation.html>graded response</a>."
+   ],
+   [
+    "h3",
+    "One-shot determinism"
+   ],
+   [
+    "p",
+    "Unlike a continuous loop, mitigation is a single committed action, so its determinism is about the trigger-to-delivery path being provably fast and its arming logic being correct. L1 keeps the injector armed whenever the plasma carries enough energy to warrant it, and coordinates the trigger with the current-quench and <a href=./autonomous-hardware-failsafe.html>magnet protection</a> so the machine reaches a safe state as one sequence."
+   ]
+  ],
+  "related": [
+   [
+    "disruption-avoidance-actuation",
+    "Disruption avoidance actuation"
+   ],
+   [
+    "pellet-injection-timing",
+    "Pellet injection timing"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "gas-puffing-servo-valves",
+  "title": "Gas-Puffing Servo Valves",
+  "cat": "l1-control-plane",
+  "lede": "Fast piezo servo valves meter fuel and impurity gas into both machines; L1 modulates flow deterministically for density control and edge management.",
+  "body": [
+   [
+    "h2",
+    "Gas puffing as fueling and control"
+   ],
+   [
+    "p",
+    "Gas puffing injects neutral fuel (or impurity) gas through fast servo valves. It is the primary fine-fueling actuator: L1 modulates valve opening to control plasma density, feed the edge, and &mdash; with impurity species &mdash; radiate power where wanted. The valves are piezo-driven for fast, proportional response on the control timescale."
+   ],
+   [
+    "h3",
+    "Deterministic flow control"
+   ],
+   [
+    "p",
+    "Each valve driver closes a fast loop on commanded flow (or valve position as a flow proxy), so L1's density controller sees a predictable actuator. Because gas transport into the plasma has its own delay, the valve response must be fast and repeatable for the outer density loop to remain stable; jitter in valve actuation would translate into density ripple."
+   ],
+   [
+    "h2",
+    "Roles per machine"
+   ],
+   [
+    "ul",
+    [
+     "Breeder: line-averaged density control, edge fueling for the ELM-free regime, impurity seeding for radiative divertor operation.",
+     "Burner: central-cell and plug fueling to support the density profile that holds the ambipolar potential.",
+     "Both: gated by vacuum permissives &mdash; valves enable only in a proven vacuum state."
+    ]
+   ],
+   [
+    "p",
+    "On the breeder, fine density control interacts with the <a href=./elm-free-regime-control.html>edge regime</a>: pushing density too hard can move the edge toward an ELMy state, so the fueling loop respects edge limits. On the burner, fueling supports the <a href=./end-plug-density-control.html>plug density</a> that is central to confinement."
+   ],
+   [
+    "h3",
+    "Coordination with pellets"
+   ],
+   [
+    "p",
+    "Gas puffing handles fine, fast density trimming; <a href=./pellet-injection-timing.html>pellet injection</a> handles deeper, larger fueling and mitigation. L1 coordinates the two so they do not fight, using gas for continuous regulation and pellets for discrete deposition. Both flow through the deterministic driver layer and are gated by the <a href=./vacuum-interlocks.html>vacuum interlocks</a>."
+   ]
+  ],
+  "related": [
+   [
+    "pellet-injection-timing",
+    "Pellet injection timing"
+   ],
+   [
+    "fuel-cycle-isotope-balancing",
+    "Fuel-cycle isotope balancing"
+   ],
+   [
+    "vacuum-interlocks",
+    "Deterministic vacuum interlocks"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "pellet-injection-timing",
+  "title": "Pellet Injection Timing",
+  "cat": "l1-control-plane",
+  "lede": "Cryogenic pellets deliver deep, discrete fuel; L1 times each injection precisely for density profile control, pacing, and disruption mitigation.",
+  "body": [
+   [
+    "h2",
+    "Discrete deep fueling"
+   ],
+   [
+    "p",
+    "Pellet injection fires small cryogenic fuel pellets deep into the plasma, depositing particles where gas puffing cannot reach. Unlike continuous gas flow, each pellet is a discrete event, so control is about <b>timing and sizing</b>: when to fire, how large, and how fast. L1 schedules injections against the density-profile objective."
+   ],
+   [
+    "h3",
+    "Timing as the control variable"
+   ],
+   [
+    "p",
+    "Because a pellet's effect is a step in density, the outer loop controls the injection rate and phase rather than a continuous flow. L1 fires pellets on a deterministic schedule derived from the density error and profile target, with each shot's launch precisely timed relative to the plasma state and, where relevant, to the ELM/edge cycle for pacing."
+   ],
+   [
+    "h2",
+    "Uses"
+   ],
+   [
+    "ul",
+    [
+     "Deep density-profile control beyond the reach of edge gas fueling.",
+     "Fuel throughput consistent with the breeder's tritium/deuterium mix.",
+     "Edge pacing to manage the edge in the ELM-free strategy.",
+     "A pathway for <a href=./disruption-mitigation-injection.html>disruption mitigation</a> deposition."
+    ]
+   ],
+   [
+    "p",
+    "On the breeder, pellet fueling supports reaching and holding the density needed for the operating point behind Q_sci 3.424 and 88.7 MW, and it interacts with the fuel cycle's isotope balance since pellets carry a defined D-T composition. The injector's deterministic timing lets L1 place each pellet's density perturbation predictably."
+   ],
+   [
+    "h3",
+    "Determinism of a discrete actuator"
+   ],
+   [
+    "p",
+    "A discrete actuator is deterministic when its trigger-to-launch latency and its launch-to-deposition transit are bounded and repeatable. L1 characterizes both so the density step lands where the controller expects. Pellet and <a href=./gas-puffing-servo-valves.html>gas</a> actuation are arbitrated together, and both draw fuel from the balance managed by the <a href=./fuel-cycle-isotope-balancing.html>fuel cycle</a>."
+   ]
+  ],
+  "related": [
+   [
+    "gas-puffing-servo-valves",
+    "Gas-puffing servo valves"
+   ],
+   [
+    "fuel-cycle-isotope-balancing",
+    "Fuel-cycle isotope balancing"
+   ],
+   [
+    "disruption-mitigation-injection",
+    "Disruption mitigation injection"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fuel-cycle-isotope-balancing",
+  "title": "Fuel-Cycle Isotope Balancing",
+  "cat": "l1-control-plane",
+  "lede": "L1 coordinates real-time fuel delivery against isotope inventory, keeping the breeder's D-T mix and the burner's D-3He mix on target as fueling actuators fire.",
+  "body": [
+   [
+    "h2",
+    "Fueling meets inventory"
+   ],
+   [
+    "p",
+    "Fueling is not just flow control; it draws from and returns to an isotope inventory. The breeder runs D-T and breeds tritium; the burner runs D-3He. L1's fueling actuators &mdash; gas valves and pellet injectors &mdash; must deliver the correct isotopic mixture, and the plant's fuel-cycle logic must keep the running inventory balanced against what the plasma consumes and the exhaust returns."
+   ],
+   [
+    "h3",
+    "Real-time balancing"
+   ],
+   [
+    "p",
+    "L1 (with the PLC fuel-cycle layer) tracks isotope accounting: fuel delivered, fusion consumption inferred from neutron/reaction rates, and species recovered by pumping and processing. Fueling setpoints are conditioned on this balance so the plasma composition stays on target and inventory is neither depleted nor over-accumulated. This is an operational balance, framed in kilograms and rates, never economics."
+   ],
+   [
+    "h2",
+    "Per machine"
+   ],
+   [
+    "ul",
+    [
+     "Breeder: D-T fueling with tritium breeding; products in the ~4 kg/yr tritium class plus ~1.97 kg/yr helium-3 and 14 MeV neutrons.",
+     "Breeder lever: tritium breeding ratio treated across 1.1 / 1.5 / 1.8 in design studies.",
+     "Burner: D-3He fueling, low-neutron (neutron fraction 5.44%), not aneutronic."
+    ]
+   ],
+   [
+    "p",
+    "The tritium breeding ratio is a design lever, not a fixed constant: whether the blanket returns 1.1, 1.5, or 1.8 tritons per fusion changes the inventory dynamics the fuel-cycle control must manage. L1's role is to make delivery track whichever operating assumption is in force, deterministically."
+   ],
+   [
+    "h3",
+    "Safety coupling"
+   ],
+   [
+    "p",
+    "Fueling actuators are gated by <a href=./vacuum-interlocks.html>vacuum</a> and tritium-handling permissives; the PLC will not enable delivery outside a proven plant state. The fast <a href=./gas-puffing-servo-valves.html>gas</a> and <a href=./pellet-injection-timing.html>pellet</a> loops execute the delivery, while the fuel-cycle logic maintains the slower inventory balance around them."
+   ]
+  ],
+  "related": [
+   [
+    "gas-puffing-servo-valves",
+    "Gas-puffing servo valves"
+   ],
+   [
+    "pellet-injection-timing",
+    "Pellet injection timing"
+   ],
+   [
+    "end-plug-density-control",
+    "End-plug density control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "end-plug-density-control",
+  "title": "End-Plug Density Control",
+  "cat": "l1-control-plane",
+  "lede": "The tandem-mirror burner confines the central cell with dense end plugs; L1 regulates plug density as the machine's primary confinement actuator.",
+  "body": [
+   [
+    "h2",
+    "Plugs make the mirror confine"
+   ],
+   [
+    "p",
+    "The burner is a D-3He tandem mirror: the central-cell plasma is confined axially by dense, high-potential end plugs rather than by closing field lines. The plug density sets the electrostatic barrier that holds central-cell ions, so <b>end-plug density is the burner's master confinement control variable</b>. L1 regulates it continuously."
+   ],
+   [
+    "h3",
+    "The control loop"
+   ],
+   [
+    "p",
+    "L1 estimates plug density from the diagnostics constellation in the plug cells and drives the plug's heating and fueling actuators &mdash; neutral beams and gas/pellet fueling &mdash; to hold density at the setpoint. The loop must reject losses and transients fast enough that the confining potential does not sag, since a drop in plug density directly weakens central-cell confinement."
+   ],
+   [
+    "h2",
+    "Coupling to the potential"
+   ],
+   [
+    "ul",
+    [
+     "Plug density sets the ambipolar potential barrier height.",
+     "Beam power sustains the plug population against losses.",
+     "Fueling maintains the density profile in the plug and central cell.",
+     "The 26.49 T plug field provides the mirror ratio that makes plugging possible."
+    ]
+   ],
+   [
+    "p",
+    "Density and potential are inseparable here: the loop that holds density is, in effect, holding the <a href=./ambipolar-potential-control.html>ambipolar potential</a> that confines the machine. L1 runs them as coupled objectives on the shared clock, with density as the directly-actuated quantity and potential as the confinement outcome to be regulated."
+   ],
+   [
+    "h3",
+    "Why the high field"
+   ],
+   [
+    "p",
+    "The 26.49 T plug and 17 T throat produce the mirror ratio needed to build and hold the plug. Maintaining that field is the magnet system's job, protected by the <a href=./autonomous-hardware-failsafe.html>quench failsafe</a>; L1's density loop then works within the confinement geometry the field creates. Together the field, the plug density, and the potential define the burner's operating point."
+   ]
+  ],
+  "related": [
+   [
+    "ambipolar-potential-control",
+    "Ambipolar potential control"
+   ],
+   [
+    "neutral-beam-injection-actuator",
+    "Neutral-beam injection actuator"
+   ],
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "ambipolar-potential-control",
+  "title": "Ambipolar Potential Control",
+  "cat": "l1-control-plane",
+  "lede": "The electrostatic potential profile confines the burner's central cell; L1 regulates the ambipolar potential through plug conditions to hold axial confinement.",
+  "body": [
+   [
+    "h2",
+    "Confinement by potential"
+   ],
+   [
+    "p",
+    "In a tandem mirror, the central-cell ions are confined axially by an electrostatic potential built by the end plugs &mdash; the ambipolar potential. Its height, set by plug electron temperature and density, determines how well central-cell ions are held. Regulating this potential is the physics goal that <a href=./end-plug-density-control.html>plug density control</a> serves."
+   ],
+   [
+    "h3",
+    "What sets the potential"
+   ],
+   [
+    "p",
+    "The ambipolar potential arises from the requirement that ion and electron losses balance (ambipolarity). Roughly, the confining potential scales with the plug electron temperature and the density contrast between plug and central cell, following a Boltzmann-like relation e&phi; ~ T_e ln(n_plug/n_cc). L1 therefore actuates on plug heating and fueling to shape T_e and the density ratio, and thus &phi;."
+   ],
+   [
+    "h2",
+    "The regulation problem"
+   ],
+   [
+    "ul",
+    [
+     "Estimate the potential profile from plug/central-cell diagnostics.",
+     "Actuate plug beam power and fueling to set T_e and density ratio.",
+     "Reject losses that would let the barrier sag.",
+     "Coordinate with DEC, which draws on the same escaping-ion flow."
+    ]
+   ],
+   [
+    "p",
+    "The potential is not measured as directly as a coil current, so L1 relies on a model-based estimate from the diagnostics, refined by the L3 twin. The fast loop holds the estimate to setpoint; the twin audits it on the 50&ndash;100 ms shadow, flagging drift the fast loop should correct."
+   ],
+   [
+    "h3",
+    "Why it is the burner's equilibrium problem"
+   ],
+   [
+    "p",
+    "Where the breeder's central control problem is magnetic equilibrium and shape, the burner's is the ambipolar potential and plug conditions. Both are 'hold the confining configuration' problems; they simply use different physics. L1 provides the same deterministic-loop discipline to each. The potential also gates <a href=./dec-grid-modulation-loop.html>direct energy conversion</a>, since the energy of escaping ions depends on the potential they fall through."
+   ]
+  ],
+  "related": [
+   [
+    "end-plug-density-control",
+    "End-plug density control"
+   ],
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-collector-grid-voltage-modulation",
+  "title": "DEC Collector-Grid Voltage Modulation",
+  "cat": "l1-control-plane",
+  "lede": "Direct energy conversion recovers charged-particle energy on biased collector grids; L1 modulates grid voltages to match the escaping-ion spectrum.",
+  "body": [
+   [
+    "h2",
+    "Converting particle energy directly"
+   ],
+   [
+    "p",
+    "The burner recovers energy not only as heat but directly: charged fusion products and escaping ions are decelerated against biased collector grids, depositing their kinetic energy as they climb the potential, so their energy is captured electrically. The <b>collector-grid voltages are the actuator</b> &mdash; setting them to match the particle energy spectrum maximizes recovery. L1 modulates them in real time."
+   ],
+   [
+    "h3",
+    "Spectrum matching"
+   ],
+   [
+    "p",
+    "Escaping ions arrive with a distribution of energies. A grid biased to a voltage V recovers particles whose energy exceeds eV as they are decelerated; multiple grid stages at graded voltages capture successive energy bands. L1 sets the stage voltages to track the instantaneous spectrum, which shifts with plasma conditions, so the collector array stays matched as operation varies."
+   ],
+   [
+    "h2",
+    "The modulation loop"
+   ],
+   [
+    "ul",
+    [
+     "Estimate the escaping-ion energy spectrum from fast-ion and current diagnostics.",
+     "Compute per-stage grid voltage setpoints to match the bands.",
+     "Drive the grid supplies via deterministic drivers, staged and gated.",
+     "Protect against grid faults with fast ride-through."
+    ]
+   ],
+   [
+    "p",
+    "This is the burner's analogue of the breeder's shaping loop: a coordinated, multi-element voltage set that must move together, released on <a href=./synchronized-gates.html>synchronized gates</a> so the graded collector operates coherently. Mis-timed stages would distort the effective collector characteristic and lose recovery."
+   ],
+   [
+    "h3",
+    "Part of the multi-modal DEC train"
+   ],
+   [
+    "p",
+    "Grid modulation is one mode of Kronos's multi-modal DEC train, which also includes traveling-wave direct energy conversion (TWDEC), ultra-high-field MHD conversion, and thermionics for the neutron-carried and thermalized fraction. L1 coordinates the modes; the <a href=./dec-grid-modulation-loop.html>grid modulation loop</a> and <a href=./dec-fault-ride-through.html>fault ride-through</a> pages detail the electrostatic mode."
+   ]
+  ],
+  "related": [
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ],
+   [
+    "dec-fault-ride-through",
+    "DEC fault ride-through"
+   ],
+   [
+    "multimodal-dec-train-control",
+    "Multi-modal DEC train control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-grid-modulation-loop",
+  "title": "DEC Grid Modulation Loop",
+  "cat": "l1-control-plane",
+  "lede": "The fast feedback loop that keeps the burner's collector grids matched to a shifting ion spectrum, executed deterministically for stable direct conversion.",
+  "body": [
+   [
+    "h2",
+    "Closing the loop on conversion"
+   ],
+   [
+    "p",
+    "Setting collector-grid voltages once is not enough; the escaping-ion spectrum moves with plug conditions, beam power, and plasma state. The DEC grid modulation loop continuously re-matches the grids so conversion stays efficient and stable. L1 runs it as a fast deterministic loop, since a mismatch left uncorrected both loses recovery and can stress the grids."
+   ],
+   [
+    "h3",
+    "Loop structure"
+   ],
+   [
+    "p",
+    "The loop estimates the spectrum, computes stage voltage errors against the matched profile, and updates the grid supplies each cycle: V_stage &larr; V_stage + K(spectrum_target &minus; spectrum_est). The gain K is designed offline; execution is in fabric with the multi-stage update released together. Grid supply inner loops regulate the actual voltage to the commanded value."
+   ],
+   [
+    "h2",
+    "Stability and interaction"
+   ],
+   [
+    "ul",
+    [
+     "Grid loading feeds back on the escaping-ion flow &mdash; a coupled system.",
+     "The loop is tuned so grid modulation and plasma dynamics do not resonate.",
+     "Coordinated with <a href=./ambipolar-potential-control.html>ambipolar potential</a>, since both act on the same particle flow.",
+     "Multi-stage voltages committed on a synchronized gate to stay coherent."
+    ]
+   ],
+   [
+    "p",
+    "Because the collector loads the plasma's loss channel, grid voltage and plug/potential dynamics interact; L1 accounts for this coupling so the DEC loop and the confinement loops remain jointly stable. The digital twin's power module predicts the interaction on the shadow horizon to inform gain scheduling."
+   ],
+   [
+    "h3",
+    "Fault behavior"
+   ],
+   [
+    "p",
+    "A grid arc or supply fault must not propagate. The loop hands off to <a href=./dec-fault-ride-through.html>fault ride-through</a>, which isolates the affected stage and keeps the rest of the train converting. This graded, deterministic fault handling is why the DEC train can run through disturbances rather than tripping the whole conversion system on any single-stage upset."
+   ]
+  ],
+  "related": [
+   [
+    "dec-collector-grid-voltage-modulation",
+    "DEC collector-grid voltage modulation"
+   ],
+   [
+    "dec-fault-ride-through",
+    "DEC fault ride-through"
+   ],
+   [
+    "ambipolar-potential-control",
+    "Ambipolar potential control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "dec-fault-ride-through",
+  "title": "DEC Fault Ride-Through",
+  "cat": "l1-control-plane",
+  "lede": "L1 isolates a faulted collector stage within the deterministic window so the direct-conversion train keeps running through single-stage upsets.",
+  "body": [
+   [
+    "h2",
+    "Ride through, don't trip out"
+   ],
+   [
+    "p",
+    "A collector-grid arc, a supply glitch, or a transient overvoltage on one DEC stage should not stop the whole conversion train. L1 implements <b>fault ride-through</b>: detect the stage fault, isolate it, and keep the remaining stages converting, then attempt controlled re-insertion once the fault clears. This preserves operation through disturbances that would otherwise force a full shutdown."
+   ],
+   [
+    "h3",
+    "Detection and isolation"
+   ],
+   [
+    "p",
+    "Each stage is monitored for fault signatures &mdash; arc current, voltage collapse, rate-of-change limits. On detection, L1 removes drive from the affected stage and reconfigures the grid schedule so the remaining stages absorb the redistributed load without exceeding their limits. The whole sequence completes inside the fast window so the fault cannot cascade to neighboring stages or back into the plasma loss channel."
+   ],
+   [
+    "h2",
+    "Why determinism matters here"
+   ],
+   [
+    "ul",
+    [
+     "An arc evolves fast; late isolation can damage the stage.",
+     "Load redistribution must respect the surviving stages' envelopes.",
+     "Re-insertion is gated on verified fault clearance.",
+     "The plasma-side coupling must stay bounded during the transient."
+    ]
+   ],
+   [
+    "p",
+    "Ride-through is protection that preserves function, the DEC analogue of breeder <a href=./beam-notching-fast-protection.html>beam notching</a>: a fast, reversible action that contains a fault while keeping the machine productive. It sits at protection priority in <a href=./actuator-command-arbitration.html>arbitration</a> for the grid actuators."
+   ],
+   [
+    "h3",
+    "Coordination with conversion"
+   ],
+   [
+    "p",
+    "After isolation, the <a href=./dec-grid-modulation-loop.html>modulation loop</a> re-optimizes the reduced grid set for the current spectrum, and the twin's power module tracks the degraded-but-operating state. If faults accumulate beyond a safe threshold, L1 escalates to a controlled burner power reduction rather than an abrupt trip, keeping the machine within safe bounds throughout."
+   ]
+  ],
+  "related": [
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ],
+   [
+    "dec-collector-grid-voltage-modulation",
+    "DEC collector-grid voltage modulation"
+   ],
+   [
+    "multimodal-dec-train-control",
+    "Multi-modal DEC train control"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "multimodal-dec-train-control",
+  "title": "Multi-Modal DEC Train Control",
+  "cat": "l1-control-plane",
+  "lede": "L1 coordinates the burner's TWDEC, ultra-high-field MHD, and thermionic conversion stages so each energy channel is captured by the mode suited to it.",
+  "body": [
+   [
+    "h2",
+    "One train, several modes"
+   ],
+   [
+    "p",
+    "The burner's energy leaves in several forms &mdash; directed charged-particle flow, bulk plasma flow, and thermalized heat &mdash; so a single conversion method cannot capture all of it. Kronos uses a multi-modal DEC train: traveling-wave direct energy conversion (TWDEC), ultra-high-field MHD conversion, and thermionics, each matched to an energy channel. L1 coordinates the modes so they cooperate rather than compete for the same flow."
+   ],
+   [
+    "h3",
+    "The modes"
+   ],
+   [
+    "ul",
+    [
+     "TWDEC: decelerates a bunched, directed ion beam by phased RF fields, recovering directed kinetic energy.",
+     "Ultra-high-field MHD: extracts energy from conducting plasma flow crossing a strong field.",
+     "Thermionics / grids: capture thermalized and lower-energy fractions.",
+     "Electrostatic collector grids: the graded-voltage stage detailed elsewhere."
+    ]
+   ],
+   [
+    "p",
+    "Each mode has its own actuators and control loop &mdash; RF phase and amplitude for TWDEC, field and load for MHD, emitter/collector conditions for thermionics &mdash; and L1 runs them on a common clock so their handling of a shared particle and energy flow is coordinated, not conflicting."
+   ],
+   [
+    "h2",
+    "Coordination logic"
+   ],
+   [
+    "p",
+    "The train is a sequence: earlier stages take the energy bands they convert best and pass the remainder downstream. L1 schedules stage setpoints so the escaping-ion spectrum is progressively harvested, using the <a href=./synchronized-gates.html>gate</a> mechanism to keep multi-stage updates coherent. The twin's power module predicts the end-to-end recovery to guide the coordination."
+   ],
+   [
+    "h3",
+    "Determinism and neutrons"
+   ],
+   [
+    "p",
+    "D-3He is low-neutron (neutron fraction 5.44%), not aneutronic, so a small neutron-carried energy fraction is handled thermally rather than by direct conversion. L1 accounts for this split in coordinating the modes. Every mode's fast loop is deterministic, and every mode participates in <a href=./dec-fault-ride-through.html>fault ride-through</a> so the train degrades gracefully."
+   ]
+  ],
+  "related": [
+   [
+    "dec-collector-grid-voltage-modulation",
+    "DEC collector-grid voltage modulation"
+   ],
+   [
+    "dec-grid-modulation-loop",
+    "DEC grid modulation loop"
+   ],
+   [
+    "dec-fault-ride-through",
+    "DEC fault ride-through"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "power-supply-switching-control",
+  "title": "Coil Power-Supply Switching Control",
+  "cat": "l1-control-plane",
+  "lede": "Fast switching supplies drive the coil currents both machines depend on; L1 controls their switching deterministically to deliver clean, bounded current.",
+  "body": [
+   [
+    "h2",
+    "Supplies as the muscle behind the coils"
+   ],
+   [
+    "p",
+    "Every field the control loops command is realized by a power supply pushing current through a coil. Kronos uses fast switching converters whose output current tracks L1's demand. The switching itself &mdash; the gating of the power devices &mdash; is a deterministic control task: it sets how fast and how cleanly the coil current follows the setpoint the shape, position, or plug loops request."
+   ],
+   [
+    "h3",
+    "Current-mode inner loop"
+   ],
+   [
+    "p",
+    "Each supply closes a fast current-control inner loop: it modulates its switching duty to make output current equal the demand, rejecting back-EMF and load changes. This inner loop turns the coil-plus-supply into a predictable actuator for the outer plasma loops, which is the pattern used throughout <a href=./rt-compute-actuators.html>RT-compute actuators</a>. The switching frequency and control bandwidth are chosen so the coil current has the response the outer loop assumes."
+   ],
+   [
+    "h2",
+    "Deterministic switching"
+   ],
+   [
+    "ul",
+    [
+     "Gate timing referenced to the shared clock to bound jitter.",
+     "Current, voltage, and di/dt limits enforced locally.",
+     "Coordinated turn-on/off to avoid cross-supply transients.",
+     "Fast, controlled ramp paths for current ramp-down and dumps."
+    ]
+   ],
+   [
+    "p",
+    "The supplies also participate in protection: a controlled current ramp-down for disruption handling, or a coordinated de-energization during a magnet event, is executed through the same supplies under L1's timing guarantees. Their di/dt limits protect both the coil insulation and the plasma from abrupt field changes."
+   ],
+   [
+    "h3",
+    "Both machines' coil sets"
+   ],
+   [
+    "p",
+    "The breeder's central solenoid, toroidal-field, PF and vertical-control coils, and the burner's plug, throat, and central-cell magnets are all driven this way. Different power levels and dynamics, one control discipline: deterministic switching that makes coil current a clean, bounded actuator for the loops above."
+   ]
+  ],
+  "related": [
+   [
+    "rt-compute-actuators",
+    "Real-time compute actuators"
+   ],
+   [
+    "pf-shaping-coils-negative-triangularity",
+    "PF shaping coils and negative triangularity"
+   ],
+   [
+    "plasma-current-feedback",
+    "Plasma current feedback"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "divertor-expander-control",
+  "title": "Divertor and Expander Control",
+  "cat": "l1-control-plane",
+  "lede": "L1 manages the breeder divertor and burner end expander so exhaust heat and particles land on surfaces engineered to take them.",
+  "body": [
+   [
+    "h2",
+    "Handling the exhaust"
+   ],
+   [
+    "p",
+    "Both machines must exhaust power and particles onto solid surfaces without exceeding material limits. The breeder uses a divertor at the X-point set by the shaping coils; the burner uses an end expander that fans the escaping flux over a large collector area. L1 controls the actuators that keep these exhaust regions within their thermal and particle envelopes."
+   ],
+   [
+    "h3",
+    "Breeder divertor"
+   ],
+   [
+    "p",
+    "The divertor receives the scrape-off-layer power. L1 manages strike-point position (via the PF/shape system), impurity seeding (via <a href=./gas-puffing-servo-valves.html>gas valves</a>) for radiative detachment, and neutral pressure, so peak heat flux stays within the target's limit. Detachment control &mdash; keeping the divertor plasma partially detached to spread heat &mdash; is a feedback task on radiated fraction and target temperature."
+   ],
+   [
+    "h2",
+    "Burner expander"
+   ],
+   [
+    "ul",
+    [
+     "Expander fans the mirror end-loss flux over a large area.",
+     "Reduces peak heat and particle flux on the end collector.",
+     "Interfaces with the DEC train that recovers escaping-ion energy.",
+     "Monitored by the plasma-facing thermal-protection loop."
+    ]
+   ],
+   [
+    "p",
+    "On the burner the expander is where axial end-loss meets hardware, and it is also where direct conversion collects. L1 coordinates expander conditions with the <a href=./dec-grid-modulation-loop.html>DEC loop</a> so the same flux is both handled thermally and harvested electrically."
+   ],
+   [
+    "h3",
+    "Protection coupling"
+   ],
+   [
+    "p",
+    "Divertor and expander surfaces are watched by the <a href=./plasma-facing-thermal-protection-loop.html>plasma-facing thermal-protection loop</a>; a rising surface temperature triggers fast mitigation (seeding, power reduction) before a limit is reached. Exhaust control thus sits between performance and protection: it keeps the machine productive while guarding the components that take its heat."
+   ]
+  ],
+  "related": [
+   [
+    "plasma-facing-thermal-protection-loop",
+    "Plasma-facing thermal-protection loop"
+   ],
+   [
+    "elm-free-regime-control",
+    "ELM-free regime control"
+   ],
+   [
+    "gas-puffing-servo-valves",
+    "Gas-puffing servo valves"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "plasma-facing-thermal-protection-loop",
+  "title": "Plasma-Facing Thermal-Protection Loop",
+  "cat": "l1-control-plane",
+  "lede": "L1 watches plasma-facing surface temperatures and acts fast to keep the breeder wall/divertor and burner collectors inside their thermal limits.",
+  "body": [
+   [
+    "h2",
+    "Protecting the surfaces"
+   ],
+   [
+    "p",
+    "Plasma-facing components &mdash; the breeder first wall and divertor, the burner expander and collectors &mdash; take intense, sometimes transient heat. If a surface approaches its thermal limit, action must be immediate. L1 runs a thermal-protection loop that senses surface conditions and actuates to reduce load before damage, at protection priority."
+   ],
+   [
+    "h3",
+    "Sensing"
+   ],
+   [
+    "p",
+    "Surface and near-surface temperatures are inferred from thermal diagnostics (infrared and embedded sensors) and correlated with the heat-flux estimate from the power balance. A fast rise in surface temperature, or a hot spot exceeding a spatial threshold, triggers the loop. Because the response must beat the thermal time constant of a thin surface layer, the sensing-to-action path is engineered fast and deterministic."
+   ],
+   [
+    "h2",
+    "Actions"
+   ],
+   [
+    "ul",
+    [
+     "Impurity seeding / detachment to radiate power off the target.",
+     "Strike-point sweeping (breeder) to spread the load.",
+     "Fast power reduction (beam notch, current/plug adjustment).",
+     "Escalation to controlled shutdown if limits cannot be held."
+    ]
+   ],
+   [
+    "p",
+    "The loop matches action to severity, like the other graded-protection systems: mild hot spots get seeding and sweeping; severe excursions get power reduction. This keeps the machine operating through routine load swings while guaranteeing the surfaces are never driven past their limits."
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder the loop guards the divertor and first wall and works with <a href=./elm-free-regime-control.html>edge-regime</a> and <a href=./divertor-expander-control.html>divertor</a> control; on the burner it guards the expander and DEC collectors, coordinating with <a href=./dec-fault-ride-through.html>DEC ride-through</a>. In both, thermal protection is a fast L1 loop, independent of any model for its limiting action."
+   ]
+  ],
+  "related": [
+   [
+    "divertor-expander-control",
+    "Divertor and expander control"
+   ],
+   [
+    "elm-free-regime-control",
+    "ELM-free regime control"
+   ],
+   [
+    "structural-health-monitoring-loop",
+    "Structural health monitoring loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "structural-health-monitoring-loop",
+  "title": "Structural Health Monitoring Loop",
+  "cat": "l1-control-plane",
+  "lede": "Strain, vibration, and thermal sensors across the vessel and cocoon feed L1 and L3 so structural limits are respected in real time and over the machine's life.",
+  "body": [
+   [
+    "h2",
+    "Watching the structure"
+   ],
+   [
+    "p",
+    "The breeder's CrMoNbV vessel, the carbon-fiber cocoon, and the magnet support structure carry large, cyclic electromagnetic and thermal loads. Kronos instruments them with strain gauges, accelerometers, and thermal sensors, and L1 monitors these so that a structural limit is treated as an operating constraint in real time, not just a design-book number."
+   ],
+   [
+    "h3",
+    "Fast vs slow"
+   ],
+   [
+    "p",
+    "Structural health spans timescales. Fast: a sudden strain step or vibration signature &mdash; a conductor motion, a support slip &mdash; is a real-time cue that can arm the <a href=./quench-detection-hardware.html>quench detector</a> or trigger a protective response. Slow: strain and thermal cycling trend over pulses and campaigns, feeding fatigue and remaining-life estimates in the L3 twin's thermomechanics module."
+   ],
+   [
+    "h2",
+    "What L1 provides"
+   ],
+   [
+    "ul",
+    [
+     "Real-time strain envelope checks on the vessel and magnet structure.",
+     "Vibration monitoring for mechanical anomalies.",
+     "Thermal-gradient monitoring across the cocoon and vessel.",
+     "Fast flags to protection; slow trends to structural-health analytics."
+    ]
+   ],
+   [
+    "p",
+    "The <a href=./rebco-strain-and-quench-sensing.html>REBCO strain</a> and <a href=./ice-piston-preload-control.html>ICE-PISTON preload</a> loops are the magnet-specific members of this monitoring family; the vessel and cocoon add the surrounding structure. Together they give a complete picture of the machine's mechanical state each cycle."
+   ],
+   [
+    "h3",
+    "From monitoring to action"
+   ],
+   [
+    "p",
+    "When a fast structural signal crosses a limit, L1 acts within its deterministic window &mdash; the same discipline as thermal or quench protection. When a slow trend approaches a fatigue limit, the twin flags it for maintenance scheduling and operating-envelope adjustment. Structural health is thus both an immediate interlock input and a long-horizon planning input, spanning the L1/L3 boundary."
+   ]
+  ],
+  "related": [
+   [
+    "rebco-strain-and-quench-sensing",
+    "REBCO strain and quench sensing"
+   ],
+   [
+    "ice-piston-preload-control",
+    "ICE-PISTON preload control"
+   ],
+   [
+    "plasma-facing-thermal-protection-loop",
+    "Plasma-facing thermal-protection loop"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-safety-integrity-levels",
+  "title": "Control Safety Integrity Levels",
+  "cat": "l1-control-plane",
+  "lede": "Kronos grades each control function by the consequence of its failure and matches architecture, redundancy, and independence to that grade.",
+  "body": [
+   [
+    "h2",
+    "Not all functions are equal"
+   ],
+   [
+    "p",
+    "A shape-refinement loop and a magnet-quench dump do not carry the same consequence of failure. Kronos classifies each control function by a safety-integrity grade &mdash; how severe and how likely the harm from its failure &mdash; and assigns architecture accordingly. The highest grades demand the strongest independence, redundancy, and simplicity."
+   ],
+   [
+    "h3",
+    "The grading logic"
+   ],
+   [
+    "ul",
+    [
+     "Highest grade: magnet quench protection, vacuum containment interlocks &mdash; simple, independent, de-energize-to-trip, no software in the trip path.",
+     "High grade: vertical stability, disruption mitigation trigger, thermal protection &mdash; deterministic FPGA/PLC, redundant, model-independent action.",
+     "Medium: density, current, position regulation &mdash; deterministic loops with graceful degradation.",
+     "Advisory: MPC trajectories, learning-driven optimization &mdash; can fail without harm because L1 holds safe defaults."
+    ]
+   ],
+   [
+    "p",
+    "The grade dictates design freedom. An advisory function may use any technique, including deep learning, because its failure is caught by the layer below. A highest-grade function may use only inspectable, independent hardware, because nothing catches it &mdash; it is the catch."
+   ],
+   [
+    "h2",
+    "Independence"
+   ],
+   [
+    "p",
+    "A core rule: a function must not depend on components it is protecting against. Magnet protection cannot rely on the compute racks it might have to survive losing; vacuum interlocks cannot rely on the software they gate. This is why the <a href=./autonomous-hardware-failsafe.html>hardware failsafe</a> is physically separate from the intelligent stack &mdash; independence is what makes its guarantee credible."
+   ],
+   [
+    "h3",
+    "Certification and the two machines"
+   ],
+   [
+    "p",
+    "Each function's grade, architecture, and evidence (WCET reports, interlock tables, redundancy analysis) form its certification record. The same grading applies to breeder and burner functions; the physics differs but the discipline &mdash; consequence drives architecture &mdash; is identical across the fleet."
+   ]
+  ],
+  "related": [
+   [
+    "interlock-logic-hardware",
+    "Interlock logic hardware"
+   ],
+   [
+    "fail-safe-vs-fail-operational",
+    "Fail-safe vs fail-operational"
+   ],
+   [
+    "redundancy-voting-triple-modular",
+    "Triple-modular redundancy and voting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fail-safe-vs-fail-operational",
+  "title": "Fail-Safe vs Fail-Operational",
+  "cat": "l1-control-plane",
+  "lede": "Some L1 functions must fail into a safe state; others must keep operating through a fault. Kronos chooses per function based on which failure is worse.",
+  "body": [
+   [
+    "h2",
+    "Two failure philosophies"
+   ],
+   [
+    "p",
+    "When a component fails, a system can be designed to <b>fail-safe</b> (go to a defined safe state) or <b>fail-operational</b> (keep working despite the fault). Neither is universally right. Kronos assigns each L1 function the philosophy whose failure mode is less harmful, given what the function protects and what a safe state costs."
+   ],
+   [
+    "h3",
+    "Fail-safe functions"
+   ],
+   [
+    "ul",
+    [
+     "Magnet quench dump: loss of power or signal fires the dump (de-energize-to-trip).",
+     "Vacuum interlocks: default to the state that protects the vessel.",
+     "Actuator drivers: loss of valid command holds or reverts to a safe output."
+    ]
+   ],
+   [
+    "p",
+    "For these, the safe state is well-defined and reaching it is protective, so failure should drive toward it. The <a href=./autonomous-hardware-failsafe.html>hardware failsafe</a> is the archetype: it is biased so that any failure of its own path still results in protection, not exposure."
+   ],
+   [
+    "h2",
+    "Fail-operational functions"
+   ],
+   [
+    "ul",
+    [
+     "Vertical stability: cannot simply 'go safe' mid-discharge &mdash; must keep controlling.",
+     "DEC train: rides through a single-stage fault to keep converting.",
+     "State-vector ingress: imputes a dropped channel to keep the loop running."
+    ]
+   ],
+   [
+    "p",
+    "Here an abrupt safe-state jump would itself cause the harm &mdash; dropping vertical control ends in a disruption. So these functions carry redundancy and graceful degradation to keep operating through faults, escalating to a controlled safe shutdown only if degradation runs out. This is why <a href=./vertical-stability-control.html>vertical control</a> is redundant and <a href=./dec-fault-ride-through.html>DEC ride-through</a> exists."
+   ],
+   [
+    "h3",
+    "Choosing correctly"
+   ],
+   [
+    "p",
+    "The choice follows the safety-integrity analysis: if the safe state is quickly reachable and protective, fail-safe; if reaching it abruptly is itself dangerous, fail-operational with a controlled path to safety. Most machines mix both, and the boundaries between them are exactly where careful design pays off."
+   ]
+  ],
+  "related": [
+   [
+    "control-safety-integrity-levels",
+    "Control safety integrity levels"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "redundancy-voting-triple-modular",
+    "Triple-modular redundancy and voting"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "redundancy-voting-triple-modular",
+  "title": "Triple-Modular Redundancy and Voting",
+  "cat": "l1-control-plane",
+  "lede": "Critical L1 channels are triplicated and voted so a single fault is outvoted, giving fail-operational behavior without a single point of failure.",
+  "body": [
+   [
+    "h2",
+    "Surviving a single fault"
+   ],
+   [
+    "p",
+    "A fail-operational function cannot rest on one channel &mdash; that channel is a single point of failure. Kronos triplicates the most critical control and protection channels and votes their outputs: <b>triple-modular redundancy (TMR)</b>. With three independent channels and a 2-of-3 voter, one channel's fault is outvoted and the correct action still issues."
+   ],
+   [
+    "h3",
+    "How voting works"
+   ],
+   [
+    "p",
+    "Three identical channels compute the same result from independent sensing where possible. A voter compares them and forwards the majority. If one disagrees, the majority prevails and the dissenter is flagged for maintenance. The voter itself is simple hardware &mdash; its logic is small enough to be highly reliable and, where required, itself redundant."
+   ],
+   [
+    "truth",
+    [
+     [
+      "Ch A",
+      "Ch B",
+      "Ch C",
+      "Voted"
+     ],
+     [
+      [
+       "1",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "1",
+       "0",
+       "1"
+      ],
+      [
+       "1",
+       "0",
+       "1",
+       "1"
+      ],
+      [
+       "0",
+       "1",
+       "1",
+       "1"
+      ],
+      [
+       "1",
+       "0",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "1",
+       "0",
+       "0"
+      ],
+      [
+       "0",
+       "0",
+       "1",
+       "0"
+      ],
+      [
+       "0",
+       "0",
+       "0",
+       "0"
+      ]
+     ]
+    ]
+   ],
+   [
+    "p",
+    "The table is the 2-of-3 majority: the output follows whichever value at least two channels agree on, so any single channel error is masked. This is applied to protection trips, key stability channels, and safety-critical estimates."
+   ],
+   [
+    "h2",
+    "Independence of channels"
+   ],
+   [
+    "ul",
+    [
+     "Separate sensing paths where feasible, to avoid common-cause faults.",
+     "Separate fabric regions / devices, separate power where practical.",
+     "Diverse implementation for the highest grades, to avoid shared design flaws.",
+     "Disagreement logged so latent faults are found before a second one occurs."
+    ]
+   ],
+   [
+    "h3",
+    "Cost and placement"
+   ],
+   [
+    "p",
+    "TMR is not free &mdash; three times the channels &mdash; so Kronos applies it where the <a href=./control-safety-integrity-levels.html>integrity grade</a> demands fail-operational behavior, not everywhere. The passive <a href=./autonomous-hardware-failsafe.html>magnet failsafe</a> uses redundant channels for the same reason: no single element's failure may defeat protection."
+   ]
+  ],
+  "related": [
+   [
+    "control-safety-integrity-levels",
+    "Control safety integrity levels"
+   ],
+   [
+    "fail-safe-vs-fail-operational",
+    "Fail-safe vs fail-operational"
+   ],
+   [
+    "watchdog-timers",
+    "Watchdog timers and heartbeats"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "watchdog-timers",
+  "title": "Watchdog Timers and Heartbeats",
+  "cat": "l1-control-plane",
+  "lede": "Every L1 controller proves it is alive by servicing a watchdog; a missed heartbeat forces the guarded actuator into its safe state.",
+  "body": [
+   [
+    "h2",
+    "Detecting a stuck controller"
+   ],
+   [
+    "p",
+    "A controller can fail silently &mdash; hung, stalled, or looping &mdash; while its last output lingers on an actuator. Watchdog timers catch this. Each controller must periodically service (kick) a hardware watchdog; if it fails to within the timeout, the watchdog assumes the controller is dead and forces the guarded actuator to its safe state."
+   ],
+   [
+    "h3",
+    "Heartbeats across the fabric"
+   ],
+   [
+    "p",
+    "Beyond a single watchdog, L1 nodes exchange heartbeats on the deterministic fabric so peers and supervisors know each node is alive and on time. A missing heartbeat is treated like a fault: authority is withdrawn from the silent node and its actuators default safe, per each function's <a href=./fail-safe-vs-fail-operational.html>fail-safe or fail-operational</a> disposition."
+   ],
+   [
+    "h2",
+    "Design points"
+   ],
+   [
+    "ul",
+    [
+     "Watchdog timeout set below the actuator's safe-response requirement.",
+     "The kick must depend on the controller actually completing its work, not a dumb timer.",
+     "Watchdog action is hardware, independent of the controller it guards.",
+     "Heartbeat loss is logged and raises a supervisory alarm."
+    ]
+   ],
+   [
+    "p",
+    "A subtlety: a naive watchdog kick on a fixed schedule can hide a controller that runs but computes garbage. Kronos ties the kick to evidence of correct completion &mdash; the controller must reach its output stage to service the watchdog &mdash; so the watchdog detects functional failure, not just total halt."
+   ],
+   [
+    "h3",
+    "Part of the safety net"
+   ],
+   [
+    "p",
+    "Watchdogs and heartbeats complement redundancy and interlocks: redundancy masks a fault, watchdogs detect a stalled channel, interlocks deny unsafe action. Together they ensure that no L1 component can fail in a way that leaves an actuator stuck in a dangerous state. The independent <a href=./autonomous-hardware-failsafe.html>hardware failsafe</a> underneath means even a total control-plane failure is caught."
+   ]
+  ],
+  "related": [
+   [
+    "fail-safe-vs-fail-operational",
+    "Fail-safe vs fail-operational"
+   ],
+   [
+    "redundancy-voting-triple-modular",
+    "Triple-modular redundancy and voting"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mpc-to-fpga-command-handoff",
+  "title": "MPC to FPGA Command Handoff",
+  "cat": "l1-control-plane",
+  "lede": "L3's model-predictive control produces optimized trajectories; L1 validates and executes them, so the intelligent target is realized within hard timing.",
+  "body": [
+   [
+    "h2",
+    "The seam between thinking and acting"
+   ],
+   [
+    "p",
+    "Kronos's MPC agents at L3 solve an optimization over a 50&ndash;100 ms predictive horizon: given the twin's forecast, what trajectory of coil currents, beam power, fueling, or DEC voltages best meets the objectives while respecting constraints? The answer is a <b>setpoint trajectory</b>, not an instantaneous command. L1 is where that trajectory becomes physical action."
+   ],
+   [
+    "h3",
+    "The handoff contract"
+   ],
+   [
+    "p",
+    "L3 publishes the trajectory as advisory targets tagged with validity time. L1 accepts them only after validation &mdash; range, rate, and cross-consistency against the live state &mdash; then interpolates and executes them through the deterministic loops and drivers. If a new trajectory does not arrive in time, L1 continues on the last valid one; if targets go stale, it falls back to safe local control. The intelligent layer can never stall the machine."
+   ],
+   [
+    "h2",
+    "Why MPC lives above L1"
+   ],
+   [
+    "ul",
+    [
+     "MPC solve time is data-dependent &mdash; it cannot meet a 10 &micro;s deadline.",
+     "It optimizes over a horizon; L1 acts on the current instant.",
+     "Its constraints are soft objectives; L1's clamps are hard limits.",
+     "It can be improved offline without touching L1's certified logic."
+    ]
+   ],
+   [
+    "p",
+    "This split lets the optimization be as sophisticated as compute allows &mdash; anticipating a breeder shape excursion or a burner plug drift &mdash; while the guarantee that the machine stays safe and on-time rests entirely on the deterministic layer that consumes its output."
+   ],
+   [
+    "h3",
+    "Bumpless and bounded"
+   ],
+   [
+    "p",
+    "Handover is bumpless: L1 blends onto a new trajectory without stepping the actuators, and <a href=./actuator-command-arbitration.html>arbitration</a> ensures any protection action instantly overrides the MPC target. The result is that <a href=./determinism-vs-learning.html>learning and determinism</a> cooperate: L3 raises quality, L1 guarantees safety and timing."
+   ]
+  ],
+  "related": [
+   [
+    "determinism-vs-learning",
+    "Determinism vs learning"
+   ],
+   [
+    "actuator-command-arbitration",
+    "Actuator command arbitration"
+   ],
+   [
+    "equilibrium-reconstruction-realtime",
+    "Real-time equilibrium reconstruction"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "real-time-linux-vs-fpga",
+  "title": "Real-Time Linux vs FPGA",
+  "cat": "l1-control-plane",
+  "lede": "Real-time operating systems bound scheduling latency in software, but only fabric removes it; Kronos uses RT-Linux for supervision and FPGA for the fast loops.",
+  "body": [
+   [
+    "h2",
+    "Two kinds of 'real-time'"
+   ],
+   [
+    "p",
+    "A real-time operating system (RT-Linux and similar) bounds the latency of software tasks by controlling scheduling, priorities, and interrupts. It is far more deterministic than a general-purpose OS &mdash; but its bounds are in microseconds-to-milliseconds and still subject to residual jitter from caches and the kernel. FPGA fabric removes scheduling entirely: logic is spatial, so there is nothing to schedule."
+   ],
+   [
+    "h3",
+    "Where each belongs"
+   ],
+   [
+    "ul",
+    [
+     "FPGA: protection and fast stability loops needing the 10 &micro;s bound and nanosecond jitter.",
+     "RT-Linux: supervisory coordination, sequencing, the MPC-to-L1 mediation, logging &mdash; bounded but coarser.",
+     "PLC: plant-protection sequencing at millisecond scan cadence."
+    ]
+   ],
+   [
+    "p",
+    "RT-Linux is the right tool for tasks that need software flexibility with a decent latency bound but not a hard microsecond deadline: managing operating states, loading bitstreams, handling the <a href=./mpc-to-fpga-command-handoff.html>trajectory handoff</a>, and streaming telemetry to the L2 archive. It coordinates; it does not sit on a protection path."
+   ],
+   [
+    "h2",
+    "Why not push everything to RT-Linux"
+   ],
+   [
+    "p",
+    "One could try to run the fast loops on RT-Linux, but proving a hard 10 &micro;s WCET through a kernel, drivers, and shared caches is fragile and loose. The FPGA gives that bound by construction. Kronos therefore keeps the certified fast loops in fabric and uses RT-Linux for the layer that genuinely benefits from a software environment."
+   ],
+   [
+    "h3",
+    "A clean layering"
+   ],
+   [
+    "p",
+    "The result is a stack matched to requirements: FPGA where determinism is absolute, RT-Linux where flexible bounded coordination is needed, PLC where auditable plant sequencing is needed, and GPUs offline at L0 for training. Each layer does what it is best at, and the hard guarantees live only where they can be proven &mdash; consistent with the <a href=./fpga-vs-cpu-vs-gpu-control.html>fabric-selection</a> logic."
+   ]
+  ],
+  "related": [
+   [
+    "fpga-vs-cpu-vs-gpu-control",
+    "FPGA vs CPU vs GPU for control"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ],
+   [
+    "control-plane-l2-l3-boundary",
+    "The L1 to L2/L3 boundary"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "fpga-fabric-selection",
+  "title": "FPGA Fabric Selection",
+  "cat": "l1-control-plane",
+  "lede": "Choosing the control-plane FPGA is a determinism and radiation problem: clocking, I/O, resources, and tolerance to the machine's neutron and EM environment.",
+  "body": [
+   [
+    "h2",
+    "What drives the choice"
+   ],
+   [
+    "p",
+    "The control-plane FPGA is selected for guarantees, not peak throughput. What matters is deterministic clocking, high-bandwidth deterministic I/O for the diagnostics constellation, enough logic and DSP resources for the control math, and tolerance of the machine's radiation and electromagnetic environment. A part that is fast on average but hard to bound is the wrong part."
+   ],
+   [
+    "h3",
+    "Selection axes"
+   ],
+   [
+    "ul",
+    [
+     "Clocking: low-jitter PLLs and reliable clock distribution for nanosecond skew.",
+     "I/O: many deterministic serial/parallel lanes for the state-vector ingress.",
+     "Resources: DSP slices for fixed-point MAC trees, block RAM for pipelines.",
+     "Environment: radiation tolerance and placement away from peak neutron flux.",
+     "Toolchain: mature timing closure and static analysis for WCET evidence."
+    ]
+   ],
+   [
+    "h2",
+    "Radiation and placement"
+   ],
+   [
+    "p",
+    "Both machines produce neutrons &mdash; the breeder 14 MeV D-T neutrons at 88.7 MW fusion power, the burner a 5.44% neutron fraction from D-3He. Single-event upsets in an FPGA's configuration or logic must be considered. Kronos places control fabric where shielding keeps flux manageable, and uses configuration scrubbing and error-corrected memory so upsets are detected and corrected before they affect a decision."
+   ],
+   [
+    "h3",
+    "Timing closure as acceptance"
+   ],
+   [
+    "p",
+    "A fabric choice is only validated when the control design closes timing on it with margin and the toolchain can produce a defensible <a href=./worst-case-execution-time.html>WCET</a> report. The same platform is targeted for both machines' fast loops, so investing in one hardened, well-characterized fabric pays across the fleet. Upset handling ties into <a href=./redundancy-voting-triple-modular.html>redundancy</a> for the highest-grade functions."
+   ]
+  ],
+  "related": [
+   [
+    "edge-fpga-microsecond-actuation",
+    "Edge FPGA microsecond-deterministic actuation"
+   ],
+   [
+    "fpga-vs-cpu-vs-gpu-control",
+    "FPGA vs CPU vs GPU for control"
+   ],
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-plane-l2-l3-boundary",
+  "title": "The L1 to L2/L3 Boundary",
+  "cat": "l1-control-plane",
+  "lede": "L1 streams validated telemetry up and receives advisory targets down, but its safety and timing guarantees never depend on the layers above it.",
+  "body": [
+   [
+    "h2",
+    "A one-way safety dependency"
+   ],
+   [
+    "p",
+    "L1 talks to L2 (data fabric) and L3 (twin and AI) constantly &mdash; it publishes telemetry upward and consumes advisory setpoints downward. But the dependency is deliberately one-way for safety: L1's guarantees hold even if L2 and L3 are slow, wrong, or absent. Information flows both ways; authority does not flow down into the safety-critical loops."
+   ],
+   [
+    "h3",
+    "What crosses upward"
+   ],
+   [
+    "ul",
+    [
+     "Validated, time-stamped state vectors for the L2 petabyte archive.",
+     "Actuator commands and arbitration outcomes, for the twin and audit.",
+     "Fault, interlock, and protection events with precise timing.",
+     "Feature streams feeding the L2 feature store and L3 models."
+    ]
+   ],
+   [
+    "p",
+    "This upward stream is rate-constrained traffic on the <a href=./deterministic-network-fabric.html>deterministic fabric</a> &mdash; bounded so it can never crowd out a protection frame. It is what lets L3 build a faithful digital twin and L0 retrain surrogates offline, without ever touching L1's timing."
+   ],
+   [
+    "h2",
+    "What crosses downward"
+   ],
+   [
+    "p",
+    "Downward comes advisory intelligence: MPC trajectories, disruption-precursor predictions that arm L1 loops earlier, imputed values for dropped channels, and gain schedules from the twin. All of it is validated at the boundary and treated as advisory &mdash; the <a href=./mpc-to-fpga-command-handoff.html>handoff contract</a> ensures a bad or missing target degrades quality, not safety."
+   ],
+   [
+    "h3",
+    "Why the boundary is the architecture"
+   ],
+   [
+    "p",
+    "This boundary is the whole point of separating L1 from the intelligent stack: it lets Kronos evolve models freely above the line while the certified, deterministic layer below the line keeps both machines safe and on time. It is the structural expression of <a href=./determinism-vs-learning.html>determinism vs learning</a> at the tier scale."
+   ]
+  ],
+  "related": [
+   [
+    "determinism-vs-learning",
+    "Determinism vs learning"
+   ],
+   [
+    "mpc-to-fpga-command-handoff",
+    "MPC to FPGA command handoff"
+   ],
+   [
+    "deterministic-network-fabric",
+    "Deterministic network fabric"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "control-plane-airgap-security",
+  "title": "Control-Plane Isolation and Integrity",
+  "cat": "l1-control-plane",
+  "lede": "The safety-critical control plane is isolated from general networks; only validated, one-directional interfaces cross into it, protecting deterministic operation.",
+  "body": [
+   [
+    "h2",
+    "Isolation as a safety property"
+   ],
+   [
+    "p",
+    "A deterministic control plane must be protected from anything that could inject latency, jitter, or unauthorized commands &mdash; including from the network. Kronos isolates the L1 safety-critical layer from general-purpose and external networks, so its timing and behavior cannot be perturbed by traffic or actors outside the machine's control domain. Isolation here is a determinism and safety measure, described operationally, not a product claim."
+   ],
+   [
+    "h3",
+    "Controlled crossings"
+   ],
+   [
+    "ul",
+    [
+     "Telemetry egress to L2 is one-directional where feasible &mdash; data out, no command in.",
+     "Setpoint ingress from L3 passes the validation gate before it can act.",
+     "Configuration and bitstream loading happen only in defined maintenance states.",
+     "Every crossing is authenticated and logged."
+    ]
+   ],
+   [
+    "p",
+    "The principle mirrors the layer boundary: information may cross, but the ability to compromise timing or force an unsafe actuation must not. A setpoint that arrives from above is data to be validated, never a trusted command &mdash; exactly the discipline the whole control plane applies to any external input."
+   ],
+   [
+    "h2",
+    "Why the failsafe is immune"
+   ],
+   [
+    "p",
+    "The <a href=./autonomous-hardware-failsafe.html>hardware failsafe</a> is the strongest expression of isolation: it uses only local analog sensing and passive-biased switching, so no network path exists to it at all. Nothing reachable over any interface can prevent it from protecting a magnet. Protection that cannot be reached cannot be subverted."
+   ],
+   [
+    "h3",
+    "Maintaining integrity over life"
+   ],
+   [
+    "p",
+    "Bitstreams and PLC logic are version-controlled with their WCET and interlock evidence; a change enters the machine only through a controlled maintenance state with review, never during operation. This keeps the certified behavior of the deterministic layer stable and auditable across the machine's life, on both the breeder and the burner."
+   ]
+  ],
+  "related": [
+   [
+    "control-plane-l2-l3-boundary",
+    "The L1 to L2/L3 boundary"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "Autonomous hardware failsafe"
+   ],
+   [
+    "commissioning-hardware-in-loop",
+    "Hardware-in-the-loop commissioning"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "commissioning-hardware-in-loop",
+  "title": "Hardware-in-the-Loop Commissioning",
+  "cat": "l1-control-plane",
+  "lede": "Before either machine energizes, L1 is validated against the digital twin in hardware-in-the-loop tests that exercise every loop and failsafe deterministically.",
+  "body": [
+   [
+    "h2",
+    "Proving the control plane before first plasma"
+   ],
+   [
+    "p",
+    "Both machines are, today, design and simulation studies; construction of the breeder begins Q2 2027, with first-of-a-kind first tritium around 2030. Long before energization, the control plane must be proven. Kronos validates L1 with hardware-in-the-loop (HIL) testing: the real FPGA controllers, drivers, and interlocks run against the digital twin standing in for the plasma and plant."
+   ],
+   [
+    "h3",
+    "What HIL exercises"
+   ],
+   [
+    "ul",
+    [
+     "Every fast loop against twin-generated state: shape, stability, plug density, DEC.",
+     "Protection paths: quench precursor to dump, disruption mitigation trigger, thermal limits.",
+     "Timing: measured WCET and jitter compared against the analytic budgets.",
+     "Fault injection: dropped diagnostics, stage faults, stalled controllers, missing setpoints."
+    ]
+   ],
+   [
+    "p",
+    "Fault injection is central: HIL deliberately drops channels, faults DEC stages, stalls controllers, and withholds MPC targets to confirm that watchdogs fire, redundancy votes, ride-through holds, and the machine defaults safe. A failsafe is only trustworthy once it has been made to act in test."
+   ],
+   [
+    "h2",
+    "Closing the analytic loop"
+   ],
+   [
+    "p",
+    "HIL confirms that the certified bounds are real. Measured latency and jitter must agree with the <a href=./worst-case-execution-time.html>WCET</a> and <a href=./timing-budgets-and-jitter.html>jitter</a> budgets; where they diverge, the design is corrected before hardware energizes. This is how the paper guarantees of the deterministic layer become validated guarantees."
+   ],
+   [
+    "h3",
+    "From twin to machine"
+   ],
+   [
+    "p",
+    "Because the same digital twin used in HIL later runs as the operating <a href=./control-plane-l2-l3-boundary.html>L3 shadow</a>, commissioning and operation share a model lineage: the control plane is tested against the same physics it will later be advised by. HIL is the bridge from simulation study to a machine whose control plane is trusted from first energization onward."
+   ]
+  ],
+  "related": [
+   [
+    "control-plane-l2-l3-boundary",
+    "The L1 to L2/L3 boundary"
+   ],
+   [
+    "worst-case-execution-time",
+    "Worst-case execution time"
+   ],
+   [
+    "timing-budgets-and-jitter",
+    "Timing budgets and jitter"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

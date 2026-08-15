@@ -84,7 +84,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 @media(max-width:820px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style>
 <link rel="icon" href="https://kronosfusionenergy.com/favicon.svg"><link rel="apple-touch-icon" href="https://kronosfusionenergy.com/favicon.svg"><meta name="theme-color" content="#0a0e17"><meta property="og:site_name" content="Kronos Fusion Energy"><meta property="og:type" content="website"><meta property="og:title" content="Mirnov Coils and Flux Loops as a Coupled Graph · Kronos Fusion Energy"><meta property="og:description" content="Magnetic diagnostics form the densest subgraph in Kronos&#x27;s constellation, and the GNN uses their geometry to reconstruct MHD mode structure."><meta property="og:url" content="https://kronosfusionenergy.com/ai/gnn-mirnov-flux-graph.html"><meta property="og:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://www.kronosfusionenergy.com/__l5e/assets-v1/9153ca3a-2184-47d8-a388-f5f14558ab5b/kronos_preview_1200x630.png">
-</head><body><!-- ══════════════════════════════════════════════════════════════════════════
+<link rel="preconnect" href="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev" crossorigin><style>.kfe-skip{position:absolute;left:-9999px}.kfe-skip:focus{position:fixed;left:10px;top:10px;z-index:99999;background:#D4AD5C;color:#141a22;padding:9px 15px;border-radius:4px;font-family:sans-serif;font-size:14px}</style></head><body><a href="#kfe-main" class="kfe-skip">Skip to content</a><!-- ══════════════════════════════════════════════════════════════════════════
      KRONOS FUSION ENERGY — GLOBAL HEADER + FOOTER (self-contained embed)
      Paste this entire block into the <body> of any static page.
      • all CSS inline in one <style> block (only external ref: Google Fonts link)
@@ -367,7 +367,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
   </div>
-</header>
+</header><span id="kfe-main" tabindex="-1"></span>
 
 <!-- ── MOBILE MENU ─────────────────────────────────────────────────────── -->
 <div class="kfe-mobile" id="kfe-mobile">
@@ -422,7 +422,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <p>Because message passing is equivariant to the array's toroidal symmetry, the GNN embedding of a coherent (m,n) mode is stable even if individual coils drop out; the imputation head fills the gap from the surrounding phase pattern. This is what lets the MHD Stability module of KRONOS-CTRL keep tracking a growing mode through partial diagnostic loss, rather than losing lock at the worst moment.</p>
 <ul><li>Mirnov coils: fast dB_pol/dt, node feature = amplitude + phase</li><li>Flux loops: integrated flux, node feature = slow equilibrium anchor</li><li>Edges: angular separation, shared flux surface, expected mode phase shift</li><li>Output: (m,n) mode amplitude, rotation frequency, growth-rate estimate</li></ul>
 <p>The magnetic subgraph is also where the anomaly ensemble looks first: a sub-threshold precursor to a locked mode shows up as a coil-to-coil phase pattern that stops rotating before amplitude grows. Detecting that on the graph, hops before it becomes a whole-machine event, is the core of disruption avoidance for the breeder.</p>
-<p>For the burner, the analogous subgraph is the end-cell magnetic array around the 26.49 T plug, where the coupling structure reflects mirror symmetry rather than toroidal periodicity, but the same message-passing machinery applies.</p><div class="related"><h3>Related</h3><a href="./gnn-message-passing-diagnostics.html">Message Passing &rarr;</a><a href="./anomaly-disruption-precursors.html">Disruption Precursors &rarr;</a><a href="./twin-mhd-stability-module.html">MHD Stability Module &rarr;</a></div></main></div><div class="kfe-embed">
+<p>For the burner, the analogous subgraph is the end-cell magnetic array around the 26.49 T plug, where the coupling structure reflects mirror symmetry rather than toroidal periodicity, but the same message-passing machinery applies.</p><div class="related"><h3>Related</h3><a href="./gnn-message-passing-diagnostics.html">Message Passing &rarr;</a><a href="./anomaly-disruption-precursors.html">Disruption Precursors &rarr;</a><a href="./twin-mhd-stability-module.html">MHD Stability Module &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="kfe-footer">

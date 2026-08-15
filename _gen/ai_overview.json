@@ -1,0 +1,3391 @@
+[
+ {
+  "slug": "ai-native-master-blueprint",
+  "title": "The AI-Native S.M.A.R.T. Generator Master Blueprint",
+  "cat": "overview",
+  "lede": "One architecture, eight layers, wired end-to-end into two fusion machines — the breeder (Hyperion) and the burner (Aegis / MetroVolt).",
+  "body": [
+   [
+    "h2",
+    "What the Master Blueprint is"
+   ],
+   [
+    "p",
+    "The Master Blueprint is the single control document for how Kronos applies artificial intelligence, machine learning, and quantum computing to a fusion power plant. It is not a generic computing stack laid beside a reactor; it is an <b>AI-native</b> architecture in which every layer terminates in real hardware — REBCO magnets, cryogenic feedthroughs, the divertor, the direct-energy-conversion train — and in real plasma physics."
+   ],
+   [
+    "p",
+    "The blueprint spans eight layers, L0 through L7. Reading upward, L0 Foundation provides offline compute, L1 the Control Plane provides microsecond determinism, L2 the Data Fabric carries and curates telemetry, L3 Twin Modeling & AI turns that telemetry into predictions and actions, and L4 through L7 orchestrate, apply, present, and integrate the whole plant with the outside world."
+   ],
+   [
+    "h3",
+    "Both machines, one stack"
+   ],
+   [
+    "p",
+    "The same eight layers run the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.424 and 88.7 MW of fusion power, and the burner, a D-3He tandem-mirror generator with a 26.49 T end plug. What changes between machines is not the architecture but the <b>physics the top layers reason about</b>: equilibrium and disruption for the tokamak, end-plug density and the ambipolar potential for the mirror."
+   ],
+   [
+    "h3",
+    "How to read the blueprint"
+   ],
+   [
+    "ul",
+    [
+     "Layers are horizontal bands from L0 (bottom) to L7 (top).",
+     "Colors classify a block by role — governance, infrastructure, operations, AI-workflow, thermal, feedback, framing.",
+     "Line styles classify a connection by latency class — microsecond real-time, standard telemetry, or offline batch.",
+     "Every block names a layer, an interface, a machine, and the physics it touches."
+    ]
+   ],
+   [
+    "p",
+    "These conventions are documented on the <a href=./color-grammar-overview.html>color grammar</a> and <a href=./line-semantics-overview.html>line semantics</a> pages. Kronos treats the diagram as an engineering contract, not an illustration."
+   ],
+   [
+    "h3",
+    "Honest framing"
+   ],
+   [
+    "p",
+    "Both machines are design and simulation studies today. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted around 2030. No hardware net-gain claim is made before that milestone; the blueprint documents the intelligence that will run the machines, validated against physics codes rather than against an operating reactor."
+   ]
+  ],
+  "related": [
+   [
+    "eight-layer-stack-overview",
+    "The 8-Layer Stack"
+   ],
+   [
+    "one-architecture-two-machines",
+    "One Architecture, Two Machines"
+   ],
+   [
+    "honest-gates",
+    "The Honest Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "eight-layer-stack-overview",
+  "title": "The Eight-Layer Stack",
+  "cat": "overview",
+  "lede": "L0 Foundation to L7 Ecosystem: a strict layered separation that isolates microsecond safety from petabyte-scale learning.",
+  "body": [
+   [
+    "h2",
+    "The eight layers"
+   ],
+   [
+    "p",
+    "Kronos separates concerns into eight layers so that the fastest, most safety-critical functions never depend on the slowest, most compute-heavy ones. Each layer exposes a defined interface to its neighbors and can be reasoned about, tested, and certified independently."
+   ],
+   [
+    "ul",
+    [
+     "L0 Foundation — cloud HPC and bare-metal supercomputing for offline multi-physics Monte Carlo and batch retraining.",
+     "L1 Control Plane — edge FPGAs enforcing microsecond determinism and the autonomous hardware failsafe.",
+     "L2 Data Fabric — 60+ port telemetry ingest, validation, feature engineering, archive, feature store, vector DB.",
+     "L3 Twin Modeling & AI — GNNs, PINNs, anomaly ensembles, MPC agents, and the KRONOS-CTRL digital twin.",
+     "L4 Orchestration — event streaming, workflow engine, rules and safety bounds, human-in-the-loop routing.",
+     "L5 Applications & Copilots — agentic Plasma, Engineering, and Operations copilots.",
+     "L6 Experience — control-room 3D twin overlays, plant-floor SCADA, mobile engineering.",
+     "L7 Ecosystem & Strategy — grid, supply-chain, maintenance, and regulatory integration via the unified API."
+    ]
+   ],
+   [
+    "h3",
+    "Why the numbering runs both ways"
+   ],
+   [
+    "p",
+    "Data and telemetry flow <b>up</b> the stack, from sensors at L2 toward decisions at L3-L5 and human oversight at L6-L7. Authority and commands flow <b>down</b>, from strategy and copilots toward the microsecond actuation at L1. The <a href=./l7-to-l0-stepped-hierarchy.html>stepped L7-to-L0 hierarchy</a> describes that command descent explicitly."
+   ],
+   [
+    "h3",
+    "Isolation as a safety property"
+   ],
+   [
+    "p",
+    "The separation is deliberate: an L0 retraining job can run for hours across a GPU cluster without ever touching the sub-10-microsecond command boundary at L1. If L3's AI stalls, the L1 failsafe still dumps a magnet quench on its own. Layer isolation is what lets a fusion plant be both intelligent and provably safe."
+   ],
+   [
+    "p",
+    "Each layer has its own dedicated overview: <a href=./l0-foundation-overview.html>L0</a>, <a href=./l1-control-plane-overview.html>L1</a>, <a href=./l2-data-fabric-overview.html>L2</a>, and <a href=./l3-twin-modeling-ai-overview.html>L3</a>."
+   ]
+  ],
+  "related": [
+   [
+    "why-eight-layer-separation",
+    "Why Eight Layers"
+   ],
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ],
+   [
+    "l7-to-l0-stepped-hierarchy",
+    "The L7-to-L0 Hierarchy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l7-to-l0-stepped-hierarchy",
+  "title": "The Stepped L7-to-L0 Hierarchy",
+  "cat": "overview",
+  "lede": "Command authority descends in steps from strategy at L7 to microsecond actuation at L1, tightening latency and narrowing scope at each step.",
+  "body": [
+   [
+    "h2",
+    "Authority flows downward"
+   ],
+   [
+    "p",
+    "While telemetry rises from the plant, authority descends. The blueprint is often drawn as a staircase from L7 at the top to L0 at the bottom, each tread handing a narrower, faster, more constrained decision to the layer below it."
+   ],
+   [
+    "h3",
+    "The descent"
+   ],
+   [
+    "ul",
+    [
+     "L7 Ecosystem sets plant-level intent — grid dispatch windows, maintenance schedules, regulatory constraints.",
+     "L6 Experience presents that intent to operators and captures their confirmations.",
+     "L5 Copilots translate intent into engineering goals — a target equilibrium, a plug-density setpoint.",
+     "L4 Orchestration routes goals through the rules engine and safety bounds before anything reaches control.",
+     "L3 Twin & AI computes the actuation trajectory using the predictive shadow and MPC agents.",
+     "L1 Control Plane executes the trajectory deterministically and holds the autonomous failsafe."
+    ]
+   ],
+   [
+    "h3",
+    "Each step tightens the contract"
+   ],
+   [
+    "p",
+    "As commands descend, three things tighten simultaneously: latency budgets shrink from minutes at L7 to microseconds at L1; scope narrows from plant strategy to a single actuator; and the ability of AI to intervene falls to zero at the bottom, where the hardware failsafe is purely physical. This is intentional — the most consequential, least reversible actions are the least dependent on intelligence."
+   ],
+   [
+    "h3",
+    "Why steps, not a single jump"
+   ],
+   [
+    "p",
+    "A direct link from strategy to actuator would couple a slow, uncertain decision to an irreversible one. The stepped hierarchy inserts validation, human oversight, and safety bounds between intent and action, so that no high-level goal can bypass the checks that protect the breeder's superconducting magnets or the burner's high-field plug."
+   ],
+   [
+    "p",
+    "The reverse path — how raw diagnostics become decisions on the way up — is described in <a href=./from-diagnostics-to-decision.html>from diagnostics to decision</a>."
+   ]
+  ],
+  "related": [
+   [
+    "eight-layer-stack-overview",
+    "The 8-Layer Stack"
+   ],
+   [
+    "sub-10us-command-boundary",
+    "The Sub-10 Microsecond Boundary"
+   ],
+   [
+    "safety-hierarchy-and-ai",
+    "Safety Hierarchy and AI"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-grammar-overview",
+  "title": "The Color Grammar",
+  "cat": "overview",
+  "lede": "Seven colors classify every block in the blueprint by role — so a glance tells you whether you are looking at governance, infrastructure, or a thermal path.",
+  "body": [
+   [
+    "h2",
+    "Color encodes role, not decoration"
+   ],
+   [
+    "p",
+    "In the Master Blueprint every block is colored by its function. The grammar is fixed across all diagrams so that the breeder and burner blueprints read the same way, and so that a block's role is legible before you read its label."
+   ],
+   [
+    "ul",
+    [
+     "Purple — strategy and governance: plant intent, regulatory constraints, decision audit.",
+     "Blue — infrastructure and data: compute, storage, telemetry transport, the data fabric.",
+     "Green — operations and ecosystem: dispatch, scheduling, supply chain, maintenance.",
+     "Yellow — AI-workflow and optimization: training, surrogates, MPC, optimization loops.",
+     "Orange — thermal, reactor, and DEC: the plasma, magnets, divertor, direct energy conversion.",
+     "Pink — feedback, alerts, and retraining: anomaly signals, drift detection, model updates.",
+     "Gray — framing: legends, boundaries, and non-functional annotation."
+    ]
+   ],
+   [
+    "h3",
+    "Why a fixed grammar matters"
+   ],
+   [
+    "p",
+    "A fusion plant blueprint mixes microsecond hardware with month-long strategy. Without a consistent visual code, a reader cannot tell a safety-critical thermal path (orange) from an offline optimization loop (yellow). The grammar makes role errors visible: a pink retraining block feeding directly into an orange reactor path would be an obvious mistake."
+   ],
+   [
+    "h3",
+    "Color plus line"
+   ],
+   [
+    "p",
+    "Color answers <i>what a block does</i>; the <a href=./line-semantics-overview.html>line semantics</a> answer <i>how fast a connection is</i>. Together they let an engineer verify, without reading text, that a microsecond real-time line only ever connects the blocks that belong on the sub-10-microsecond path."
+   ],
+   [
+    "p",
+    "Each color has a dedicated page: <a href=./color-purple-strategy-governance.html>purple</a>, <a href=./color-blue-infrastructure-data.html>blue</a>, <a href=./color-green-operations-ecosystem.html>green</a>, <a href=./color-yellow-ai-workflow-optimization.html>yellow</a>, <a href=./color-orange-thermal-reactor-dec.html>orange</a>, <a href=./color-pink-feedback-alerts-retraining.html>pink</a>, and <a href=./color-gray-framing.html>gray</a>."
+   ]
+  ],
+  "related": [
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ],
+   [
+    "blueprint-reading-guide",
+    "Reading the Blueprint"
+   ],
+   [
+    "ai-native-master-blueprint",
+    "The Master Blueprint"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-purple-strategy-governance",
+  "title": "Purple — Strategy and Governance",
+  "cat": "overview",
+  "lede": "Purple blocks carry plant-level intent, regulatory constraint, and the audit trail — the layer that decides what the machine should do and proves what it did.",
+  "body": [
+   [
+    "h2",
+    "What purple means"
+   ],
+   [
+    "p",
+    "Purple marks the governance role: the parts of the architecture that set intent and hold accountability rather than execute physics. In the blueprint, purple concentrates at L7 Ecosystem & Strategy and threads down into the rules and audit functions of L4 Orchestration."
+   ],
+   [
+    "h3",
+    "What lives in purple"
+   ],
+   [
+    "ul",
+    [
+     "Plant intent — dispatch windows, campaign goals, availability targets.",
+     "Regulatory and safety-case constraints that bound what any lower layer may attempt.",
+     "The decision-audit lineage: every command, who or what issued it, and the twin state it was based on.",
+     "Governance of model promotion — which trained models are allowed near the control loop."
+    ]
+   ],
+   [
+    "h3",
+    "Why governance is its own color"
+   ],
+   [
+    "p",
+    "In a fusion plant the difference between a goal and an action is a safety boundary. Purple keeps intent visibly separate from execution so that a strategy decision can never be mistaken for, or wired directly to, an actuation. A purple block may <i>request</i> a breeder equilibrium change; it can never command the magnets."
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "Purple governance is machine-agnostic. Whether the target is Hyperion's negative-triangularity shape or the burner's plug-density setpoint, intent and audit look the same at L7; only the constraints passed down differ. This is what lets one governance layer oversee a mixed breeder-and-burner fleet."
+   ],
+   [
+    "p",
+    "Purple's audit function is the backbone of <a href=./data-lineage-governance.html>data lineage and governance</a>, and its constraints are enforced by the <a href=./safety-hierarchy-and-ai.html>safety hierarchy</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "data-lineage-governance",
+    "Data Lineage and Governance"
+   ],
+   [
+    "color-gray-framing",
+    "Gray — Framing"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-blue-infrastructure-data",
+  "title": "Blue — Infrastructure and Data",
+  "cat": "overview",
+  "lede": "Blue blocks are the compute, storage, and telemetry transport — the substrate everything else runs on, from GPU clusters to cryo-rated feedthroughs.",
+  "body": [
+   [
+    "h2",
+    "What blue means"
+   ],
+   [
+    "p",
+    "Blue marks infrastructure and data movement. It spans the widest latency range of any color: from L0's offline GPU clusters to L2's sub-microsecond telemetry ingest. Blue does not decide anything; it carries, stores, and serves."
+   ],
+   [
+    "h3",
+    "What lives in blue"
+   ],
+   [
+    "ul",
+    [
+     "L0 cloud HPC and bare-metal supercomputing for Monte Carlo neutronics and batch training.",
+     "The 60+ analog telemetry ports at L2, sampled through cryo-rated vacuum feedthroughs.",
+     "The petabyte telemetry archive, the feature store, and the RAG-ready vector database.",
+     "Network fabric — the edge-to-cloud path with its deliberate latency gradient."
+    ]
+   ],
+   [
+    "h3",
+    "The cryogenic data boundary"
+   ],
+   [
+    "p",
+    "Blue's most demanding interface is physical: the diagnostics constellation reports through feedthroughs that cross from a cryogenic, high-vacuum, high-field environment into room-temperature electronics. On the breeder, REBCO strain gauges and Mirnov coils sit inside that boundary; on the burner, plug and throat diagnostics do. Blue owns the integrity of every sample that crosses it."
+   ],
+   [
+    "h3",
+    "Why data is infrastructure, not intelligence"
+   ],
+   [
+    "p",
+    "Kronos colors data blue, not yellow, on purpose: transporting and storing a signal is a reliability problem, not a learning problem. Keeping the two separate means a telemetry outage is diagnosed as an infrastructure fault, never mistaken for a model error. The same reasoning keeps L0's raw compute blue while the training that runs on it is yellow — the substrate and the intelligence it hosts are distinct concerns with distinct failure modes."
+   ],
+   [
+    "h3",
+    "The widest latency span of any color"
+   ],
+   [
+    "p",
+    "Blue is unique in spanning the full latency gradient. The same color labels a sub-microsecond feedthrough sample at L2 and an hours-long batch transfer to L0. What unifies them is role, not speed: in every case blue moves or holds data without deciding anything. The line semantics, not the color, tell you which end of the gradient a given blue connection sits on."
+   ],
+   [
+    "p",
+    "Blue is detailed in the <a href=./l2-data-fabric-overview.html>L2 Data Fabric overview</a> and the <a href=./edge-to-cloud-continuum.html>edge-to-cloud continuum</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "l2-data-fabric-overview",
+    "L2 Data Fabric"
+   ],
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-green-operations-ecosystem",
+  "title": "Green — Operations and Ecosystem",
+  "cat": "overview",
+  "lede": "Green blocks run the plant as an operating asset — dispatch, scheduling, maintenance, and supply chain — described purely by operational role.",
+  "body": [
+   [
+    "h2",
+    "What green means"
+   ],
+   [
+    "p",
+    "Green marks operations and ecosystem integration: the functions that keep the plant running as part of a larger system. Green concentrates at L7 and in the operations copilot at L5, and it is deliberately described by <b>operational role only</b> — dispatch timing, grid synchronization, maintenance sequencing — never by any financial figure."
+   ],
+   [
+    "h3",
+    "What lives in green"
+   ],
+   [
+    "ul",
+    [
+     "Grid synchronization and dispatch scheduling for the plant's output.",
+     "Predictive-maintenance planning driven by structural-health-monitoring trends.",
+     "Supply-chain integration for consumables and the fuel cycle's isotope logistics.",
+     "Fleet coordination across breeder and burner units."
+    ]
+   ],
+   [
+    "h3",
+    "Operations, not economics"
+   ],
+   [
+    "p",
+    "Green answers operational questions — when to bring a unit to full power, when to schedule divertor inspection, how to sequence a fuel-cycle campaign. It never touches price, cost, or value; those are outside the architecture entirely. The operations copilot reasons about availability and timing, not markets."
+   ],
+   [
+    "h3",
+    "Both machines and the fuel cycle"
+   ],
+   [
+    "p",
+    "On the breeder, green coordinates the tritium and helium-3 balance produced by the fuel cycle — roughly a 4 kg/yr tritium class output and 1.97 kg/yr helium-3 — as a logistics and scheduling problem. On the burner, green schedules D-3He supply against the direct-energy-conversion train's operating windows."
+   ],
+   [
+    "p",
+    "Green's real-time link to hardware is the fuel cycle's isotope balancing; see <a href=./stack-to-fuel-cycle.html>the stack and the fuel cycle</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "stack-to-fuel-cycle",
+    "The Stack and the Fuel Cycle"
+   ],
+   [
+    "l7-ecosystem-strategy",
+    "Operations and Ecosystem"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-yellow-ai-workflow-optimization",
+  "title": "Yellow — AI-Workflow and Optimization",
+  "cat": "overview",
+  "lede": "Yellow blocks are where learning and optimization live — training pipelines, surrogates, MPC, and the loops that make the plant intelligent.",
+  "body": [
+   [
+    "h2",
+    "What yellow means"
+   ],
+   [
+    "p",
+    "Yellow marks the AI-workflow role: model training, surrogate inference, optimization, and model-predictive control. Yellow is the color most associated with the word intelligent, and it deliberately does not touch hardware directly — yellow proposes, and lower layers dispose."
+   ],
+   [
+    "h3",
+    "What lives in yellow"
+   ],
+   [
+    "ul",
+    [
+     "Offline batch retraining at L0 and the MLOps pipeline that promotes models.",
+     "PINN and GNN inference at L3 — equilibria, imputation, stability surrogates.",
+     "MPC agents computing safe actuation trajectories over the twin.",
+     "Optimization loops — shape optimization for the breeder, plug tuning for the burner."
+    ]
+   ],
+   [
+    "h3",
+    "Surrogate speedups"
+   ],
+   [
+    "p",
+    "Yellow's value is speed. A first-principles solve of a Grad-Shafranov equilibrium or a neutronics transport problem is far too slow for control. Trained surrogates reproduce those solutions many orders of magnitude faster, letting the MPC loop evaluate candidate actions inside a control cycle rather than offline."
+   ],
+   [
+    "h3",
+    "Bounded by lower layers"
+   ],
+   [
+    "p",
+    "A yellow MPC agent never actuates on its own. Its output passes through L4's rules engine and safety bounds, then to L1 for deterministic execution. If a yellow model is uncertain or drifts, the pink feedback path flags it and the plant falls back to conservative control — the intelligence is always subordinate to the safety layers."
+   ],
+   [
+    "p",
+    "Yellow's models are documented in the <a href=./l3-twin-modeling-ai-overview.html>L3 Twin Modeling overview</a>; its dependence on determinism is the theme of <a href=./determinism-vs-intelligence.html>determinism versus intelligence</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "l3-twin-modeling-ai-overview",
+    "L3 Twin Modeling & AI"
+   ],
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-orange-thermal-reactor-dec",
+  "title": "Orange — Thermal, Reactor, and DEC",
+  "cat": "overview",
+  "lede": "Orange blocks are the physics itself — plasma, magnets, divertor, and the direct-energy-conversion train — the hardware the whole stack exists to serve.",
+  "body": [
+   [
+    "h2",
+    "What orange means"
+   ],
+   [
+    "p",
+    "Orange marks the reactor and its thermal and energy-conversion paths: the plasma, the high-field magnets, the vessel and divertor, and — on the burner — the multi-modal direct-energy-conversion (DEC) train. Orange is where the physics happens and where every other layer's decisions ultimately land."
+   ],
+   [
+    "h3",
+    "What lives in orange"
+   ],
+   [
+    "ul",
+    [
+     "The plasma — breeder D-T at Q_sci 3.424 and 88.7 MW; burner D-3He with 5.44% neutron fraction.",
+     "The REBCO magnet system — breeder 16.84 T peak (8 T on-axis); burner 26.49 T plug, 17 T throat.",
+     "The vessel, divertor, and expander that handle heat and particle exhaust.",
+     "The burner's DEC train — TWDEC, ultra-high-field MHD, and thermionic stages."
+    ]
+   ],
+   [
+    "h3",
+    "Why the physics is one color"
+   ],
+   [
+    "p",
+    "Grouping all reactor and thermal paths as orange makes the safety-critical energy flow legible at a glance. Any line entering an orange block is, by definition, on a path that can affect the plasma or the magnets — so the color grammar forces those connections to be scrutinized against the line semantics."
+   ],
+   [
+    "h3",
+    "Two machines, two control problems"
+   ],
+   [
+    "p",
+    "Orange looks different physically on each machine. The breeder's orange is a spherical torus whose control problem is equilibrium and disruption avoidance around a negative-triangularity, ELM-free shape. The burner's orange is an open magnetic bottle whose control problem is end-plug density, the ambipolar potential, and steering charged-particle flux into the DEC train."
+   ],
+   [
+    "p",
+    "The hardware paths are mapped in <a href=./physical-plant-wiring.html>physical plant wiring</a>, <a href=./stack-to-magnet-system.html>the magnet system</a>, and <a href=./stack-to-dec-train.html>the DEC train</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "stack-to-magnet-system",
+    "The Magnet System"
+   ],
+   [
+    "stack-to-dec-train",
+    "The DEC Train"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-pink-feedback-alerts-retraining",
+  "title": "Pink — Feedback, Alerts, and Retraining",
+  "cat": "overview",
+  "lede": "Pink blocks close the loop — anomaly alerts, drift detection, and the retraining signals that keep the twin honest as the machines evolve.",
+  "body": [
+   [
+    "h2",
+    "What pink means"
+   ],
+   [
+    "p",
+    "Pink marks the feedback role: the signals that flow back to correct and improve the system rather than forward to control it. Pink carries anomaly alerts up to operators, drift indicators to the MLOps pipeline, and labeled events back to the retraining substrate at L0."
+   ],
+   [
+    "h3",
+    "What lives in pink"
+   ],
+   [
+    "ul",
+    [
+     "Sub-threshold anomaly alerts from the L3 detection ensembles — quench precursors on the breeder, plug instabilities on the burner.",
+     "Model drift and confidence degradation signals from monitored surrogates.",
+     "Human corrections and confirmations captured for reinforcement learning from feedback.",
+     "The batch-retraining trigger path from live operation back to L0."
+    ]
+   ],
+   [
+    "h3",
+    "Feedback is not control"
+   ],
+   [
+    "p",
+    "Pink is deliberately distinct from the forward control colors. A pink alert can raise an operator's attention or schedule a retraining job, but it never actuates hardware directly. This keeps the improvement loop — which is slow and statistical — cleanly separated from the safety loop, which is fast and deterministic."
+   ],
+   [
+    "h3",
+    "Closing the learning loop"
+   ],
+   [
+    "p",
+    "Pink is what makes the architecture adaptive. As the breeder moves from first-of-a-kind toward NOAK and BOAK units, live behavior diverges from pre-build simulation. Pink signals capture that divergence, drive retraining, and update the twin — so the intelligence tracks the real machine rather than the design assumptions it started from."
+   ],
+   [
+    "p",
+    "Pink's destination is the <a href=./feedback-loops-retraining.html>feedback and retraining</a> loop and the offline substrate of <a href=./l0-foundation-overview.html>L0 Foundation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "feedback-loops-retraining",
+    "Feedback and Retraining"
+   ],
+   [
+    "line-offline-batch-retraining",
+    "Offline Batch Retraining Lines"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "color-gray-framing",
+  "title": "Gray — Framing",
+  "cat": "overview",
+  "lede": "Gray is the only non-functional color: legends, boundaries, and annotation that structure the diagram without carrying signal or authority.",
+  "body": [
+   [
+    "h2",
+    "What gray means"
+   ],
+   [
+    "p",
+    "Gray marks framing — the parts of the blueprint that organize and label rather than function. Layer boundaries, the legend itself, IT/OT separation lines, and explanatory annotations are gray. Nothing gray carries telemetry, commands, or authority."
+   ],
+   [
+    "h3",
+    "What lives in gray"
+   ],
+   [
+    "ul",
+    [
+     "Layer band boundaries between L0 through L7.",
+     "The legend that defines the color grammar and line semantics.",
+     "The IT/OT and zero-trust separation boundary lines.",
+     "Grouping frames and non-functional annotation."
+    ]
+   ],
+   [
+    "h3",
+    "Why framing gets a reserved color"
+   ],
+   [
+    "p",
+    "Because the other six colors all carry meaning, framing needs a color that carries none — otherwise a boundary line could be misread as a data path. Reserving gray guarantees that anything structural is visibly inert. An engineer scanning for signal paths can ignore every gray element with confidence."
+   ],
+   [
+    "h3",
+    "The most important gray line"
+   ],
+   [
+    "p",
+    "The single most consequential gray element is the IT/OT separation boundary. It marks where the plant's operational-technology network — the deterministic control side — is isolated from general information-technology systems. Gray draws that line; the security architecture enforces it with airgaps and unidirectional data diodes so that telemetry can flow out for analysis while nothing can flow in to the control path uninvited."
+   ],
+   [
+    "h3",
+    "Framing versus signal, at a glance"
+   ],
+   [
+    "p",
+    "The practical test for a gray element is simple: remove it, and no data, command, or authority changes hands — only clarity is lost. That is what distinguishes a layer band or a legend from a real connection. Because framing is visibly inert, a reviewer scanning a blueprint for safety-path violations can skip every gray element and lose nothing."
+   ],
+   [
+    "p",
+    "The security boundary gray represents is detailed under the zero-trust and IT/OT separation model referenced from <a href=./data-lineage-governance.html>data lineage and governance</a> and the <a href=./safety-hierarchy-and-ai.html>safety hierarchy</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "blueprint-reading-guide",
+    "Reading the Blueprint"
+   ],
+   [
+    "color-purple-strategy-governance",
+    "Purple — Strategy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "line-semantics-overview",
+  "title": "Line Semantics",
+  "cat": "overview",
+  "lede": "Three line styles classify every connection by latency class — so the diagram proves that a microsecond command never rides a batch path.",
+  "body": [
+   [
+    "h2",
+    "Lines encode latency, not just connection"
+   ],
+   [
+    "p",
+    "In the Master Blueprint the style of a line tells you its latency class. A connection is not merely present or absent; it is real-time, standard telemetry, or offline batch. This turns the diagram into a timing contract that can be checked by eye."
+   ],
+   [
+    "ul",
+    [
+     "Microsecond real-time — the hard deterministic path, sub-10 microseconds, L1 to actuator.",
+     "Standard telemetry — sub-microsecond-sampled data streaming up the fabric at millisecond-to-second cadence for monitoring and the twin.",
+     "Offline / batch retraining — high-latency, high-throughput links for training and multi-physics runs at L0."
+    ]
+   ],
+   [
+    "h3",
+    "Why three classes"
+   ],
+   [
+    "p",
+    "A fusion plant operates across nine orders of magnitude in time, from microsecond magnet protection to multi-hour Monte Carlo neutronics. Collapsing that range into three named classes lets the architecture state, and enforce, which functions may share a path. The classes align with the <a href=./latency-gradient-across-layers.html>latency gradient</a> across the layers."
+   ],
+   [
+    "h3",
+    "A checkable invariant"
+   ],
+   [
+    "p",
+    "The line grammar makes one rule visible: only microsecond real-time lines may connect the blocks on the sub-10-microsecond command boundary. If a standard-telemetry or batch line were drawn into that path, it would be an obvious violation. Color says what a block is; line says how fast it must be — and the two together let an engineer verify the safety path without reading a word of text."
+   ],
+   [
+    "p",
+    "Each class has a dedicated page: <a href=./line-microsecond-realtime.html>microsecond real-time</a>, <a href=./line-standard-telemetry.html>standard telemetry</a>, and <a href=./line-offline-batch-retraining.html>offline batch retraining</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ],
+   [
+    "sub-10us-command-boundary",
+    "The Sub-10 Microsecond Boundary"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "line-microsecond-realtime",
+  "title": "Microsecond Real-Time Lines",
+  "cat": "overview",
+  "lede": "The hard-deterministic connections: sub-10-microsecond, jitter-bounded, and the only lines permitted on the safety-critical command path.",
+  "body": [
+   [
+    "h2",
+    "The fastest lines in the plant"
+   ],
+   [
+    "p",
+    "Microsecond real-time lines carry the hard-deterministic signals of L1 the Control Plane. They connect edge FPGAs to actuators and to each other with bounded jitter and a latency budget under 10 microseconds. These are the lines on which magnet protection and disruption response ride."
+   ],
+   [
+    "h3",
+    "What they carry"
+   ],
+   [
+    "ul",
+    [
+     "FPGA actuation commands to coils, gas valves, and heating systems.",
+     "Synchronized gate signals coordinating multiple actuators in lockstep.",
+     "The autonomous hardware failsafe's quench-dump trigger, which has zero AI dependency.",
+     "Deterministic PLC vacuum interlock signals."
+    ]
+   ],
+   [
+    "h3",
+    "Why determinism, not speed alone"
+   ],
+   [
+    "p",
+    "The defining property is not raw speed but <b>bounded worst-case latency</b>. A control action that is usually fast but occasionally late is unacceptable for protecting a REBCO magnet carrying 9.86 MA of plasma current on the breeder or holding a 26.49 T plug on the burner. FPGAs are chosen precisely because their timing is deterministic to the clock."
+   ],
+   [
+    "h3",
+    "The invariant they enforce"
+   ],
+   [
+    "p",
+    "Microsecond real-time lines are the only lines allowed to touch the sub-10-microsecond command boundary. No AI inference, no network round-trip, and no software scheduler sits on this path. This is what lets the plant be intelligent above L1 while remaining provably safe at L1."
+   ],
+   [
+    "h3",
+    "How they are drawn and checked"
+   ],
+   [
+    "p",
+    "In the blueprint these lines are visually distinct from telemetry and batch links precisely so that their exclusivity is checkable by eye. Any microsecond real-time line that connected to a block outside L1 — a twin, a copilot, an archive — would be an immediate, visible error. The grammar makes the safety path self-auditing: the reader verifies the invariant by confirming that every such line stays within the control plane and its actuators."
+   ],
+   [
+    "p",
+    "This class is the physical basis of the <a href=./sub-10us-command-boundary.html>sub-10 microsecond command boundary</a> and the <a href=./autonomous-hardware-failsafe.html>autonomous hardware failsafe</a>."
+   ]
+  ],
+  "related": [
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ],
+   [
+    "l1-control-plane-overview",
+    "L1 Control Plane"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "The Autonomous Failsafe"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "line-standard-telemetry",
+  "title": "Standard Telemetry Lines",
+  "cat": "overview",
+  "lede": "The workhorse connections: sub-microsecond-sampled data streaming up the fabric to feed monitoring, the twin, and the copilots.",
+  "body": [
+   [
+    "h2",
+    "The data that feeds intelligence"
+   ],
+   [
+    "p",
+    "Standard telemetry lines carry the plant's observability upward. The underlying diagnostics are sampled at sub-microsecond resolution, but the streams are aggregated and transported at millisecond-to-second cadence — fast enough for the predictive twin and monitoring, without the hard determinism the control path demands."
+   ],
+   [
+    "h3",
+    "What they carry"
+   ],
+   [
+    "ul",
+    [
+     "The 60+ analog channels from the diagnostics constellation after validation and normalization.",
+     "Feature-engineered streams into the L3 twin's predictive shadow.",
+     "State and health data to L6 control-room overlays and SCADA.",
+     "Event streams through L4 Orchestration."
+    ]
+   ],
+   [
+    "h3",
+    "Soft real-time, not hard"
+   ],
+   [
+    "p",
+    "These lines are soft real-time: a late or dropped sample degrades a prediction but does not endanger hardware. That relaxed guarantee is what lets the twin run a 50-100 ms predictive shadow, and what lets GNNs impute occasional dropped signals from sensor topology without breaking the control loop below."
+   ],
+   [
+    "h3",
+    "The boundary they respect"
+   ],
+   [
+    "p",
+    "Standard telemetry lines feed the intelligence layers but are forbidden from the sub-10-microsecond command path. A twin prediction may inform an MPC agent, whose bounded output eventually reaches L1 — but the telemetry itself never actuates. Keeping the fast-but-soft data path separate from the fast-and-hard command path is the core of the <a href=./real-time-vs-offline-boundary.html>real-time versus offline boundary</a>."
+   ],
+   [
+    "p",
+    "These lines populate the <a href=./l2-data-fabric-overview.html>Data Fabric</a> and drive the <a href=./kronos-ctrl-digital-twin.html>KRONOS-CTRL twin</a>."
+   ]
+  ],
+  "related": [
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ],
+   [
+    "l2-data-fabric-overview",
+    "L2 Data Fabric"
+   ],
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "line-offline-batch-retraining",
+  "title": "Offline and Batch-Retraining Lines",
+  "cat": "overview",
+  "lede": "The high-throughput, high-latency connections that move petabytes to the compute substrate for multi-physics runs and model retraining.",
+  "body": [
+   [
+    "h2",
+    "The slowest, widest lines"
+   ],
+   [
+    "p",
+    "Offline and batch lines connect the plant's archives to L0 Foundation's compute. They optimize for throughput, not latency: moving petabytes of telemetry to a GPU cluster for retraining, or feeding a multi-hour Monte Carlo neutronics run. Latency here is measured in minutes to hours, and that is by design."
+   ],
+   [
+    "h3",
+    "What they carry"
+   ],
+   [
+    "ul",
+    [
+     "Archived telemetry from L2 to L0 for batch retraining of surrogates and detectors.",
+     "Multi-physics Monte Carlo neutronics jobs on cloud HPC and bare metal.",
+     "Newly trained and validated models back up the MLOps pipeline toward deployment.",
+     "Design-space sweeps — breeder shape studies, burner plug-tuning campaigns."
+    ]
+   ],
+   [
+    "h3",
+    "Why isolate the batch path"
+   ],
+   [
+    "p",
+    "Batch work is the opposite of control work: it is compute-heavy, latency-tolerant, and can fail and retry freely. Isolating it on its own line class guarantees that a long training job can never contend with a control signal for a path. An L0 retraining run may saturate the offline fabric for hours while L1 continues protecting the magnets untouched."
+   ],
+   [
+    "h3",
+    "Where the loop closes"
+   ],
+   [
+    "p",
+    "Batch lines are the return leg of the learning loop. Pink feedback signals mark which live events matter; batch lines carry the corresponding data to L0; retrained models return the same way and are promoted only after validation. This is how the twin is kept faithful to the machine as it evolves from FOAK toward later units."
+   ],
+   [
+    "p",
+    "This class defines the throughput end of the <a href=./latency-gradient-across-layers.html>latency gradient</a> and drives <a href=./feedback-loops-retraining.html>feedback and retraining</a>."
+   ]
+  ],
+  "related": [
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ],
+   [
+    "l0-foundation-overview",
+    "L0 Foundation"
+   ],
+   [
+    "feedback-loops-retraining",
+    "Feedback and Retraining"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "what-ai-native-means",
+  "title": "What 'AI-Native' Means for a Fusion Plant",
+  "cat": "overview",
+  "lede": "AI-native means the intelligence is not a bolt-on analytics layer but the control fabric itself — designed in from the plant's first block diagram.",
+  "body": [
+   [
+    "h2",
+    "Native, not bolted on"
+   ],
+   [
+    "p",
+    "Most industrial AI is retrofit: a plant is designed conventionally, then instrumented and analyzed. Kronos is AI-native, meaning the architecture assumes machine learning, the digital twin, and autonomous control from the start. The diagnostics, the data fabric, and the control plane are specified together so that the machine is observable and controllable by design."
+   ],
+   [
+    "h3",
+    "What changes when AI is native"
+   ],
+   [
+    "ul",
+    [
+     "Diagnostics are chosen for what models need to infer, not only for what humans read.",
+     "The data fabric is built RAG-ready and feature-store-first, not as an afterthought log.",
+     "Control is model-predictive over a live twin, not a fixed set of PID loops alone.",
+     "The plant improves continuously through a retraining loop wired in from L0."
+    ]
+   ],
+   [
+    "h3",
+    "Why fusion needs it"
+   ],
+   [
+    "p",
+    "A fusion plasma is a coupled, nonlinear, high-dimensional system that evolves faster than a human can react. The breeder must avoid disruptions while holding a negative-triangularity equilibrium; the burner must sustain an ambipolar potential against end-plug density fluctuations. Neither is a set-and-forget process. AI-native control is what makes real-time reasoning over these systems tractable."
+   ],
+   [
+    "h3",
+    "Native does not mean unbounded"
+   ],
+   [
+    "p",
+    "AI-native does not mean AI-in-charge. The most consequential actions — quench protection, vacuum interlocks — are deterministic and AI-independent. Being AI-native means intelligence is designed into the observability and decision layers, while the safety floor remains purely physical. The <a href=./design-philosophy.html>design philosophy</a> makes that split explicit."
+   ],
+   [
+    "p",
+    "Contrast with retrofit analytics, and see how the split is enforced, in <a href=./determinism-vs-intelligence.html>determinism versus intelligence</a>."
+   ]
+  ],
+  "related": [
+   [
+    "design-philosophy",
+    "The Design Philosophy"
+   ],
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ],
+   [
+    "architecture-first-principles",
+    "Architecture First Principles"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "why-eight-layer-separation",
+  "title": "Why Eight Layers",
+  "cat": "overview",
+  "lede": "Eight was chosen so that each layer holds a single latency and safety class — fine enough to isolate microsecond safety, coarse enough to reason about.",
+  "body": [
+   [
+    "h2",
+    "The case for eight"
+   ],
+   [
+    "p",
+    "The layer count is not arbitrary. Kronos chose eight so that each layer contains functions of a single latency class and a single safety criticality — no layer mixes microsecond determinism with hour-long training, and no layer mixes hardware protection with strategy."
+   ],
+   [
+    "h3",
+    "What each boundary buys"
+   ],
+   [
+    "ul",
+    [
+     "L0 | L1 — separates offline compute from hard real-time; a training job cannot stall a control loop.",
+     "L1 | L2 — separates deterministic actuation from best-effort telemetry.",
+     "L2 | L3 — separates data curation from model inference; data faults are not model faults.",
+     "L3 | L4 — separates prediction from orchestration and safety bounds.",
+     "L4 | L5 — separates routing and rules from applications and copilots.",
+     "L5 | L6 — separates reasoning from presentation to humans.",
+     "L6 | L7 — separates in-plant experience from external ecosystem integration."
+    ]
+   ],
+   [
+    "h3",
+    "Why not fewer"
+   ],
+   [
+    "p",
+    "Collapsing layers would couple concerns that must stay independent. Merging L1 and L3, for example, would put AI inference on the safety path — precisely what the architecture forbids. Merging L2 and L3 would blur the line between a bad sensor and a bad model. Each boundary exists to make a specific failure mode diagnosable."
+   ],
+   [
+    "h3",
+    "Why not more"
+   ],
+   [
+    "p",
+    "More layers would add interfaces without adding separable concerns, raising the verification burden without improving isolation. Eight is the smallest number that gives every distinct latency-and-safety class its own home. The result is a stack whose <a href=./layer-interfaces-contracts.html>interfaces</a> are few, explicit, and testable."
+   ],
+   [
+    "p",
+    "The isolation this buys is quantified in the <a href=./latency-gradient-across-layers.html>latency gradient</a>."
+   ]
+  ],
+  "related": [
+   [
+    "eight-layer-stack-overview",
+    "The 8-Layer Stack"
+   ],
+   [
+    "layer-interfaces-contracts",
+    "Layer Interfaces"
+   ],
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "latency-gradient-across-layers",
+  "title": "The Latency Gradient Across Layers",
+  "cat": "overview",
+  "lede": "From sub-10-microsecond actuation at L1 to multi-hour Monte Carlo at L0, the stack spans nine orders of magnitude in time — deliberately.",
+  "body": [
+   [
+    "h2",
+    "Nine orders of magnitude"
+   ],
+   [
+    "p",
+    "The defining quantitative feature of the architecture is its latency gradient. Each layer operates in a characteristic time band, and the bands span from microseconds at the control plane to hours at the compute foundation. The stack is organized so that time budgets tighten monotonically toward the hardware."
+   ],
+   [
+    "ul",
+    [
+     "L1 Control Plane — sub-10 microseconds, hard deterministic.",
+     "L2 Data Fabric — sub-microsecond sampling, aggregated at milliseconds.",
+     "L3 Twin & AI — 50-100 ms predictive shadow; MPC within the control cycle.",
+     "L4 Orchestration — milliseconds to seconds for routing and rule checks.",
+     "L5 Copilots — seconds for interactive reasoning.",
+     "L6 Experience — human-interactive, tens to hundreds of milliseconds for display.",
+     "L7 Ecosystem — minutes to hours for dispatch and scheduling.",
+     "L0 Foundation — minutes to hours for batch training and Monte Carlo."
+    ]
+   ],
+   [
+    "h3",
+    "Why the gradient must be monotone toward hardware"
+   ],
+   [
+    "p",
+    "The closer a function sits to the plasma and magnets, the tighter its time budget, because the physics it guards evolves fast. A breeder disruption develops in milliseconds; magnet protection must respond in microseconds. Placing the tightest budgets at L1 and relaxing upward means the layers that can afford to think slowly are the ones farthest from irreversible harm."
+   ],
+   [
+    "h3",
+    "The edge-to-cloud shape"
+   ],
+   [
+    "p",
+    "The gradient is physically realized as an edge-to-cloud continuum: FPGAs at the edge for microseconds, on-site servers for the twin, and cloud HPC for batch work. The <a href=./edge-to-cloud-continuum.html>edge-to-cloud continuum</a> page details how compute placement follows the time budget."
+   ],
+   [
+    "p",
+    "The gradient is enforced by the <a href=./line-semantics-overview.html>line semantics</a> and underlies the <a href=./real-time-vs-offline-boundary.html>real-time versus offline boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "edge-to-cloud-continuum",
+    "Edge-to-Cloud Continuum"
+   ],
+   [
+    "real-time-vs-offline-boundary",
+    "Real-Time vs Offline"
+   ],
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "one-architecture-two-machines",
+  "title": "One Architecture, Two Machines",
+  "cat": "overview",
+  "lede": "The same eight-layer stack runs the breeder tokamak and the burner tandem mirror; only the physics the top layers reason about changes.",
+  "body": [
+   [
+    "h2",
+    "Shared stack, different physics"
+   ],
+   [
+    "p",
+    "Kronos runs two very different machines on one architecture. The breeder (Hyperion) is a D-T spherical tokamak; the burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator. From L0 to L2, the stack is essentially identical. The differences appear at L3 and above, where the models and copilots reason about each machine's distinct control problem."
+   ],
+   [
+    "h3",
+    "What is shared"
+   ],
+   [
+    "ul",
+    [
+     "L0 compute substrate and MLOps for both machines.",
+     "L1 FPGA determinism and the autonomous failsafe pattern.",
+     "L2 the 60+ port data fabric, validation, feature store, and vector DB.",
+     "The color grammar, line semantics, and safety hierarchy."
+    ]
+   ],
+   [
+    "h3",
+    "What differs"
+   ],
+   [
+    "p",
+    "The breeder's control problem is <b>equilibrium and disruption</b>: holding a negative-triangularity (delta -0.30), ELM-free shape at 9.86 MA and 16.84 T peak field, and avoiding disruptions. The burner's control problem is <b>end-plug density and the ambipolar potential</b>: sustaining confinement in an open magnetic bottle with a 26.49 T plug and 17 T throat, and steering charged particles into the direct-energy-conversion train."
+   ],
+   [
+    "h3",
+    "Why one architecture is the right choice"
+   ],
+   [
+    "p",
+    "A shared stack means a single safety model, one data fabric to certify, and one learning loop to operate across a mixed fleet. The physics-specific intelligence is confined to swappable L3 modules and L5 copilots, so the expensive, safety-critical lower layers are built and validated once. The mappings are detailed in <a href=./mapping-stack-to-hyperion.html>mapping the stack to Hyperion</a> and <a href=./mapping-stack-to-tandem-mirror.html>mapping the stack to the tandem mirror</a>."
+   ]
+  ],
+  "related": [
+   [
+    "mapping-stack-to-hyperion",
+    "Mapping to Hyperion"
+   ],
+   [
+    "mapping-stack-to-tandem-mirror",
+    "Mapping to the Tandem Mirror"
+   ],
+   [
+    "breeder-control-problems",
+    "Breeder Control Problems"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "smart-generator-plant-interface",
+  "title": "The S.M.A.R.T. Generator Plant Interface",
+  "cat": "overview",
+  "lede": "The boundary where the software stack meets steel: every layer terminates in a named subsystem, sensor, or actuator on the real machine.",
+  "body": [
+   [
+    "h2",
+    "Where software meets steel"
+   ],
+   [
+    "p",
+    "The S.M.A.R.T. generator is the physical plant the architecture serves, and the plant interface is the contract between them. The blueprint's discipline is that no layer floats free: each terminates in a named subsystem — a magnet, a feedthrough, the divertor, the DEC train — so the software can always be traced to the hardware it controls or observes."
+   ],
+   [
+    "h3",
+    "The interface surfaces"
+   ],
+   [
+    "ul",
+    [
+     "Sensing — 60+ analog channels through cryo-rated vacuum feedthroughs from the diagnostics constellation.",
+     "Actuation — FPGA-driven coils, gas and pellet injection, heating, and the DEC steering on the burner.",
+     "Protection — deterministic vacuum interlocks and the autonomous quench dump.",
+     "Structural — strain gauges and structural health monitoring on the vessel and cocoon."
+    ]
+   ],
+   [
+    "h3",
+    "The magnet and preload interface"
+   ],
+   [
+    "p",
+    "The most demanding interface is the high-field REBCO magnet system and its cryogenic ice-piston preload cycle. Sensing REBCO strain, controlling coil currents, and coordinating the preload are all done across the plant interface, and all are safety-critical because a magnet fault is not recoverable in software."
+   ],
+   [
+    "h3",
+    "Interface, not integration afterthought"
+   ],
+   [
+    "p",
+    "Because the plant is AI-native, the interface is specified alongside the machine, not adapted to it later. Diagnostics are placed for both human and model observability; actuators are chosen for deterministic control. The <a href=./physical-plant-wiring.html>physical plant wiring</a> page enumerates each termination, and the subsystem pages cover the <a href=./stack-to-fuel-cycle.html>fuel cycle</a>, <a href=./stack-to-magnet-system.html>magnets</a>, and <a href=./stack-to-dec-train.html>DEC train</a>."
+   ]
+  ],
+  "related": [
+   [
+    "physical-plant-wiring",
+    "Physical Plant Wiring"
+   ],
+   [
+    "stack-to-magnet-system",
+    "The Magnet System"
+   ],
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "design-philosophy",
+  "title": "The Design Philosophy",
+  "cat": "overview",
+  "lede": "Five principles govern the architecture: safety is physical, intelligence is bounded, data is the asset, layers are contracts, and the twin is the source of truth.",
+  "body": [
+   [
+    "h2",
+    "Principles before components"
+   ],
+   [
+    "p",
+    "The Master Blueprint follows a small set of principles that resolve the hard trade-offs of running a fusion plant with AI. When two designs conflict, these principles decide."
+   ],
+   [
+    "h3",
+    "The five principles"
+   ],
+   [
+    "ul",
+    [
+     "Safety is physical. The last line of defense — quench dump, vacuum interlock — is deterministic hardware with zero AI dependency.",
+     "Intelligence is bounded. Every AI output passes through rules and safety bounds before it can actuate.",
+     "Data is the asset. Telemetry is curated, governed, and lineage-tracked as a first-class product, not a byproduct.",
+     "Layers are contracts. Each layer exposes an explicit interface and can be tested and certified in isolation.",
+     "The twin is the source of truth. Control reasons over the predictive twin, and the twin is continuously reconciled with the real machine."
+    ]
+   ],
+   [
+    "h3",
+    "How the principles interact"
+   ],
+   [
+    "p",
+    "The principles are ordered. Safety overrides intelligence; if a model is uncertain, the plant degrades to conservative, deterministic control rather than trusting a shaky prediction. Data quality underwrites the twin; a governed data fabric is what lets the twin be trusted as truth. Layer contracts are what make all of this auditable."
+   ],
+   [
+    "h3",
+    "Why philosophy is documented, not implied"
+   ],
+   [
+    "p",
+    "Writing the philosophy down makes design reviews decidable and keeps the breeder and burner architectures coherent as they evolve from FOAK toward later units. It also keeps the honest gates honest: the philosophy forbids claiming a capability the physics or the schedule does not yet support."
+   ],
+   [
+    "p",
+    "The principles are made concrete in <a href=./determinism-vs-intelligence.html>determinism versus intelligence</a>, <a href=./architecture-first-principles.html>architecture first principles</a>, and the <a href=./honest-gates.html>honest gates</a>."
+   ]
+  ],
+  "related": [
+   [
+    "architecture-first-principles",
+    "Architecture First Principles"
+   ],
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ],
+   [
+    "honest-gates",
+    "The Honest Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "honest-gates",
+  "title": "The Honest Gates",
+  "cat": "overview",
+  "lede": "The architecture states plainly what is designed, what is simulated, and what is not yet proven — no capability is claimed ahead of the physics or the schedule.",
+  "body": [
+   [
+    "h2",
+    "What the honest gates are"
+   ],
+   [
+    "p",
+    "The honest gates are the explicit caveats the architecture carries so that its claims never outrun its evidence. They separate what is built from what is designed, what is measured from what is simulated, and what is proven from what is targeted."
+   ],
+   [
+    "h3",
+    "The gates"
+   ],
+   [
+    "ul",
+    [
+     "Design and simulation, not hardware. Both machines are studies today; the control stack is validated against physics codes, not an operating reactor.",
+     "No net-gain claim before FOAK. Construction begins Q2 2027; first-of-a-kind first tritium is targeted around 2030; no hardware net-gain is claimed before then.",
+     "Frozen canon only. Quoted numbers — Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T, delta -0.30, 26.49 T plug, 5.44% neutron fraction — are the design point, stated with their conditions.",
+     "The tritium breeding ratio is a lever, studied across 1.1, 1.5, and 1.8, not a settled result.",
+     "D-3He is low-neutron, not aneutronic; p-11B is a gated research endpoint only."
+    ]
+   ],
+   [
+    "h3",
+    "Why gates belong in the architecture"
+   ],
+   [
+    "p",
+    "An AI-native plant is persuasive precisely because it produces confident predictions. That makes disciplined honesty more important, not less. The gates are wired into the governance layer so that a copilot or dashboard cannot present a simulated result as a measured one, and cannot promise a capability the schedule has not reached."
+   ],
+   [
+    "h3",
+    "Gates and the learning loop"
+   ],
+   [
+    "p",
+    "The gates also frame the retraining loop. Until FOAK produces real data, the twin is trained on simulation and will carry simulation's biases. Pink feedback and batch retraining are how those biases are corrected once real operation begins — the gates make clear that this correction is still ahead, not behind."
+   ],
+   [
+    "p",
+    "The gates are enforced by <a href=./data-lineage-governance.html>data lineage and governance</a> and reflected across every page's framing."
+   ]
+  ],
+  "related": [
+   [
+    "design-philosophy",
+    "The Design Philosophy"
+   ],
+   [
+    "data-lineage-governance",
+    "Data Lineage and Governance"
+   ],
+   [
+    "ai-native-master-blueprint",
+    "The Master Blueprint"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "how-the-layers-connect",
+  "title": "How the Layers Connect",
+  "cat": "overview",
+  "lede": "The layers are joined by explicit interfaces and two directions of flow — telemetry rising and authority descending — never by hidden shortcuts.",
+  "body": [
+   [
+    "h2",
+    "Two flows, many interfaces"
+   ],
+   [
+    "p",
+    "The stack is held together by two opposing flows. Telemetry rises from L2 through L3 to the copilots and humans above; authority descends from L7 strategy down through orchestration and control to L1's actuators. Every crossing between layers is an explicit interface, and there are no diagonal shortcuts that skip a layer's checks."
+   ],
+   [
+    "h3",
+    "The upward path"
+   ],
+   [
+    "ul",
+    [
+     "L2 validates and normalizes 60+ channels of diagnostics into features.",
+     "L3 turns features into predictions — equilibria, stability, anomaly scores — over the twin.",
+     "L4 routes events and predictions; L5 copilots reason; L6 presents to operators.",
+     "L7 aggregates plant state into ecosystem-level intent."
+    ]
+   ],
+   [
+    "h3",
+    "The downward path"
+   ],
+   [
+    "ul",
+    [
+     "L7 sets intent; L5 turns it into engineering goals.",
+     "L4 checks goals against rules and safety bounds.",
+     "L3 computes a bounded actuation trajectory via MPC over the twin.",
+     "L1 executes deterministically; L0 supplies retrained models offline."
+    ]
+   ],
+   [
+    "h3",
+    "No shortcuts"
+   ],
+   [
+    "p",
+    "The architecture forbids a high layer from reaching past its neighbor to a low one. Strategy cannot command an actuator; a model cannot bypass safety bounds; telemetry cannot actuate. Each layer must go through the next, so that every command is validated and every observation is curated. This is the discipline that makes the stack auditable end to end."
+   ],
+   [
+    "p",
+    "The interfaces are specified in <a href=./layer-interfaces-contracts.html>layer interfaces</a>, and the descent of authority in the <a href=./l7-to-l0-stepped-hierarchy.html>stepped hierarchy</a>."
+   ]
+  ],
+  "related": [
+   [
+    "layer-interfaces-contracts",
+    "Layer Interfaces"
+   ],
+   [
+    "from-diagnostics-to-decision",
+    "From Diagnostics to Decision"
+   ],
+   [
+    "l7-to-l0-stepped-hierarchy",
+    "The L7-to-L0 Hierarchy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l0-foundation-overview",
+  "title": "L0 — Foundation",
+  "cat": "overview",
+  "lede": "The compute substrate: cloud HPC and bare-metal supercomputing for offline multi-physics Monte Carlo, design sweeps, and batch retraining.",
+  "body": [
+   [
+    "h2",
+    "The bottom of the stack, the slowest by design"
+   ],
+   [
+    "p",
+    "L0 Foundation is the plant's compute foundation: GPU clusters, bare-metal supercomputing, and cloud HPC. It is the most powerful and the highest-latency layer, and it sits deliberately off the control path. Nothing at L0 runs in real time; everything at L0 runs at scale."
+   ],
+   [
+    "h3",
+    "What L0 does"
+   ],
+   [
+    "ul",
+    [
+     "Offline multi-physics Monte Carlo — neutronics transport for breeder tritium breeding studies across TBR 1.1, 1.5, and 1.8.",
+     "Batch retraining of the surrogates, GNNs, PINNs, and anomaly detectors used at L3.",
+     "Design-space sweeps — breeder negative-triangularity shape optimization, burner plug-density campaigns.",
+     "Validation of models before they are promoted toward the control loop."
+    ]
+   ],
+   [
+    "h3",
+    "Why it is separated from control"
+   ],
+   [
+    "p",
+    "A Monte Carlo neutronics run or a training job can take hours and consume a full cluster. If such work shared a path with control, a long job could starve a safety function. L0's isolation guarantees that the plant can think hard and slowly at the bottom while acting fast and deterministically at L1, with no contention between them."
+   ],
+   [
+    "h3",
+    "The learning substrate"
+   ],
+   [
+    "p",
+    "L0 is where the learning loop closes. Batch lines bring archived telemetry up from L2; pink feedback marks what matters; L0 retrains and validates; the MLOps pipeline promotes the result. As the breeder progresses from FOAK toward NOAK and BOAK, L0 is what keeps the twin faithful to the evolving machine."
+   ],
+   [
+    "p",
+    "L0 is reached over <a href=./line-offline-batch-retraining.html>offline batch lines</a> and anchors the slow end of the <a href=./latency-gradient-across-layers.html>latency gradient</a>."
+   ]
+  ],
+  "related": [
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ],
+   [
+    "feedback-loops-retraining",
+    "Feedback and Retraining"
+   ],
+   [
+    "edge-to-cloud-continuum",
+    "Edge-to-Cloud Continuum"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l1-control-plane-overview",
+  "title": "L1 — Control Plane",
+  "cat": "overview",
+  "lede": "Edge FPGAs enforcing sub-10-microsecond determinism, synchronized actuation gates, and the autonomous hardware failsafe that dumps a quench with zero AI dependency.",
+  "body": [
+   [
+    "h2",
+    "The hard real-time layer"
+   ],
+   [
+    "p",
+    "L1 Control Plane is where the architecture touches the machine at machine speed. It is built on edge FPGAs that guarantee deterministic, jitter-bounded response under 10 microseconds. L1 is the only layer permitted on the safety-critical command path, and it is designed to protect the plant even if every layer above it fails."
+   ],
+   [
+    "h3",
+    "What L1 does"
+   ],
+   [
+    "ul",
+    [
+     "Deterministic actuation of coils, gas and pellet injection, and heating.",
+     "Synchronized gates that fire multiple actuators in lockstep.",
+     "PLC-driven deterministic vacuum interlocks.",
+     "The autonomous hardware failsafe — an independent quench dump with no AI in the loop."
+    ]
+   ],
+   [
+    "h3",
+    "Why FPGAs"
+   ],
+   [
+    "p",
+    "FPGAs are chosen for bounded worst-case timing, not average speed. Protecting a REBCO magnet holding 9.86 MA of breeder plasma current, or a 26.49 T burner plug, requires that the response time never exceeds its budget — not merely that it is usually fast. General-purpose processors and their schedulers cannot make that guarantee; deterministic logic can."
+   ],
+   [
+    "h3",
+    "Independent of intelligence"
+   ],
+   [
+    "p",
+    "L1's defining property is that its safety function does not depend on L3's AI. The autonomous failsafe is triggered by physical thresholds in hardware. If the twin, the network, or the copilots are unavailable, L1 still dumps a developing quench on its own. Intelligence lives above L1; safety lives in it."
+   ],
+   [
+    "p",
+    "L1's timing contract is the <a href=./sub-10us-command-boundary.html>sub-10 microsecond boundary</a>; its last-resort function is the <a href=./autonomous-hardware-failsafe.html>autonomous failsafe</a>."
+   ]
+  ],
+  "related": [
+   [
+    "sub-10us-command-boundary",
+    "The Sub-10 Microsecond Boundary"
+   ],
+   [
+    "autonomous-hardware-failsafe",
+    "The Autonomous Failsafe"
+   ],
+   [
+    "line-microsecond-realtime",
+    "Microsecond Real-Time Lines"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l2-data-fabric-overview",
+  "title": "L2 — Data Fabric",
+  "cat": "overview",
+  "lede": "60+ analog channels through cryo-rated feedthroughs, validated and feature-engineered into a petabyte archive, a feature store, and a RAG-ready vector database.",
+  "body": [
+   [
+    "h2",
+    "The plant's observability layer"
+   ],
+   [
+    "p",
+    "L2 Data Fabric turns raw sensor signals into trustworthy, queryable data. It ingests more than 60 analog telemetry channels through cryo-rated vacuum feedthroughs at sub-microsecond sampling, validates and normalizes them, engineers features, and serves them to everything above — while archiving everything for the learning loop."
+   ],
+   [
+    "h3",
+    "What L2 does"
+   ],
+   [
+    "ul",
+    [
+     "Ingest — 60+ channels from the diagnostics constellation across cryogenic feedthroughs.",
+     "Signal validation and spatial normalization to a common frame.",
+     "Feature engineering for the twin and detectors.",
+     "Storage — petabyte telemetry archive, feature store, and a RAG-ready vector database.",
+     "Strict metadata governance and lineage on every signal."
+    ]
+   ],
+   [
+    "h3",
+    "The diagnostics it carries"
+   ],
+   [
+    "p",
+    "L2 carries the full constellation: Thomson scattering, interferometry, Mirnov coils, flux loops, REBCO strain gauges, electron cyclotron emission, fast-ion trackers, and neutron flux. On the breeder these resolve equilibrium and MHD; on the burner they resolve plug density and the ambipolar potential. L2 makes all of them coherent and time-aligned."
+   ],
+   [
+    "h3",
+    "Governance from the first sample"
+   ],
+   [
+    "p",
+    "Because the plant is AI-native and the honest gates are strict, every signal carries lineage from ingest: which sensor, which calibration, which validation status. This is what lets L3 trust its inputs and lets governance prove, after the fact, exactly what data any decision was based on. Data quality here is the foundation of the twin's credibility."
+   ],
+   [
+    "p",
+    "L2 feeds the twin over <a href=./line-standard-telemetry.html>standard telemetry lines</a> and is governed under <a href=./data-lineage-governance.html>data lineage and governance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ],
+   [
+    "data-lineage-governance",
+    "Data Lineage and Governance"
+   ],
+   [
+    "color-blue-infrastructure-data",
+    "Blue — Infrastructure"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l3-twin-modeling-ai-overview",
+  "title": "L3 — Twin Modeling & AI",
+  "cat": "overview",
+  "lede": "GNNs, PINNs, anomaly ensembles, and MPC agents running over the KRONOS-CTRL digital twin and its 50-100 ms predictive shadow.",
+  "body": [
+   [
+    "h2",
+    "Where telemetry becomes prediction and action"
+   ],
+   [
+    "p",
+    "L3 Twin Modeling & AI is the intelligence core. It consumes validated features from L2 and produces predictions, anomaly scores, and bounded actuation trajectories. At its center is the KRONOS-CTRL digital twin, which runs a predictive shadow of the machine 50-100 ms ahead of the present."
+   ],
+   [
+    "h3",
+    "The models at L3"
+   ],
+   [
+    "ul",
+    [
+     "GNNs that exploit sensor topology to impute dropped signals and fuse the constellation.",
+     "PINNs that solve Grad-Shafranov equilibria and MHD stability natively, honoring the physics.",
+     "Anomaly-detection ensembles that catch sub-threshold quench precursors before they grow.",
+     "MPC agents that plan safe actuation over the twin within the control cycle."
+    ]
+   ],
+   [
+    "h3",
+    "The twin's modules"
+   ],
+   [
+    "p",
+    "KRONOS-CTRL is modular: Power, Neutronics, Thermomechanics, and MHD modules run together to give a coherent state estimate and forecast. On the breeder the MHD module governs the negative-triangularity equilibrium and disruption risk; on the burner the same framework tracks plug density and the ambipolar potential feeding the DEC train."
+   ],
+   [
+    "h3",
+    "Fast because it is surrogate-driven"
+   ],
+   [
+    "p",
+    "First-principles solves are far too slow for control. L3's PINNs and surrogates reproduce them many orders of magnitude faster, so an MPC agent can evaluate candidate actions inside a cycle. Speed is what makes prediction actionable — but every L3 output is bounded by L4 before it can reach L1."
+   ],
+   [
+    "p",
+    "The twin itself is detailed in <a href=./kronos-ctrl-digital-twin.html>the KRONOS-CTRL twin</a>; its outputs feed the <a href=./from-diagnostics-to-decision.html>diagnostics-to-decision</a> path."
+   ]
+  ],
+  "related": [
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ],
+   [
+    "color-yellow-ai-workflow-optimization",
+    "Yellow — AI-Workflow"
+   ],
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "autonomous-hardware-failsafe",
+  "title": "The Autonomous Hardware Failsafe",
+  "cat": "overview",
+  "lede": "An independent, deterministic quench dump that protects the magnets with zero AI dependency — the plant's last line of defense.",
+  "body": [
+   [
+    "h2",
+    "Safety that cannot be reasoned away"
+   ],
+   [
+    "p",
+    "The autonomous hardware failsafe is the single most important element in the architecture: a deterministic protection circuit that dumps a developing magnet quench without any dependence on AI, networks, or software above L1. It is the physical guarantee behind the claim that the plant is safe even when the intelligence is not."
+   ],
+   [
+    "h3",
+    "How it works"
+   ],
+   [
+    "ul",
+    [
+     "Physical thresholds — voltage, temperature, and strain on the REBCO coils — are monitored in hardware.",
+     "Crossing a threshold triggers the quench dump directly, in deterministic time.",
+     "The stored magnetic energy is diverted to dump resistors before the coil can be damaged.",
+     "No inference, no round-trip, and no scheduler sits on this path."
+    ]
+   ],
+   [
+    "h3",
+    "Why zero AI dependency"
+   ],
+   [
+    "p",
+    "A quench in a high-field REBCO magnet — 16.84 T peak on the breeder, 26.49 T on the burner plug — is not recoverable by cleverness once it runs away. The response must be certain, not probable. Making it independent of AI removes the twin, the models, and the network from the failure analysis entirely: the failsafe works precisely because it does not need them."
+   ],
+   [
+    "h3",
+    "Intelligence still helps — earlier"
+   ],
+   [
+    "p",
+    "AI's role is upstream of the failsafe, not on it. L3's anomaly ensembles watch for sub-threshold quench precursors and can prompt a graceful, controlled response long before hardware thresholds are reached. The failsafe is the floor; the intelligence raises the whole system above it. If the intelligence misses, the floor still holds."
+   ],
+   [
+    "p",
+    "The failsafe rides <a href=./line-microsecond-realtime.html>microsecond real-time lines</a> and defines the bottom of the <a href=./safety-hierarchy-and-ai.html>safety hierarchy</a>."
+   ]
+  ],
+  "related": [
+   [
+    "l1-control-plane-overview",
+    "L1 Control Plane"
+   ],
+   [
+    "safety-hierarchy-and-ai",
+    "Safety Hierarchy and AI"
+   ],
+   [
+    "sub-10us-command-boundary",
+    "The Sub-10 Microsecond Boundary"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "sub-10us-command-boundary",
+  "title": "The Sub-10 Microsecond Command Boundary",
+  "cat": "overview",
+  "lede": "The strict timing contract of L1: every safety-critical command completes in under 10 microseconds, with bounded jitter and no software in the path.",
+  "body": [
+   [
+    "h2",
+    "A hard line in time"
+   ],
+   [
+    "p",
+    "The sub-10-microsecond command boundary is the architecture's tightest contract. Any command classified safety-critical must complete within 10 microseconds of its trigger, with jitter bounded to a small fraction of that. This boundary is what makes L1 trustworthy for magnet protection and disruption response."
+   ],
+   [
+    "h3",
+    "What must live inside the boundary"
+   ],
+   [
+    "ul",
+    [
+     "Magnet protection and the quench-dump trigger.",
+     "Disruption-response actuation on the breeder.",
+     "Plug and throat protection on the burner.",
+     "Synchronized multi-actuator gates that must fire in lockstep."
+    ]
+   ],
+   [
+    "h3",
+    "What must stay outside"
+   ],
+   [
+    "p",
+    "Everything with a variable or unbounded latency is excluded: AI inference, network round-trips, software schedulers, and telemetry aggregation. These are essential to the plant, but their timing cannot be guaranteed to the microsecond, so they are architecturally forbidden from the boundary. The <a href=./line-semantics-overview.html>line semantics</a> encode this as the rule that only microsecond real-time lines may cross it."
+   ],
+   [
+    "h3",
+    "Why 10 microseconds"
+   ],
+   [
+    "p",
+    "The figure is set by the physics being protected. A REBCO quench and a plasma disruption both develop on timescales that leave only microseconds to act safely, so the control budget is chosen an order of magnitude tighter than the fastest threat. Meeting it deterministically is why L1 is built on FPGAs rather than software, and why intelligence is kept a layer away."
+   ],
+   [
+    "p",
+    "The boundary is the timing face of the <a href=./autonomous-hardware-failsafe.html>autonomous failsafe</a> and the top of the <a href=./real-time-vs-offline-boundary.html>real-time versus offline boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "The Autonomous Failsafe"
+   ],
+   [
+    "l1-control-plane-overview",
+    "L1 Control Plane"
+   ],
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "kronos-ctrl-digital-twin",
+  "title": "The KRONOS-CTRL Digital Twin",
+  "cat": "overview",
+  "lede": "A modular predictive twin — Power, Neutronics, Thermomechanics, MHD — running a 50-100 ms shadow of the machine for state estimation and control.",
+  "body": [
+   [
+    "h2",
+    "A machine that runs ahead of the machine"
+   ],
+   [
+    "p",
+    "KRONOS-CTRL is the digital twin at the heart of L3. It maintains a live, physics-based state estimate of the reactor and projects it forward, running a predictive shadow 50-100 ms ahead of the present. Control reasons over that shadow, so the plant acts on where the machine is going, not only where it is."
+   ],
+   [
+    "h3",
+    "The four modules"
+   ],
+   [
+    "ul",
+    [
+     "Power — plasma power balance and heating response.",
+     "Neutronics — 14 MeV neutron transport and, on the breeder, tritium breeding across the TBR lever.",
+     "Thermomechanics — vessel, divertor, and cocoon thermal and structural state.",
+     "MHD — equilibrium and stability, the dominant control physics on both machines."
+    ]
+   ],
+   [
+    "h3",
+    "How it stays faithful"
+   ],
+   [
+    "p",
+    "The twin is continuously reconciled with L2 telemetry. GNNs fuse the diagnostics constellation and impute dropped channels; PINNs enforce the governing equations so the state estimate honors physics rather than merely fitting data. The gap between prediction and observation is itself a monitored signal, feeding anomaly detection and the retraining loop."
+   ],
+   [
+    "h3",
+    "Both machines"
+   ],
+   [
+    "p",
+    "On the breeder the twin tracks the negative-triangularity equilibrium and disruption margin; on the burner it tracks end-plug density, the ambipolar potential, and the charged-particle flux into the DEC train. The module structure is shared; the physics inside MHD and Neutronics differs per machine, which is exactly the <a href=./one-architecture-two-machines.html>one-architecture-two-machines</a> pattern in action."
+   ],
+   [
+    "p",
+    "The twin's source truth is the source-of-truth principle from the <a href=./design-philosophy.html>design philosophy</a>, and its inputs come from the <a href=./diagnostics-constellation.html>diagnostics constellation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "l3-twin-modeling-ai-overview",
+    "L3 Twin Modeling & AI"
+   ],
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ],
+   [
+    "one-architecture-two-machines",
+    "One Architecture, Two Machines"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "diagnostics-constellation",
+  "title": "The Diagnostics Constellation",
+  "cat": "overview",
+  "lede": "The sensor suite the whole stack sees through: Thomson scattering, interferometry, Mirnov coils, flux loops, REBCO strain, ECE, fast-ion trackers, and neutron flux.",
+  "body": [
+   [
+    "h2",
+    "The plant's senses"
+   ],
+   [
+    "p",
+    "The diagnostics constellation is the set of instruments through which the architecture observes the plasma and the machine. More than 60 analog channels flow from it into L2, where they are validated and fused. Everything the twin knows and the copilots reason about begins here."
+   ],
+   [
+    "h3",
+    "The instruments"
+   ],
+   [
+    "ul",
+    [
+     "Thomson scattering — electron temperature and density profiles.",
+     "Interferometry — line-integrated density.",
+     "Mirnov coils and flux loops — magnetic fluctuations and equilibrium reconstruction.",
+     "REBCO strain gauges — magnet mechanical state.",
+     "Electron cyclotron emission (ECE) — electron temperature dynamics.",
+     "Fast-ion trackers — energetic-ion behavior.",
+     "Neutron flux — fusion rate and, on the breeder, 14 MeV neutron transport."
+    ]
+   ],
+   [
+    "h3",
+    "Chosen for models, not only humans"
+   ],
+   [
+    "p",
+    "Because the plant is AI-native, the constellation is specified for what the twin needs to infer. Redundant and topologically related sensors let GNNs impute a dropped channel from its neighbors; complementary diagnostics let PINNs constrain an equilibrium from several independent measurements. The suite is an inference substrate, not just a set of gauges."
+   ],
+   [
+    "h3",
+    "Different physics, same suite"
+   ],
+   [
+    "p",
+    "On the breeder the constellation resolves equilibrium, MHD, and disruption precursors around the delta -0.30 shape. On the burner the same classes of instrument resolve plug density, the ambipolar potential, and neutron fraction near 5.44%. The suite is shared; what it is pointed at differs per machine."
+   ],
+   [
+    "p",
+    "The constellation reports through the <a href=./l2-data-fabric-overview.html>Data Fabric</a> over cryo-rated feedthroughs; its fusion into state feeds the <a href=./kronos-ctrl-digital-twin.html>KRONOS-CTRL twin</a>."
+   ]
+  ],
+  "related": [
+   [
+    "l2-data-fabric-overview",
+    "L2 Data Fabric"
+   ],
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ],
+   [
+    "from-diagnostics-to-decision",
+    "From Diagnostics to Decision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "breeder-control-problems",
+  "title": "Breeder Control Problems",
+  "cat": "overview",
+  "lede": "For Hyperion, the spherical-tokamak challenges are equilibrium, holding the negative-triangularity ELM-free shape, and disruption avoidance.",
+  "body": [
+   [
+    "h2",
+    "What the breeder must control"
+   ],
+   [
+    "p",
+    "The breeder (Hyperion) is a D-T spherical tokamak with major radius R0 1.2 m, aspect ratio 2.5, Q_sci 3.424, 88.7 MW of fusion power, and 9.86 MA of plasma current. Its control problems are the classic tokamak set, sharpened by the compact spherical geometry and the chosen shape."
+   ],
+   [
+    "h3",
+    "The three core problems"
+   ],
+   [
+    "ul",
+    [
+     "Equilibrium — holding the plasma in force balance at 16.84 T peak field (8 T on-axis) against pressure and current gradients.",
+     "Shape — maintaining the negative-triangularity (delta -0.30), ELM-free configuration that eases divertor loading.",
+     "Disruption avoidance — detecting and steering away from the fast MHD instabilities that can terminate the discharge."
+    ]
+   ],
+   [
+    "h3",
+    "The equilibrium equation"
+   ],
+   [
+    "p",
+    "Equilibrium control reasons about the Grad-Shafranov equation for the poloidal flux, which the L3 PINNs solve as a surrogate:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Grad-Shafranov (axisymmetric MHD equilibrium)\n# Delta* psi = -mu0 * R^2 * dP/dpsi  -  F * dF/dpsi\n# psi : poloidal flux    P(psi): pressure    F(psi)=R*B_phi\n# Solved as a PINN surrogate so equilibrium fits inside the control cycle."
+    ]
+   ],
+   [
+    "h3",
+    "Why negative triangularity is a control asset"
+   ],
+   [
+    "p",
+    "The delta -0.30 shape suppresses edge-localized modes, which reduces transient divertor heat loads — but it must be actively held, because it is not the plasma's natural tendency. The twin's MHD module tracks the shape continuously and the MPC agent adjusts the shaping coils to keep it, all bounded by L1's deterministic actuation."
+   ],
+   [
+    "p",
+    "These problems are solved by the <a href=./kronos-ctrl-digital-twin.html>KRONOS-CTRL twin</a> and executed within the <a href=./sub-10us-command-boundary.html>sub-10 microsecond boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "mapping-stack-to-hyperion",
+    "Mapping to Hyperion"
+   ],
+   [
+    "burner-control-problems",
+    "Burner Control Problems"
+   ],
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "burner-control-problems",
+  "title": "Burner Control Problems",
+  "cat": "overview",
+  "lede": "For the tandem mirror, the challenges are end-plug density, the ambipolar potential, and steering charged particles into the direct-energy-conversion train.",
+  "body": [
+   [
+    "h2",
+    "What the burner must control"
+   ],
+   [
+    "p",
+    "The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T end-plug field, a 17 T throat, and a low neutron fraction of 5.44%. Its control problems are those of an open magnetic system, quite different from a tokamak's, and they center on holding the ends and converting the output."
+   ],
+   [
+    "h3",
+    "The three core problems"
+   ],
+   [
+    "ul",
+    [
+     "End-plug density — sustaining the high-density plugs that confine the central-cell plasma.",
+     "The ambipolar potential — maintaining the electrostatic potential profile that plugs ion loss.",
+     "Direct energy conversion — steering the escaping charged-particle flux into the multi-modal DEC train."
+    ]
+   ],
+   [
+    "h3",
+    "The ambipolar potential"
+   ],
+   [
+    "p",
+    "Confinement in a tandem mirror is electrostatic as much as magnetic. The end plugs raise a potential that reflects central-cell ions; the balance between electron and ion losses sets the profile, and the control loop must hold it:"
+   ],
+   [
+    "code",
+    [
+     "python",
+     "# Ambipolar (Boltzmann) relation for the confining potential\n# n_plug / n_center = exp( e * phi_c / T_e )\n# phi_c : central-cell confining potential   T_e : electron temperature\n# The plug density sets phi_c; the loop holds phi_c against fluctuations."
+    ]
+   ],
+   [
+    "h3",
+    "Low-neutron, not aneutronic"
+   ],
+   [
+    "p",
+    "D-3He is a low-neutron fuel — 5.44% of the power appears as neutrons — not an aneutronic one. That residual neutron flux is a diagnostic and a materials input, tracked by the twin's Neutronics module. p-11B remains a gated research endpoint; there is no p-6Li main burn. The DEC train's job is to convert the dominant charged-particle output directly."
+   ],
+   [
+    "p",
+    "These problems map onto the shared stack in <a href=./mapping-stack-to-tandem-mirror.html>mapping to the tandem mirror</a>, and the conversion side in <a href=./stack-to-dec-train.html>the DEC train</a>."
+   ]
+  ],
+  "related": [
+   [
+    "mapping-stack-to-tandem-mirror",
+    "Mapping to the Tandem Mirror"
+   ],
+   [
+    "breeder-control-problems",
+    "Breeder Control Problems"
+   ],
+   [
+    "stack-to-dec-train",
+    "The DEC Train"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mapping-stack-to-hyperion",
+  "title": "Mapping the Stack to Hyperion (Breeder)",
+  "cat": "overview",
+  "lede": "Layer by layer, how the eight-layer architecture instantiates on the D-T spherical tokamak — from FPGA coil control to neutronics retraining.",
+  "body": [
+   [
+    "h2",
+    "The stack on the breeder"
+   ],
+   [
+    "p",
+    "On Hyperion the architecture takes on the tokamak's specific physics while keeping every layer's role unchanged. The mapping shows how a general stack becomes a concrete control system for a D-T spherical tokamak at Q_sci 3.424 and 88.7 MW."
+   ],
+   [
+    "h3",
+    "Layer by layer"
+   ],
+   [
+    "ul",
+    [
+     "L0 — Monte Carlo neutronics for tritium breeding across TBR 1.1/1.5/1.8; shape-optimization sweeps for delta -0.30.",
+     "L1 — FPGA control of shaping and vertical-stability coils; quench protection on the 16.84 T magnets.",
+     "L2 — Thomson, Mirnov, flux loops, ECE, REBCO strain, and neutron flux fused into equilibrium features.",
+     "L3 — PINNs solving Grad-Shafranov; anomaly ensembles for disruption precursors; MPC for shape.",
+     "L4-L7 — orchestration, the plasma copilot, control-room overlays, and fuel-cycle scheduling."
+    ]
+   ],
+   [
+    "h3",
+    "The dominant loop"
+   ],
+   [
+    "p",
+    "The breeder's signature loop is equilibrium-and-disruption: diagnostics reconstruct the equilibrium, the twin projects it 50-100 ms ahead, the MPC agent plans coil adjustments to hold the negative-triangularity shape and stay clear of disruption boundaries, and L1 executes deterministically within the command budget."
+   ],
+   [
+    "h3",
+    "The fuel-cycle overlay"
+   ],
+   [
+    "p",
+    "Unique to the breeder is real-time isotope balancing. The fuel cycle produces roughly a 4 kg/yr tritium class output and 1.97 kg/yr helium-3 alongside 14 MeV neutrons. L2 tracks the isotope inventory and L7's operations functions schedule around it — as a logistics problem, never an economic one."
+   ],
+   [
+    "p",
+    "Contrast the burner mapping in <a href=./mapping-stack-to-tandem-mirror.html>mapping to the tandem mirror</a>; the physics is enumerated in <a href=./breeder-control-problems.html>breeder control problems</a>."
+   ]
+  ],
+  "related": [
+   [
+    "breeder-control-problems",
+    "Breeder Control Problems"
+   ],
+   [
+    "mapping-stack-to-tandem-mirror",
+    "Mapping to the Tandem Mirror"
+   ],
+   [
+    "stack-to-fuel-cycle",
+    "The Stack and the Fuel Cycle"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "mapping-stack-to-tandem-mirror",
+  "title": "Mapping the Stack to the Tandem Mirror (Burner)",
+  "cat": "overview",
+  "lede": "Layer by layer, how the same architecture instantiates on the D-3He tandem-mirror generator — from plug control to direct energy conversion.",
+  "body": [
+   [
+    "h2",
+    "The stack on the burner"
+   ],
+   [
+    "p",
+    "On the burner (Aegis / MetroVolt) the eight layers keep their roles but reason about an open magnetic system. The mapping shows how the shared stack becomes a control system for a D-3He tandem mirror with a 26.49 T plug and direct energy conversion."
+   ],
+   [
+    "h3",
+    "Layer by layer"
+   ],
+   [
+    "ul",
+    [
+     "L0 — plug-density and ambipolar-potential design sweeps; DEC-train optimization studies.",
+     "L1 — FPGA control of plug and throat coils; protection of the 26.49 T plug and 17 T throat.",
+     "L2 — diagnostics resolving plug density, potential, and the 5.44% neutron fraction.",
+     "L3 — twin modules for plug stability and potential; MPC steering flux into the DEC train.",
+     "L4-L7 — orchestration, the plasma copilot, DEC-train dashboards, and dispatch scheduling."
+    ]
+   ],
+   [
+    "h3",
+    "The dominant loop"
+   ],
+   [
+    "p",
+    "The burner's signature loop is plug-and-potential: diagnostics measure end-plug density and the ambipolar potential, the twin projects their evolution, the MPC agent adjusts plug heating and coil currents to hold confinement, and L1 executes within budget. Steering the escaping charged flux cleanly into the DEC train is part of the same loop."
+   ],
+   [
+    "h3",
+    "Direct energy conversion"
+   ],
+   [
+    "p",
+    "Where the breeder ends in neutrons and heat, the burner ends in a multi-modal DEC train — TWDEC, ultra-high-field MHD, and thermionic stages — that converts charged-particle energy directly. The architecture treats DEC as an orange thermal/reactor path with its own control and diagnostics, described in <a href=./stack-to-dec-train.html>the DEC train</a>."
+   ],
+   [
+    "h3",
+    "Two housings"
+   ],
+   [
+    "p",
+    "The burner ships in two housings: Aegis, for fixed defense installations, and MetroVolt, for data centers. Both run the identical architecture; the housing changes packaging and dispatch context, handled at L7, not the control physics."
+   ],
+   [
+    "p",
+    "Contrast the breeder in <a href=./mapping-stack-to-hyperion.html>mapping to Hyperion</a>; the physics is in <a href=./burner-control-problems.html>burner control problems</a>."
+   ]
+  ],
+  "related": [
+   [
+    "burner-control-problems",
+    "Burner Control Problems"
+   ],
+   [
+    "mapping-stack-to-hyperion",
+    "Mapping to Hyperion"
+   ],
+   [
+    "stack-to-dec-train",
+    "The DEC Train"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "physical-plant-wiring",
+  "title": "Physical Plant Wiring",
+  "cat": "overview",
+  "lede": "The termination map: every layer of the stack ends at a named subsystem — magnets, feedthroughs, vessel, divertor, fuel cycle, and the DEC train.",
+  "body": [
+   [
+    "h2",
+    "No layer floats free"
+   ],
+   [
+    "p",
+    "The discipline of an AI-native plant is that the software stack is wired to steel at defined points. Physical plant wiring is the map of those terminations — where sensing enters, where actuation leaves, and where protection is anchored. It is what lets any decision be traced to the hardware it moves."
+   ],
+   [
+    "h3",
+    "The termination points"
+   ],
+   [
+    "ul",
+    [
+     "Sensing enters at cryo-rated vacuum feedthroughs carrying 60+ analog channels into L2.",
+     "Actuation leaves L1 to shaping and stability coils, gas and pellet injectors, and heating.",
+     "Protection anchors at the REBCO magnets — the autonomous quench dump and deterministic interlocks.",
+     "Structural health monitoring reads the CrMoNbV vessel and carbon-fiber cocoon.",
+     "The fuel cycle terminates real-time isotope balancing into L2 and L7."
+    ]
+   ],
+   [
+    "h3",
+    "The cryogenic feedthrough boundary"
+   ],
+   [
+    "p",
+    "The most demanding wiring is the crossing from a cryogenic, high-vacuum, high-field interior to room-temperature electronics. Signals from REBCO strain gauges, Mirnov coils, and the other diagnostics pass through feedthroughs that must preserve sub-microsecond timing and signal integrity across that boundary. L2 owns the fidelity of every crossing."
+   ],
+   [
+    "h3",
+    "Actuation and preload"
+   ],
+   [
+    "p",
+    "On the actuation side, the wiring includes the cryogenic ice-piston preload cycle that mechanically conditions the high-field magnets. Preload is coordinated across the plant interface and is safety-relevant, because magnet mechanical state and quench risk are linked."
+   ],
+   [
+    "p",
+    "Each subsystem has a dedicated page: <a href=./stack-to-magnet-system.html>magnets</a>, <a href=./stack-to-fuel-cycle.html>fuel cycle</a>, and <a href=./stack-to-dec-train.html>DEC train</a>. The sensing side is the <a href=./diagnostics-constellation.html>diagnostics constellation</a>."
+   ]
+  ],
+  "related": [
+   [
+    "smart-generator-plant-interface",
+    "The Plant Interface"
+   ],
+   [
+    "stack-to-magnet-system",
+    "The Magnet System"
+   ],
+   [
+    "diagnostics-constellation",
+    "The Diagnostics Constellation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stack-to-magnet-system",
+  "title": "The Stack and the Magnet System",
+  "cat": "overview",
+  "lede": "How the architecture controls and protects the high-field REBCO magnets and coordinates the cryogenic ice-piston preload cycle.",
+  "body": [
+   [
+    "h2",
+    "The highest-stakes interface"
+   ],
+   [
+    "p",
+    "The high-field REBCO magnet system is where the architecture's safety guarantees are tested hardest. The breeder runs 16.84 T peak field (8 T on-axis); the burner runs a 26.49 T plug and 17 T throat. Controlling these magnets and protecting them from quench is the responsibility that shapes L1's entire design."
+   ],
+   [
+    "h3",
+    "What the stack does with the magnets"
+   ],
+   [
+    "ul",
+    [
+     "Control — FPGA-driven coil currents for equilibrium, shaping, and stability.",
+     "Sensing — REBCO strain gauges and thermal and voltage monitoring feeding L2.",
+     "Protection — the autonomous quench dump, triggered by hardware thresholds.",
+     "Preload — coordination of the cryogenic ice-piston cycle that conditions the coils."
+    ]
+   ],
+   [
+    "h3",
+    "The ice-piston preload cycle"
+   ],
+   [
+    "p",
+    "The ice-piston preload mechanically pre-stresses the magnet structure so that electromagnetic loads during operation stay within the winding's tolerance. It is a cryogenic process coordinated across the plant interface, and its state is monitored because mechanical margin and quench risk are coupled. The twin's Thermomechanics module tracks it."
+   ],
+   [
+    "h3",
+    "Why protection is deterministic"
+   ],
+   [
+    "p",
+    "A REBCO quench releases stored magnetic energy fast, and at these fields the coil can be damaged before software could react. That is why quench protection is the archetypal <a href=./autonomous-hardware-failsafe.html>autonomous hardware failsafe</a>: physical thresholds, hardware trigger, zero AI dependency. AI's role is upstream — REBCO strain and thermal trends feed anomaly detection that warns long before thresholds are reached."
+   ],
+   [
+    "p",
+    "Magnet control lives within the <a href=./sub-10us-command-boundary.html>sub-10 microsecond boundary</a>, and magnet state feeds the <a href=./kronos-ctrl-digital-twin.html>twin's</a> Thermomechanics module."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "The Autonomous Failsafe"
+   ],
+   [
+    "physical-plant-wiring",
+    "Physical Plant Wiring"
+   ],
+   [
+    "color-orange-thermal-reactor-dec",
+    "Orange — Reactor"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stack-to-fuel-cycle",
+  "title": "The Stack and the Fuel Cycle",
+  "cat": "overview",
+  "lede": "Real-time isotope balancing: how the architecture tracks and schedules tritium, helium-3, and neutron output as an operational, never economic, problem.",
+  "body": [
+   [
+    "h2",
+    "Controlling the fuel loop"
+   ],
+   [
+    "p",
+    "The fuel cycle is where the breeder's products are made and where both machines' fuel is managed. The architecture treats it as a real-time balancing problem: measuring inventory, tracking production, and scheduling supply, all as operations, never as economics."
+   ],
+   [
+    "h3",
+    "What the stack tracks"
+   ],
+   [
+    "ul",
+    [
+     "Breeder tritium production — a roughly 4 kg/yr tritium class output.",
+     "Helium-3 co-production — roughly 1.97 kg/yr.",
+     "14 MeV neutron flux, tied to the tritium breeding ratio lever (1.1 / 1.5 / 1.8).",
+     "Burner D-3He fuel supply against the DEC train's operating windows."
+    ]
+   ],
+   [
+    "h3",
+    "The tritium breeding ratio as a lever"
+   ],
+   [
+    "p",
+    "On the breeder, the tritium breeding ratio (TBR) is treated as a design lever studied across 1.1, 1.5, and 1.8, not a fixed result. L0's Monte Carlo neutronics quantifies breeding for each case, and the twin's Neutronics module tracks the operating point. The honest gates keep this explicit: TBR is a study range, not a settled number."
+   ],
+   [
+    "h3",
+    "Real-time balancing"
+   ],
+   [
+    "p",
+    "During operation, L2 maintains the isotope inventory from neutron-flux and gas diagnostics, the twin projects production forward, and L7's operations functions schedule fuel handling and product logistics. The whole loop is described operationally — inventory, timing, availability — with no price or cost anywhere in the architecture."
+   ],
+   [
+    "p",
+    "The neutron side connects to the <a href=./kronos-ctrl-digital-twin.html>twin's</a> Neutronics module; scheduling is a <a href=./color-green-operations-ecosystem.html>green operations</a> function."
+   ]
+  ],
+  "related": [
+   [
+    "color-green-operations-ecosystem",
+    "Green — Operations"
+   ],
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ],
+   [
+    "physical-plant-wiring",
+    "Physical Plant Wiring"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "stack-to-dec-train",
+  "title": "The Stack and the DEC Train",
+  "cat": "overview",
+  "lede": "How the architecture controls the burner's multi-modal direct-energy-conversion train — TWDEC, ultra-high-field MHD, and thermionic stages.",
+  "body": [
+   [
+    "h2",
+    "Converting output directly"
+   ],
+   [
+    "p",
+    "On the burner, the direct-energy-conversion (DEC) train is where the plasma's charged-particle output becomes usable energy without a conventional thermal cycle for that fraction. It is a multi-modal train, and the architecture controls it as an orange reactor/thermal path with its own diagnostics and actuation."
+   ],
+   [
+    "h3",
+    "The stages"
+   ],
+   [
+    "ul",
+    [
+     "TWDEC — traveling-wave direct energy conversion, decelerating fast ions and recovering their energy.",
+     "Ultra-high-field MHD — a magnetohydrodynamic conversion stage.",
+     "Thermionics — direct thermal-to-electric conversion of the residual heat."
+    ]
+   ],
+   [
+    "h3",
+    "The control problem"
+   ],
+   [
+    "p",
+    "DEC control is coupled to plasma control: the flux and energy spectrum entering the train depend on the end-plug density and the ambipolar potential upstream. The MPC agent must therefore steer the escaping charged particles into the train's acceptance window while the plasma loop holds the plug — a single coordinated objective across L3."
+   ],
+   [
+    "h3",
+    "Why it is a shared-stack module, not a new stack"
+   ],
+   [
+    "p",
+    "The DEC train is unique to the burner, but it does not need a new architecture. It is a set of L2 diagnostics, an L3 twin sub-model, and L1 actuation — the same layers, pointed at conversion instead of confinement. This is the <a href=./one-architecture-two-machines.html>one-architecture</a> principle applied to the output end of the machine."
+   ],
+   [
+    "h3",
+    "Multi-modal by design"
+   ],
+   [
+    "p",
+    "The three stages are complementary because the escaping population is not monoenergetic. TWDEC recovers the fast directed ions most efficiently; the ultra-high-field MHD stage handles the bulk flow; thermionics captures residual heat that the first two stages leave behind. The twin models the energy spectrum entering the train so the MPC agent can bias operation toward whichever stage matches the current output — a conversion-side optimization that mirrors the confinement-side optimization on the breeder."
+   ],
+   [
+    "p",
+    "DEC control sits inside the <a href=./burner-control-problems.html>burner control problems</a> and is executed within the <a href=./sub-10us-command-boundary.html>command boundary</a>."
+   ]
+  ],
+  "related": [
+   [
+    "burner-control-problems",
+    "Burner Control Problems"
+   ],
+   [
+    "color-orange-thermal-reactor-dec",
+    "Orange — Reactor"
+   ],
+   [
+    "mapping-stack-to-tandem-mirror",
+    "Mapping to the Tandem Mirror"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "edge-to-cloud-continuum",
+  "title": "The Edge-to-Cloud Continuum",
+  "cat": "overview",
+  "lede": "Compute is placed where its time budget demands — FPGAs at the edge for microseconds, on-site servers for the twin, cloud HPC for batch work.",
+  "body": [
+   [
+    "h2",
+    "Placement follows latency"
+   ],
+   [
+    "p",
+    "The architecture's compute is distributed along a continuum from the edge to the cloud, and placement is decided by time budget, not convenience. The tighter a function's latency requirement, the closer to the machine it runs; the more compute it needs, the farther away it can afford to be."
+   ],
+   [
+    "h3",
+    "The continuum"
+   ],
+   [
+    "ul",
+    [
+     "Edge FPGAs — microsecond determinism at L1, physically at the machine.",
+     "On-site servers — the L3 twin and its 50-100 ms predictive shadow, near the data.",
+     "Site data fabric — L2 archive, feature store, and vector DB.",
+     "Cloud HPC and bare metal — L0 batch training and Monte Carlo, latency-tolerant."
+    ]
+   ],
+   [
+    "h3",
+    "Why the twin runs on-site"
+   ],
+   [
+    "p",
+    "The predictive twin sits in the middle of the continuum for a reason: it needs enough compute to run four physics modules but must stay within tens of milliseconds of the plant to be useful for control. Running it on-site keeps the round-trip short while leaving the heaviest work — retraining, neutronics — for the cloud."
+   ],
+   [
+    "h3",
+    "The gradient as a design constraint"
+   ],
+   [
+    "p",
+    "The continuum is the physical realization of the <a href=./latency-gradient-across-layers.html>latency gradient</a>. It also enforces a security property: the deterministic edge is isolated from the cloud by the IT/OT boundary, so cloud compute can scale freely without ever being on the safety path. This is the same separation that lets a long L0 job never contend with L1."
+   ],
+   [
+    "p",
+    "The continuum underlies the <a href=./real-time-vs-offline-boundary.html>real-time versus offline boundary</a> and the <a href=./latency-gradient-across-layers.html>latency gradient</a>."
+   ]
+  ],
+  "related": [
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ],
+   [
+    "real-time-vs-offline-boundary",
+    "Real-Time vs Offline"
+   ],
+   [
+    "l0-foundation-overview",
+    "L0 Foundation"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "real-time-vs-offline-boundary",
+  "title": "The Real-Time vs Offline Boundary",
+  "cat": "overview",
+  "lede": "The architecture's central dividing line: hard real-time below, latency-tolerant learning above, with telemetry crossing up and validated models crossing down.",
+  "body": [
+   [
+    "h2",
+    "The line that organizes everything"
+   ],
+   [
+    "p",
+    "If the architecture has one central boundary, it is between the real-time world and the offline world. Below the line, timing is guaranteed and actions are irreversible; above it, compute is abundant and work can retry. Understanding where a function sits relative to this line explains most of its design."
+   ],
+   [
+    "h3",
+    "Below the line"
+   ],
+   [
+    "ul",
+    [
+     "L1 Control Plane — sub-10-microsecond determinism.",
+     "The autonomous failsafe and deterministic interlocks.",
+     "The soft-real-time twin shadow that informs, but does not bypass, control."
+    ]
+   ],
+   [
+    "h3",
+    "Above the line"
+   ],
+   [
+    "ul",
+    [
+     "L0 batch retraining and Monte Carlo neutronics.",
+     "MLOps model validation and promotion.",
+     "Design sweeps and ecosystem scheduling."
+    ]
+   ],
+   [
+    "h3",
+    "What crosses, and how"
+   ],
+   [
+    "p",
+    "Only two things cross the boundary, and each in a controlled way. Telemetry crosses upward as data — validated, governed, never actuating. Models cross downward only after validation, and even then their outputs are bounded by the rules engine before reaching L1. Nothing crosses the line as a live command; the offline world can shape control, but it can never be control."
+   ],
+   [
+    "h3",
+    "Why the discipline holds"
+   ],
+   [
+    "p",
+    "This boundary is what reconciles the two things a fusion plant needs at once: to learn continuously and to stay provably safe. Learning is placed entirely above the line so that it can never delay or corrupt the deterministic layer below. The <a href=./determinism-vs-intelligence.html>determinism versus intelligence</a> page argues why the plant must be built this way."
+   ],
+   [
+    "p",
+    "The boundary is timed by the <a href=./latency-gradient-across-layers.html>latency gradient</a> and drawn physically by the <a href=./edge-to-cloud-continuum.html>edge-to-cloud continuum</a>."
+   ]
+  ],
+  "related": [
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ],
+   [
+    "latency-gradient-across-layers",
+    "The Latency Gradient"
+   ],
+   [
+    "edge-to-cloud-continuum",
+    "Edge-to-Cloud Continuum"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "data-lineage-governance",
+  "title": "Data Lineage and Governance",
+  "cat": "overview",
+  "lede": "Every signal, feature, model, and decision carries provenance — so the plant can prove, after the fact, exactly what any action was based on.",
+  "body": [
+   [
+    "h2",
+    "Provenance as a first-class requirement"
+   ],
+   [
+    "p",
+    "In an AI-native plant, trust in a decision depends on trust in the data behind it. The architecture tracks lineage from the first sample: which sensor, which calibration, which validation status, which feature transform, which model version, and which twin state fed each decision. Governance is not a report; it is a property of the data fabric."
+   ],
+   [
+    "h3",
+    "What lineage covers"
+   ],
+   [
+    "ul",
+    [
+     "Signal — sensor identity, calibration, and validation status at ingest.",
+     "Feature — the transforms applied and the feature-store version served.",
+     "Model — which trained model, trained on which data, promoted by which validation.",
+     "Decision — the command issued, the twin state it used, and the human confirmation if any."
+    ]
+   ],
+   [
+    "h3",
+    "Why it matters for safety and honesty"
+   ],
+   [
+    "p",
+    "Lineage is what makes the honest gates enforceable. Because every result carries whether it came from measurement or simulation, a copilot cannot present a simulated equilibrium as a measured one, and an audit can always distinguish the two. Before FOAK, that distinction is the difference between a design claim and a data claim."
+   ],
+   [
+    "h3",
+    "Governance and IT/OT separation"
+   ],
+   [
+    "p",
+    "Governance also spans the security boundary. The operational-technology side is isolated from general IT by airgaps and unidirectional data diodes, so telemetry can flow out for analysis while nothing can flow in to the control path uninvited. The gray IT/OT line in the blueprint marks exactly this boundary, and lineage records every crossing."
+   ],
+   [
+    "p",
+    "Lineage is a purple governance function; it underwrites the <a href=./honest-gates.html>honest gates</a> and the <a href=./feedback-loops-retraining.html>retraining loop</a>."
+   ]
+  ],
+  "related": [
+   [
+    "honest-gates",
+    "The Honest Gates"
+   ],
+   [
+    "color-purple-strategy-governance",
+    "Purple — Strategy"
+   ],
+   [
+    "feedback-loops-retraining",
+    "Feedback and Retraining"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "feedback-loops-retraining",
+  "title": "Feedback and Retraining",
+  "cat": "overview",
+  "lede": "How pink feedback closes the learning loop: anomalies and drift trigger batch retraining at L0, and validated models return to the twin.",
+  "body": [
+   [
+    "h2",
+    "The loop that keeps the twin honest"
+   ],
+   [
+    "p",
+    "An AI-native plant is only as good as its ability to correct itself. The feedback-and-retraining loop is how the architecture keeps the twin faithful to a machine that changes — through commissioning, through wear, and across FOAK, NOAK, and BOAK units. It runs entirely above the real-time boundary so it can never disturb control."
+   ],
+   [
+    "h3",
+    "The loop"
+   ],
+   [
+    "ul",
+    [
+     "Detect — L3 anomaly ensembles and drift monitors flag deviations as pink signals.",
+     "Capture — the relevant telemetry, with lineage, is archived at L2 and human corrections are recorded.",
+     "Retrain — batch lines carry the data to L0, which retrains surrogates, GNNs, PINNs, and detectors.",
+     "Validate and promote — MLOps checks the new model against held-out physics before it is allowed near control.",
+     "Deploy — the promoted model updates the twin; the loop continues."
+    ]
+   ],
+   [
+    "h3",
+    "Drift is expected"
+   ],
+   [
+    "p",
+    "The twin is trained on simulation before FOAK, so its first contact with real plasma will reveal drift. That is not a failure; it is the loop's purpose. Pink feedback measures the gap between predicted and observed state, and retraining narrows it. Reinforcement learning from human corrections adds operator judgment where models are weak."
+   ],
+   [
+    "h3",
+    "Bounded promotion"
+   ],
+   [
+    "p",
+    "No retrained model reaches control automatically. Promotion is gated by validation and by the rules engine at L4, so a model that improves average accuracy but violates a safety bound is rejected. The loop makes the plant smarter over time without ever relaxing the guarantees that keep it safe."
+   ],
+   [
+    "p",
+    "The loop's return leg is <a href=./line-offline-batch-retraining.html>offline batch lines</a>; its trigger is <a href=./color-pink-feedback-alerts-retraining.html>pink feedback</a>; its substrate is <a href=./l0-foundation-overview.html>L0</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-pink-feedback-alerts-retraining",
+    "Pink — Feedback"
+   ],
+   [
+    "l0-foundation-overview",
+    "L0 Foundation"
+   ],
+   [
+    "data-lineage-governance",
+    "Data Lineage and Governance"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "layer-interfaces-contracts",
+  "title": "Layer Interfaces as Contracts",
+  "cat": "overview",
+  "lede": "Each layer exposes an explicit, testable interface to its neighbors — the contracts that make the stack certifiable one layer at a time.",
+  "body": [
+   [
+    "h2",
+    "Interfaces, not entanglements"
+   ],
+   [
+    "p",
+    "The eight layers hold together only because the boundaries between them are contracts, not conveniences. Each layer promises a defined interface to the layer above and below: defined data shapes, defined latency classes, and defined failure behavior. Because the contracts are explicit, a layer can be tested, replaced, or certified without opening the ones around it."
+   ],
+   [
+    "h3",
+    "What a contract specifies"
+   ],
+   [
+    "ul",
+    [
+     "Data shape — the schema of features, predictions, or commands crossing the boundary.",
+     "Latency class — real-time, standard telemetry, or offline, per the line semantics.",
+     "Failure behavior — what the interface does when the neighbor is late, absent, or wrong.",
+     "Authority — whether the crossing carries data, a bounded request, or a command."
+    ]
+   ],
+   [
+    "h3",
+    "The most important contract"
+   ],
+   [
+    "p",
+    "The L1|L3 contract is the one the safety case rests on. L3 may send L1 a bounded actuation trajectory; L1 promises to execute it deterministically or to reject it and fall back to safe control. Critically, L1's failsafe behavior is defined without reference to L3 at all — so the contract holds even when L3 is silent. This is how intelligence and determinism coexist."
+   ],
+   [
+    "h3",
+    "Why contracts enable evolution"
+   ],
+   [
+    "p",
+    "Because interfaces are fixed, the physics-specific parts of the stack can evolve independently. A better breeder equilibrium PINN or a new burner plug model can be swapped in at L3 without touching L1, L2, or the layers above — provided it honors the contract. This is what lets one architecture serve two machines and improve across reactor generations."
+   ],
+   [
+    "p",
+    "The contracts realize the <a href=./why-eight-layer-separation.html>eight-layer separation</a> and the flows in <a href=./how-the-layers-connect.html>how the layers connect</a>."
+   ]
+  ],
+  "related": [
+   [
+    "why-eight-layer-separation",
+    "Why Eight Layers"
+   ],
+   [
+    "how-the-layers-connect",
+    "How the Layers Connect"
+   ],
+   [
+    "one-architecture-two-machines",
+    "One Architecture, Two Machines"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "architecture-first-principles",
+  "title": "Architecture First Principles",
+  "cat": "overview",
+  "lede": "The invariants every design decision must respect — separation of latency classes, physical safety floor, bounded intelligence, and traceable data.",
+  "body": [
+   [
+    "h2",
+    "The invariants"
+   ],
+   [
+    "p",
+    "Beneath the layers and colors sit a few invariants that no design change may break. They are the tests a proposed architecture must pass, derived from the physics of the machines and the discipline of the honest gates."
+   ],
+   [
+    "h3",
+    "The four invariants"
+   ],
+   [
+    "ul",
+    [
+     "Latency classes never mix — a single path carries a single latency guarantee.",
+     "There is always a physical safety floor — the failsafe works with zero AI dependency.",
+     "Intelligence is always bounded — no AI output actuates without passing safety bounds.",
+     "Data is always traceable — every signal, model, and decision carries lineage."
+    ]
+   ],
+   [
+    "h3",
+    "How the invariants are derived"
+   ],
+   [
+    "p",
+    "Each invariant answers a specific hazard. Mixing latency classes would let a slow function delay a fast one — hazardous near the magnets, so it is forbidden. Depending on AI for the last line of defense would couple safety to the least predictable component — so a physical floor is mandatory. Unbounded intelligence could actuate on a wrong prediction — so bounds are mandatory. Untraceable data would make the honest gates unenforceable — so lineage is mandatory."
+   ],
+   [
+    "h3",
+    "Using the principles"
+   ],
+   [
+    "p",
+    "In practice the invariants make design reviews decidable. A proposed shortcut from a copilot to an actuator fails the bounded-intelligence test. A telemetry line drawn onto the command path fails the latency-class test. Because the invariants are few and sharp, disagreements resolve to whether a design violates one of them, not to taste."
+   ],
+   [
+    "p",
+    "The invariants are the compressed form of the <a href=./design-philosophy.html>design philosophy</a> and are enforced through <a href=./layer-interfaces-contracts.html>interface contracts</a>."
+   ]
+  ],
+  "related": [
+   [
+    "design-philosophy",
+    "The Design Philosophy"
+   ],
+   [
+    "layer-interfaces-contracts",
+    "Layer Interfaces"
+   ],
+   [
+    "honest-gates",
+    "The Honest Gates"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "safety-hierarchy-and-ai",
+  "title": "The Safety Hierarchy and AI",
+  "cat": "overview",
+  "lede": "Safety is layered: deterministic hardware at the floor, bounded control above it, and AI advisory at the top — the higher the intelligence, the less it can harm.",
+  "body": [
+   [
+    "h2",
+    "Safety in layers"
+   ],
+   [
+    "p",
+    "The architecture arranges safety as a hierarchy in which certainty decreases and intelligence increases as you go up. The floor is deterministic hardware that cannot be reasoned around; the ceiling is advisory AI that cannot, on its own, do anything irreversible. Between them, control is intelligent but bounded."
+   ],
+   [
+    "h3",
+    "The hierarchy, floor to ceiling"
+   ],
+   [
+    "ul",
+    [
+     "Floor — the autonomous hardware failsafe and deterministic interlocks; zero AI dependency.",
+     "Below-mid — L1 deterministic control within the sub-10-microsecond boundary.",
+     "Mid — L4 rules engine and safety bounds that gate every command.",
+     "Upper — L3 MPC and predictions that propose, never dispose.",
+     "Ceiling — L5 copilots and L6-L7 humans and strategy, advisory and confirmatory."
+    ]
+   ],
+   [
+    "h3",
+    "The inverse relationship"
+   ],
+   [
+    "p",
+    "The defining property is inverse: the more autonomous and intelligent a layer, the less directly it can cause harm. A copilot's mistaken suggestion is caught by safety bounds; an MPC agent's bad trajectory is rejected by the rules engine; and if everything above fails, the physical floor still protects the magnets. Intelligence is allowed to be fallible precisely because it is never the last line."
+   ],
+   [
+    "h3",
+    "Why this ordering is non-negotiable"
+   ],
+   [
+    "p",
+    "Fusion hazards — quench, disruption — are fast and unforgiving. Placing the most certain mechanism closest to the hazard, and the most fallible one farthest from it, is the only ordering that lets the plant be both aggressive in its intelligence and conservative in its safety. Reversing any step would put a less certain mechanism between a hazard and its response."
+   ],
+   [
+    "p",
+    "The floor is the <a href=./autonomous-hardware-failsafe.html>autonomous failsafe</a>; the ordering is an application of <a href=./determinism-vs-intelligence.html>determinism versus intelligence</a>."
+   ]
+  ],
+  "related": [
+   [
+    "autonomous-hardware-failsafe",
+    "The Autonomous Failsafe"
+   ],
+   [
+    "determinism-vs-intelligence",
+    "Determinism vs Intelligence"
+   ],
+   [
+    "l7-to-l0-stepped-hierarchy",
+    "The L7-to-L0 Hierarchy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "determinism-vs-intelligence",
+  "title": "Determinism vs Intelligence",
+  "cat": "overview",
+  "lede": "The architecture's core trade-off, resolved by separation: determinism where timing must be guaranteed, intelligence where compute and judgment pay off.",
+  "body": [
+   [
+    "h2",
+    "Two properties that resist each other"
+   ],
+   [
+    "p",
+    "Determinism and intelligence pull in opposite directions. Determinism wants simple, fixed, verifiable logic with bounded timing. Intelligence wants large models, abundant compute, and the freedom to be occasionally wrong on the way to being usually right. A fusion plant needs both, so the architecture does not blend them — it separates them."
+   ],
+   [
+    "h3",
+    "Where determinism wins"
+   ],
+   [
+    "ul",
+    [
+     "Magnet quench protection and the autonomous failsafe.",
+     "Disruption-response and plug-protection actuation.",
+     "Vacuum interlocks and synchronized gates.",
+     "Anything on the sub-10-microsecond command boundary."
+    ]
+   ],
+   [
+    "h3",
+    "Where intelligence wins"
+   ],
+   [
+    "ul",
+    [
+     "Predicting the plasma state 50-100 ms ahead with the twin.",
+     "Detecting sub-threshold quench and instability precursors.",
+     "Planning shape or plug adjustments with MPC.",
+     "Optimizing design and operations across large spaces."
+    ]
+   ],
+   [
+    "h3",
+    "Resolution by boundary"
+   ],
+   [
+    "p",
+    "The trade-off is resolved by the real-time-versus-offline boundary and the safety hierarchy: deterministic functions live below, intelligent ones above, and the interface between them is a contract in which intelligence proposes and determinism disposes. Neither property is compromised, because neither is asked to do the other's job."
+   ],
+   [
+    "h3",
+    "Why not one or the other"
+   ],
+   [
+    "p",
+    "A purely deterministic plant could not reason about a coupled nonlinear plasma fast enough to run efficiently; a purely intelligent one could not guarantee the microsecond response the magnets demand. The architecture is the argument that you can have both — but only if you keep them apart and wire them together through contracts."
+   ],
+   [
+    "p",
+    "This split defines the <a href=./real-time-vs-offline-boundary.html>real-time versus offline boundary</a> and orders the <a href=./safety-hierarchy-and-ai.html>safety hierarchy</a>."
+   ]
+  ],
+  "related": [
+   [
+    "real-time-vs-offline-boundary",
+    "Real-Time vs Offline"
+   ],
+   [
+    "safety-hierarchy-and-ai",
+    "Safety Hierarchy and AI"
+   ],
+   [
+    "what-ai-native-means",
+    "What AI-Native Means"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "from-diagnostics-to-decision",
+  "title": "From Diagnostics to Decision",
+  "cat": "overview",
+  "lede": "One trace up the stack: how a raw diagnostic sample becomes a validated feature, a twin state, a prediction, and a bounded action.",
+  "body": [
+   [
+    "h2",
+    "Following one signal"
+   ],
+   [
+    "p",
+    "The clearest way to understand the architecture is to follow a single measurement from the machine to an action and back. This trace ties the layers, colors, and line semantics together in one path."
+   ],
+   [
+    "h3",
+    "The upward trace"
+   ],
+   [
+    "ul",
+    [
+     "A Thomson-scattering sample crosses a cryo-rated feedthrough into L2 (blue).",
+     "L2 validates, normalizes, and feature-engineers it, recording lineage.",
+     "GNNs fuse it with the constellation and impute any dropped neighbors.",
+     "PINNs update the twin's equilibrium (breeder) or potential (burner) estimate.",
+     "The twin projects the state 50-100 ms ahead; anomaly ensembles score it."
+    ]
+   ],
+   [
+    "h3",
+    "The decision"
+   ],
+   [
+    "p",
+    "If the forecast approaches a limit — a disruption boundary on the breeder, a plug-density floor on the burner — the MPC agent (yellow) plans a corrective trajectory over the twin. The trajectory is a proposal, not a command. It carries the twin state and lineage that justify it."
+   ],
+   [
+    "h3",
+    "The downward trace"
+   ],
+   [
+    "ul",
+    [
+     "L4's rules engine checks the trajectory against safety bounds (purple/gray).",
+     "If accepted, L1 executes it deterministically within the command boundary (orange path).",
+     "If the model is uncertain or the bound is violated, the plant falls back to conservative control.",
+     "The outcome is archived; any surprise becomes a pink signal for retraining."
+    ]
+   ],
+   [
+    "p",
+    "This is the whole architecture in miniature: telemetry rising, authority descending, intelligence proposing, determinism disposing, and the loop closing through feedback. It combines the <a href=./how-the-layers-connect.html>layer connections</a> with the <a href=./line-semantics-overview.html>line semantics</a> and the <a href=./color-grammar-overview.html>color grammar</a>."
+   ]
+  ],
+  "related": [
+   [
+    "how-the-layers-connect",
+    "How the Layers Connect"
+   ],
+   [
+    "kronos-ctrl-digital-twin",
+    "The KRONOS-CTRL Twin"
+   ],
+   [
+    "feedback-loops-retraining",
+    "Feedback and Retraining"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "blueprint-reading-guide",
+  "title": "Reading the Blueprint",
+  "cat": "overview",
+  "lede": "A practical guide to reading any Master Blueprint diagram: check the layer, the color, the line, and the termination — in that order.",
+  "body": [
+   [
+    "h2",
+    "How to read a blueprint diagram"
+   ],
+   [
+    "p",
+    "The Master Blueprint diagrams pack a great deal into a single page. Read in a fixed order, they are unambiguous. This guide is the order Kronos engineers use."
+   ],
+   [
+    "h3",
+    "The four questions, in order"
+   ],
+   [
+    "ul",
+    [
+     "Which layer? Find the horizontal band — L0 at the bottom to L7 at the top — to know the role and latency class.",
+     "Which color? The block's color gives its function — governance, infrastructure, operations, AI, reactor, feedback, or framing.",
+     "Which line? The connection style gives the latency class — microsecond real-time, standard telemetry, or offline batch.",
+     "Which termination? Follow the block to the named subsystem it touches — a magnet, a feedthrough, the divertor, the DEC train."
+    ]
+   ],
+   [
+    "h3",
+    "The checks the order enables"
+   ],
+   [
+    "p",
+    "Reading in this order makes violations pop out. A pink block on the sub-10-microsecond path (a feedback function on the safety line) is wrong. A standard-telemetry line touching the command boundary is wrong. A yellow AI block wired straight to an orange actuator without passing through a purple/gray safety gate is wrong. The grammar is designed so that mistakes look like mistakes."
+   ],
+   [
+    "h3",
+    "Reading both machines"
+   ],
+   [
+    "p",
+    "The same reading order works for the breeder and burner blueprints. Because the lower layers are shared, only the L3-and-above blocks and the reactor terminations change: a spherical torus and shaping coils for Hyperion, an open mirror and plug coils for the burner. If a diagram reads differently below L3, that itself is a signal worth questioning."
+   ],
+   [
+    "p",
+    "The conventions are defined on <a href=./color-grammar-overview.html>the color grammar</a> and <a href=./line-semantics-overview.html>the line semantics</a>; the worked trace is <a href=./from-diagnostics-to-decision.html>from diagnostics to decision</a>."
+   ]
+  ],
+  "related": [
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ],
+   [
+    "line-semantics-overview",
+    "Line Semantics"
+   ],
+   [
+    "from-diagnostics-to-decision",
+    "From Diagnostics to Decision"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "l7-ecosystem-strategy",
+  "title": "L7 — Ecosystem & Strategy",
+  "cat": "overview",
+  "lede": "The top layer: grid, supply-chain, maintenance, and regulatory integration through a unified API, setting the intent that descends through the stack.",
+  "body": [
+   [
+    "h2",
+    "The plant in its world"
+   ],
+   [
+    "p",
+    "L7 Ecosystem & Strategy is where the plant meets everything outside it. It integrates grid dispatch, supply chains, maintenance planning, and regulatory constraints through a unified API layer, and it sets the plant-level intent that the stepped hierarchy carries down toward control."
+   ],
+   [
+    "h3",
+    "What L7 does"
+   ],
+   [
+    "ul",
+    [
+     "Grid synchronization and dispatch scheduling for the plant's output.",
+     "Supply-chain and fuel-cycle logistics coordination.",
+     "Predictive-maintenance planning from structural-health trends.",
+     "Regulatory and safety-case constraints that bound the layers below.",
+     "Fleet coordination across breeder and burner units."
+    ]
+   ],
+   [
+    "h3",
+    "Intent, not action"
+   ],
+   [
+    "p",
+    "L7 is mostly purple (governance) and green (operations). It sets intent and constraints; it does not actuate. A dispatch window or a maintenance goal is passed to L5 copilots to translate into engineering objectives, then validated at L4 before anything reaches control. L7's authority is real but always mediated by the layers beneath it."
+   ],
+   [
+    "h3",
+    "Operational, never economic"
+   ],
+   [
+    "p",
+    "L7 reasons about timing, availability, and logistics — when to bring a unit up, when to schedule inspection, how to sequence fuel handling. It does not reason about price, cost, or value; those are outside the architecture entirely. The operations copilot at L5 shares this discipline."
+   ],
+   [
+    "h3",
+    "The unified API"
+   ],
+   [
+    "p",
+    "L7 presents a single API to the outside world rather than a patchwork of subsystem interfaces. Grid operators, supply-chain systems, maintenance planners, and regulators each interact through governed endpoints, and every external request is subject to the same authority and audit rules as an internal one. This keeps the plant's boundary small and inspectable: there is one place where external intent enters, one place where it is validated, and one lineage record of what it asked for and what the plant did in response."
+   ],
+   [
+    "p",
+    "L7's intent descends through the <a href=./l7-to-l0-stepped-hierarchy.html>stepped hierarchy</a>; its constraints are enforced by the <a href=./safety-hierarchy-and-ai.html>safety hierarchy</a> and recorded by <a href=./data-lineage-governance.html>governance</a>."
+   ]
+  ],
+  "related": [
+   [
+    "l7-to-l0-stepped-hierarchy",
+    "The L7-to-L0 Hierarchy"
+   ],
+   [
+    "color-green-operations-ecosystem",
+    "Green — Operations"
+   ],
+   [
+    "color-purple-strategy-governance",
+    "Purple — Strategy"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ },
+ {
+  "slug": "architecture-glossary",
+  "title": "Architecture Glossary",
+  "cat": "overview",
+  "lede": "Concise definitions of the terms used across the AI-native architecture — layers, colors, lines, mechanisms, and machine physics.",
+  "body": [
+   [
+    "h2",
+    "Core terms"
+   ],
+   [
+    "p",
+    "This glossary defines the vocabulary of the Master Blueprint. Terms link to their full pages where one exists."
+   ],
+   [
+    "h3",
+    "Structure"
+   ],
+   [
+    "ul",
+    [
+     "AI-native — intelligence designed into the plant from the first block diagram, not retrofit.",
+     "Layer (L0-L7) — a band of the stack holding a single latency and safety class.",
+     "Stepped hierarchy — the descent of authority from L7 strategy to L1 actuation.",
+     "Interface contract — the explicit, testable promise between adjacent layers.",
+     "Latency gradient — the monotone tightening of time budgets toward the hardware."
+    ]
+   ],
+   [
+    "h3",
+    "Grammar"
+   ],
+   [
+    "ul",
+    [
+     "Color grammar — purple governance, blue infrastructure, green operations, yellow AI, orange reactor, pink feedback, gray framing.",
+     "Line semantics — microsecond real-time, standard telemetry, and offline batch classes.",
+     "IT/OT boundary — the gray line separating operational technology from general IT."
+    ]
+   ],
+   [
+    "h3",
+    "Mechanisms"
+   ],
+   [
+    "ul",
+    [
+     "Autonomous hardware failsafe — deterministic quench dump with zero AI dependency.",
+     "Sub-10-microsecond boundary — the hard timing contract for safety-critical commands.",
+     "KRONOS-CTRL twin — the modular predictive twin (Power, Neutronics, Thermomechanics, MHD) running a 50-100 ms shadow.",
+     "PINN / GNN — physics-informed and graph neural networks used at L3.",
+     "MPC — model-predictive control planning bounded actuation over the twin."
+    ]
+   ],
+   [
+    "h3",
+    "Machine physics"
+   ],
+   [
+    "ul",
+    [
+     "Breeder (Hyperion) — D-T spherical tokamak; Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T peak, delta -0.30; TBR lever 1.1/1.5/1.8.",
+     "Burner (Aegis / MetroVolt) — D-3He tandem mirror; 26.49 T plug, 17 T throat, 5.44% neutron fraction; direct energy conversion.",
+     "Ambipolar potential — the electrostatic confinement mechanism of the tandem mirror.",
+     "Negative triangularity — the breeder's ELM-suppressing plasma shape."
+    ]
+   ],
+   [
+    "p",
+    "Start from <a href=./ai-native-master-blueprint.html>the Master Blueprint</a> or <a href=./eight-layer-stack-overview.html>the eight-layer stack</a>."
+   ]
+  ],
+  "related": [
+   [
+    "ai-native-master-blueprint",
+    "The Master Blueprint"
+   ],
+   [
+    "eight-layer-stack-overview",
+    "The 8-Layer Stack"
+   ],
+   [
+    "color-grammar-overview",
+    "The Color Grammar"
+   ]
+  ],
+  "seo_type": "TechArticle"
+ }
+]

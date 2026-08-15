@@ -1,0 +1,929 @@
+[
+{
+  "slug": "scalars-vectors-matrices",
+  "title": "Scalars, Vectors, and Matrices",
+  "cat": "linear-algebra",
+  "lede": "The three basic containers of linear algebra: a single number, an ordered list of numbers, and a rectangular grid of numbers.",
+  "body": [
+    ["h2", "The building blocks"],
+    ["p", "Linear algebra is the study of quantities arranged in structured collections and the linear operations that transform them. A <b>scalar</b> is a single number, such as 3 or -0.5. A <b>vector</b> is an ordered list of scalars, written as a column, for example [2, 5, -1]. A <b>matrix</b> is a rectangular array of scalars with rows and columns; an m-by-n matrix has m rows and n columns."],
+    ["p", "Notation is conventional: scalars are lowercase italics (a, x), vectors are lowercase bold (v, x), and matrices are uppercase bold (A, M). The entry in row i and column j of A is written A[i,j] or a_ij. A vector of length n lives in the space R^n; an m-by-n matrix maps vectors from R^n to R^m."],
+    ["h2", "Why the structure matters"],
+    ["p", "The power of these containers comes from treating a whole collection as one object. Adding two vectors adds them component by component, and multiplying a vector by a scalar scales every component. These two operations, addition and scalar multiplication, are what make a set a vector space. A matrix is best understood not as a static grid but as a rule that transforms vectors: multiplying a vector by a matrix produces a new vector."],
+    ["h3", "Shapes and conformability"],
+    ["p", "Shape governs what is legal. You can add two matrices only if they have identical dimensions. You can multiply A by B only if the number of columns of A equals the number of rows of B. Keeping careful track of shapes prevents most errors in numerical code, and libraries such as NumPy report a shape mismatch immediately when dimensions do not conform."],
+    ["code", ["python", "import numpy as np\ns = 3.0                       # scalar\nv = np.array([2, 5, -1])      # vector in R^3\nA = np.array([[1, 0],\n              [0, 2],\n              [3, 1]])        # 3x2 matrix\nprint(v.shape, A.shape)       # (3,) (3, 2)"]],
+    ["p", "In physics and engineering these containers describe fields, states, and operators. A simulation of a magnetized plasma, such as the design work behind the breeder Hyperion, represents field values on a grid as large vectors and the physics operators acting on them as matrices."]
+  ],
+  "related": [["matrix-multiplication", "Matrix Multiplication"], ["vector-spaces", "Vector Spaces"], ["dot-product", "Dot Product"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-multiplication",
+  "title": "Matrix Multiplication",
+  "cat": "linear-algebra",
+  "lede": "Composing two linear maps into one: the row-by-column rule that underlies nearly all numerical computing.",
+  "body": [
+    ["h2", "The rule"],
+    ["p", "The product C = AB of an m-by-k matrix A and a k-by-n matrix B is an m-by-n matrix whose entry C[i,j] is the dot product of row i of A with column j of B. Explicitly, C[i,j] = sum over p of A[i,p] * B[p,j]. The inner dimension k must match; the outer dimensions m and n become the shape of the result."],
+    ["p", "Matrix multiplication is <b>not commutative</b>: in general AB is not equal to BA, and one product may be defined while the other is not. It <b>is</b> associative, (AB)C = A(BC), and distributive over addition, A(B+C) = AB + AC. These properties let you rearrange long products freely as long as you preserve order."],
+    ["h2", "Three ways to see it"],
+    ["p", "First, as row-by-column dot products, the definition above. Second, as a linear combination of columns: the j-th column of AB is A times the j-th column of B. Third, as composition of transformations: if A and B represent linear maps, then AB represents doing B first and then A. This last view is the deepest, because it explains why order matters and why associativity holds automatically."],
+    ["h3", "Cost and performance"],
+    ["p", "The naive algorithm for multiplying two n-by-n matrices costs on the order of n^3 scalar multiplications. Because this operation dominates so much scientific and machine-learning computation, highly tuned libraries (BLAS level 3) exploit cache blocking and vector hardware to reach near-peak throughput. Sub-cubic algorithms such as Strassen's exist but are used mainly for very large dense problems."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1, 2], [3, 4]])\nB = np.array([[0, 1], [1, 0]])\nprint(A @ B)   # [[2 1] [4 3]]\nprint(B @ A)   # [[3 4] [1 2]]  -- different"]],
+    ["p", "In large-scale plasma and structural simulations, each timestep applies operator matrices to state vectors; the aggregate cost of these products often sets the runtime of the whole model, so choosing algorithms that respect sparsity and structure is essential."]
+  ],
+  "related": [["scalars-vectors-matrices", "Scalars, Vectors, and Matrices"], ["linear-transformations", "Linear Transformations"], ["kronecker-product", "Kronecker Product"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-transpose",
+  "title": "The Transpose",
+  "cat": "linear-algebra",
+  "lede": "Reflecting a matrix across its main diagonal turns rows into columns and reverses the order of products.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The transpose of a matrix A, written A^T, is formed by swapping rows and columns: the entry in row i, column j of A^T equals the entry in row j, column i of A. An m-by-n matrix becomes n-by-m. Transposing twice returns the original: (A^T)^T = A."],
+    ["h2", "Algebraic rules"],
+    ["ul", ["(A + B)^T = A^T + B^T", "(cA)^T = c A^T for a scalar c", "(AB)^T = B^T A^T, note the reversed order", "(A^T)^{-1} = (A^{-1})^T when A is invertible"]],
+    ["p", "The reversal rule for products is the one most often misremembered. It follows directly from the definition and mirrors the reversal that appears when taking the inverse of a product."],
+    ["h3", "Symmetry"],
+    ["p", "A matrix equal to its own transpose, A = A^T, is <b>symmetric</b>; it must be square and its entries mirror across the diagonal. A matrix with A^T = -A is <b>skew-symmetric</b> and has zeros on its diagonal. Symmetric matrices have exceptionally clean structure: real eigenvalues and orthogonal eigenvectors, the content of the spectral theorem."],
+    ["h3", "The transpose and inner products"],
+    ["p", "The transpose is the discrete form of the adjoint. For real vectors, the dot product x . y equals x^T y. More generally, <x, A y> = <A^T x, y>, which says the transpose moves an operator from one side of an inner product to the other. This identity is the backbone of least-squares theory and of the normal equations."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1, 2, 3], [4, 5, 6]])\nprint(A.T)          # 3x2\nS = A @ A.T         # always symmetric\nprint(np.allclose(S, S.T))  # True"]],
+    ["p", "Products of the form A^T A appear constantly: they are square, symmetric, and positive semidefinite, which is why they anchor least-squares fitting of experimental data against model predictions."]
+  ],
+  "related": [["symmetric-matrices", "Symmetric Matrices"], ["least-squares", "Least Squares"], ["orthogonal-matrices", "Orthogonal Matrices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "identity-matrix",
+  "title": "The Identity Matrix",
+  "cat": "linear-algebra",
+  "lede": "The square matrix with ones on the diagonal and zeros elsewhere acts as the multiplicative identity for matrices.",
+  "body": [
+    ["h2", "The neutral element"],
+    ["p", "The identity matrix I_n is the n-by-n matrix with 1 on every diagonal entry and 0 everywhere else. It plays the role that the number 1 plays for scalars: for any conformable matrix A, both A I = A and I A = A. Multiplying a vector by I leaves it unchanged, so I represents the transformation that does nothing."],
+    ["matrix", ["Identity I_3", [["1", "0", "0"], ["0", "1", "0"], ["0", "0", "1"]]]],
+    ["h2", "Why it matters"],
+    ["p", "The identity is the reference point for the inverse: a matrix A is invertible when there exists A^{-1} with A A^{-1} = A^{-1} A = I. It also appears in eigenvalue analysis through the expression A - lambda I, whose determinant gives the characteristic polynomial, and in regularization, where adding a small multiple of I to a matrix improves its conditioning."],
+    ["h3", "Kronecker delta"],
+    ["p", "The entries of the identity are the Kronecker delta: delta_ij equals 1 when i = j and 0 otherwise. This compact symbol is standard in physics and tensor notation, where it selects diagonal terms and contracts indices."],
+    ["h3", "Scaling the identity"],
+    ["p", "A scalar multiple cI is a <b>scalar matrix</b>; it scales every vector uniformly by c. Scalar matrices are the only matrices that commute with every other matrix of the same size, a fact tied to Schur's lemma in representation theory."],
+    ["code", ["python", "import numpy as np\nI = np.eye(4)\nA = np.random.rand(4, 4)\nprint(np.allclose(A @ I, A))   # True\nprint(np.allclose(I @ A, A))   # True"]],
+    ["p", "In iterative solvers used for large physics simulations, the identity anchors preconditioners: the closer a preconditioned operator is to I, the faster the iteration converges."]
+  ],
+  "related": [["matrix-inverse", "The Inverse"], ["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["diagonalization", "Diagonalization"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-inverse",
+  "title": "The Matrix Inverse",
+  "cat": "linear-algebra",
+  "lede": "The inverse undoes a matrix's action, but it exists only for square, full-rank matrices and is rarely computed explicitly.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The inverse of a square matrix A is the matrix A^{-1} satisfying A A^{-1} = A^{-1} A = I. When it exists, A is called <b>invertible</b> or <b>nonsingular</b>, and the inverse is unique. A square matrix fails to be invertible exactly when its determinant is zero, equivalently when its columns are linearly dependent or its rank is less than its dimension."],
+    ["h2", "Properties"],
+    ["ul", ["(A^{-1})^{-1} = A", "(AB)^{-1} = B^{-1} A^{-1}, order reversed", "(A^T)^{-1} = (A^{-1})^T", "(cA)^{-1} = (1/c) A^{-1} for nonzero scalar c"]],
+    ["h3", "The 2-by-2 formula"],
+    ["p", "For a 2-by-2 matrix with entries a, b, c, d, the inverse is 1/(ad - bc) times the matrix [[d, -b], [-c, a]]. The quantity ad - bc is the determinant; when it is zero, no inverse exists. Larger matrices have no such simple closed form, and the general adjugate formula is far too slow for computation."],
+    ["h3", "Do not invert to solve"],
+    ["p", "To solve Ax = b, computing A^{-1} and then multiplying is both slower and less accurate than solving the system directly with LU factorization. Explicit inversion is needed only when the inverse itself is the object of interest, for example a covariance matrix. As the saying in numerical computing goes, never form an inverse when a solve will do."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 1.0], [1.0, 3.0]])\nb = np.array([1.0, 2.0])\nx = np.linalg.solve(A, b)     # preferred\n# x_slow = np.linalg.inv(A) @ b  # avoid\nprint(x)"]],
+    ["p", "In simulations, operator matrices from discretized physics are large and sparse; their inverses are dense and impractical to store, so engineers rely on factorizations and iterative solvers instead."]
+  ],
+  "related": [["determinant", "The Determinant"], ["lu-decomposition", "LU Decomposition"], ["condition-number", "Condition Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "determinant",
+  "title": "The Determinant",
+  "cat": "linear-algebra",
+  "lede": "A single number that measures how a linear map scales volume and whether it is invertible.",
+  "body": [
+    ["h2", "What it measures"],
+    ["p", "The determinant of a square matrix A, written det(A) or |A|, is a scalar that reports the signed volume scaling factor of the linear transformation A. If A maps the unit cube to a shape of volume V, then |det(A)| = V. A negative sign indicates the transformation flips orientation; a determinant of zero means the transformation collapses space into a lower dimension."],
+    ["h2", "Key properties"],
+    ["ul", ["det(I) = 1", "det(AB) = det(A) det(B)", "det(A^T) = det(A)", "det(A^{-1}) = 1 / det(A)", "swapping two rows negates the determinant", "det is linear in each row separately"]],
+    ["h3", "Small cases"],
+    ["p", "For a 2-by-2 matrix the determinant is ad - bc. For 3-by-3, the rule of Sarrus expands into six signed products. In general the Leibniz formula sums n! signed products, which is far too expensive; determinants are computed instead from an LU factorization as the product of the pivots, at cubic cost."],
+    ["h3", "Invertibility test"],
+    ["p", "A matrix is invertible if and only if its determinant is nonzero. However, the determinant is a poor numerical measure of how close a matrix is to singular, because it scales with the size of the entries. The condition number is the reliable indicator; a matrix can have a tiny determinant yet be well conditioned, or a large determinant yet be nearly singular."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 2.0], [3.0, 4.0]])\nprint(np.linalg.det(A))   # -2.0\n# sign, logdet is safer for large matrices\nsign, logdet = np.linalg.slogdet(A)\nprint(sign, logdet)"]],
+    ["p", "Determinants appear in changes of variables for integrals through the Jacobian, and in physics whenever a coordinate transform must preserve or track volume, such as phase-space arguments in kinetic plasma models."]
+  ],
+  "related": [["matrix-inverse", "The Matrix Inverse"], ["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["lu-decomposition", "LU Decomposition"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "trace-of-a-matrix",
+  "title": "The Trace",
+  "cat": "linear-algebra",
+  "lede": "The sum of the diagonal entries equals the sum of the eigenvalues and is invariant under cyclic reordering.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The trace of a square matrix A, written tr(A), is the sum of its diagonal entries: tr(A) = sum of A[i,i]. Despite its simple definition, the trace carries deep meaning: it equals the sum of the eigenvalues of A, counted with multiplicity, even when those eigenvalues are complex or the matrix is not diagonalizable."],
+    ["h2", "Properties"],
+    ["ul", ["tr(A + B) = tr(A) + tr(B)", "tr(cA) = c tr(A)", "tr(A^T) = tr(A)", "tr(AB) = tr(BA), the cyclic property", "tr(A) = sum of eigenvalues"]],
+    ["p", "The cyclic property tr(AB) = tr(BA) holds even when AB and BA differ, and it extends to tr(ABC) = tr(BCA) = tr(CAB). This makes the trace invariant under a change of basis: tr(P^{-1} A P) = tr(A), so the trace is a genuine property of the underlying linear map, not of its matrix representation."],
+    ["h3", "The Frobenius inner product"],
+    ["p", "The trace defines an inner product on matrices: <A, B> = tr(A^T B), which sums the products of corresponding entries. Its induced norm is the Frobenius norm, the square root of the sum of squared entries. This connects the trace to least-squares measures of matrix size and error."],
+    ["h3", "Uses"],
+    ["p", "In statistics the trace of a covariance matrix is the total variance. In quantum mechanics the trace of a density operator is 1, and expectation values are traces of operator products. In machine learning the trace appears in regularizers and in the nuclear norm, the sum of singular values."],
+    ["code", ["python", "import numpy as np\nA = np.random.rand(5, 5)\nprint(np.isclose(np.trace(A), np.linalg.eigvals(A).sum().real))  # True"]],
+    ["p", "Because it collapses a whole operator to one basis-independent number, the trace is a convenient diagnostic when comparing discretized physics operators across different grids."]
+  ],
+  "related": [["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["matrix-norms", "Matrix Norms"], ["change-of-basis", "Change of Basis"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-rank",
+  "title": "Rank",
+  "cat": "linear-algebra",
+  "lede": "The number of independent directions a matrix can reach, equal to the dimension of its column space.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The rank of a matrix is the maximum number of linearly independent columns, which always equals the maximum number of linearly independent rows. Equivalently, it is the dimension of the column space (the range of the transformation) and also the dimension of the row space. A matrix is <b>full rank</b> when its rank equals the smaller of its two dimensions."],
+    ["h2", "Rank and solvability"],
+    ["p", "Rank governs the behavior of linear systems. A square matrix is invertible exactly when it has full rank. For Ax = b, a solution exists when b lies in the column space, which happens precisely when the rank of A equals the rank of the augmented matrix [A | b]. When the rank is less than the number of unknowns, solutions, if any, form an infinite family."],
+    ["h3", "The rank-nullity theorem"],
+    ["p", "For an m-by-n matrix, rank plus nullity equals n, the number of columns. The nullity is the dimension of the null space, the set of vectors sent to zero. This conservation law says that every dimension of the input either survives into the output (contributing to rank) or is annihilated (contributing to nullity)."],
+    ["h3", "Numerical rank"],
+    ["p", "In floating point, exact rank is fragile: rounding turns exact zeros into tiny nonzeros. The reliable measure is the <b>numerical rank</b>, the number of singular values above a tolerance. The singular value decomposition is the standard tool for estimating rank, far more robust than counting nonzero pivots or evaluating a determinant."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1, 2, 3], [2, 4, 6], [1, 0, 1]])\nprint(np.linalg.matrix_rank(A))   # 2, rows 1 and 2 are dependent"]],
+    ["p", "Low numerical rank in a data or operator matrix signals redundancy that low-rank approximation can compress, a fact exploited in reduced-order models of complex physical systems."]
+  ],
+  "related": [["linear-independence", "Linear Independence"], ["singular-value-decomposition", "Singular Value Decomposition"], ["four-fundamental-subspaces", "The Four Fundamental Subspaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "linear-independence",
+  "title": "Linear Independence",
+  "cat": "linear-algebra",
+  "lede": "A set of vectors is independent when none can be built from the others; this fixes the true dimension of a space.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "Vectors v1, ..., vk are <b>linearly independent</b> if the only way to write the zero vector as a combination c1 v1 + ... + ck vk = 0 is with every coefficient ci equal to zero. If some nontrivial combination gives zero, the vectors are <b>linearly dependent</b>, meaning at least one is a combination of the others and therefore redundant."],
+    ["h2", "Why it matters"],
+    ["p", "Independence measures how much genuine information a set of vectors carries. A dependent set wastes directions: it spans the same space a smaller set could. The maximum size of an independent set inside a space equals that space's dimension, and any independent set of exactly that size is a basis."],
+    ["h3", "How to test"],
+    ["p", "Assemble the vectors as columns of a matrix A. They are independent if and only if the only solution to Ax = 0 is x = 0, equivalently if A has full column rank, equivalently if A^T A is invertible. For a square set, independence is equivalent to a nonzero determinant. In practice, computing the rank via a factorization is the robust test."],
+    ["h3", "Geometric picture"],
+    ["p", "Two vectors are dependent when they lie on a common line; three vectors are dependent when they lie in a common plane. Independence means the vectors reach out in truly distinct directions, so their span grows by one dimension per vector added."],
+    ["code", ["python", "import numpy as np\nV = np.array([[1, 0, 1], [0, 1, 1], [1, 1, 2]]).T\nprint(np.linalg.matrix_rank(V))   # 2 < 3, so dependent"]],
+    ["p", "When choosing basis functions or diagnostic signals for a physics model, keeping them independent avoids ill-conditioned fits where redundant directions amplify measurement noise."]
+  ],
+  "related": [["span", "Span"], ["basis", "Basis"], ["matrix-rank", "Rank"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "span",
+  "title": "Span",
+  "cat": "linear-algebra",
+  "lede": "The span of a set of vectors is every point you can reach by scaling and adding them.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The span of vectors v1, ..., vk is the set of all their linear combinations, c1 v1 + ... + ck vk, as the coefficients range over all scalars. It is the smallest subspace containing those vectors. Geometrically, the span of one nonzero vector is a line, the span of two independent vectors is a plane, and so on."],
+    ["h2", "Span and the column space"],
+    ["p", "The column space of a matrix is precisely the span of its columns. Solving Ax = b asks whether b lies in the span of A's columns; if it does, the entries of x are the combination coefficients. This is why span connects directly to the solvability of linear systems."],
+    ["h3", "Spanning sets versus bases"],
+    ["p", "A set that spans a space may contain redundancy. If a spanning set is also linearly independent, it is a basis, the most economical description of the space. Any spanning set can be trimmed to a basis by discarding vectors that are combinations of the others, and any independent set can be extended to a basis by adding vectors."],
+    ["h3", "Dimension"],
+    ["p", "The dimension of a subspace is the number of vectors in any of its bases; all bases have the same size. The span of k vectors has dimension at most k, with equality exactly when the vectors are independent. Adding a vector already in the span does not increase the dimension."],
+    ["code", ["python", "import numpy as np\n# Does b lie in the span of the columns of A?\nA = np.array([[1.0, 1.0], [0.0, 1.0], [1.0, 2.0]])\nb = np.array([2.0, 1.0, 3.0])\nx, res, rank, sv = np.linalg.lstsq(A, b, rcond=None)\nprint(np.allclose(A @ x, b))   # True means b is in the span"]],
+    ["p", "In reduced-order modeling, engineers seek a small set of modes whose span captures the dominant behavior of a full simulation, trading exactness for a far smaller state description."]
+  ],
+  "related": [["linear-independence", "Linear Independence"], ["basis", "Basis"], ["vector-spaces", "Vector Spaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "basis",
+  "title": "Basis and Coordinates",
+  "cat": "linear-algebra",
+  "lede": "A basis is a minimal set of vectors that spans a space; coordinates express every vector uniquely in that set.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A basis of a vector space is a set of vectors that is both linearly independent and spanning. These two conditions together guarantee that every vector in the space can be written as a linear combination of the basis vectors in exactly one way. Those unique coefficients are the vector's <b>coordinates</b> relative to that basis."],
+    ["h2", "The standard basis"],
+    ["p", "In R^n the standard basis consists of the vectors e1, e2, ..., en, where ei has a 1 in position i and zeros elsewhere. The coordinates of a vector in the standard basis are just its ordinary components. Most vectors are quietly assumed to be written in this basis unless another is specified."],
+    ["h3", "Why choose a different basis"],
+    ["p", "A well-chosen basis makes a problem simpler. Diagonalization finds a basis of eigenvectors in which a transformation acts by simple scaling. The Fourier basis turns differentiation into multiplication. Principal component analysis picks a basis aligned with the directions of greatest variation in data. The art of applied linear algebra is often the choice of basis."],
+    ["h3", "Dimension is well defined"],
+    ["p", "A fundamental theorem guarantees that every basis of a given space has the same number of vectors; that number is the dimension. This lets us speak of the dimension of a space without ambiguity, and it underlies the rank-nullity theorem and the counting arguments throughout linear algebra."],
+    ["code", ["python", "import numpy as np\n# Coordinates of v in a nonstandard basis B (columns)\nB = np.array([[1.0, 1.0], [1.0, -1.0]])\nv = np.array([3.0, 1.0])\ncoords = np.linalg.solve(B, v)\nprint(coords)   # [2. 1.] so v = 2*b1 + 1*b2"]],
+    ["p", "Spectral and modal bases are central to physics simulation, where expressing a state in eigenmodes turns coupled equations into independent scalar equations that are far cheaper to advance in time."]
+  ],
+  "related": [["span", "Span"], ["change-of-basis", "Change of Basis"], ["orthonormal-bases", "Orthonormal Bases"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "vector-spaces",
+  "title": "Vector Spaces",
+  "cat": "linear-algebra",
+  "lede": "The abstract setting where addition and scalar multiplication obey a short list of axioms, unifying vectors, functions, and more.",
+  "body": [
+    ["h2", "The abstraction"],
+    ["p", "A vector space over a field of scalars (usually the real or complex numbers) is a set equipped with two operations, vector addition and scalar multiplication, that satisfy eight axioms. These require addition to be commutative and associative, guarantee a zero vector and additive inverses, and make scalar multiplication distribute over both kinds of addition."],
+    ["h2", "The eight axioms in brief"],
+    ["ul", ["addition is commutative and associative", "there is a zero vector, and every vector has a negative", "scalar multiplication is associative: a(bv) = (ab)v", "the scalar 1 acts trivially: 1v = v", "two distributive laws link the operations"]],
+    ["h3", "Examples beyond arrows"],
+    ["p", "The point of the abstraction is that many different objects satisfy these rules. R^n is the familiar example, but so are the set of all polynomials of degree at most n, the set of continuous functions on an interval, the set of m-by-n matrices, and the solution set of a homogeneous linear differential equation. Every theorem proved from the axioms applies to all of them at once."],
+    ["h3", "Subspaces"],
+    ["p", "A subspace is a subset that is itself a vector space under the inherited operations. A nonempty subset is a subspace exactly when it is closed under addition and scalar multiplication. Lines and planes through the origin are subspaces of R^3; the column space and null space of a matrix are subspaces."],
+    ["p", "Function spaces are where this abstraction earns its keep in physics. Fields, wavefunctions, and signals all live in infinite-dimensional vector spaces, and the same concepts of basis, projection, and orthogonality carry over with inner products replacing dot products."],
+    ["code", ["python", "# Polynomials of degree <= 2 form a 3-dim vector space\n# with basis {1, x, x^2}. A polynomial's coordinates:\np = [1.0, -2.0, 0.5]   # 1 - 2x + 0.5 x^2\nprint('coords in {1, x, x^2}:', p)"]],
+    ["p", "Discretizing a field on a grid replaces an infinite-dimensional function space with a large finite-dimensional one, the step that makes numerical simulation of continuous physics possible."]
+  ],
+  "related": [["subspaces", "Subspaces"], ["basis", "Basis"], ["linear-transformations", "Linear Transformations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "subspaces",
+  "title": "Subspaces",
+  "cat": "linear-algebra",
+  "lede": "Subsets closed under addition and scaling; the natural stage for column spaces, null spaces, and projections.",
+  "body": [
+    ["h2", "The closure test"],
+    ["p", "A subset W of a vector space is a <b>subspace</b> if it is nonempty and closed under the two vector-space operations: for any u and v in W and any scalar c, both u + v and c u remain in W. From these, W automatically contains the zero vector and all inverses, so it is a vector space in its own right. Every subspace must pass through the origin."],
+    ["h2", "Familiar subspaces"],
+    ["ul", ["lines and planes through the origin in R^3", "the column space: the span of a matrix's columns", "the null space: all vectors sent to zero by a matrix", "the row space and the left null space", "solution sets of homogeneous linear equations"]],
+    ["h3", "Operations on subspaces"],
+    ["p", "The intersection of two subspaces is always a subspace. Their union usually is not; instead one takes the <b>sum</b>, the set of all u + w with u in the first and w in the second, which is the smallest subspace containing both. When the intersection is only the zero vector, the sum is called a <b>direct sum</b>, and every element decomposes uniquely."],
+    ["h3", "Orthogonal complements"],
+    ["p", "Given a subspace W, its orthogonal complement is the set of all vectors perpendicular to everything in W. A space splits as the direct sum of any subspace and its orthogonal complement, which is exactly what makes orthogonal projection well defined and unique."],
+    ["code", ["python", "import numpy as np\n# The null space is a subspace; find it via SVD\nA = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])\nu, s, vt = np.linalg.svd(A)\nnull = vt[np.sum(s > 1e-10):]\nprint(null.shape[0], 'basis vectors for the null space')"]],
+    ["p", "The four fundamental subspaces of a matrix organize the entire theory of linear systems, splitting both the input and output spaces into complementary pieces."]
+  ],
+  "related": [["vector-spaces", "Vector Spaces"], ["four-fundamental-subspaces", "The Four Fundamental Subspaces"], ["projections", "Projections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "dot-product",
+  "title": "The Dot Product",
+  "cat": "linear-algebra",
+  "lede": "Multiply matching components and add; the result measures length, angle, and alignment between two vectors.",
+  "body": [
+    ["h2", "Two equivalent definitions"],
+    ["p", "The dot product of vectors x and y in R^n is x . y = x1 y1 + x2 y2 + ... + xn yn, the sum of products of matching components. It also has a geometric form: x . y = |x| |y| cos(theta), where theta is the angle between the vectors. Equating the two forms is how the angle between vectors is defined and computed."],
+    ["h2", "What it tells you"],
+    ["ul", ["x . x = |x|^2, the squared length", "x . y = 0 means x and y are orthogonal", "positive dot product means an acute angle, negative means obtuse", "the projection of x onto a unit vector u is (x . u) u"]],
+    ["h3", "Algebraic properties"],
+    ["p", "The dot product is symmetric, x . y = y . x; linear in each argument; and positive definite, x . x is positive for every nonzero x. These three properties are exactly the axioms of a real inner product, so the dot product is the prototype of the more general inner products used on function spaces."],
+    ["h3", "Matrix form"],
+    ["p", "Written with matrices, x . y = x^T y, a 1-by-n row times an n-by-1 column giving a scalar. This links the dot product to the transpose and explains why expressions like A^T A, which are Gram matrices of dot products, appear throughout least squares and statistics."],
+    ["code", ["python", "import numpy as np\nx = np.array([1.0, 2.0, 2.0])\ny = np.array([2.0, 0.0, 1.0])\nprint(x @ y)                       # 4.0\ncos = (x @ y) / (np.linalg.norm(x) * np.linalg.norm(y))\nprint(np.degrees(np.arccos(cos)))  # angle in degrees"]],
+    ["p", "The Cauchy-Schwarz inequality, |x . y| <= |x| |y|, bounds the dot product by the product of lengths and underlies error estimates throughout applied mathematics and signal processing."]
+  ],
+  "related": [["cross-product", "The Cross Product"], ["vector-norms", "Vector Norms"], ["orthogonality", "Orthogonality"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "cross-product",
+  "title": "The Cross Product",
+  "cat": "linear-algebra",
+  "lede": "A product of two vectors in three dimensions that yields a third vector perpendicular to both.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The cross product a x b of two vectors in R^3 is a vector perpendicular to both a and b, with magnitude |a| |b| sin(theta) equal to the area of the parallelogram they span, and direction given by the right-hand rule. Unlike the dot product, whose output is a scalar, the cross product outputs a vector, and it exists in its standard form only in three dimensions."],
+    ["h2", "Component formula"],
+    ["p", "If a = (a1, a2, a3) and b = (b1, b2, b3), then a x b = (a2 b3 - a3 b2, a3 b1 - a1 b3, a1 b2 - a2 b1). This can be remembered as the symbolic determinant of a 3-by-3 matrix whose first row holds the unit vectors i, j, k and whose next rows hold the components of a and b."],
+    ["h3", "Properties"],
+    ["ul", ["anticommutative: a x b = -(b x a)", "a x a = 0 for every vector a", "distributive over addition", "not associative in general", "a x b = 0 exactly when a and b are parallel"]],
+    ["h3", "The triple products"],
+    ["p", "The scalar triple product a . (b x c) equals the signed volume of the parallelepiped spanned by the three vectors, and it is also the determinant of the matrix with those vectors as rows. The vector triple product a x (b x c) expands by the BAC-CAB rule to b(a . c) - c(a . b)."],
+    ["code", ["python", "import numpy as np\na = np.array([1.0, 0.0, 0.0])\nb = np.array([0.0, 1.0, 0.0])\nprint(np.cross(a, b))   # [0. 0. 1.] the z-axis"]],
+    ["p", "The cross product is fundamental to electromagnetism: the Lorentz force on a charged particle is q v x B, the mechanism that confines charged particles in the magnetic fields of the breeder Hyperion and the burner's tandem-mirror plug."]
+  ],
+  "related": [["dot-product", "The Dot Product"], ["determinant", "The Determinant"], ["scalars-vectors-matrices", "Scalars, Vectors, and Matrices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "vector-norms",
+  "title": "Vector Norms",
+  "cat": "linear-algebra",
+  "lede": "Different ways to measure the length of a vector, each suited to a different notion of size or distance.",
+  "body": [
+    ["h2", "What a norm is"],
+    ["p", "A norm assigns a nonnegative length to every vector and must satisfy three rules: it is zero only for the zero vector, it scales as |c x| = |c| |x| for any scalar c, and it obeys the triangle inequality |x + y| <= |x| + |y|. Any function meeting these rules defines a valid notion of size and, through |x - y|, a notion of distance."],
+    ["h2", "The common norms"],
+    ["ul", ["the 2-norm (Euclidean): square root of the sum of squares, the ordinary length", "the 1-norm: sum of absolute values, the taxicab distance", "the infinity-norm: the largest absolute component", "the p-norm: the p-th root of the sum of p-th powers of absolute values"]],
+    ["h3", "Why the choice matters"],
+    ["p", "Norms encode what you care about. The 2-norm is smooth and rotation-invariant, natural for physical length and least squares. The 1-norm promotes sparsity and is central to compressed sensing and robust fitting. The infinity-norm captures worst-case error. Switching norms can change which solution an optimization problem prefers."],
+    ["h3", "Unit balls"],
+    ["p", "The set of vectors with norm at most 1 is the norm's unit ball. For the 2-norm it is a round disk or sphere; for the 1-norm it is a diamond; for the infinity-norm it is a square or cube. These shapes visually explain why 1-norm minimization tends to land on the axes, producing sparse solutions."],
+    ["code", ["python", "import numpy as np\nx = np.array([3.0, -4.0, 0.0])\nprint(np.linalg.norm(x, 2))     # 5.0\nprint(np.linalg.norm(x, 1))     # 7.0\nprint(np.linalg.norm(x, np.inf)) # 4.0"]],
+    ["p", "In numerical analysis, norms measure residuals and errors; reporting that a solver reduced the 2-norm of the residual below a tolerance is the standard convergence criterion for large simulations."]
+  ],
+  "related": [["matrix-norms", "Matrix Norms"], ["dot-product", "The Dot Product"], ["least-squares", "Least Squares"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-norms",
+  "title": "Matrix Norms",
+  "cat": "linear-algebra",
+  "lede": "Measures of a matrix's size, from element-wise sums to the largest amount it can stretch a vector.",
+  "body": [
+    ["h2", "Two families"],
+    ["p", "Matrix norms come in two flavors. <b>Entry-wise</b> norms treat the matrix as a long vector, most notably the Frobenius norm, the square root of the sum of squared entries. <b>Operator</b> or induced norms measure how much a matrix can amplify a vector: the induced p-norm is the largest ratio |Ax|_p / |x|_p over all nonzero x."],
+    ["h2", "The important ones"],
+    ["ul", ["Frobenius norm: sqrt of sum of squared entries, equals sqrt of sum of squared singular values", "induced 2-norm (spectral norm): the largest singular value", "induced 1-norm: the largest absolute column sum", "induced infinity-norm: the largest absolute row sum"]],
+    ["h3", "Submultiplicativity"],
+    ["p", "A useful matrix norm is submultiplicative: |AB| <= |A| |B|. This inequality, satisfied by the Frobenius and all induced norms, lets you bound the growth of products and is the foundation of error analysis for algorithms that chain many matrix operations together."],
+    ["h3", "The spectral norm and singular values"],
+    ["p", "The spectral norm equals the largest singular value of the matrix, the maximum stretching factor of the transformation. It appears in the condition number, in stability analysis of iterations, and in bounds on how perturbations propagate. Because it requires the top singular value, it is more expensive to compute than the Frobenius norm."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 2.0], [0.0, 2.0]])\nprint(np.linalg.norm(A, 'fro'))   # Frobenius\nprint(np.linalg.norm(A, 2))       # spectral = largest singular value"]],
+    ["p", "The nuclear norm, the sum of singular values, is the tightest convex surrogate for matrix rank and drives low-rank recovery methods used to denoise and compress large simulation datasets."]
+  ],
+  "related": [["vector-norms", "Vector Norms"], ["singular-value-decomposition", "Singular Value Decomposition"], ["condition-number", "Condition Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "orthogonality",
+  "title": "Orthogonality",
+  "cat": "linear-algebra",
+  "lede": "Vectors are orthogonal when their dot product is zero, a condition that simplifies geometry, projection, and computation.",
+  "body": [
+    ["h2", "The core idea"],
+    ["p", "Two vectors are <b>orthogonal</b> when their dot product is zero, generalizing the notion of being at right angles. Orthogonality is powerful because it lets you treat directions independently: a component along one orthogonal direction does not interfere with a component along another. This independence turns coupled problems into separate one-dimensional ones."],
+    ["h2", "The Pythagorean theorem"],
+    ["p", "When x and y are orthogonal, |x + y|^2 = |x|^2 + |y|^2. This is the Pythagorean theorem in vector form, and it generalizes to any number of mutually orthogonal vectors. It is the reason energy and variance decompose additively across orthogonal components in physics and statistics."],
+    ["h3", "Orthogonal sets are independent"],
+    ["p", "Any set of nonzero mutually orthogonal vectors is automatically linearly independent, because no one of them can have a component along the others. This gives an easy route to bases: find enough mutually orthogonal vectors and you have an orthogonal basis, with coordinates computed by simple dot products rather than by solving a system."],
+    ["h3", "Orthogonal complements"],
+    ["p", "The orthogonal complement of a subspace W is the set of all vectors perpendicular to every vector in W. The whole space splits as the direct sum of W and its complement, so every vector decomposes uniquely into a part in W and a part orthogonal to it. That decomposition is exactly orthogonal projection."],
+    ["code", ["python", "import numpy as np\nx = np.array([1.0, 1.0, 0.0])\ny = np.array([1.0, -1.0, 0.0])\nprint(np.isclose(x @ y, 0.0))   # True, orthogonal\nprint(np.isclose(np.linalg.norm(x+y)**2,\n                 np.linalg.norm(x)**2 + np.linalg.norm(y)**2))"]],
+    ["p", "Orthogonal expansions, from Fourier series to spectral methods, exploit this independence to represent physical fields as sums of non-interfering modes, dramatically simplifying the governing equations."]
+  ],
+  "related": [["orthonormal-bases", "Orthonormal Bases"], ["projections", "Projections"], ["dot-product", "The Dot Product"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "orthonormal-bases",
+  "title": "Orthonormal Bases",
+  "cat": "linear-algebra",
+  "lede": "A basis of mutually perpendicular unit vectors, in which coordinates are just dot products and geometry is preserved.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "An <b>orthonormal basis</b> is a basis whose vectors are mutually orthogonal and each of unit length. Formally, the dot product of basis vectors qi and qj equals the Kronecker delta: 1 when i = j and 0 otherwise. The standard basis of R^n is orthonormal, but so are infinitely many rotated versions of it."],
+    ["h2", "Why they are ideal"],
+    ["p", "In an orthonormal basis, the coordinates of any vector v are simply the dot products v . qi; no linear system needs to be solved. Reconstruction is v = sum of (v . qi) qi. Lengths and angles are preserved, and the expansion coefficients are stable against roundoff, which is why orthonormal bases are the workhorse of numerical linear algebra."],
+    ["h3", "Orthogonal matrices"],
+    ["p", "Collect an orthonormal basis of R^n as the columns of a matrix Q. Then Q^T Q = I, so Q^{-1} = Q^T. Such a Q is an <b>orthogonal matrix</b>; it represents a rotation or reflection, preserves all lengths and dot products, and has determinant plus or minus one. Multiplying by Q never amplifies error, giving these matrices perfect conditioning."],
+    ["h3", "Parseval's identity"],
+    ["p", "For an orthonormal basis, the squared length of a vector equals the sum of the squares of its coordinates: |v|^2 = sum of (v . qi)^2. This identity, Parseval's theorem in its finite form, says the basis loses no information and conserves energy, a property central to Fourier and wavelet analysis."],
+    ["code", ["python", "import numpy as np\nQ, _ = np.linalg.qr(np.random.rand(4, 4))\nprint(np.allclose(Q.T @ Q, np.eye(4)))   # True, orthonormal columns"]],
+    ["p", "Spectral simulation methods expand physical fields in orthonormal mode sets so that the numerical representation stays well conditioned even at high resolution."]
+  ],
+  "related": [["gram-schmidt", "Gram-Schmidt Process"], ["orthogonal-matrices", "Orthogonal Matrices"], ["qr-decomposition", "QR Decomposition"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "projections",
+  "title": "Projections",
+  "cat": "linear-algebra",
+  "lede": "The closest point in a subspace to a given vector, found by dropping a perpendicular.",
+  "body": [
+    ["h2", "Projecting onto a line"],
+    ["p", "The projection of a vector b onto the line through a nonzero vector a is the point on that line closest to b. It equals (a . b)/(a . a) times a. The difference b minus its projection is orthogonal to a; this residual is what the projection removes. Projecting onto a unit vector u simplifies to (u . b) u."],
+    ["h2", "Projecting onto a subspace"],
+    ["p", "To project b onto the column space of a matrix A with independent columns, solve the normal equations A^T A x = A^T b for the coefficients x; the projection is A x. The <b>projection matrix</b> is P = A (A^T A)^{-1} A^T, which maps any vector to its closest point in the column space and satisfies P^2 = P and P^T = P."],
+    ["h3", "Properties of projection matrices"],
+    ["ul", ["idempotent: applying twice equals applying once, P^2 = P", "symmetric for orthogonal projections: P^T = P", "eigenvalues are only 0 and 1", "I - P projects onto the orthogonal complement"]],
+    ["h3", "The link to least squares"],
+    ["p", "When Ax = b has no exact solution, the best approximate solution makes Ax as close to b as possible, which means Ax must be the projection of b onto the column space. This is exactly the least-squares solution, so projection and least-squares fitting are two views of the same computation."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 2.0]])\nb = np.array([1.0, 2.0, 2.0])\nP = A @ np.linalg.inv(A.T @ A) @ A.T\nprint(P @ b)   # projection of b onto column space of A"]],
+    ["p", "Projection underlies model reduction: projecting the full state of a physics simulation onto a low-dimensional subspace of dominant modes yields a smaller system that captures the essential dynamics."]
+  ],
+  "related": [["least-squares", "Least Squares"], ["orthogonality", "Orthogonality"], ["gram-schmidt", "Gram-Schmidt Process"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gram-schmidt",
+  "title": "The Gram-Schmidt Process",
+  "cat": "linear-algebra",
+  "lede": "A procedure that turns any independent set of vectors into an orthonormal set spanning the same space.",
+  "body": [
+    ["h2", "The idea"],
+    ["p", "Gram-Schmidt builds an orthonormal basis one vector at a time. Start with the first vector and normalize it. For each subsequent vector, subtract its projections onto all the vectors already chosen, leaving a residual orthogonal to them, then normalize that residual. The result is an orthonormal set that spans exactly the same subspace as the original vectors."],
+    ["h2", "The steps"],
+    ["ul", ["u1 = v1, then q1 = u1 / |u1|", "u2 = v2 minus its projection onto q1, then q2 = u2 / |u2|", "u3 = v3 minus its projections onto q1 and q2, then normalize", "continue until every input vector is processed"]],
+    ["h3", "Connection to QR"],
+    ["p", "Gram-Schmidt applied to the columns of a matrix A produces the QR factorization: the orthonormal vectors form Q, and the projection coefficients accumulate into an upper triangular R, so that A = QR. This is the conceptual origin of QR, though practical software uses more stable variants."],
+    ["h3", "Numerical caution"],
+    ["p", "The classical version loses orthogonality when vectors are nearly parallel, because subtracting large nearly-equal quantities amplifies roundoff. The <b>modified</b> Gram-Schmidt process, which subtracts each projection immediately rather than all at once, is more stable. For high accuracy, Householder reflections are preferred over either form."],
+    ["code", ["python", "import numpy as np\ndef mgs(A):\n    A = A.astype(float).copy(); m, n = A.shape\n    Q = np.zeros((m, n)); R = np.zeros((n, n))\n    for j in range(n):\n        v = A[:, j].copy()\n        for i in range(j):\n            R[i, j] = Q[:, i] @ v; v -= R[i, j] * Q[:, i]\n        R[j, j] = np.linalg.norm(v); Q[:, j] = v / R[j, j]\n    return Q, R"]],
+    ["p", "Orthogonalizing basis functions this way keeps spectral and modal representations of physical fields well conditioned, preventing redundant directions from corrupting a simulation."]
+  ],
+  "related": [["orthonormal-bases", "Orthonormal Bases"], ["qr-decomposition", "QR Decomposition"], ["projections", "Projections"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "eigenvalues-eigenvectors",
+  "title": "Eigenvalues and Eigenvectors",
+  "cat": "linear-algebra",
+  "lede": "Special directions a matrix only stretches, and the factors by which it stretches them.",
+  "body": [
+    ["h2", "The defining equation"],
+    ["p", "A nonzero vector v is an <b>eigenvector</b> of a square matrix A if A v = lambda v for some scalar lambda, the corresponding <b>eigenvalue</b>. In words, A acts on v purely by scaling, without changing its direction. Eigenvectors reveal the natural axes of a transformation, along which its action is simplest."],
+    ["h2", "Finding them"],
+    ["p", "Rearranging gives (A - lambda I) v = 0, which has a nonzero solution only when A - lambda I is singular, that is when det(A - lambda I) = 0. This is the <b>characteristic equation</b>, a polynomial of degree n whose roots are the eigenvalues. For each eigenvalue, the null space of A - lambda I gives the eigenvectors."],
+    ["h3", "What eigenvalues tell you"],
+    ["ul", ["their product equals the determinant", "their sum equals the trace", "a zero eigenvalue means the matrix is singular", "for symmetric matrices they are all real"]],
+    ["h3", "Why they matter"],
+    ["p", "Eigenvalues govern stability and long-term behavior. In a discrete dynamical system x_{k+1} = A x_k, the state grows if any eigenvalue exceeds one in magnitude and decays if all are below one. In differential equations dx/dt = A x, the sign of the real parts decides stability. This makes eigenvalue analysis central to control, vibration, and plasma stability."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 1.0], [1.0, 2.0]])\nvals, vecs = np.linalg.eig(A)\nprint(vals)         # [3. 1.]\nprint(vecs)         # columns are eigenvectors"]],
+    ["p", "Stability of a magnetized plasma is analyzed by linearizing the governing equations and examining the eigenvalues of the resulting operator; growth-rate eigenvalues flag instabilities that a confinement design such as Hyperion must avoid."]
+  ],
+  "related": [["characteristic-polynomial", "The Characteristic Polynomial"], ["diagonalization", "Diagonalization"], ["spectral-theorem", "The Spectral Theorem"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "characteristic-polynomial",
+  "title": "The Characteristic Polynomial",
+  "cat": "linear-algebra",
+  "lede": "The degree-n polynomial whose roots are a matrix's eigenvalues, encoding trace, determinant, and spectrum.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The characteristic polynomial of an n-by-n matrix A is p(lambda) = det(A - lambda I). Expanding this determinant gives a polynomial of degree n in lambda. Its roots are exactly the eigenvalues of A, counted with algebraic multiplicity, so the polynomial packages the entire spectrum into a single expression."],
+    ["h2", "Coefficients carry meaning"],
+    ["p", "The coefficients of the characteristic polynomial are the elementary symmetric functions of the eigenvalues. The leading term is plus or minus lambda^n; the next coefficient is minus the trace; the constant term is the determinant (up to sign). Thus trace and determinant are just two of the n invariants hidden in this polynomial."],
+    ["h3", "Algebraic versus geometric multiplicity"],
+    ["p", "An eigenvalue's <b>algebraic multiplicity</b> is its multiplicity as a root of the characteristic polynomial. Its <b>geometric multiplicity</b> is the number of independent eigenvectors it has. The geometric never exceeds the algebraic; when they differ the matrix is <b>defective</b> and cannot be diagonalized, requiring the Jordan form instead."],
+    ["h3", "Cayley-Hamilton theorem"],
+    ["p", "A matrix satisfies its own characteristic equation: substituting A for lambda gives p(A) = 0, the zero matrix. This remarkable fact lets you express high powers of A, and even A^{-1}, in terms of lower powers, and it underlies methods for computing matrix functions."],
+    ["h3", "A numerical warning"],
+    ["p", "Although elegant, finding eigenvalues by explicitly forming and rooting the characteristic polynomial is numerically unstable; small coefficient errors move roots wildly. Practical eigenvalue software uses iterative methods such as the QR algorithm that never form the polynomial at all."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 1.0], [1.0, 2.0]])\nprint(np.poly(A))   # coefficients: [1. -4. 3.] -> lambda^2 - 4 lambda + 3"]],
+    ["p", "The Cayley-Hamilton relation makes this polynomial a practical tool: it reduces any matrix power to a combination of I, A, up to A^{n-1}, which is how compact recurrences for matrix functions and powers are derived."]
+  ],
+  "related": [["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["determinant", "The Determinant"], ["trace-of-a-matrix", "The Trace"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "diagonalization",
+  "title": "Diagonalization",
+  "cat": "linear-algebra",
+  "lede": "Rewriting a matrix in a basis of its eigenvectors, where it acts as simple coordinate-wise scaling.",
+  "body": [
+    ["h2", "The factorization"],
+    ["p", "A square matrix A is <b>diagonalizable</b> if it can be written A = P D P^{-1}, where D is diagonal and the columns of P are eigenvectors of A. The diagonal entries of D are the corresponding eigenvalues. In the eigenvector basis, the transformation simply scales each coordinate, the simplest possible action."],
+    ["h2", "When it is possible"],
+    ["p", "A matrix is diagonalizable exactly when it has a full set of n linearly independent eigenvectors. This is guaranteed when all n eigenvalues are distinct, and always holds for symmetric matrices. It fails for defective matrices, where an eigenvalue's geometric multiplicity falls short of its algebraic multiplicity."],
+    ["h3", "Why it is useful"],
+    ["p", "Diagonalization makes matrix powers trivial: A^k = P D^k P^{-1}, and D^k just raises each diagonal entry to the k-th power. This turns the study of repeated application, iterations, and matrix functions into scalar arithmetic on the eigenvalues. Functions of a matrix, such as the matrix exponential, are defined the same way by applying the function to each eigenvalue."],
+    ["h3", "Similar matrices"],
+    ["p", "Two matrices related by B = P^{-1} A P are called <b>similar</b>; they represent the same transformation in different bases and share eigenvalues, trace, determinant, and characteristic polynomial. Diagonalization is the special case where the new basis makes the matrix diagonal."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 1.0], [1.0, 2.0]])\nvals, P = np.linalg.eig(A)\nD = np.diag(vals)\nprint(np.allclose(A, P @ D @ np.linalg.inv(P)))   # True"]],
+    ["p", "Decoupling coupled linear differential equations into independent scalar equations, the standard technique for analyzing normal modes of oscillation, is diagonalization applied to the system matrix."]
+  ],
+  "related": [["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["spectral-theorem", "The Spectral Theorem"], ["matrix-exponential", "The Matrix Exponential"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "spectral-theorem",
+  "title": "The Spectral Theorem",
+  "cat": "linear-algebra",
+  "lede": "Every real symmetric matrix has real eigenvalues and an orthonormal basis of eigenvectors.",
+  "body": [
+    ["h2", "The statement"],
+    ["p", "The spectral theorem says that a real symmetric matrix A can be written A = Q D Q^T, where Q is orthogonal (its columns form an orthonormal set of eigenvectors) and D is diagonal with real entries (the eigenvalues). This is the cleanest possible eigendecomposition: the eigenvectors are not merely independent but mutually perpendicular, and no inverse is needed since Q^{-1} = Q^T."],
+    ["h2", "Two guarantees"],
+    ["ul", ["all eigenvalues of a real symmetric matrix are real", "eigenvectors for distinct eigenvalues are automatically orthogonal", "even with repeated eigenvalues, an orthonormal eigenbasis exists", "the matrix is always diagonalizable, never defective"]],
+    ["h3", "The spectral expansion"],
+    ["p", "The factorization can be rewritten as a sum: A = sum of lambda_i q_i q_i^T, a weighted combination of rank-one projections onto the eigen-directions. This expresses the matrix as a superposition of independent scaling actions along orthogonal axes, the finite-dimensional version of expanding an operator in its eigenmodes."],
+    ["h3", "The complex analogue"],
+    ["p", "For complex matrices, the theorem applies to <b>Hermitian</b> matrices (equal to their conjugate transpose) and more generally to <b>normal</b> matrices (those commuting with their conjugate transpose), which admit a unitary eigenbasis. Hermitian operators represent observables in quantum mechanics, and their real eigenvalues are the possible measurement outcomes."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 1.0], [1.0, 2.0]])   # symmetric\nvals, Q = np.linalg.eigh(A)   # eigh for symmetric/Hermitian\nprint(np.allclose(Q @ np.diag(vals) @ Q.T, A))   # True\nprint(np.allclose(Q.T @ Q, np.eye(2)))           # orthonormal"]],
+    ["p", "Symmetric operators pervade physics, from stress and inertia tensors to the linearized stability operators of confined plasmas; the spectral theorem guarantees their normal modes are orthogonal and their eigenvalues physically meaningful."]
+  ],
+  "related": [["symmetric-matrices", "Symmetric Matrices"], ["diagonalization", "Diagonalization"], ["singular-value-decomposition", "Singular Value Decomposition"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "singular-value-decomposition",
+  "title": "Singular Value Decomposition",
+  "cat": "linear-algebra",
+  "lede": "Every matrix factors into a rotation, a nonnegative scaling, and another rotation; the most useful decomposition in applied mathematics.",
+  "body": [
+    ["h2", "The factorization"],
+    ["p", "Any m-by-n matrix A can be written A = U S V^T, where U and V are orthogonal matrices and S is a diagonal matrix of nonnegative <b>singular values</b>, conventionally ordered from largest to smallest. Geometrically, A maps a unit sphere to an ellipsoid: V^T rotates the input, S stretches along axes by the singular values, and U rotates into the output space."],
+    ["h2", "Why it is universal"],
+    ["p", "Unlike eigendecomposition, the SVD exists for every matrix, rectangular or square, singular or not. The singular values are the square roots of the eigenvalues of A^T A, and they reveal the matrix's most important properties at a glance: rank, norm, and conditioning."],
+    ["h3", "What it reveals"],
+    ["ul", ["the number of nonzero singular values is the rank", "the largest singular value is the spectral norm", "the ratio of largest to smallest is the condition number", "the columns of U and V give orthonormal bases for the four fundamental subspaces"]],
+    ["h3", "Low-rank approximation"],
+    ["p", "Keeping only the largest k singular values and their vectors gives the best rank-k approximation of A in both the spectral and Frobenius norms, a result known as the Eckart-Young theorem. This is the engine behind data compression, noise reduction, principal component analysis, and reduced-order modeling."],
+    ["code", ["python", "import numpy as np\nA = np.random.rand(6, 4)\nU, s, Vt = np.linalg.svd(A, full_matrices=False)\nk = 2\nA_k = U[:, :k] @ np.diag(s[:k]) @ Vt[:k]   # best rank-2 approximation\nprint('kept energy:', (s[:k]**2).sum() / (s**2).sum())"]],
+    ["p", "Reduced-order models of expensive simulations extract dominant modes from snapshot matrices via the SVD, replacing a huge state with a handful of coordinates that capture most of the physics."]
+  ],
+  "related": [["spectral-theorem", "The Spectral Theorem"], ["matrix-rank", "Rank"], ["pseudoinverse", "The Pseudoinverse"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "lu-decomposition",
+  "title": "LU Decomposition",
+  "cat": "linear-algebra",
+  "lede": "Factoring a matrix into lower and upper triangular pieces, the standard way to solve dense linear systems.",
+  "body": [
+    ["h2", "The factorization"],
+    ["p", "LU decomposition writes a square matrix A as the product of a lower triangular matrix L (with ones on its diagonal) and an upper triangular matrix U. It is Gaussian elimination recorded as a factorization: U holds the result of elimination, and L stores the multipliers used to eliminate each entry. Most implementations include row swaps, giving PA = LU with a permutation matrix P."],
+    ["h2", "Why factor at all"],
+    ["p", "Once A = LU is known, solving Ax = b splits into two easy triangular solves: first solve L y = b by forward substitution, then U x = y by back substitution. The factorization costs on the order of n^3, but each triangular solve costs only n^2, so solving for many right-hand sides with the same A is cheap after one factorization."],
+    ["h3", "Pivoting for stability"],
+    ["p", "Without care, elimination can divide by a tiny pivot and amplify roundoff. <b>Partial pivoting</b> swaps rows so the largest available entry becomes the pivot, keeping the multipliers bounded and the process numerically stable. This is why library routines return a permutation along with L and U."],
+    ["h3", "Determinant and inverse"],
+    ["p", "The determinant of A is the product of the diagonal entries of U, times the sign of the permutation, which is the standard cubic-cost way to compute determinants. The inverse, when truly needed, is found by solving AX = I column by column using the same factorization."],
+    ["code", ["python", "import numpy as np\nfrom scipy.linalg import lu_factor, lu_solve\nA = np.array([[3.0, 1.0], [1.0, 2.0]])\nlu, piv = lu_factor(A)\nx = lu_solve((lu, piv), np.array([9.0, 8.0]))\nprint(x)   # solves Ax = b"]],
+    ["p", "Dense sub-blocks of the large operator matrices in engineering simulations are commonly solved with pivoted LU, while sparse and structured systems use tailored variants."]
+  ],
+  "related": [["gaussian-elimination", "Gaussian Elimination"], ["linear-systems-ax-b", "Solving Ax = b"], ["cholesky-decomposition", "Cholesky Decomposition"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "qr-decomposition",
+  "title": "QR Decomposition",
+  "cat": "linear-algebra",
+  "lede": "Factoring a matrix into an orthonormal part and an upper triangular part, the stable workhorse for least squares.",
+  "body": [
+    ["h2", "The factorization"],
+    ["p", "QR decomposition writes a matrix A as A = QR, where Q has orthonormal columns and R is upper triangular. The columns of Q form an orthonormal basis for the column space of A, and R records how the original columns combine to produce them. It is the matrix form of the Gram-Schmidt process, though computed more stably."],
+    ["h2", "How it is computed"],
+    ["p", "Practical QR uses <b>Householder reflections</b>, each of which zeros out the entries below a diagonal position by reflecting a vector onto a coordinate axis. Applying a sequence of these reflections triangularizes A while keeping every operation orthogonal, so no error amplification occurs. Givens rotations are an alternative, well suited to sparse or streaming problems."],
+    ["h3", "Solving least squares"],
+    ["p", "For an overdetermined system Ax = b, the least-squares solution follows from QR without ever forming A^T A: since A = QR, the normal equations reduce to R x = Q^T b, a single triangular solve. This route is far more accurate than the normal equations because it avoids squaring the condition number of A."],
+    ["h3", "The QR algorithm for eigenvalues"],
+    ["p", "Repeatedly factoring a matrix as QR and re-multiplying as RQ produces a sequence that converges to a triangular matrix whose diagonal holds the eigenvalues. This <b>QR algorithm</b>, with shifts and deflation, is the standard method behind eigenvalue routines in numerical libraries."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 1.0], [1.0, 2.0], [1.0, 3.0]])\nb = np.array([1.0, 2.0, 2.0])\nQ, R = np.linalg.qr(A)\nx = np.linalg.solve(R, Q.T @ b)   # least-squares solution\nprint(x)"]],
+    ["p", "Because orthogonal transformations never magnify error, QR is preferred wherever conditioning is a concern, including fits of noisy diagnostic data against physics models."]
+  ],
+  "related": [["gram-schmidt", "The Gram-Schmidt Process"], ["least-squares", "Least Squares"], ["orthogonal-matrices", "Orthogonal Matrices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "cholesky-decomposition",
+  "title": "Cholesky Decomposition",
+  "cat": "linear-algebra",
+  "lede": "The efficient square-root factorization reserved for symmetric positive-definite matrices.",
+  "body": [
+    ["h2", "The factorization"],
+    ["p", "For a symmetric positive-definite matrix A, the Cholesky decomposition writes A = L L^T, where L is lower triangular with positive diagonal entries. It is a specialized, more efficient form of LU that exploits symmetry, using about half the arithmetic and half the storage because only one triangular factor is needed."],
+    ["h2", "Requirements and by-product"],
+    ["p", "Cholesky exists and is unique exactly when A is symmetric positive definite. This gives a practical test: attempting the factorization and checking that every diagonal square root is of a positive number confirms positive definiteness. If the algorithm encounters a nonpositive pivot, the matrix is not positive definite, and it fails cleanly."],
+    ["h3", "Solving systems"],
+    ["p", "As with LU, solving Ax = b after Cholesky is two triangular solves: forward substitution with L, then back substitution with L^T. Because no pivoting is required for positive-definite matrices, the process is both fast and numerically stable, making Cholesky the method of choice for the symmetric systems that arise from least squares and physics discretizations."],
+    ["h3", "Where it appears"],
+    ["ul", ["normal equations A^T A x = A^T b in least squares", "covariance matrices in statistics and Kalman filtering", "sampling correlated Gaussian random vectors", "stiffness matrices in finite-element structural analysis"]],
+    ["code", ["python", "import numpy as np\nA = np.array([[4.0, 2.0], [2.0, 3.0]])   # SPD\nL = np.linalg.cholesky(A)\nprint(np.allclose(L @ L.T, A))   # True\n# solve A x = b\nb = np.array([2.0, 1.0])\ny = np.linalg.solve(L, b)\nx = np.linalg.solve(L.T, y)"]],
+    ["p", "Symmetric positive-definite operators from finite-element models of magnets and structures are routinely solved with Cholesky, whose symmetry-exploiting economy pays off at large scale."]
+  ],
+  "related": [["positive-definite-matrices", "Positive-Definite Matrices"], ["lu-decomposition", "LU Decomposition"], ["least-squares", "Least Squares"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "positive-definite-matrices",
+  "title": "Positive-Definite Matrices",
+  "cat": "linear-algebra",
+  "lede": "Symmetric matrices whose quadratic form is always positive; they behave like positive numbers among matrices.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A symmetric matrix A is <b>positive definite</b> if the quadratic form x^T A x is strictly positive for every nonzero vector x. If it is merely nonnegative, A is <b>positive semidefinite</b>. These matrices are the matrix analogue of positive numbers, and they carry the strongest possible good behavior for computation and optimization."],
+    ["h2", "Equivalent tests"],
+    ["ul", ["all eigenvalues are strictly positive", "a Cholesky factorization A = L L^T exists", "all leading principal minors are positive (Sylvester's criterion)", "x^T A x > 0 for every nonzero x"]],
+    ["p", "Any of these conditions implies the others, so in practice one checks whichever is cheapest: attempting Cholesky is a fast and reliable test."],
+    ["h3", "Why they matter in optimization"],
+    ["p", "A twice-differentiable function has a strict local minimum where its gradient vanishes and its Hessian is positive definite. Convex quadratic problems with a positive-definite Hessian have a unique global minimum reachable by efficient methods. Positive definiteness is thus the condition that guarantees an optimization landscape curves upward in every direction."],
+    ["h3", "Sources of these matrices"],
+    ["p", "Products of the form A^T A are always positive semidefinite, and positive definite when A has independent columns; this is why least-squares systems are well behaved. Covariance matrices, stiffness matrices, and Gram matrices of independent vectors are all positive definite, tying the concept to statistics, mechanics, and geometry."],
+    ["code", ["python", "import numpy as np\ndef is_pos_def(A):\n    try:\n        np.linalg.cholesky(A); return True\n    except np.linalg.LinAlgError:\n        return False\nprint(is_pos_def(np.array([[2.0, -1.0], [-1.0, 2.0]])))   # True"]],
+    ["p", "Discretized energy operators in physics are typically symmetric positive definite, guaranteeing stable solves and physically meaningful, real, positive mode frequencies."]
+  ],
+  "related": [["cholesky-decomposition", "Cholesky Decomposition"], ["symmetric-matrices", "Symmetric Matrices"], ["spectral-theorem", "The Spectral Theorem"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "condition-number",
+  "title": "The Condition Number",
+  "cat": "linear-algebra",
+  "lede": "A measure of how much a matrix can amplify errors, deciding whether a linear system can be solved accurately.",
+  "body": [
+    ["h2", "What it measures"],
+    ["p", "The condition number of a matrix quantifies how sensitive the solution of Ax = b is to small changes in A or b. For the 2-norm it equals the ratio of the largest to the smallest singular value. A condition number near 1 means the problem is <b>well conditioned</b>; a very large value means it is <b>ill conditioned</b>, and tiny input errors can produce large output errors."],
+    ["h2", "The error bound"],
+    ["p", "If the data has a relative error, the relative error in the computed solution can be as large as the condition number times that data error. As a rule of thumb, a condition number of 10^k costs about k digits of accuracy. With about 16 digits in double precision, a condition number of 10^16 can destroy all accuracy."],
+    ["h3", "It is a property of the problem"],
+    ["p", "Ill conditioning is a property of the matrix, not of the algorithm. No solver, however clever, can recover accuracy that the conditioning has already lost; a stable algorithm merely avoids adding further error. The remedy is to reformulate the problem, rescale the variables, or add regularization to improve the conditioning itself."],
+    ["h3", "Regularization"],
+    ["p", "When a matrix is nearly singular, adding a small positive multiple of the identity, as in ridge regression, raises the smallest singular values and lowers the condition number, trading a small bias for far greater numerical stability. The SVD makes this trade explicit by exposing the small singular values directly."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 1.0], [1.0, 1.0001]])\nprint(np.linalg.cond(A))   # very large: nearly singular"]],
+    ["p", "In simulations of stiff physical systems, operators can be badly conditioned across widely separated scales, so preconditioning to compress the singular-value spread is often what makes a solve feasible at all."]
+  ],
+  "related": [["singular-value-decomposition", "Singular Value Decomposition"], ["matrix-norms", "Matrix Norms"], ["least-squares", "Least Squares"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "sparse-matrices",
+  "title": "Sparse Matrices",
+  "cat": "linear-algebra",
+  "lede": "Matrices dominated by zeros, stored and solved with methods that touch only the nonzeros.",
+  "body": [
+    ["h2", "What sparsity means"],
+    ["p", "A matrix is <b>sparse</b> when most of its entries are zero. Sparsity is not a curiosity but the norm for large problems: discretizing a physical domain couples each grid point only to its neighbors, so the resulting matrix has a handful of nonzeros per row regardless of size. Storing and computing only the nonzeros is what makes million-variable problems tractable."],
+    ["h2", "Storage formats"],
+    ["ul", ["COO (coordinate): lists of row index, column index, and value, easy to build", "CSR (compressed sparse row): fast row access and matrix-vector products", "CSC (compressed sparse column): fast column access, common in solvers", "diagonal and banded formats for structured patterns"]],
+    ["h3", "Why direct solvers struggle"],
+    ["p", "Factorizing a sparse matrix with LU or Cholesky can create nonzeros where the original had zeros, a phenomenon called <b>fill-in</b>. Fill-in can turn a lean sparse matrix into a dense factor, exhausting memory. Reordering the rows and columns to minimize fill, using algorithms like approximate minimum degree or nested dissection, is essential for sparse direct methods."],
+    ["h3", "Iterative solvers"],
+    ["p", "For the largest systems, iterative methods such as conjugate gradient (for symmetric positive-definite matrices) and GMRES (for general matrices) avoid factorization entirely. They need only the ability to multiply the matrix by a vector, an operation whose cost scales with the number of nonzeros, and they converge faster with a good preconditioner."],
+    ["code", ["python", "import numpy as np\nfrom scipy.sparse import csr_matrix\nfrom scipy.sparse.linalg import spsolve\nA = csr_matrix(np.array([[2.0, 0.0, 1.0], [0.0, 3.0, 0.0], [1.0, 0.0, 2.0]]))\nb = np.array([3.0, 6.0, 3.0])\nprint(spsolve(A, b))"]],
+    ["p", "Finite-element and finite-difference models of magnets, structures, and plasma fields produce enormous sparse matrices; exploiting their sparsity is the difference between a simulation that runs and one that cannot fit in memory."]
+  ],
+  "related": [["linear-systems-ax-b", "Solving Ax = b"], ["lu-decomposition", "LU Decomposition"], ["matrix-multiplication", "Matrix Multiplication"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "tensors",
+  "title": "Tensors",
+  "cat": "linear-algebra",
+  "lede": "Multidimensional generalizations of scalars, vectors, and matrices, indexed by any number of dimensions.",
+  "body": [
+    ["h2", "The generalization"],
+    ["p", "A <b>tensor</b> extends the sequence scalar, vector, matrix to arbitrary dimension. A scalar is a rank-0 tensor, a vector rank-1, a matrix rank-2, and a stack of matrices rank-3. In computing, a tensor is simply a multidimensional array; the number of indices needed to address an element is its rank, or number of axes."],
+    ["h2", "Two meanings of tensor"],
+    ["p", "The word carries two related senses. In machine learning and array programming, a tensor is any n-dimensional array of numbers. In physics and differential geometry, a tensor is a geometric object whose components transform in a specific way under changes of coordinates, so that the physical quantity it represents is basis-independent. The stress tensor and the metric tensor are examples of the second sense."],
+    ["h3", "Operations"],
+    ["p", "Tensor operations generalize matrix operations. <b>Contraction</b> sums over a shared index, generalizing matrix multiplication and the dot product. The Einstein summation convention, which implies a sum over any repeated index, gives a compact notation for these contractions and is mirrored by the einsum function in numerical libraries."],
+    ["h3", "Tensor decompositions"],
+    ["p", "Just as matrices factor via SVD, higher tensors have decompositions such as the CP (canonical polyadic) and Tucker decompositions, which express a tensor as sums or products of simpler factors. These reveal low-rank structure in multidimensional data and compress it, though tensor rank is subtler than matrix rank."],
+    ["code", ["python", "import numpy as np\nA = np.random.rand(2, 3)\nB = np.random.rand(3, 4)\n# einsum expresses contraction over the shared index j\nC = np.einsum('ij,jk->ik', A, B)\nprint(C.shape)   # (2, 4), same as A @ B"]],
+    ["p", "Physical fields in a plasma, such as pressure anisotropy and the electromagnetic stress, are described by tensors, and the discretized simulation state is stored as high-rank arrays indexed by space, time, and field component."]
+  ],
+  "related": [["kronecker-product", "Kronecker Product"], ["scalars-vectors-matrices", "Scalars, Vectors, and Matrices"], ["matrix-multiplication", "Matrix Multiplication"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "kronecker-product",
+  "title": "The Kronecker Product",
+  "cat": "linear-algebra",
+  "lede": "A block-structured product of two matrices that builds large operators from smaller ones.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The Kronecker product of an m-by-n matrix A and a p-by-q matrix B, written A tensor B, is an (mp)-by-(nq) matrix formed by replacing each entry a_ij of A with the block a_ij times B. The result is a large matrix built from scaled copies of B arranged in the pattern of A. It captures the structure of operators acting on multidimensional grids."],
+    ["h2", "Properties"],
+    ["ul", ["(A tensor B)(C tensor D) = (AC) tensor (BD), the mixed-product rule", "(A tensor B)^T = A^T tensor B^T", "(A tensor B)^{-1} = A^{-1} tensor B^{-1} when both are invertible", "eigenvalues of A tensor B are all products of an eigenvalue of A with one of B"]],
+    ["h3", "The vec trick"],
+    ["p", "Stacking the columns of a matrix X into a single vector, written vec(X), links the Kronecker product to matrix equations: vec(A X B) = (B^T tensor A) vec(X). This identity converts the matrix equation A X B = C into an ordinary linear system, and it is the key to solving Sylvester and Lyapunov equations that arise in control theory."],
+    ["h3", "Separable operators"],
+    ["p", "On a two-dimensional grid, a differential operator that acts independently along each axis is a sum of Kronecker products, such as (D tensor I) + (I tensor D). This structure lets fast solvers work on each dimension separately, avoiding the cost of treating the full grid at once, and it generalizes to any number of dimensions."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1, 0], [0, 2]])\nB = np.array([[1, 1], [0, 1]])\nprint(np.kron(A, B).shape)   # (4, 4)"]],
+    ["p", "Discretized operators for multidimensional plasma and field simulations are naturally expressed as sums of Kronecker products, exposing separable structure that dramatically reduces solve cost."]
+  ],
+  "related": [["tensors", "Tensors"], ["matrix-multiplication", "Matrix Multiplication"], ["block-matrices", "Block Matrices"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "linear-systems-ax-b",
+  "title": "Solving Ax = b",
+  "cat": "linear-algebra",
+  "lede": "The central problem of linear algebra: finding the vector x that a matrix A maps to a given vector b.",
+  "body": [
+    ["h2", "The three outcomes"],
+    ["p", "A linear system Ax = b has exactly one of three fates: a unique solution, no solution, or infinitely many. Which one occurs depends on the rank of A and whether b lies in the column space. A square full-rank matrix always gives a unique solution; otherwise the system may be inconsistent or underdetermined."],
+    ["h2", "Existence and uniqueness"],
+    ["ul", ["a solution exists when b is in the column space of A, i.e. rank(A) = rank([A | b])", "the solution is unique when the columns of A are independent (full column rank)", "if a solution exists and the null space is nontrivial, there are infinitely many", "the general solution is any particular solution plus any null-space vector"]],
+    ["h3", "How to solve in practice"],
+    ["p", "Never invert the matrix. For a general square system, factor A = LU with partial pivoting and run two triangular solves. For symmetric positive-definite systems, use Cholesky. For overdetermined systems with no exact solution, use QR to find the least-squares answer. For very large sparse systems, use iterative methods. The choice is dictated by the size, structure, and conditioning of A."],
+    ["h3", "Conditioning governs accuracy"],
+    ["p", "Even a correctly implemented solver returns an inaccurate answer if the matrix is ill conditioned, because the problem itself amplifies data error. Always consider the condition number when interpreting a computed solution, and regularize when the matrix is nearly singular."],
+    ["code", ["python", "import numpy as np\nA = np.array([[3.0, 2.0], [1.0, 2.0]])\nb = np.array([7.0, 5.0])\nx = np.linalg.solve(A, b)   # uses LU with pivoting internally\nprint(x, np.allclose(A @ x, b))"]],
+    ["p", "Every timestep of an implicit physics simulation reduces to solving a large linear system for the updated field, so the efficiency of the Ax = b solve sets the pace of the entire model run."]
+  ],
+  "related": [["gaussian-elimination", "Gaussian Elimination"], ["lu-decomposition", "LU Decomposition"], ["least-squares", "Least Squares"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "gaussian-elimination",
+  "title": "Gaussian Elimination",
+  "cat": "linear-algebra",
+  "lede": "The systematic row-reduction procedure that solves linear systems and reveals rank and invertibility.",
+  "body": [
+    ["h2", "The procedure"],
+    ["p", "Gaussian elimination transforms a linear system into an equivalent triangular one by repeatedly adding multiples of one row to another to create zeros below each pivot. This <b>forward elimination</b> phase reduces the matrix to row-echelon form; then <b>back substitution</b> solves for the unknowns from the last equation upward. It is the algorithm behind LU factorization."],
+    ["h2", "Elementary row operations"],
+    ["ul", ["swap two rows", "multiply a row by a nonzero scalar", "add a multiple of one row to another"]],
+    ["p", "Each of these operations preserves the solution set, so the reduced system has exactly the same solutions as the original. They correspond to multiplying by invertible elementary matrices, which is why elimination can be recorded as a matrix factorization."],
+    ["h3", "Reading off the answer"],
+    ["p", "After reduction, the pivots (the leading nonzero in each row) tell the story. The number of pivots is the rank. If a pivot appears in the augmented column but not the coefficient columns, the system is inconsistent. Columns without pivots correspond to free variables, signaling infinitely many solutions. Continuing to reduced row-echelon form isolates each pivot variable directly."],
+    ["h3", "Pivoting and cost"],
+    ["p", "Choosing the largest available entry as each pivot (partial pivoting) keeps the multipliers small and the computation numerically stable. The whole procedure costs on the order of n^3 operations for an n-by-n system, the same as LU factorization, of which it is the computational core."],
+    ["code", ["python", "import numpy as np\n# Augmented matrix, then one elimination step by hand\nM = np.array([[2.0, 1.0, 5.0], [4.0, 3.0, 11.0]])\nM[1] -= (M[1,0]/M[0,0]) * M[0]   # zero the (1,0) entry\nprint(M)   # now upper triangular"]],
+    ["p", "Understanding elimination clarifies why factorization-based solvers behave as they do, including where pivoting protects accuracy in the large systems that arise from discretized physics."]
+  ],
+  "related": [["lu-decomposition", "LU Decomposition"], ["linear-systems-ax-b", "Solving Ax = b"], ["matrix-rank", "Rank"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "least-squares",
+  "title": "Least Squares",
+  "cat": "linear-algebra",
+  "lede": "The best-fit solution to an overdetermined system, minimizing the sum of squared residuals.",
+  "body": [
+    ["h2", "The problem"],
+    ["p", "When a system Ax = b has more equations than unknowns, it usually has no exact solution. The <b>least-squares</b> approach instead finds the x that makes Ax as close to b as possible, minimizing the squared length of the residual |Ax - b|^2. Geometrically, Ax is the orthogonal projection of b onto the column space of A."],
+    ["h2", "The normal equations"],
+    ["p", "Setting the gradient of the squared residual to zero gives the <b>normal equations</b> A^T A x = A^T b. When A has independent columns, A^T A is symmetric positive definite and the solution is unique. These equations express that the residual must be orthogonal to the column space, the defining property of a projection."],
+    ["h3", "Solving it well"],
+    ["p", "Forming and solving the normal equations is simple but squares the condition number of A, which can wreck accuracy. The numerically preferred route factors A = QR and solves R x = Q^T b, or uses the SVD for rank-deficient or ill-conditioned problems. Software such as lstsq chooses a stable method automatically."],
+    ["h3", "Where it appears"],
+    ["ul", ["fitting a model curve to noisy measurements", "linear regression in statistics and machine learning", "reconstructing a signal from more observations than parameters", "calibrating simulation parameters against experimental data"]],
+    ["code", ["python", "import numpy as np\n# Fit a line y = m x + c to noisy data\nx = np.array([0.0, 1.0, 2.0, 3.0])\ny = np.array([0.1, 0.9, 2.1, 2.9])\nA = np.vstack([x, np.ones_like(x)]).T\n(m, c), *_ = np.linalg.lstsq(A, y, rcond=None)\nprint(m, c)   # slope near 1, intercept near 0"]],
+    ["p", "Least squares is how measured diagnostic signals are reconciled with model predictions, yielding the parameter estimates and uncertainties that ground a simulation in observation."]
+  ],
+  "related": [["normal-equations", "The Normal Equations"], ["projections", "Projections"], ["pseudoinverse", "The Pseudoinverse"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "normal-equations",
+  "title": "The Normal Equations",
+  "cat": "linear-algebra",
+  "lede": "The square symmetric system A^T A x = A^T b that characterizes the least-squares solution.",
+  "body": [
+    ["h2", "Derivation"],
+    ["p", "To minimize the squared residual |Ax - b|^2, expand it and take the gradient with respect to x. Setting the gradient to zero yields A^T A x = A^T b, the <b>normal equations</b>. The name reflects geometry: the residual b - Ax must be normal (orthogonal) to the column space of A, so A^T (b - Ax) = 0, which rearranges to the same system."],
+    ["h2", "Structure of the system"],
+    ["p", "The matrix A^T A is square, symmetric, and positive semidefinite; it is positive definite exactly when A has linearly independent columns. In that case the normal equations have a unique solution, and because the matrix is symmetric positive definite, Cholesky factorization solves them efficiently."],
+    ["h3", "The conditioning caveat"],
+    ["p", "The Gram matrix A^T A has condition number equal to the square of the condition number of A. Forming it explicitly can therefore lose about twice as many digits of accuracy as working with A directly. For well-conditioned problems this is harmless, but for ill-conditioned ones the normal equations should be avoided in favor of QR or SVD-based methods."],
+    ["h3", "Regularized form"],
+    ["p", "Adding a penalty on the size of x, as in ridge regression, changes the system to (A^T A + alpha I) x = A^T b. The added term shifts every eigenvalue of A^T A upward by alpha, guaranteeing a positive-definite, well-conditioned matrix even when A^T A alone is nearly singular, at the price of a small bias in the solution."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 0.0], [1.0, 1.0], [1.0, 2.0]])\nb = np.array([1.0, 2.0, 2.0])\nx = np.linalg.solve(A.T @ A, A.T @ b)   # normal equations\nprint(x)"]],
+    ["p", "Parameter estimation from redundant physics measurements is usually posed as normal equations, often with regularization to stabilize the fit when observations barely constrain some parameters."]
+  ],
+  "related": [["least-squares", "Least Squares"], ["cholesky-decomposition", "Cholesky Decomposition"], ["condition-number", "The Condition Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "pseudoinverse",
+  "title": "The Pseudoinverse",
+  "cat": "linear-algebra",
+  "lede": "A generalized inverse that gives the least-squares, minimum-norm solution for any matrix, invertible or not.",
+  "body": [
+    ["h2", "Motivation"],
+    ["p", "Most matrices are not square or not invertible, yet we still want a canonical way to solve Ax = b. The <b>Moore-Penrose pseudoinverse</b>, written A^+, provides it. For an invertible square matrix it equals the ordinary inverse. For any other matrix it returns the best possible answer: the least-squares solution, and among all least-squares solutions, the one of smallest norm."],
+    ["h2", "Construction from the SVD"],
+    ["p", "If A = U S V^T is the singular value decomposition, then A^+ = V S^+ U^T, where S^+ is formed by transposing S and replacing each nonzero singular value by its reciprocal, leaving zeros in place. This construction makes clear that the pseudoinverse inverts the invertible part of the transformation and ignores the null directions."],
+    ["h3", "The four defining conditions"],
+    ["ul", ["A A^+ A = A", "A^+ A A^+ = A^+", "A A^+ is symmetric", "A^+ A is symmetric"]],
+    ["p", "These four Penrose conditions determine A^+ uniquely for any matrix, giving a rigorous foundation independent of the SVD construction."],
+    ["h3", "Two special cases"],
+    ["p", "When A has full column rank, A^+ = (A^T A)^{-1} A^T, the left inverse that produces the least-squares solution. When A has full row rank, A^+ = A^T (A A^T)^{-1}, the right inverse that produces the minimum-norm solution of an underdetermined system. The general pseudoinverse unifies both."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 2.0], [2.0, 4.0], [1.0, 1.0]])  # rank-deficient-ish\nApinv = np.linalg.pinv(A)\nb = np.array([1.0, 2.0, 0.5])\nprint(Apinv @ b)   # minimum-norm least-squares solution"]],
+    ["p", "When inverting an operator whose true rank is uncertain, as in reconstructing a field from limited diagnostics, the pseudoinverse via SVD gives a stable answer by suppressing directions the data cannot constrain."]
+  ],
+  "related": [["singular-value-decomposition", "Singular Value Decomposition"], ["least-squares", "Least Squares"], ["four-fundamental-subspaces", "The Four Fundamental Subspaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "four-fundamental-subspaces",
+  "title": "The Four Fundamental Subspaces",
+  "cat": "linear-algebra",
+  "lede": "Every matrix defines four subspaces whose dimensions and orthogonality relations organize all of linear algebra.",
+  "body": [
+    ["h2", "The four spaces"],
+    ["p", "An m-by-n matrix A gives rise to four subspaces. The <b>column space</b> is the span of its columns, living in R^m. The <b>null space</b> is all vectors sent to zero, in R^n. The <b>row space</b> is the span of its rows, in R^n. The <b>left null space</b> is all vectors sent to zero by A^T, in R^m."],
+    ["h2", "Dimensions"],
+    ["ul", ["column space and row space both have dimension r, the rank", "null space has dimension n - r", "left null space has dimension m - r", "the dimensions in each space sum to the space's dimension (rank-nullity)"]],
+    ["h3", "Orthogonality"],
+    ["p", "The pairing within each space is orthogonal. In R^n, the row space and the null space are orthogonal complements: every vector splits uniquely into a row-space part and a null-space part. In R^m, the column space and left null space are orthogonal complements. This is the geometric heart of the fundamental theorem of linear algebra."],
+    ["h3", "Why the picture is useful"],
+    ["p", "These subspaces explain the fate of any linear system. A right-hand side b is solvable exactly when it lies in the column space; the null space measures how non-unique the solution is; and least squares works by projecting b onto the column space, discarding the left-null-space component that cannot be reached."],
+    ["code", ["python", "import numpy as np\nA = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])\nU, s, Vt = np.linalg.svd(A)\nr = int(np.sum(s > 1e-10))\nprint('rank', r)\nprint('null space basis rows:', Vt[r:])   # orthonormal null space"]],
+    ["p", "The SVD delivers orthonormal bases for all four subspaces at once, which is why it is the definitive tool for analyzing the reachable and unreachable directions of a discretized physical operator."]
+  ],
+  "related": [["matrix-rank", "Rank"], ["singular-value-decomposition", "Singular Value Decomposition"], ["subspaces", "Subspaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "change-of-basis",
+  "title": "Change of Basis",
+  "cat": "linear-algebra",
+  "lede": "Translating coordinates and matrices from one basis to another, revealing that many matrices describe the same map.",
+  "body": [
+    ["h2", "Coordinates depend on the basis"],
+    ["p", "A vector is an abstract object, but its coordinates depend on the chosen basis. If P is the matrix whose columns are the new basis vectors expressed in the old coordinates, then a vector with new coordinates c has old coordinates Pc, and conversely old coordinates x become new coordinates P^{-1} x. Choosing a convenient basis is often the first step in simplifying a problem."],
+    ["h2", "How a matrix transforms"],
+    ["p", "A linear map has different matrix representations in different bases. If A represents the map in the old basis, then B = P^{-1} A P represents the same map in the new basis. Matrices related this way are called <b>similar</b>, and they share all basis-independent quantities: eigenvalues, trace, determinant, rank, and characteristic polynomial."],
+    ["h3", "Why change basis"],
+    ["p", "The right basis makes structure visible. Diagonalization chooses the eigenvector basis, where the matrix becomes diagonal and its action is pure scaling. The SVD uses two orthonormal bases to reduce any matrix to a diagonal of singular values. Principal component analysis rotates data into a basis aligned with its variance. Each is a change of basis chosen to expose the essential behavior."],
+    ["h3", "Orthonormal changes"],
+    ["p", "When the new basis is orthonormal, the change-of-basis matrix is orthogonal, so P^{-1} = P^T and B = P^T A P. Such transformations preserve lengths, angles, and conditioning, which is why numerical methods favor orthonormal changes of basis wherever possible."],
+    ["code", ["python", "import numpy as np\nA = np.array([[2.0, 0.0], [0.0, 3.0]])\nP = np.array([[1.0, 1.0], [0.0, 1.0]])   # new basis in old coords\nB = np.linalg.inv(P) @ A @ P\nprint(np.isclose(np.trace(A), np.trace(B)))   # invariant"]],
+    ["p", "Transforming plasma equations into field-aligned or flux coordinates is a physical change of basis that turns anisotropic operators into a form where the dominant physics separates cleanly."]
+  ],
+  "related": [["basis", "Basis and Coordinates"], ["diagonalization", "Diagonalization"], ["linear-transformations", "Linear Transformations"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "linear-transformations",
+  "title": "Linear Transformations",
+  "cat": "linear-algebra",
+  "lede": "Maps between vector spaces that respect addition and scaling; every one is represented by a matrix.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A function T between vector spaces is a <b>linear transformation</b> if it preserves the two operations: T(u + v) = T(u) + T(v) and T(cu) = c T(u) for all vectors and scalars. Equivalently, T(a u + b v) = a T(u) + b T(v). These conditions force T to send the zero vector to zero and to map lines to lines through the origin."],
+    ["h2", "Matrices are transformations"],
+    ["p", "Every linear transformation between finite-dimensional spaces, once bases are chosen, is given by a matrix: T(x) = A x. The columns of A are the images of the basis vectors. This correspondence is why linear algebra can study abstract maps through concrete matrix arithmetic, and why matrix multiplication corresponds exactly to composing transformations."],
+    ["h3", "Geometric examples"],
+    ["ul", ["rotations and reflections (orthogonal matrices)", "scalings and shears", "projections onto a line or plane", "differentiation acting on polynomials, a linear map on a function space"]],
+    ["h3", "Kernel and image"],
+    ["p", "The <b>kernel</b> (null space) of T is the set of vectors it sends to zero, and the <b>image</b> (range) is the set of outputs it can produce. Their dimensions obey the rank-nullity theorem. T is one-to-one exactly when its kernel is trivial, and onto exactly when its image fills the target space; both hold together only for an invertible square matrix."],
+    ["code", ["python", "import numpy as np\ntheta = np.pi / 2\nR = np.array([[np.cos(theta), -np.sin(theta)],\n              [np.sin(theta),  np.cos(theta)]])\nprint(R @ np.array([1.0, 0.0]))   # rotates x-axis to y-axis"]],
+    ["p", "The physics operators in a simulation, gradients, curls, and time-evolution steps, are linear transformations, and representing them as matrices is what lets a computer advance a continuous field forward in time."]
+  ],
+  "related": [["matrix-multiplication", "Matrix Multiplication"], ["change-of-basis", "Change of Basis"], ["four-fundamental-subspaces", "The Four Fundamental Subspaces"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "symmetric-matrices",
+  "title": "Symmetric Matrices",
+  "cat": "linear-algebra",
+  "lede": "Matrices equal to their own transpose, with real eigenvalues and orthogonal eigenvectors, the best-behaved matrices in analysis.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A square matrix is <b>symmetric</b> if it equals its transpose, A = A^T, so the entry in row i, column j always matches the entry in row j, column i. Symmetric matrices arise wherever a relationship is inherently two-way, such as distances, correlations, and mutual couplings, and they carry the strongest structural guarantees in linear algebra."],
+    ["h2", "The spectral guarantee"],
+    ["p", "By the spectral theorem, every real symmetric matrix has entirely real eigenvalues and admits an orthonormal basis of eigenvectors, so it can be written A = Q D Q^T with Q orthogonal and D diagonal. This means a symmetric matrix is always diagonalizable, never defective, and its principal axes are mutually perpendicular."],
+    ["h3", "Quadratic forms"],
+    ["p", "Symmetric matrices define <b>quadratic forms</b> x^T A x, scalar functions that describe energies, variances, and curvatures. The sign of the eigenvalues classifies the form: all positive gives a bowl (positive definite), all negative an inverted bowl, and mixed signs a saddle. The Hessian of a smooth function is symmetric, so this classification identifies minima, maxima, and saddle points."],
+    ["h3", "Where they appear"],
+    ["ul", ["covariance and correlation matrices in statistics", "the Hessian of a scalar function in optimization", "stiffness, mass, and inertia matrices in mechanics", "adjacency and Laplacian matrices of undirected graphs"]],
+    ["code", ["python", "import numpy as np\nM = np.random.rand(4, 4)\nA = (M + M.T) / 2          # symmetrize\nvals = np.linalg.eigvalsh(A)   # guaranteed real\nprint(np.allclose(vals.imag if np.iscomplexobj(vals) else 0, 0))"]],
+    ["p", "The linearized stability operators of a confined plasma are symmetric under the natural energy inner product, guaranteeing real mode frequencies and orthogonal modes that a design like Hyperion analyzes to rule out instabilities."]
+  ],
+  "related": [["spectral-theorem", "The Spectral Theorem"], ["positive-definite-matrices", "Positive-Definite Matrices"], ["matrix-transpose", "The Transpose"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "orthogonal-matrices",
+  "title": "Orthogonal Matrices",
+  "cat": "linear-algebra",
+  "lede": "Square matrices whose columns are orthonormal; they rotate and reflect without changing lengths or angles.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "A square matrix Q is <b>orthogonal</b> if its columns form an orthonormal set, equivalently if Q^T Q = I, which means Q^{-1} = Q^T. The transpose is the inverse, so undoing the transformation costs nothing. Orthogonal matrices represent rigid motions of space: rotations and reflections that leave the geometry unchanged."],
+    ["h2", "Length and angle preservation"],
+    ["p", "Multiplying by an orthogonal matrix preserves dot products, |Qx . Qy| = x . y, and therefore preserves lengths and angles. This isometry property is why orthogonal transformations are the safest operations in numerical computing: they never amplify errors, so their condition number is exactly one, the best possible."],
+    ["h3", "Determinant and structure"],
+    ["p", "An orthogonal matrix has determinant plus or minus one. A determinant of plus one gives a proper rotation; minus one includes a reflection. In two and three dimensions these are exactly the familiar rotations and reflections, and every orthogonal matrix factors into a product of simple planar rotations (Givens) or reflections (Householder)."],
+    ["h3", "Why algorithms love them"],
+    ["p", "Because they preserve norms, orthogonal matrices are the transformations of choice in stable algorithms. QR factorization triangularizes a matrix using orthogonal steps, the SVD sandwiches a diagonal between two orthogonal matrices, and eigenvalue routines use orthogonal similarity transforms. Each keeps error growth in check that non-orthogonal transforms would risk."],
+    ["code", ["python", "import numpy as np\nQ, _ = np.linalg.qr(np.random.rand(3, 3))\nprint(np.allclose(Q.T @ Q, np.eye(3)))   # True\nprint(round(abs(np.linalg.det(Q)), 6))   # 1.0\nv = np.random.rand(3)\nprint(np.allclose(np.linalg.norm(Q @ v), np.linalg.norm(v)))  # length preserved"]],
+    ["p", "Coordinate rotations between laboratory, field-aligned, and magnetic frames in plasma physics are orthogonal transformations, chosen precisely because they preserve the physical magnitudes they act on."]
+  ],
+  "related": [["orthonormal-bases", "Orthonormal Bases"], ["qr-decomposition", "QR Decomposition"], ["condition-number", "The Condition Number"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "matrix-exponential",
+  "title": "The Matrix Exponential",
+  "cat": "linear-algebra",
+  "lede": "Extending the exponential function to matrices, the key to solving systems of linear differential equations.",
+  "body": [
+    ["h2", "Definition"],
+    ["p", "The matrix exponential of a square matrix A is defined by the same power series as the scalar exponential: exp(A) = I + A + A^2/2! + A^3/3! + and so on. The series converges for every matrix, producing another matrix of the same size. It is the natural bridge from linear algebra to the dynamics of continuous systems."],
+    ["h2", "Solving linear ODEs"],
+    ["p", "The system of differential equations dx/dt = A x with initial condition x(0) has the exact solution x(t) = exp(At) x(0). The matrix exponential thus advances the entire state forward in time in one object, generalizing the scalar solution x(t) = exp(at) x(0). Its behavior is governed by the eigenvalues of A: their real parts decide whether solutions grow or decay."],
+    ["h3", "Computing it"],
+    ["p", "If A is diagonalizable as P D P^{-1}, then exp(A) = P exp(D) P^{-1}, where exp(D) simply exponentiates each diagonal eigenvalue. For general matrices, robust algorithms use scaling and squaring combined with a Pade approximation, since the naive power series and the eigenvalue route can both be inaccurate for defective or ill-conditioned matrices."],
+    ["h3", "Properties"],
+    ["ul", ["exp(0) = I", "d/dt exp(At) = A exp(At)", "exp((s+t)A) = exp(sA) exp(tA)", "exp(A) exp(B) = exp(A+B) only when A and B commute", "det(exp(A)) = exp(tr(A))"]],
+    ["code", ["python", "import numpy as np\nfrom scipy.linalg import expm\nA = np.array([[0.0, 1.0], [-1.0, 0.0]])   # rotation generator\nprint(expm(A))   # rotation by 1 radian"]],
+    ["p", "Time evolution of linearized plasma dynamics is expressed through the matrix exponential of the system operator, whose eigenvalue spectrum separates stable oscillations from growing instabilities."]
+  ],
+  "related": [["diagonalization", "Diagonalization"], ["eigenvalues-eigenvectors", "Eigenvalues and Eigenvectors"], ["characteristic-polynomial", "The Characteristic Polynomial"]],
+  "seo_type": "TechArticle"
+},
+{
+  "slug": "block-matrices",
+  "title": "Block Matrices",
+  "cat": "linear-algebra",
+  "lede": "Matrices partitioned into submatrices, letting large structured problems be manipulated in coarse pieces.",
+  "body": [
+    ["h2", "Partitioning"],
+    ["p", "A <b>block matrix</b> is a matrix whose entries are grouped into rectangular submatrices, or blocks, treated as single units. When the partitions are compatible, blocks obey the same arithmetic rules as scalars: block addition adds corresponding blocks, and block multiplication follows the row-by-column rule with matrix products in place of scalar products, provided the inner block dimensions conform."],
+    ["h2", "Why partition"],
+    ["p", "Block structure exposes and exploits problem structure. Coupled systems, such as coordinates split into position and momentum, or a discretization split by physical region, naturally form blocks. Working at the block level clarifies the algebra and enables algorithms that solve each block or coupling separately, which is essential for parallel and hierarchical solvers."],
+    ["h3", "Block triangular and diagonal"],
+    ["p", "A block-diagonal matrix has nonzero blocks only on the diagonal; its determinant is the product of the block determinants, and its eigenvalues are the union of the blocks' eigenvalues. A block-triangular matrix shares the determinant property, which is why decoupling a system into block-triangular form simplifies both analysis and solution."],
+    ["h3", "The Schur complement"],
+    ["p", "For a two-by-two block matrix with blocks A, B, C, D, the <b>Schur complement</b> of A is D - C A^{-1} B. It appears when eliminating one block of variables and governs the invertibility and conditioning of the whole system. Schur complements underlie block elimination, domain decomposition, and many preconditioners for large sparse systems."],
+    ["code", ["python", "import numpy as np\nA = np.eye(2); B = np.ones((2, 2)); C = np.zeros((2, 2)); D = 2*np.eye(2)\nM = np.block([[A, B], [C, D]])\nprint(M.shape)   # (4, 4) assembled from blocks"]],
+    ["p", "Multiphysics simulations that couple, for example, a magnetic-field region to a plasma region assemble their operators as block matrices, and block elimination via Schur complements is how the coupled system is solved efficiently."]
+  ],
+  "related": [["kronecker-product", "Kronecker Product"], ["matrix-multiplication", "Matrix Multiplication"], ["determinant", "The Determinant"]],
+  "seo_type": "TechArticle"
+}
+]
