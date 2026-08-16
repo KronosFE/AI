@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Trust, but verify continuously</h2>
 <p>Secure boot ensures a node runs only signed firmware; remote attestation lets the rest of the plant confirm which signed firmware, and that it has not been rolled back to a known-vulnerable version. Each node accumulates a measurement of its boot chain (see <a href=./secure-boot-edge-fpga.html>secure boot</a>) into a protected register and can produce a signed quote of that measurement on demand. A verifier compares the quote to a golden value for the node's role.</p>
 <h3>The attestation exchange</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — remote op"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac10-remote-op.mp4" type="video/mp4"></video><figcaption>Kronos motion — remote op</figcaption></figure>
+
 <div class="lang">python</div><pre><code># Verifier side: gate all access on a fresh, matching quote
 def attest(node):
     nonce = random_nonce()                       # anti-replay

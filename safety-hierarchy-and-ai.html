@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Safety in layers</h2>
 <p>The architecture arranges safety as a hierarchy in which certainty decreases and intelligence increases as you go up. The floor is deterministic hardware that cannot be reasoned around; the ceiling is advisory AI that cannot, on its own, do anything irreversible. Between them, control is intelligent but bounded.</p>
 <h3>The hierarchy, floor to ceiling</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Floor — the autonomous hardware failsafe and deterministic interlocks; zero AI dependency.</li><li>Below-mid — L1 deterministic control within the sub-10-microsecond boundary.</li><li>Mid — L4 rules engine and safety bounds that gate every command.</li><li>Upper — L3 MPC and predictions that propose, never dispose.</li><li>Ceiling — L5 copilots and L6-L7 humans and strategy, advisory and confirmatory.</li></ul>
 <h3>The inverse relationship</h3>
 <p>The defining property is inverse: the more autonomous and intelligent a layer, the less directly it can cause harm. A copilot's mistaken suggestion is caught by safety bounds; an MPC agent's bad trajectory is rejected by the rules engine; and if everything above fails, the physical floor still protects the magnets. Intelligence is allowed to be fallible precisely because it is never the last line.</p>

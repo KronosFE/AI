@@ -422,7 +422,7 @@ logical_qubits  ~  O(N)          # N = spin-orbitals in active space
 T_gate_count    ~  O( N^3 / eps )  to  O( N^4 )   (method-dependent)
 #   eps = target energy error (chemical accuracy ~1.6e-3 Hartree)
 # then multiply by surface-code overhead for PHYSICAL resources</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — materials first"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a6-materials-first.mp4" type="video/mp4"></video><figcaption>Kronos motion — materials first</figcaption></figure>
+
 <h3>Why the numbers are sobering</h3>
 <p>Even a modest correlated active space, tens of spin-orbitals, translates into hundreds to low thousands of logical qubits and billions to trillions of T gates once precision is demanded. Each logical qubit is hundreds of physical qubits under the <a href=./quantum-error-correction-surface-code.html>surface code</a>, and T gates require magic-state distillation factories that dominate footprint and runtime.</p>
 <div class="lang">text</div><pre><code># Illustrative chain for a small first-wall defect cluster:
@@ -432,7 +432,7 @@ N ~ 50 spin-orbitals
   -&gt; x (10^2-10^3 physical qubits/logical) = 10^4-10^5 physical qubits
   -&gt; plus distillation -&gt; runtime hours-to-days on a machine not yet built</code></pre>
 <h3>What Kronos does with these numbers</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum resource"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f6-quantum-resource.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum resource</figcaption></figure>
+
 <ul><li>Prioritize use cases: the smallest active space that answers a real first-wall question comes first.</li><li>Track hardware roadmaps against these targets to know when, not whether, to invest.</li><li>Refuse to promise results the resource estimate says are a decade-plus away.</li></ul>
 <p>Resource estimation is how we stay honest: it converts vague quantum optimism into concrete, checkable requirements. It is also why the Kronos machines' physics, validated at FOAK around 2030, will not wait on quantum computing for any decision. Quantum materials simulation is a patient bet whose payoff, if it comes, benefits fleet-scale material choices. See the <a href=./quantum-roadmap-kronos.html>roadmap</a>.</p><div class="related"><h3>Related</h3><a href="./quantum-error-correction-surface-code.html">Surface-code QEC &rarr;</a><a href="./qubitization-lcu.html">Qubitization &rarr;</a><a href="./quantum-roadmap-kronos.html">Roadmap &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 

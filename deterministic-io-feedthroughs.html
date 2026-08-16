@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Crossing the boundary</h2>
 <p>Diagnostics live inside a high-vacuum, partly cryogenic environment; the control fabric lives outside it. Signals cross through <b>cryo-rated vacuum feedthroughs</b> engineered to preserve signal integrity while maintaining vacuum and thermal isolation. This physical interface is the first link in the deterministic chain, and its fidelity sets the noise floor for everything downstream.</p>
 <h3>Front-end sampling</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>On the outside, each analog line meets an anti-alias filter and an ADC clocked from the shared reference. Sampling instants are aligned across channels so the assembled state is coherent. Conversion latency and filter settling are part of the channel's fixed timing budget, so acquisition contributes a known constant to the loop's WCET.</p>
 <h2>Signal integrity</h2>
 <ul><li>Shielding and differential routing to reject the machine's EM environment.</li><li>Ground discipline to avoid loops through the vessel structure.</li><li>Characterized bandwidth per channel so aliasing is controlled.</li><li>Feedthrough thermal design to keep drift within calibration limits.</li></ul>

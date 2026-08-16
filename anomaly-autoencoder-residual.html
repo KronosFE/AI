@@ -422,7 +422,7 @@ z     = encoder(x)              # compress to latent
 x_hat = decoder(z)             # reconstruct
 res   = mahalanobis(x - x_hat, Sigma_normal)   # whitened residual
 score = res                    # high =&gt; off-manifold =&gt; anomalous</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — twin metal math"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/digital-twin-metal-math.mp4" type="video/mp4"></video><figcaption>Kronos motion — twin metal math</figcaption></figure>
+
 <p>Kronos whitens the residual by the covariance of normal reconstruction error so that noisy-but-normal channels do not dominate the score. Variational and denoising variants make the latent well-behaved and force the model to learn robust structure rather than memorize noise, which matters given the high-neutron-flux electrical environment.</p>
 <h3>Localizing the anomaly</h3>
 <p>Because the residual is per-channel, the autoencoder localizes: it says not only that something is off but which signals are least reconstructable, e.g. a cluster of REBCO strain and voltage channels on one magnet section, or the end-cell diagnostics of the burner plug. That localization feeds directly into the ensemble's aggregation and into operator displays.</p>

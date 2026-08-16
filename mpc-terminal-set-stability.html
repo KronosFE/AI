@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The finite-horizon gap</h2>
 <p>MPC plans only N steps ahead, yet the machine runs indefinitely. Without care, a plan that looks fine over the horizon could steer the machine into a corner from which no safe continuation exists. The standard remedy, adopted by Kronos, is a terminal constraint: require the horizon to end in a terminal safe set X_terminal from which a known safe policy can keep the machine safe forever.</p>
 <h3>Why it guarantees safety</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <p>If every MPC plan ends inside X_terminal, and inside X_terminal a fallback controller is known to keep the state safe, then the receding-horizon scheme is recursively feasible: a safe plan existing this cycle guarantees a safe plan exists next cycle (shift the plan and append the fallback move). The terminal cost P approximates the cost-to-go of that fallback policy, so optimizing over the finite horizon behaves like optimizing over the infinite one. This is what converts a horizon-limited optimizer into a controller with an indefinite safety guarantee.</p>
 <div class="lang">python</div><pre><code># terminal ingredients
 #   X_terminal : invariant safe set (fallback policy keeps state inside)

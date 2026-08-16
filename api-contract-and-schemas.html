@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The contract is the interface</h2>
 <p>External parties never depend on Kronos internals; they depend on the published contract. The contract defines each resource (plant state, dispatch order, isotope shipment, compliance report), its schema, its units, and its allowed transitions. Schemas are explicit and typed: physical quantities carry SI units and, where relevant, uncertainty. A telemetry snapshot for the breeder, for example, declares plasma current in MA, peak field in T, and each value's timestamp and confidence.</p>
 <h3>Semantic versioning of the contract</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — validated open"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/e6-validated-open.mp4" type="video/mp4"></video><figcaption>Kronos motion — validated open</figcaption></figure>
+
 <p>The contract is versioned MAJOR.MINOR.PATCH. Additive fields bump MINOR and are backward compatible; a removed field or changed meaning bumps MAJOR and runs behind a new path. The gateway can serve two MAJOR versions in parallel during a migration window so a slow-moving grid operator and a fast-moving fleet controller are never forced to upgrade in lockstep.</p>
 <div class="lang">python</div><pre><code># an isotope-shipment resource (schema sketch)
 Shipment = {

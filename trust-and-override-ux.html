@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The AI advises; the human commands</h2>
 <p>Kronos L6 is built on a firm hierarchy: the L1 hardware failsafe is always authoritative, and above it the human operator can accept or overrule any advisory the AI produces. The UX's job is to make override a well-informed, low-friction, fully-recorded action rather than a panicked stab at a button. Good override design is what makes automation safe to deploy at all.</p>
 <h3>Three responses to any AI recommendation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — override"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl12-override.mp4" type="video/mp4"></video><figcaption>Kronos motion — override</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Operator action</th><th>What the UX provides</th></tr></thead><tbody><tr><td>Accept</td><td>one confirming action; confidence + provenance shown first</td></tr><tr><td>Question</td><td>drill into inputs, forecast, and the model&#x27;s reasoning</td></tr><tr><td>Override</td><td>substitute the operator&#x27;s decision, with a reason captured</td></tr></tbody></table>
 <p>Every recommendation arrives with its confidence, its provenance badge, and — from L5 copilots — a short rationale. The operator is never asked to accept a black-box command. When they override, the UX asks for a brief reason (chosen from common categories plus free text), which becomes part of the incident record and, later, training signal for where the model and human disagreed.</p>
 <h3>Matching automation level to trust</h3>

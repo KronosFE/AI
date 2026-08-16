@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>No live traffic split on one machine</h2>
 <p>In software, A/B testing splits live traffic between two versions. A fusion machine is a single physical system where you cannot run two controllers on two halves of the plasma. Kronos therefore replaces live A/B with two safe substitutes: counterfactual replay on the digital twin, and matched-pairs shadow evaluation on the real data path.</p>
 <p>Counterfactual replay takes recorded machine states and rolls each candidate forward through the calibrated twin, producing a comparable outcome for each without touching hardware. Because both candidates start from identical recorded initial conditions, the comparison is a clean paired experiment. Its validity rests entirely on twin fidelity, so replay results are always cross-checked against shadow evidence on the real machine.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h3>The two methods</h3>
 <ul><li>Twin counterfactual replay: same initial states, compare rolled-out outcomes</li><li>Matched shadow evaluation: both models see identical live inputs</li><li>Interleaving for copilots: alternate suggestions, collect operator preference</li><li>Statistical care: paired tests, sequential analysis, stopping rules</li><li>Cross-validation: twin replay must agree with shadow evidence</li></ul>
 <div class="lang">python</div><pre><code>def counterfactual(twin, states, A, B):

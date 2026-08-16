@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From approved scenario to executable runbook</h2>
 <p>A runbook is the ordered, checkable sequence that takes an approved scenario from a cold machine to a completed shot and back. The Operations Copilot generates it by retrieving the approved template for the scenario class, binding it to the current twin state, and inserting the scenario-specific setpoints from the Plasma Copilot's approved design.</p>
 <h3>Structure of a generated step</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <p>Each step carries an action, a precondition checked against live twin state, an expected observable with tolerance, an abort criterion, and an authorization tag. Read/monitor steps run freely; any step that commands hardware is tagged for L4 authorization and human confirmation.</p>
 <div class="lang">text</div><pre><code>step:
   action:        &#x27;ramp Ip to 9.86 MA at dIp/dt &lt;= limit&#x27;  (breeder)

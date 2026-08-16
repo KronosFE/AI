@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Know exactly what is running</h2>
 <p>You cannot defend what you cannot enumerate. A Software Bill of Materials (SBOM) lists every component and dependency in an artifact, with versions and hashes. Build provenance (in the SLSA sense) records how that artifact was produced - which source commit, which builder, under what conditions - and signs the attestation. Together they let Kronos confirm that a control binary or ML model corresponds to reviewed, unmodified source before it is admitted to OT.</p>
 <h3>What the provenance chain asserts</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — 14 mev materials test"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/14-mev-materials-test.mp4" type="video/mp4"></video><figcaption>Kronos motion — 14 mev materials test</figcaption></figure>
+
 <ul><li>Source: the exact commit and repository the artifact was built from.</li><li>Build: an isolated, reproducible builder produced it; the build is not attacker-influenced.</li><li>Materials: the SBOM of all inputs, each pinned by hash.</li><li>Signature: the whole attestation is signed with a <a href=./pqc-signatures-ml-dsa.html>post-quantum signature</a> for long-term verifiability.</li></ul>
 <div class="lang">python</div><pre><code># Admission control: reject artifacts without matching provenance
 def admit(artifact):

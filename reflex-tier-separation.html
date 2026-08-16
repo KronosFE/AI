@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two clocks, two mandates</h2>
 <p>Kronos runs two control mandates on two different clocks. The supervisory tier (L3 model-predictive control, twin-informed optimization) plans setpoint trajectories on a 50&ndash;100&nbsp;ms horizon. The reflex tier (L1) enforces safety on a microsecond-to-millisecond horizon. The reflex tier never waits on the supervisory tier and never trusts it beyond a clamped setpoint.</p>
 <h3>What crosses the boundary</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Direction</th><th>Payload</th><th>Trust level</th></tr></thead><tbody><tr><td>L3 to L1</td><td>clamped setpoint + validity</td><td>advisory, re-checked</td></tr><tr><td>L1 to L3</td><td>validated state + gate status</td><td>authoritative</td></tr><tr><td>L1 internal</td><td>failsafe trigger</td><td>authoritative, immediate</td></tr></tbody></table>
 <p>Setpoints from above are treated as suggestions until L1 re-validates them against the live envelope. If the supervisory link goes silent, stale, or produces an out-of-envelope value, L1 falls back to a safe holding law without any supervisory input at all. This is the property that lets the failsafe be certified independently &mdash; see <a href=./ml-independent-failsafe-path.html>the ML-independent failsafe</a>.</p>
 <div class="lang">python</div><pre><code>def accept_setpoint(sp, live_envelope, age_ms, max_age_ms=150):

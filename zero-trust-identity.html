@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Machine identity as the primitive</h2>
 <p>In a zero-trust plant, the unit of trust is not a network but a verified identity. Each service, controller, and edge FPGA is issued an X.509-style certificate bound to its attested state. Peers authenticate each other with mutual TLS on every connection - there is no anonymous or one-sided handshake anywhere in OT. A stolen IP or a spoofed MAC buys nothing without the private key, and the private key never leaves the hardware that holds it.</p>
 <h3>Short-lived credentials</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — supply security"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/o7-supply-security.mp4" type="video/mp4"></video><figcaption>Kronos motion — supply security</figcaption></figure>
+
 <p>Certificates are deliberately short-lived (hours, not years) and issued by an OT-internal certificate authority. Short lifetimes limit the value of a leaked key and force continuous re-attestation: to renew, a node must again prove its firmware measurement matches policy (see <a href=./remote-attestation-fpga.html>remote attestation</a>). Revocation is fast because expiry does most of the work.</p>
 <div class="lang">python</div><pre><code># Issuance couples identity to attestation state
 def issue_cert(node):

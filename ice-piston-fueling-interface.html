@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What it is</h2>
 <p>Deep fueling of Hyperion needs solid fuel delivered past the plasma edge, not just gas puffed at the boundary. The ice-piston mechanism freezes a D&ndash;T column, extrudes it, and chops it into pellets that a gas gun or centrifuge launches inward. The interface exposes preload, extrusion rate, cut timing, and launch velocity.</p>
 <h2>Command and sense set</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fueling"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac6-fueling.mp4" type="video/mp4"></video><figcaption>Kronos motion — fueling</figcaption></figure>
+
 <ul><li>Actuate: cryostat setpoint, piston preload force, extrusion rate, pellet cut trigger, propellant valve.</li><li>Sense: extrudate temperature, piston position/force, pellet mass (light-gate), launch velocity, arrival time.</li><li>Cross-link: density from the <a href=./interferometry-polarimetry-interface.html>interferometer chords</a>.</li></ul>
 <div class="lang">python</div><pre><code># fueling demand split (breeder)
 n_e   = interferometer_lineavg()

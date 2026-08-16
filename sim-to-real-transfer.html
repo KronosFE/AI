@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Learning before there is a machine</h2>
 <p>Breeder construction begins Q2 2027 and first tritium is targeted near 2030, so today every control policy is trained against simulation and the digital twin, not hardware. The central risk is the reality gap: a policy that is optimal in simulation can fail on a real machine whose behavior differs in ways the simulator got subtly wrong. Sim-to-real MLOps exists to shrink and characterize that gap.</p>
 <p>Domain randomization is the primary tool: rather than training against one nominal simulator, policies train across a distribution of simulators with randomized physics parameters, sensor noise, latencies, and actuator responses. A policy that performs across the whole distribution is far likelier to perform on the one real instance, which is treated as another draw from the distribution.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <h3>Techniques</h3>
 <ul><li>Domain randomization over uncertain physics and hardware parameters</li><li>Twin calibration to real diagnostics as data arrives (breeder from ~2030)</li><li>System-identification to tighten the simulator toward the true machine</li><li>Robustness margins: require performance at distribution tails, not just the mean</li><li>Explicit reality-gap metrics tracked over commissioning</li></ul>
 <div class="lang">python</div><pre><code>def randomized_env():

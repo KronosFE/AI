@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>No global transaction on a tokamak</h2>
 <p>A breeder shot touches vacuum, magnets, fuelling, and heating across seconds; a burner startup spans minutes. You cannot wrap that in one database transaction. The saga pattern instead sequences local, individually-committed steps and pairs each with a <b>compensation</b> that returns the machine toward safety if a later step fails.</p>
 <h2>Forward and compensating steps</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <div class="lang">python</div><pre><code>saga = [
   step(pumpdown,     compensate=vent_to_holding),
   step(field_ramp,   compensate=field_deenergize),

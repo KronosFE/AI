@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Grounding over recall</h2>
 <p>Kronos copilots do not answer from a model's parametric memory where facts matter. They retrieve. Retrieval-augmented generation (RAG) over the <a href=./l2-data-fabric.html>L2 data fabric</a> pulls the specific shot histories, design documents, calibration records, fault logs, and procedure templates relevant to a request, and the copilot reasons over that retrieved evidence with citations. This is what keeps advice tied to the actual machine and its canon rather than to a plausible-sounding hallucination.</p>
 <h3>What is indexed</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <ul><li>Shot and scenario histories (waveforms, outcomes, twin runs)</li><li>Design documents and the frozen canon (Q_sci 3.424, 88.7 MW, 26.49 T plug, ...)</li><li>Fault and maintenance records with root-cause attributions</li><li>Approved procedure and runbook templates, standing orders</li></ul>
 <p>Retrieval spans two indices: a structured query path into the L2 <a href=./shot-database.html>shot database</a> and feature store for exact, filterable facts, and a <a href=./rag-vector-db-retrieval.html>vector index</a> for semantic recall over documents. A copilot typically issues both — structured retrieval for numbers, vector retrieval for the surrounding engineering rationale.</p>
 <div class="lang">text</div><pre><code>retrieve(query, machine):

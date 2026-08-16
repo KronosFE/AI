@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Mitigation, not correction</h2>
 <p>Error mitigation is distinct from <a href=./quantum-error-correction-surface-code.html>error correction</a>: it does not remove errors, it statistically cancels their effect on an expectation value by post-processing many noisy runs. It is the only tool that makes NISQ chemistry benchmarks meaningful at all, but it buys accuracy with exponentially growing sample counts.</p>
 <h3>Zero-noise extrapolation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <p>Zero-noise extrapolation (ZNE) deliberately amplifies the noise (for example by stretching gate times or folding gates), measures the observable at several noise levels, and extrapolates back to the zero-noise limit.</p>
 <div class="lang">python</div><pre><code># Zero-noise extrapolation
 # run circuit at noise scale factors lambda = 1, 2, 3 (gate folding)

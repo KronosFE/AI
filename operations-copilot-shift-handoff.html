@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The handoff problem</h2>
 <p>Continuity across shifts is a real operational risk: a crew inherits a machine whose recent history it did not witness. The Operations Copilot generates a structured handoff briefing — current twin state, what changed during the shift, open anomaly events, pending maintenance, and any degraded operating limits — each item cited to the underlying telemetry or record.</p>
 <h3>What the briefing contains</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Current operating point and distance to the envelope boundary</li><li>Events since last handoff: shots run, anomalies triaged, actions taken</li><li>Open items: unresolved anomalies, deferred maintenance, degraded limits</li><li>Active advisories from the Plasma and Engineering copilots with confidence</li></ul>
 <p>The briefing is assembled by querying the L2 fabric for the shift window, pulling the triaged anomaly events from the Engineering Copilot, and summarizing with citations. Nothing is asserted without a source; a claim like "coil 3 temperature margin reduced" links to the exact telemetry and the subsystem analysis that concluded it.</p>
 <div class="lang">text</div><pre><code>handoff(shift_window):

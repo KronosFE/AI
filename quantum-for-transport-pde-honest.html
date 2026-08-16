@@ -423,12 +423,12 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 #   loading   : encoding source/boundary data            -&gt; state prep cost
 #   nonlinear : Navier-Stokes / gyrokinetics not linear   -&gt; linearization
 #   kappa     : stiff operators                           -&gt; kappa^2 blowup</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <h3>The nonlinearity wall</h3>
 <p>Quantum evolution is linear and unitary, but plasma transport and turbulence are strongly nonlinear. Encoding nonlinear dynamics requires Carleman-style linearization (embedding into a larger linear system) that is only accurate at weak nonlinearity and grows the dimension, or repeated measurement-and-reprepare loops that shed any speedup.</p>
 <h3>What Kronos actually does</h3>
 <ul><li>Equilibrium and MHD: classical FEM/spectral solvers and physics-informed neural networks, validated in the twin.</li><li>Turbulence: classical gyrokinetic codes on GPU/HPC, with neural surrogates for fast lookups.</li><li>No quantum PDE solver is on the operational or near-term research critical path.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — honest verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/qa8-honest-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — honest verdict</figcaption></figure>
+
 <p>This page exists to close a door cleanly. Claiming quantum speedups for plasma PDEs would be exactly the kind of overclaim we refuse. The genuine long-term quantum opportunities for Kronos are in <a href=./hamiltonian-simulation-basics.html>materials Hamiltonian simulation</a> and, more speculatively, <a href=./quantum-monte-carlo-neutronics.html>amplitude-estimation Monte Carlo</a>, not field PDE solves. The <a href=./quantum-roadmap-kronos.html>roadmap</a> reflects that ordering.</p><div class="related"><h3>Related</h3><a href="./quantum-linear-systems-hhl.html">HHL &rarr;</a><a href="./quantum-monte-carlo-neutronics.html">Quantum Monte Carlo &rarr;</a><a href="./quantum-roadmap-kronos.html">Roadmap &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

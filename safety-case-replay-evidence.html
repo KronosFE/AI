@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Prove it, don&#x27;t assert it</h2>
 <p>A safety architecture is only credible if you can show, after the fact, that it did what it was designed to do. Kronos records the reflex tier's inputs, decisions, gate states, and trips with timestamps precise enough to reconstruct any event. The record is captured on a path independent of the control decision, so logging cannot slow or perturb the reflex it observes.</p>
 <h3>What is captured</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>The validated state vector feeding each reflex decision, at loop cadence.</li><li>Every gate open/close, interlock permissive, and vote outcome, with cause.</li><li>Every trip: which condition, at what value, and the resulting safe-state path.</li><li>Every human action: who, what, when, and the authority exercised.</li></ul>
 <div class="lang">python</div><pre><code>def replay(recorded_inputs, reflex_fn):
     # deterministic reflex + recorded inputs -&gt; reproduce every decision

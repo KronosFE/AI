@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Learning operators, not points</h2>
 <p>Many twin quantities are not single numbers but whole fields: the neutron flux over the blanket, the temperature over the divertor, the strain over a magnet. A neural operator learns the solution operator, the mapping from input functions (source profile, boundary conditions, material properties) to the output field, rather than a point-to-point regression. This lets one trained model return the field for a range of inputs and, for the Fourier-operator family, at flexible resolution.</p>
 <h3>Where Kronos applies them</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plug field"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bdc6-plug-field.mp4" type="video/mp4"></video><figcaption>Kronos motion — plug field</figcaption></figure>
+
 <ul><li>Neutronics: source and geometry -> flux and spectrum field (distilling Monte Carlo)</li><li>Thermomechanics: heat sources and boundaries -> temperature and strain fields</li><li>Divertor/expander: upstream conditions -> heat-flux footprint</li><li>Burner DEC: end-loss distribution -> conversion-stage loading</li></ul>
 <p>Neural operators are attractive for these because they are mesh-flexible and generalize across the parametric operating space, so the twin can query a new operating point without a fresh Monte Carlo or FEM run. They pair naturally with reduced-order representations, the operator can output modal coefficients rather than a dense field, cutting cost further.</p>
 <h3>Physics and validation</h3>

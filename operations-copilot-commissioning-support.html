@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Commissioning is the near-term product</h2>
 <p>Both Kronos machines are design-and-simulation studies; the breeder (Hyperion) begins construction in Q2 2027 with first-of-a-kind first tritium targeted around 2030. The nearest-term work the Operations Copilot supports is therefore commissioning: the ordered, gated sequence of tests that brings each subsystem online and validates it against the twin before the next is enabled.</p>
 <h3>Gated commissioning sequence</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — materials first"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a6-materials-first.mp4" type="video/mp4"></video><figcaption>Kronos motion — materials first</figcaption></figure>
+
 <p>Commissioning proceeds through hardware-in-the-loop and staged energization gates. The copilot generates the procedure for each gate, defines the pass criteria against twin predictions, and holds progression until the prior gate is signed off by a human. It cannot advance a gate on its own.</p>
 <ul><li>Cryogenic and vacuum commissioning to base conditions</li><li>Staged magnet energization toward 16.84 T with quench-system validation at each step</li><li>Poloidal-field and shape-control commissioning toward negative triangularity delta -0.30</li><li>Fueling, heating, and diagnostic commissioning ahead of first plasma</li></ul>
 <div class="lang">text</div><pre><code>commission(gate):

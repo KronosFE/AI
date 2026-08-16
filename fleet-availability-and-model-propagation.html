@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The fleet is the resiliency unit</h2>
 <p>A single machine cannot reach Tier III uptime; a coordinated fleet can approach the target at the facility level through redundancy across units. The breeder follows a FOAK-NOAK-BOAK sequence from ~2030, and burner housings (Aegis / MetroVolt) are intended to deploy as multiple units. Fleet resiliency has two engines: N+k unit redundancy and cross-unit model propagation.</p>
 <h3>N+k across units</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <p>If one unit's availability is A_unit, a facility that needs k units running out of n installed tolerates n-k simultaneous outages. The facility availability rises well above A_unit, in exchange for installed redundancy. This is how a MetroVolt facility could approach a firm-power obligation despite each unit sitting in the 0.86-0.995 envelope - but the honest statement remains that no single unit is a sole Tier-III source.</p>
 <div class="lang">python</div><pre><code>from math import comb
 def k_of_n(A_unit, n, k):

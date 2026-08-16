@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Recovery is a security control</h2>
 <p>Availability and integrity after an incident depend on being able to rebuild the control environment to a state you can trust. Kronos designs recovery as a first-class control: golden, signed firmware and model images; verified, integrity-checked backups of configuration and accountancy; and a deterministic procedure to re-provision nodes so that a recovered plant is provably known-good, not merely rebooted.</p>
 <h3>What is backed up and how</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state estimation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt3-state-estimation.mp4" type="video/mp4"></video><figcaption>Kronos motion — state estimation</figcaption></figure>
+
 <ul><li>Golden images: signed firmware, bitstreams, and approved models with <a href=./sbom-and-provenance.html>provenance</a>, stored offline.</li><li>Configuration and policy: segmentation rules, identities' issuance policy, safety limits - versioned and hashed.</li><li>Records: the tamper-evident <a href=./immutable-audit-log.html>audit log</a> and <a href=./material-accountancy-security.html>material accountancy</a>, mirrored offsite via the <a href=./unidirectional-data-diodes.html>diode</a>.</li><li>Immutable, offline copies so ransomware or an insider cannot encrypt or delete the only copy.</li></ul>
 <h3>Deterministic re-provisioning</h3>
 <div class="lang">python</div><pre><code># Rebuild a node to known-good and require attestation before rejoin

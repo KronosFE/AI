@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Splitting authority on purpose</h2>
 <p>Separation of duties (SoD) divides a sensitive operation so that completing it needs more than one person, and the parties hold different roles. Kronos applies it to the operations whose misuse would matter most: authorizing a cross-boundary import, changing a control policy, disabling a maintenance interlock, or committing a new model to the control plane. One person proposes; a second, in a different role, must approve before the action executes.</p>
 <h3>Two-person rule for the machine</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <p>For actions that touch the physics envelope - raising a field toward the breeder's 16.84 T peak or adjusting the burner's 26.49 T plug regime in commissioning - the two approvers must be independent (an operator and a physics-authority role), and the request is time-boxed. Neither approver's credential alone advances the state.</p>
 <div class="lang">python</div><pre><code># Enforced two-person authorization for consequential actions
 def authorize(action, approvals):

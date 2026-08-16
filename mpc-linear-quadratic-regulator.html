@@ -427,7 +427,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 
   P solves the discrete algebraic Riccati equation (DARE):
   P = A&#x27;P A - A&#x27;P B (R + B&#x27;P B)^-1 B&#x27;P A + Q</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — gain not net"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/b3-gain-not-net.mp4" type="video/mp4"></video><figcaption>Kronos motion — gain not net</figcaption></figure>
+
 <h3>The Riccati solution</h3>
 <p>The matrix P solving the algebraic Riccati equation is the cost-to-go: x' P x is the optimal cost from state x under LQR. It yields the stabilizing gain K and, reused as the MPC terminal weight, guarantees that the finite-horizon plan behaves well beyond the horizon. Existence of a stabilizing P requires the pair (A,B) controllable and (A,Q^1/2) observable.</p>
 <div class="lang">python</div><pre><code># LQR gain via the discrete Riccati equation

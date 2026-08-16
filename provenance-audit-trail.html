@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>An immutable record</h2>
 <p>A safety-relevant control system must be able to reconstruct, after the fact, what it knew and why it acted. The provenance audit trail is an append-only record linking each decision the AI stack informed — a twin forecast, an anomaly alert, an MPC actuation recommendation, a human override — to the exact features, lineage, and model versions behind it.</p>
 <h3>What is recorded</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — behind the sim"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae12-behind-the-sim.mp4" type="video/mp4"></video><figcaption>Kronos motion — behind the sim</figcaption></figure>
+
 <ul><li>The decision or recommendation and its timestamp.</li><li>The feature values and their lineage at decision time.</li><li>The model versions that produced the recommendation.</li><li>The human-in-the-loop action, if any, and who took it.</li><li>The machine and configuration context.</li></ul>
 <h3>Append-only and tamper-evident</h3>
 <p>The trail is append-only and tamper-evident, so a record cannot be altered after an event without leaving a trace. This is the data-side complement to the security layer's zero-trust and unidirectional-diode design: the fabric can prove not only what happened but that the record of it is intact.</p>

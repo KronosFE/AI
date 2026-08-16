@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A firewall between clocks</h2>
 <p>The most important structural decision in the Kronos architecture is the strict separation of L0 offline compute from the L1 real-time control plane. They are not merely different layers; they are different worlds with incompatible requirements, and the boundary between them is deliberate and hard. Mixing them would compromise both safety and depth.</p>
 <h3>Real-time cannot wait</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>The control plane enforces a sub-10-microsecond command boundary and hosts the autonomous hardware failsafe that dumps a quench with zero AI dependency. Nothing that can stall, garbage-collect, page from disk, or take an unbounded amount of time is allowed in that path. A Monte Carlo campaign or a retraining run has exactly those properties, so it must live elsewhere.</p>
 <ul><li>Real-time: bounded, deterministic, simple, safety-critical</li><li>Offline: unbounded, thorough, exploratory, non-critical</li><li>No offline dependency in the failsafe path</li><li>Models cross the boundary only after offline validation</li></ul>
 <h3>Offline cannot be rushed</h3>

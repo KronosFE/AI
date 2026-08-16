@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The failure mode L3 must survive</h2>
 <p>In a high-field, high-neutron-flux environment, analog channels degrade: a cryo-rated vacuum feedthrough develops noise, an ECE channel saturates during a transient, a Mirnov coil clips, or an interferometer loses fringe count. If control treated each channel as independent, a single dropout would blind a state estimator. Kronos instead treats reconstruction as a graph inference problem: the GNN is trained to predict any node's true value from its neighbors.</p>
 <h3>Training objective</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <p>During training, random nodes are masked (dropout, additive noise, saturation are all simulated) and the network is penalized on reconstruction error at the masked nodes plus a physics-consistency term. The masked-autoencoder objective forces the embedding to carry enough neighborhood physics to regenerate a channel from context.</p>
 <div class="lang">python</div><pre><code># masked node reconstruction with physics consistency
 L = 0

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Deterministic reconstruction</h2>
 <p>When something goes wrong — a breeder disruption, a burner plug excursion, an interlock trip — the team must be able to replay exactly what happened and what the machine, the models, and the operators each knew at every instant. Incident replay reconstructs a bounded window from the L2 petabyte telemetry archive, the twin's recorded state stream, the anomaly ensemble outputs, and the operator action log, aligned to a single PTP-disciplined clock.</p>
 <h3>What a replay contains</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state reconstruction"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/m4-state-reconstruction.mp4" type="video/mp4"></video><figcaption>Kronos motion — state reconstruction</figcaption></figure>
+
 <ul><li>Raw diagnostics at native rate (down to the sub-microsecond sampling)</li><li>Twin state and its per-region confidence at each step</li><li>Every alert: when it fired, its lead time, its recommended action</li><li>Operator actions and acknowledgements, attributed and time-stamped</li><li>Interlock and failsafe events from L1 with hardware timestamps</li></ul>
 <p>The replay is scrubbed on a timeline that drives the same 3D twin overlay used live, so an investigator watches the flux surfaces, wall temperatures, or plug density evolve exactly as they did — with the same confidence hatching that was shown at the time. Crucially, replay distinguishes what was <b>knowable</b> (in the data) from what was <b>known</b> (surfaced to the operator), which is how alerting and display gaps are found.</p>
 <h3>Counterfactual replay</h3>

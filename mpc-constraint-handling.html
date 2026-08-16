@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two kinds of constraint</h2>
 <p>MPC distinguishes constraints that must never be violated from those it merely prefers to respect. Actuator limits (a coil cannot exceed its current rating; a heating system cannot exceed its power) are hard; the optimizer physically cannot request more. Safety-envelope state constraints (stay below a strain limit, keep an MHD margin) are also treated as hard, but the future state is predicted by a model that can be wrong, so enforcing them naively can make the problem infeasible.</p>
 <h3>Slack for feasibility</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — planet limits"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ad10-planet-limits.mp4" type="video/mp4"></video><figcaption>Kronos motion — planet limits</figcaption></figure>
+
 <p>Kronos softens the state constraints with slack variables that are heavily penalized. The optimizer strongly avoids the slack, so under normal conditions the constraint holds exactly; but if a disturbance pushes the predicted trajectory against a limit, the problem stays feasible and MPC returns the least-violating plan rather than failing to return anything, which for a real-time controller would be the worst outcome.</p>
 <div class="lang">python</div><pre><code># soft state constraints via penalized slack
 minimize J(x,u) + sum_k rho * ||s_k||^2 + sum_k gamma * ||s_k||_1

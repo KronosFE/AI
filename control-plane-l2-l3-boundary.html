@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A one-way safety dependency</h2>
 <p>L1 talks to L2 (data fabric) and L3 (twin and AI) constantly &mdash; it publishes telemetry upward and consumes advisory setpoints downward. But the dependency is deliberately one-way for safety: L1's guarantees hold even if L2 and L3 are slow, wrong, or absent. Information flows both ways; authority does not flow down into the safety-critical loops.</p>
 <h3>What crosses upward</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <ul><li>Validated, time-stamped state vectors for the L2 petabyte archive.</li><li>Actuator commands and arbitration outcomes, for the twin and audit.</li><li>Fault, interlock, and protection events with precise timing.</li><li>Feature streams feeding the L2 feature store and L3 models.</li></ul>
 <p>This upward stream is rate-constrained traffic on the <a href=./deterministic-network-fabric.html>deterministic fabric</a> &mdash; bounded so it can never crowd out a protection frame. It is what lets L3 build a faithful digital twin and L0 retrain surrogates offline, without ever touching L1's timing.</p>
 <h2>What crosses downward</h2>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What L1 is</h2>
 <p>The Control Plane (L1) sits between the offline Foundation tier (L0) and the Twin/AI tier (L3), but it is not a place where learning happens. L1 exists to guarantee <b>bounded latency</b> and <b>bounded jitter</b> on every command path that can move energy or open a fault. It hosts the edge FPGA fabric, the deterministic PLC layer, and the actuator drivers that touch the breeder (Hyperion) and the burner (Aegis / MetroVolt).</p>
 <p>Kronos's design principle is a strict separation of concerns: intelligence proposes, hardware disposes. L3's model-predictive control (MPC) agents compute setpoint trajectories on a 50&ndash;100 ms predictive shadow; L1 accepts those setpoints as advisory targets and enforces them through control loops whose worst-case timing is provable, not statistical.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <h2>The layer boundary</h2>
 <p>Every command crossing into L1 passes a validation gate: range checks, rate-of-change limits, and cross-consistency against the measured state vector. A setpoint that violates a hardware envelope is clamped or rejected at the FPGA edge before it ever reaches a coil supply or a beam modulator. This is why the failsafe path can be certified independently of any machine-learning component.</p>
 <h3>Both machines, one discipline</h3>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The hard boundary</h2>
 <p>Kronos fixes a design contract: any command on a protection or fast-stability path completes within <b>10 &micro;s</b> of the triggering condition, worst case, including jitter. This is not an average; it is a bound the fabric must satisfy on its slowest cycle. The number is chosen to sit below the fastest physically relevant instability growth times the control system is asked to arrest.</p>
 <h3>Why 10 microseconds</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>On the breeder, vertical displacement events (VDEs) of an elongated, negative-triangularity plasma grow on millisecond timescales, but the ideal MHD and current-quench precursors that must be sensed and acted on impose sub-millisecond sampling. Reserving a 10 &micro;s actuation floor leaves ample margin against the fastest loop while keeping the timing budget provable. On the burner, DEC grid transients and end-plug microstability demand comparably tight response on the collector modulation path.</p>
 <h2>Budget decomposition</h2>
 <p>The 10 &micro;s is not spent in one place. A representative allocation on the fast protection path:</p>

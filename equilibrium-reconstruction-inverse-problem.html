@@ -425,7 +425,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   M_m[psi] : predicted value of diagnostic m (linear in psi)
   d_m      : measured value ,  sigma_m : uncertainty
   R[psi]   : regularization on profile smoothness</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>Why it is ill-posed</h3>
 <p>External magnetic measurements constrain the plasma boundary and total current well but the internal current profile only weakly - many internal profiles fit the same external signals. This is the classic magnetics-only degeneracy. Adding kinetic constraints (pressure from Thomson, density from interferometry, current direction from motional Stark or polarimetry) and profile regularization breaks the degeneracy.</p>
 <div class="lang">python</div><pre><code># Gauss-Newton reconstruction step (schematic)
@@ -438,7 +438,7 @@ for it in range(max_it):
     c    += dc
     if norm(dc) &lt; tol: break</code></pre>
 <h3>Real-time acceleration</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/z12-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>A full Gauss-Newton reconstruction is too slow for the fast control loop. The stack keeps the rigorous solve as ground truth and runs a PINN-based reconstruction that maps diagnostic vectors directly to psi and profiles in one forward pass, retrained against the offline solver. The PINN carries the Grad-Shafranov residual so its output is a physically admissible equilibrium, not just a regression fit.</p>
 <ul><li>Inputs: flux loops, Mirnov coils, Thomson, interferometry, coil currents.</li><li>Outputs: psi(R,Z), p'(psi), F F'(psi), boundary shape, q profile.</li><li>Guarantee: GS residual bounded, so reconstructions are admissible equilibria.</li><li>Confidence: per-region uncertainty from diagnostic coverage and residual.</li></ul>
 <p>Reconstruction confidence is reported, not assumed: where diagnostic coverage is sparse the uncertainty widens and downstream MPC enlarges its margins accordingly.</p><div class="related"><h3>Related</h3><a href="./grad-shafranov-equation.html">The Grad-Shafranov Equation &rarr;</a><a href="./pinn-inverse-problems.html">PINNs for Inverse Problems &rarr;</a><a href="./kalman-filter-derivation.html">The Kalman Filter &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>

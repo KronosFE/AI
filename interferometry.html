@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Phase carries density</h2>
 <p>A probing beam through the plasma accumulates phase proportional to the line-integrated electron density along its chord. Measuring that phase gives a fast, robust density signal that rarely fails, which is why interferometry is a workhorse of the constellation. Multiple chords at different impact parameters constrain the density profile when inverted against the geometry.</p>
 <h3>From chords to local density</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — density profile"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa6-density-profile.mp4" type="video/mp4"></video><figcaption>Kronos motion — density profile</figcaption></figure>
+
 <p>Each chord is a line integral; recovering local density is an inversion that uses the reconstructed flux surfaces. The fabric performs this in the <a href=./spatial-normalization.html>normalization</a> stage, cross-checking the result against localized <a href=./thomson-scattering.html>Thomson</a> density. Agreement between the two independent methods is a core validation check.</p>
 <div class="lang">python</div><pre><code>import numpy as np
 # invert multi-chord line integrals to a flux-surface density profile

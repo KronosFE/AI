@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Immutable datasets, traceable to raw signal</h2>
 <p>A model is a function of its data, so an untracked dataset is an unreproducible model. Kronos treats every training set as an immutable, content-addressed object: hash the exact rows, transforms, and label revisions, and that hash becomes the dataset's identity. Retraining pins the hash; two jobs citing the same hash are guaranteed the same data.</p>
 <p>Lineage runs deeper than the dataset. Each engineered feature vector traces back through its transform graph to the specific raw diagnostic channels and pulse identifiers on the breeder or burner that produced it. When a diagnostic is later found to have been miscalibrated, lineage answers immediately which datasets and therefore which models are contaminated.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — training from sim"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/sur8-training-from-sim.mp4" type="video/mp4"></video><figcaption>Kronos motion — training from sim</figcaption></figure>
+
 <h3>What lineage records</h3>
 <ul><li>Source pulse IDs and machine (breeder / burner) and campaign</li><li>Raw channel list with calibration revision at read time</li><li>Transform DAG: filters, resampling, feature definitions, versions</li><li>Label source and revision (see <a href=./label-quality-provenance.html>label provenance</a>)</li><li>Splits: train/validation/holdout membership by hash</li></ul>
 <div class="lang">python</div><pre><code>dataset = {

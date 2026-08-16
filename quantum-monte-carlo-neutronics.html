@@ -423,7 +423,7 @@ error ~ sigma / sqrt(M)          # M samples
 # Quantum amplitude estimation:
 error ~ sigma / M                # quadratic speedup in sample count
 # to reach error eps:  classical ~ 1/eps^2 ,  quantum ~ 1/eps queries</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — neutron transport"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bnu1-neutron-transport.mp4" type="video/mp4"></video><figcaption>Kronos motion — neutron transport</figcaption></figure>
+
 <h3>How QAE gets the square</h3>
 <p>QAE encodes the quantity of interest as the amplitude of a marked state and uses <a href=./quantum-phase-estimation-energy-eigenvalues.html>phase estimation</a> on a Grover-like operator to read that amplitude with error falling as 1/M rather than 1/sqrt(M). The tritium breeding ratio the breeder treats as a lever (1.1, 1.5, 1.8) is exactly the kind of integrated response QAE would estimate.</p>
 <div class="lang">text</div><pre><code># Grover/amplitude operator Q, applied M times, phase ~ arcsin(sqrt(a))
@@ -431,7 +431,7 @@ error ~ sigma / M                # quadratic speedup in sample count
 # estimating a to error eps costs O(1/eps) applications of Q
 #  vs classical O(1/eps^2) samples</code></pre>
 <h3>Why it is long-term only</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <ul><li>Quadratic, not exponential: the win is real but modest, and easily eaten by hardware overhead.</li><li>Each 'sample' becomes a coherent circuit encoding the transport process, which is deep and needs error correction.</li><li>Loading cross-section data and geometry into the circuit is itself a hard state-preparation problem.</li></ul>
 <p>Because the speedup is only quadratic, it must clear a high hardware bar before beating a mature, massively parallel classical Monte Carlo pipeline. Kronos keeps QAE as a documented long-horizon possibility for neutronics, not a plan. Near term, all breeding-ratio and activation results come from classical Monte Carlo validated against nuclear data, with quantum used only to benchmark the primitive on toy geometries. See <a href=./quantum-amplitude-estimation.html>amplitude estimation</a> for the algorithmic detail.</p><div class="related"><h3>Related</h3><a href="./quantum-amplitude-estimation.html">Amplitude estimation &rarr;</a><a href="./quantum-phase-estimation-energy-eigenvalues.html">Phase estimation &rarr;</a><a href="./quantum-for-transport-pde-honest.html">Quantum PDE, honest &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 

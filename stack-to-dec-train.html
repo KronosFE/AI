@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Converting output directly</h2>
 <p>On the burner, the direct-energy-conversion (DEC) train is where the plasma's charged-particle output becomes usable energy without a conventional thermal cycle for that fraction. It is a multi-modal train, and the architecture controls it as an orange reactor/thermal path with its own diagnostics and actuation.</p>
 <h3>The stages</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — direct conversion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d5-direct-conversion.mp4" type="video/mp4"></video><figcaption>Kronos motion — direct conversion</figcaption></figure>
+
 <ul><li>TWDEC — traveling-wave direct energy conversion, decelerating fast ions and recovering their energy.</li><li>Ultra-high-field MHD — a magnetohydrodynamic conversion stage.</li><li>Thermionics — direct thermal-to-electric conversion of the residual heat.</li></ul>
 <h3>The control problem</h3>
 <p>DEC control is coupled to plasma control: the flux and energy spectrum entering the train depend on the end-plug density and the ambipolar potential upstream. The MPC agent must therefore steer the escaping charged particles into the train's acceptance window while the plasma loop holds the plug — a single coordinated objective across L3.</p>

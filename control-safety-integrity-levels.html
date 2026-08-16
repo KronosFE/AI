@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Not all functions are equal</h2>
 <p>A shape-refinement loop and a magnet-quench dump do not carry the same consequence of failure. Kronos classifies each control function by a safety-integrity grade &mdash; how severe and how likely the harm from its failure &mdash; and assigns architecture accordingly. The highest grades demand the strongest independence, redundancy, and simplicity.</p>
 <h3>The grading logic</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Highest grade: magnet quench protection, vacuum containment interlocks &mdash; simple, independent, de-energize-to-trip, no software in the trip path.</li><li>High grade: vertical stability, disruption mitigation trigger, thermal protection &mdash; deterministic FPGA/PLC, redundant, model-independent action.</li><li>Medium: density, current, position regulation &mdash; deterministic loops with graceful degradation.</li><li>Advisory: MPC trajectories, learning-driven optimization &mdash; can fail without harm because L1 holds safe defaults.</li></ul>
 <p>The grade dictates design freedom. An advisory function may use any technique, including deep learning, because its failure is caught by the layer below. A highest-grade function may use only inspectable, independent hardware, because nothing catches it &mdash; it is the catch.</p>
 <h2>Independence</h2>

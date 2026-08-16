@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Neutrons as a service</h2>
 <p>Beyond isotopes, the breeder (Hyperion) offers its 14 MeV fusion neutrons directly as a service: materials irradiation and qualification, activation-based isotope production, and fusion-relevant testing that no fission or accelerator source reproduces at the same energy and spectrum. L7 exposes irradiation positions as schedulable resources with defined flux, spectrum, and dwell time.</p>
 <h3>The trade against breeding</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — breeding map"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa8-breeding-map.mp4" type="video/mp4"></video><figcaption>Kronos motion — breeding map</figcaption></figure>
+
 <p>Every neutron sent to a service position is a neutron not captured by the lithium blanket for tritium breeding. Neutron services therefore compete directly with the tritium breeding ratio target. L7 makes this trade explicit: a service booking specifies a fluence, and the scheduler checks that fulfilling it keeps the breeding balance at or above the active TBR lever (1.1/1.5/1.8). Bookings that would push TBR below target are deferred or scaled.</p>
 <div class="lang">python</div><pre><code># accept a neutron-service booking only if breeding stays on target
 def book(service_req):

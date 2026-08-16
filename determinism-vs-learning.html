@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two different jobs</h2>
 <p>Learning systems generalize from data; their runtime and outputs are data-dependent and, for deep networks, hard to bound. Control-plane logic must be timed and, on protection paths, provably correct. Kronos does not force these opposing properties into one component. It layers them: L3 learns, L1 acts.</p>
 <h3>The handoff</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>L3's MPC agents produce setpoint trajectories on a 50&ndash;100 ms shadow horizon &mdash; coil current profiles for the breeder's shape, plug-cell power for the burner, DEC grid schedules. These arrive at L1 as advisory targets. L1 validates them against static envelopes and executes them with deterministic loops. If the trajectory stops arriving, L1 holds the last valid target and its fast loops keep the machine safe.</p>
 <h2>Why the network is never in the fast loop</h2>
 <ul><li>A neural network's inference time varies with implementation and load; it cannot certify a 10 &micro;s WCET on protection paths.</li><li>Model outputs can be out-of-distribution; deterministic clamps bound them regardless.</li><li>Retraining changes behavior; the fast loop must not change behavior without re-certification.</li><li>A failsafe that depends on a model is not a failsafe.</li></ul>

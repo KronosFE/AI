@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Scheduling firm power across units</h2>
 <p>A single burner follows setpoints; a fleet must decide which units run, at what level, and when they take outages, to meet aggregate firm-power obligations. L7 formulates this as a constrained optimization over a rolling horizon: minimize deviation from committed export and from planned maintenance windows, subject to each unit's ramp limits, envelope, and required service hours. No monetary objective enters; the problem is stated purely in physical availability and reliability terms.</p>
 <h3>The optimization, stated plainly</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <div class="lang">python</div><pre><code># rolling-horizon unit commitment (physical objective only)
 # u[i,t] in {0,1} on/off ; p[i,t] export level
 minimize  sum_t | sum_i p[i,t] - demand[t] |        # meet firm obligation
@@ -431,7 +431,7 @@ subject to:
 <p>The solver is warm-started from the previous horizon and re-solved as forecasts and unit health update. Because commitment decisions are discrete, the problem is a mixed-integer program; for fleet sizes it is solved with a rolling relaxation and repair heuristic that keeps re-solve latency low enough for intraday adjustment.</p>
 <p>Constraints come from lower layers. Each unit's ramp and capacity are the twin-certified envelope; maintenance windows come from the predictive-maintenance service loop; reserve requirements come from the interconnection agreement. The optimizer never invents headroom a unit does not have.</p>
 <p>Dispatch optimization also feeds the breeder foundry indirectly: burner fuel is helium-3, whose supply is gated by breeder production and, later, lunar sourcing. The scheduler treats helium-3 availability as a hard input constraint, not an assumption, so a fleet plan is never more ambitious than the fuel supply supports.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grid firm power"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/r5-grid-firm-power.mp4" type="video/mp4"></video><figcaption>Kronos motion — grid firm power</figcaption></figure>
+
 <p>The optimizer runs today against simulated demand and a twin-modeled fleet. As real units commission from ~2030 onward, the same formulation coordinates them with no structural change.</p><div class="related"><h3>Related</h3><a href="./grid-integration-overview.html">Grid Integration Overview &rarr;</a><a href="./multi-unit-coordination.html">Multi-Unit Coordination &rarr;</a><a href="./helium-3-offtake.html">Helium-3 Offtake &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

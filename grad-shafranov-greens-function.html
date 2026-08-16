@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   K,E : complete elliptic integrals of the 1st and 2nd kind
 
 Total external flux:  psi_ext(x) = sum_c  G(x; x_c) * I_c</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>Assembling the response matrix</h3>
 <p>Evaluating the Green's function at the control points (boundary shape-control gaps, flux loops, X-point) for each coil builds a response matrix M mapping coil-current vector I to the flux/field observations. Shape control is then the linear inverse of M against a shaped target.</p>
 <div class="lang">text</div><pre><code>Response (Green&#x27;s) matrix:
@@ -439,7 +439,7 @@ Total external flux:  psi_ext(x) = sum_c  G(x; x_c) * I_c</code></pre>
 Desired shape -&gt; target y* -&gt; solve for I:
   I* = argmin || M I - y* ||^2 + lambda ||I||^2   (Tikhonov)</code></pre>
 <h3>Ill-conditioning and regularization</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/z12-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>M is typically ill-conditioned: many coil-current combinations produce nearly the same boundary, so a naive inverse amplifies noise and demands unphysical currents. Tikhonov regularization (the lambda term) or truncated SVD stabilizes the inverse, trading a little shape error for well-behaved, current-limited commands. The regularization weight is a tuning knob the shape controller exposes.</p>
 <div class="lang">python</div><pre><code># truncated-SVD pseudo-inverse for coil currents
 U, s, Vt = svd(M)

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Aligning advice, not authority</h2>
 <p>Kronos copilots are language-and-telemetry assistants that help operators interpret machine state, draft procedures, and reason about anomalies. They advise; they never actuate. RLHF is used to make their advice trustworthy: preference data from expert operators shapes a reward model, and the copilot policy is optimized against it so its outputs align with expert judgment about what is correct, safe, and appropriately hedged.</p>
 <p>The feedback is collected in the loop: operators rank or correct copilot responses to real breeder and burner situations, flag hallucinated numbers, and mark unsafe suggestions. Crucially, factual grounding about the machines comes from the retrieved canonical record, not from RLHF; RLHF shapes reasoning style, calibration of confidence, and refusal behavior, not the physics constants.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — operator learning"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/sur9-operator-learning.mp4" type="video/mp4"></video><figcaption>Kronos motion — operator learning</figcaption></figure>
+
 <h3>What the reward model rewards</h3>
 <ul><li>Correct, cited grounding in the canonical machine record</li><li>Explicit uncertainty when the data is thin</li><li>Refusal to invent numbers or overstate capability</li><li>Respect for the honest gates when discussing the burner</li><li>Actionable, procedurally-correct guidance for operators</li></ul>
 <div class="lang">python</div><pre><code># RLHF pipeline for the copilot (offline, on L0)

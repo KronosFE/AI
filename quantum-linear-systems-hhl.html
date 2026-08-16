@@ -423,7 +423,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 #   s     = sparsity (nonzeros per row)
 #   eps   = target error
 # NOT O(N): but the caveats below usually dominate</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <h3>The four catches</h3>
 <ul><li>Input: b must be loadable as a quantum state efficiently (needs QRAM or special structure).</li><li>Output: you get the state |x>, not the vector x; reading all N components destroys the speedup.</li><li>Conditioning: runtime scales as kappa^2, and stiff fusion PDE operators are often ill-conditioned.</li><li>You only cheaply extract summary quantities <x|M|x>, not the full field.</li></ul>
 <h3>Fit to Kronos, honestly</h3>

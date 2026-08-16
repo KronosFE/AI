@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One door, by design</h2>
 <p>The unified API gateway is the only network endpoint any external party may reach. Grid operators, isotope customers, parts suppliers, regulators, and sibling plants in a fleet all speak to the same gateway. Internally it fans requests out to L1 control, the L3 KRONOS-CTRL twin, L4 logistics, and L5 compliance services, but the outside sees a stable, versioned contract, not the stack behind it. This collapses the attack surface to one hardened boundary and gives every interaction a single place for authentication, authorization, rate limiting, schema validation, and audit.</p>
 <h3>Read model and write model</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <p>The gateway separates a read plane (plant state, telemetry snapshots, availability forecasts, isotope inventory, compliance status) from a write plane (dispatch setpoints, offtake orders, maintenance windows). The read plane is high-fan-out and cacheable; the write plane is low-rate, strongly authenticated, and always idempotent so a retried command never double-executes.</p>
 <div class="lang">python</div><pre><code># gateway request lifecycle (pseudocode)
 def handle(req):

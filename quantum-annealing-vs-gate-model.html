@@ -422,7 +422,7 @@ H(s) = (1 - s) H_B  +  s H_C
 # adiabatic theorem: stay in ground state if
 #   T  &gt;&gt;  max_s || dH/ds ||  /  gap(s)^2
 #   gap(s) = spectral gap; small gaps -&gt; exponentially slow anneals</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <h3>How they compare</h3>
 <table class="tt"><thead><tr><th>Aspect</th><th>Annealer</th><th>Gate-model QAOA</th></tr></thead><tbody><tr><td>Model</td><td>analog adiabatic evolution</td><td>digital variational circuit</td></tr><tr><td>Qubit counts</td><td>larger (thousands)</td><td>smaller (tens-hundreds)</td></tr><tr><td>Connectivity</td><td>fixed graph, needs minor-embedding</td><td>gate-defined, flexible</td></tr><tr><td>Guarantee</td><td>adiabatic if gap large enough</td><td>none; depends on angle tuning</td></tr><tr><td>Failure mode</td><td>small-gap slowdown</td><td>barren plateaus, noise</td></tr></tbody></table>
 <h3>The shared limitation</h3>

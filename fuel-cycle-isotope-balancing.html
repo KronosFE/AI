@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Fueling meets inventory</h2>
 <p>Fueling is not just flow control; it draws from and returns to an isotope inventory. The breeder runs D-T and breeds tritium; the burner runs D-3He. L1's fueling actuators &mdash; gas valves and pellet injectors &mdash; must deliver the correct isotopic mixture, and the plant's fuel-cycle logic must keep the running inventory balanced against what the plasma consumes and the exhaust returns.</p>
 <h3>Real-time balancing</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fuel cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g1-fuel-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — fuel cycle</figcaption></figure>
+
 <p>L1 (with the PLC fuel-cycle layer) tracks isotope accounting: fuel delivered, fusion consumption inferred from neutron/reaction rates, and species recovered by pumping and processing. Fueling setpoints are conditioned on this balance so the plasma composition stays on target and inventory is neither depleted nor over-accumulated. This is an operational balance, framed in kilograms and rates, never economics.</p>
 <h2>Per machine</h2>
 <ul><li>Breeder: D-T fueling with tritium breeding; products in the ~4 kg/yr tritium class plus ~1.97 kg/yr helium-3 and 14 MeV neutrons.</li><li>Breeder lever: tritium breeding ratio treated across 1.1 / 1.5 / 1.8 in design studies.</li><li>Burner: D-3He fueling, low-neutron (neutron fraction 5.44%), not aneutronic.</li></ul>

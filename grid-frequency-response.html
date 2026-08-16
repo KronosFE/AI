@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Fast services from a fast converter</h2>
 <p>Grid frequency reflects the instantaneous balance of generation and load. When load exceeds generation, frequency falls; the grid needs sources that inject power within milliseconds to seconds to arrest the fall. The burner's direct energy conversion train couples plasma output to electrical output with little rotating mass, so it can modulate export electronically and fast, unlike a thermal turbine's inertia.</p>
 <h3>Droop and synthetic inertia</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — direct conversion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d5-direct-conversion.mp4" type="video/mp4"></video><figcaption>Kronos motion — direct conversion</figcaption></figure>
+
 <p>L7 exposes two fast behaviors. Droop control adjusts export in proportion to frequency deviation with a configured slope. Synthetic inertia responds to the rate of change of frequency, emulating the stabilizing effect of spinning mass. Both are computed at the interconnection controller and executed through a fast lane that bypasses the slower dispatch queue but never the envelope clamp.</p>
 <div class="lang">python</div><pre><code># fast-lane frequency response (executes every few ms)
 df   = f_meas - f_nom             # frequency error (Hz)

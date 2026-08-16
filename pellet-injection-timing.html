@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Discrete deep fueling</h2>
 <p>Pellet injection fires small cryogenic fuel pellets deep into the plasma, depositing particles where gas puffing cannot reach. Unlike continuous gas flow, each pellet is a discrete event, so control is about <b>timing and sizing</b>: when to fire, how large, and how fast. L1 schedules injections against the density-profile objective.</p>
 <h3>Timing as the control variable</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — density profile"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa6-density-profile.mp4" type="video/mp4"></video><figcaption>Kronos motion — density profile</figcaption></figure>
+
 <p>Because a pellet's effect is a step in density, the outer loop controls the injection rate and phase rather than a continuous flow. L1 fires pellets on a deterministic schedule derived from the density error and profile target, with each shot's launch precisely timed relative to the plasma state and, where relevant, to the ELM/edge cycle for pacing.</p>
 <h2>Uses</h2>
 <ul><li>Deep density-profile control beyond the reach of edge gas fueling.</li><li>Fuel throughput consistent with the breeder's tritium/deuterium mix.</li><li>Edge pacing to manage the edge in the ELM-free strategy.</li><li>A pathway for <a href=./disruption-mitigation-injection.html>disruption mitigation</a> deposition.</li></ul>

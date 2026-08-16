@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The three honest options</h2>
 <p>Distributed messaging offers at-most-once (may lose), at-least-once (may duplicate), and exactly-once (neither, but expensive and never truly free). True end-to-end exactly-once across independent actuators is a fiction; what is achievable is <b>at-least-once delivery plus idempotent processing</b>, which yields effectively-once state changes. Layer 4 states its choice explicitly per topic.</p>
 <table class="tt"><thead><tr><th>Topic class</th><th>Delivery</th><th>Effect</th></tr></thead><tbody><tr><td>diagnostics</td><td>at-least-once</td><td>dedup on ingest</td></tr><tr><td>twin inputs</td><td>at-least-once</td><td>dedup by step key</td></tr><tr><td>commands</td><td>at-least-once + idempotent</td><td>effectively-once actuation</td></tr><tr><td>audit</td><td>at-least-once</td><td>append; dedup by event_id</td></tr></tbody></table>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — safety factor"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh5-safety-factor.mp4" type="video/mp4"></video><figcaption>Kronos motion — safety factor</figcaption></figure>
+
 <h2>Why not at-most-once</h2>
 <p>At-most-once is banned for anything that matters. Losing a breeder command acknowledgement or a burner interlock event could leave a procedure believing an action succeeded when it did not. The stack prefers a duplicate it can detect over a loss it cannot.</p>
 <h2>Achieving effectively-once</h2>

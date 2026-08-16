@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Where L0 sits in the S.M.A.R.T. stack</h2>
 <p>The Kronos AI-native architecture is an eight-layer stack. L0 Foundation is its base: the non-real-time compute substrate where offline multi-physics simulation, batch model retraining, and large-scale reproducible study campaigns run. It is deliberately separated from L1, the microsecond control plane. L0 is allowed to be slow, expansive, and thorough; L1 is not allowed to be anything but fast and deterministic.</p>
 <p>Every predictive object that later runs in the real-time <a href=./gpu-clusters-twin-sync.html>digital twin</a> is born here. The Grad-Shafranov surrogates, the physics-informed neural networks, the neutronics response tables, and the anomaly-detection ensembles are all trained on L0 and only then compiled down toward the edge. L0 is the ground truth generator; the fast layers are its accelerated shadows.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <h3>What runs on L0</h3>
 <ul><li>Offline multi-physics Monte Carlo for neutronics and activation, both machines</li><li>Batch retraining and refinement of every twin surrogate</li><li>GPU-cluster training runs for PINNs, GNNs, and anomaly ensembles</li><li>Large parameter sweeps: breeder triangularity and TBR levers, burner plug-density scans</li><li>Petabyte-scale archival and replay of pulse histories</li></ul>
 <h3>Both machines, always</h3>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>RUL as a distribution</h2>
 <p>Remaining useful life (RUL) is the time a component can keep operating before it crosses a failure threshold. The right output is not a single number but a distribution, because acting on a point estimate that is optimistically wrong causes exactly the unplanned failure predictive maintenance exists to avoid. Decisions use a conservative lower quantile of the RUL distribution.</p>
 <h3>Two model families</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — maintenance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac9-maintenance.mp4" type="video/mp4"></video><figcaption>Kronos motion — maintenance</figcaption></figure>
+
 <ul><li>Physics-of-failure: a degradation model (fatigue, creep, irradiation damage) integrated forward from measured stressors</li><li>Data-driven: a learned model mapping health features to time-to-threshold from run-to-failure examples</li><li>Hybrid: a physics model whose parameters are updated online from telemetry - preferred pre-FOAK where run-to-failure data is scarce</li></ul>
 <div class="lang">python</div><pre><code>import numpy as np
 def rul_quantile(health, rate_samples, threshold, q=0.1):

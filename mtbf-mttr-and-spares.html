@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The two numbers behind availability</h2>
 <p>Availability rests on two statistics per component: mean time between failures (MTBF, how often it breaks) and mean time to repair (MTTR, how long to fix). A = MTBF / (MTBF + MTTR). Raising MTBF and lowering MTTR are the only two ways to raise availability, and every resiliency technique acts through one of them.</p>
 <h3>Estimating them honestly</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — confinement time"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bc14-confinement-time.mp4" type="video/mp4"></video><figcaption>Kronos motion — confinement time</figcaption></figure>
+
 <p>Pre-FOAK, MTBF for many fusion-specific components has no operating history, so it is estimated from component tests, physics-of-failure models, and analog systems, with wide uncertainty. MTTR depends on access, tooling, and spares. We report both as ranges, which is a primary reason the plant availability comes out as the 0.86-0.995 envelope rather than a single figure.</p>
 <div class="lang">python</div><pre><code>def effective_mttr(diagnose_h, procure_h, repair_h, verify_h, spare_on_hand):
     # a staged spare removes procurement lead time from the repair path

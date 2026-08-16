@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From decision back to bytes</h2>
 <p>When the twin forecasts a disruption or the failsafe context is questioned, the answer must be traceable: exactly which samples, calibrations, imputations, and feature versions produced the number that drove the decision. Lineage is the record of that ancestry, maintained for every engineered value in the fabric.</p>
 <h3>What lineage captures</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — which application"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae13-which-application.mp4" type="video/mp4"></video><figcaption>Kronos motion — which application</figcaption></figure>
+
 <ul><li>The raw channels and samples that fed a feature.</li><li>The calibration and drift-correction versions applied.</li><li>Any imputation of dead channels and the graph model version used.</li><li>The feature definition version and normalization coordinate frame.</li><li>The downstream models and decisions that consumed the feature.</li></ul>
 <h3>A directed graph</h3>
 <p>Lineage is naturally a directed acyclic graph from raw samples up through validation, normalization, feature engineering, and into model inputs. The fabric stores this graph so any node can be traced up to its consumers or down to its raw sources. Combined with the immutable raw archive, this means any past feature can be recomputed and verified.</p>

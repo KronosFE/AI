@@ -426,7 +426,7 @@ def peak_dump_voltage(current_A, dump_resistance_ohm):
 # larger R -&gt; faster dump but higher voltage: a bounded trade
 tau = dump_time_constant(inductance_H=5.0, dump_resistance_ohm=0.5)  # 10 s
 assert peak_dump_voltage(current_A=10_000, dump_resistance_ohm=0.5) &lt; 6000</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stored energy"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/mag4-stored-energy.mp4" type="video/mp4"></video><figcaption>Kronos motion — stored energy</figcaption></figure>
+
 <h3>The dump-rate trade</h3>
 <p>A larger dump resistance extracts energy faster (shorter L/R time) but raises the peak voltage across the coil, which the insulation must survive. The dump resistance is sized to extract energy fast enough to protect the hot spot while keeping voltage within the insulation limit. This is a bounded, pre-computed trade, not a runtime decision.</p>
 <ul><li>Fail-safe switch: the current path holds through a switch that opens (diverting to the dump) on loss of hold or power.</li><li>Sized resistors: fast enough for the hot-spot budget, low enough voltage for the insulation.</li><li>Distributed dumps for large magnets so no single resistor or node is a common-cause point.</li></ul>

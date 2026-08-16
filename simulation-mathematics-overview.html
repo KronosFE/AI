@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One foundation, several equation families</h2>
 <p>The L0 workloads are diverse, but they reduce to a handful of mathematical families, each with its own structure and numerical demands. Understanding this map explains why the compute substrate is shaped the way it is: the mathematics of each workload dictates whether it is stochastic or deterministic, explicit or implicit, cheap to parallelize or communication-bound.</p>
 <h3>The families</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — neutron transport"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bnu1-neutron-transport.mp4" type="video/mp4"></video><figcaption>Kronos motion — neutron transport</figcaption></figure>
+
 <p>Kronos solves: the linear Boltzmann transport equation, stochastically, for neutronics; nonlinear elliptic PDEs, the Grad-Shafranov equilibrium; time-dependent PDE systems, resistive MHD and transport; a high-dimensional kinetic equation, gyrokinetics; and coupled decay-transmutation ODE systems for activation. Each is a distinct mathematical object requiring a distinct method.</p>
 <ul><li>Boltzmann transport: stochastic Monte Carlo</li><li>Grad-Shafranov: nonlinear elliptic PDE</li><li>MHD and transport: time-dependent PDE systems</li><li>Gyrokinetics: 5D kinetic PDE</li><li>Activation: coupled linear ODE systems</li></ul>
 <h3>Method follows structure</h3>

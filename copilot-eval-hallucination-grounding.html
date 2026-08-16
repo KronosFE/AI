@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Measuring grounding directly</h2>
 <p>Grounding is the property that every factual claim is supported by a real, cited source. The evaluation measures it in two dimensions: coverage (does every factual claim carry a citation) and entailment (does the cited source actually support the claim). A claim with no citation, or with a citation that does not entail it, is a grounding defect — the operational definition of a hallucination in this system.</p>
 <h3>The two checks</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <div class="lang">text</div><pre><code>grounding_eval(answer, trace):
   claims = extract_factual_claims(answer)
   coverage  = mean(has_citation(c) for c in claims)

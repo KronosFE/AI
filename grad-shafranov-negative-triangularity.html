@@ -427,7 +427,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 
   Breeder canonical shape: delta = -0.30  (negative)
   positive delta -&gt; D pointing out ; negative -&gt; D pointing in</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>Why negative delta changes the physics</h3>
 <p>Negative triangularity shifts the magnetic geometry so that the plasma edge accesses improved confinement without the strong edge pressure pedestal that drives edge-localized modes (ELMs). For the breeder this is a route to an ELM-free-like edge, reducing pulsed heat loads on the divertor. The trade is that negative-delta equilibria are harder to hold and interact differently with vertical stability, which the control math must respect.</p>
 <div class="lang">python</div><pre><code># geometric moments the shape controller regulates
@@ -438,7 +438,7 @@ def shape_descriptors(R, Z):
     delta = ((R0 - R_upper) + (R0 - R_lower)) / (2*a)
     return R0, a, kappa, delta   # target delta approx -0.30</code></pre>
 <h3>Coupling to control</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/z12-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>The shape descriptors R0, a, kappa, delta are the controlled outputs; PF-coil currents are the inputs. The free-boundary GS solve provides the sensitivity matrix (Jacobian) from coil currents to descriptors, which MPC uses to hold delta near -0.30 against disturbances. Because negative-triangularity equilibria can be closer to vertical-instability limits, the shape and vertical-stability loops are co-designed rather than treated independently.</p>
 <p>This shape target is a design-and-simulation choice validated in equilibrium and stability codes; it is not yet a measured operating point. The same parameterization will initialize reconstruction once FOAK hardware exists ~2030.</p><div class="related"><h3>Related</h3><a href="./grad-shafranov-free-boundary.html">Free-Boundary Grad-Shafranov &rarr;</a><a href="./vertical-stability-mathematics.html">Vertical Stability Mathematics &rarr;</a><a href="./mpc-optimal-control-formulation.html">MPC Optimal-Control Formulation &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 

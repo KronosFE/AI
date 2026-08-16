@@ -426,7 +426,7 @@ Quasineutrality:
 
 Boltzmann electrons (fast species):
   n_e(z) = n_e0 * exp( e (Phi(z) - Phi_0) / T_e )</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — confinement time"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bc14-confinement-time.mp4" type="video/mp4"></video><figcaption>Kronos motion — confinement time</figcaption></figure>
+
 <h3>Pastukhov confinement scaling</h3>
 <p>The confinement time of ions trapped by both the magnetic mirror and the electrostatic potential follows the Pastukhov relation: it grows roughly exponentially with the ratio of confining potential to ion temperature, modulated by the mirror ratio and a logarithmic factor. This is why building and holding the potential is everything for the burner.</p>
 <div class="lang">text</div><pre><code>Pastukhov-type ion confinement time:
@@ -438,7 +438,7 @@ Boltzmann electrons (fast species):
   R_m   : mirror ratio (set by plug/throat fields)
   Strong (exponential) sensitivity to Phi_c / T_i</code></pre>
 <h3>The solver and its honesty</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <p>The stack solves the coupled quasineutrality-ambipolarity system for Phi(z) as a nonlinear two-point problem, then uses Phi to predict confinement. But the operating regime is 166-830x beyond any device, so the Pastukhov extrapolation is un-post-dictable today; the He-3 fuel it presumes is ~400x current domestic supply. Both are reported as gates, not solved away.</p>
 <div class="lang">python</div><pre><code># solve ambipolar potential profile (schematic)
 def residual(Phi):

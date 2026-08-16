@@ -423,7 +423,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 #   Delta_star(psi) = - mu0 R^2 dp/dpsi - F dF/dpsi
 # p(psi)  : plasma pressure profile
 # F(psi)  : poloidal current function, F = R B_toroidal</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>Classical solvers march a finite-element or finite-difference mesh to convergence each time the equilibrium changes. That is too slow for a 50-100 ms predictive shadow that must re-solve as the breeder plasma evolves. Kronos instead trains a PINN psi_theta(R,Z; boundary, profiles) whose network output is differentiable, so the Grad-Shafranov operator is evaluated by automatic differentiation and enforced pointwise.</p>
 <h3>Native solving</h3>
 <p>The network takes spatial coordinates and the current profile/boundary parameters as input and returns psi. Its loss (detailed on the loss-formulation page) penalizes the Grad-Shafranov residual on interior collocation points and the boundary condition on the plasma edge. Trained across the breeder's operating space, the PINN becomes an equilibrium solver that evaluates in a single forward pass and re-solves as fast as the twin steps.</p>

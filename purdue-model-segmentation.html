@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Levels 0 through 5</h2>
 <p>The Purdue Enterprise Reference Architecture partitions an industrial system into levels. Kronos maps them explicitly for both machines:</p>
 <ul><li>Level 0: field devices - magnet coils, gas valves, gyrotrons, NBI, diagnostics sensors, direct-energy-conversion grids on the burner.</li><li>Level 1: real-time control - the L1 fast loop on edge FPGAs closing plasma shape/position at sub-millisecond cadence.</li><li>Level 2: supervisory control - discharge sequencing, the operator HMI, the L3 KRONOS-CTRL digital twin runtime.</li><li>Level 3: site operations - historian, batch coordination, byproduct-material accountancy.</li><li>Level 3.5: industrial DMZ - the only crossing to enterprise.</li><li>Levels 4/5: enterprise IT and external L7 API.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <h3>The 3.5 DMZ as a chokepoint</h3>
 <p>All north-south traffic funnels through level 3.5. Rather than a pair of firewalls, Kronos places a <a href=./unidirectional-data-diodes.html>data diode</a> for outbound telemetry and a small, formally reviewed broker for the rare inbound update. This makes the DMZ a place where every crossing is enumerable and auditable, feeding the <a href=./decision-audit-lineage.html>decision-audit lineage</a>.</p>
 <h3>East-west containment</h3>

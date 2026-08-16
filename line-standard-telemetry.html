@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The data that feeds intelligence</h2>
 <p>Standard telemetry lines carry the plant's observability upward. The underlying diagnostics are sampled at sub-microsecond resolution, but the streams are aggregated and transported at millisecond-to-second cadence — fast enough for the predictive twin and monitoring, without the hard determinism the control path demands.</p>
 <h3>What they carry</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — open field lines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d4-open-field-lines.mp4" type="video/mp4"></video><figcaption>Kronos motion — open field lines</figcaption></figure>
+
 <ul><li>The 60+ analog channels from the diagnostics constellation after validation and normalization.</li><li>Feature-engineered streams into the L3 twin's predictive shadow.</li><li>State and health data to L6 control-room overlays and SCADA.</li><li>Event streams through L4 Orchestration.</li></ul>
 <h3>Soft real-time, not hard</h3>
 <p>These lines are soft real-time: a late or dropped sample degrades a prediction but does not endanger hardware. That relaxed guarantee is what lets the twin run a 50-100 ms predictive shadow, and what lets GNNs impute occasional dropped signals from sensor topology without breaking the control loop below.</p>

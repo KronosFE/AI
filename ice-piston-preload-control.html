@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the ICE-PISTON does</h2>
 <p>High-field REBCO magnets must be mechanically preloaded so that Lorentz forces during energization do not drive conductor motion or exceed the irreversible strain limit. Kronos's ICE-PISTON is a cryogenic preload mechanism that applies and maintains this clamping force as the magnet cools and charges. L1 controls its sequence deterministically and verifies it against strain feedback.</p>
 <h3>The sequence</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <p>Preload is not a single step. As the cold mass contracts during cooldown, the preload set-point tracks a schedule; as current ramps to the operating field, Lorentz load rises and the mechanism holds the structure in compression. L1 executes this as a state machine with interlocks: each phase transition requires strain, temperature, and force to be within window before the next phase is allowed.</p>
 <ul><li>Cooldown: preload tracks thermal contraction of the winding pack.</li><li>Energization: preload maintained against rising Lorentz load.</li><li>Steady field: strain held inside the REBCO envelope.</li><li>Fault: controlled release path coordinated with the quench dump.</li></ul>
 <h2>Coupling to protection</h2>

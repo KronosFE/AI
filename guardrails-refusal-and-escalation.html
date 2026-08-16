@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Refusal is a feature</h2>
 <p>A copilot that always answers is dangerous. Kronos copilots are designed to refuse or escalate in well-defined situations: when a requested action would leave the envelope, when the request exceeds the copilot's authority, when the grounding evidence is insufficient, or when the twin state is stale or low-confidence. Refusal with a clear reason is the correct output, not a shortfall.</p>
 <h3>Refusal triggers</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — when"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae3-when.mp4" type="video/mp4"></video><figcaption>Kronos motion — when</figcaption></figure>
+
 <ul><li>Action would exit the certified safe operating envelope</li><li>Request exceeds copilot authority (e.g. changing a standing rule)</li><li>Insufficient grounding: no adequate retrieved evidence or twin support</li><li>Stale or low-confidence twin state for a time-critical question</li><li>Request implies a claim the copilot must not make (e.g. pre-FOAK net gain)</li></ul>
 <p>Each refusal names its trigger and, where possible, tells the operator what would make the request answerable — a fresher twin snapshot, a scope with more evidence, or a supervisor's authority. Escalation routes the request to a human or to a higher-authority workflow rather than dropping it.</p>
 <div class="lang">text</div><pre><code>decide(request, state, evidence):

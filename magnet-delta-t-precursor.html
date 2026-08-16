@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The physics of the precursor</h2>
 <p>A quench begins when a small region of REBCO conductor exceeds its current-sharing temperature and transitions from superconducting to normal. Ohmic heating in that normal zone raises the local temperature, and the zone can propagate. Because REBCO has a slow normal-zone propagation velocity, detection cannot wait for the zone to grow &mdash; the local <b>&Delta;T</b> and its time derivative are the actionable early signature.</p>
 <h3>Sensing approach</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>Kronos co-instruments the winding: distributed fiber thermometry and resistance thermometers report absolute temperature; co-wound voltage taps report the resistive voltage that appears as soon as a segment goes normal. The trip criterion combines a temperature-rate threshold d(&Delta;T)/dt and a resistive-voltage threshold, so a genuine normal zone is separated from inductive pickup and coolant transients.</p>
 <h2>Detection math</h2>
 <p>In the simplest form the balance is C dT/dt = Q_joule &minus; Q_cooling, where a forming normal zone injects Q_joule = I&sup2;R_normal locally. The comparator watches for d(&Delta;T)/dt exceeding a bound that cooling cannot produce, catching the event while R_normal is still small and the current can still be commutated cleanly.</p>

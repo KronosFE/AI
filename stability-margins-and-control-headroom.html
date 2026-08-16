@@ -427,7 +427,7 @@ def headroom(u_command, u_max):
 
 # a 1 kHz crossover with 50 us total delay keeps healthy phase margin
 print(round(phase_margin_deg(1000, 50e-6), 1))   # ~162 deg (illustrative)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>How margins are spent</h3>
 <ul><li>Loop delay eats phase margin: every microsecond of latency in the reflex path consumes phase at crossover.</li><li>Model error eats gain margin: an off-nominal plant shifts the effective gain.</li><li>Disturbances eat headroom: a vertical kick or a fueling transient demands authority the loop must have in reserve.</li></ul>
 <p>This is why latency is a safety property, not just a performance one: the phase-margin equation ties the <a href=./sub-10us-latency-budget.html>latency budget</a> directly to stability. A loop redesigned to be faster is not gold-plating; it is buying back the margin that model uncertainty and disturbances will spend.</p>

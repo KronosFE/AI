@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>No exploration on hardware</h2>
 <p>Classical reinforcement learning explores by trying actions and observing outcomes. On a fusion machine, an exploratory action is a candidate disruption or a coil overstress. Kronos therefore uses <b>offline</b> RL exclusively: policies are learned from the fixed dataset of logged breeder and burner pulses, plus twin-generated rollouts, with no live exploration whatsoever.</p>
 <p>Offline RL has a characteristic hazard: the policy can favor actions that are rare or absent in the data, where value estimates are unfounded optimism. Kronos uses conservative algorithms (such as CQL and implicit-Q-learning style objectives) that penalize out-of-distribution actions, keeping the learned policy near the support of the logged behavior. The policy is pulled toward what has actually been observed to be safe.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h3>Offline-RL safeguards</h3>
 <ul><li>Conservative value estimation penalizing OOD actions</li><li>Behavior-cloning regularization toward logged policies</li><li>Uncertainty-aware action selection; abstain when unsure</li><li>Twin-based evaluation before any real-data claim</li><li>Standard gate + shadow + canary chain before authority</li></ul>
 <div class="lang">python</div><pre><code># Conservative Q-learning objective (schematic)

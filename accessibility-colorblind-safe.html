@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Accessibility is an operational requirement</h2>
 <p>In a safety-critical control room, accessibility is not a courtesy — an operator who cannot reliably read a display is an operational risk. Kronos L6 is built so that no critical information depends on color perception, fine visual acuity, or ideal lighting. The bar is that the interface remains fully usable in grayscale and under degraded viewing conditions.</p>
 <h3>Redundant encoding</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>Every meaning carried by color is also carried by at least one other channel — shape, position, texture, or an explicit label. An alert is not merely a color; it has an icon, a position in the triage stream, and text. A low-confidence region on the twin is not merely dimmed; it is hatched. This redundancy is what makes color-vision deficiency, which affects roughly one in twelve men, a non-issue rather than a hazard.</p>
 <ul><li>Color never sole carrier: shape/position/texture/label always back it up</li><li>Contrast meets accessibility thresholds at each display's viewing distance</li><li>Type scales with distance: wall glyphs and console text sized for their range</li><li>CVD simulation over every screen (protan / deutan / tritan) before release</li><li>Motion used sparingly and never as the only cue, to respect motion sensitivity</li></ul>
 <h3>Testing, not assuming</h3>

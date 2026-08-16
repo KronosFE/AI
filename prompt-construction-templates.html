@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Prompts are versioned artifacts</h2>
 <p>A copilot's prompt is not free-form text written per request; it is a versioned template with slots. The template fixes the copilot's role and machine, states the hard constraints (envelope, refusal rules, economics prohibition, honest-framing rules), declares the tool contract, and specifies the output schema. Request-specific content — twin-state summary, retrieved evidence, the question — fills the slots.</p>
 <h3>Template sections</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design tool"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt14-design-tool.mp4" type="video/mp4"></video><figcaption>Kronos motion — design tool</figcaption></figure>
+
 <ul><li>Role and machine: 'Plasma Copilot for the breeder (Hyperion)'</li><li>Hard constraints: stay in envelope, cite sources, no economics, no net-gain claims</li><li>Tool contract: the bounded tools available this turn and their schemas</li><li>Output schema: answer + citations + uncertainty + any proposal object</li></ul>
 <div class="lang">text</div><pre><code>TEMPLATE plasma_copilot v7:
   [ROLE]    You advise on {machine}. You propose; you never actuate.

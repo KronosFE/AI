@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Staying inside the validated envelope</h2>
 <p>Every deployed model has an explicit validity envelope: the region of operating space over which it was trained and validated. Regime drift detection watches the live plasma state vector and asks a single question each cycle: is the machine still inside the envelope of the model currently relying on this state? Outside it, the model's predictions are extrapolations and must not carry authority.</p>
 <p>For the breeder this envelope is expressed in confinement and stability coordinates (normalized beta, q95, Greenwald fraction, triangularity around the canonical negative delta -0.30). For the burner it is expressed in mirror-confinement coordinates (plug field toward the 26.49 T design point, mirror ratio, ambipolar potential). Crossing a boundary is not an error; it is expected as campaigns explore. The response is to gate, not to force the model.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plasma state"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/i1-plasma-state.mp4" type="video/mp4"></video><figcaption>Kronos motion — plasma state</figcaption></figure>
+
 <h3>Envelope representation</h3>
 <ul><li>Convex hull / one-class SVM around training-set operating points</li><li>Mahalanobis distance from the training centroid in state space</li><li>Per-axis hard limits derived from physics constraints</li><li>Density estimate flagging low-support regions</li></ul>
 <div class="lang">python</div><pre><code>def in_envelope(state, mu, cov_inv, d_max):

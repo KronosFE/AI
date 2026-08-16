@@ -424,7 +424,7 @@ X_pred = [f_twin(x, u) for x in ensemble]
 K      = cross_cov(X_pred, H(X_pred)) @ inv(cov(H(X_pred)) + R_meas)
 ensemble = [x + K @ (y - H(x)) for x in X_pred]
 x_hat  = mean(ensemble); P = cov(ensemble)   # estimate + uncertainty</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state estimation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt3-state-estimation.mp4" type="video/mp4"></video><figcaption>Kronos motion — state estimation</figcaption></figure>
+
 <p>The ensemble spread P is the twin's uncertainty, and it flows everywhere: MPC tightens its envelope when P grows, the anomaly ensemble scales its forecast-residual test by P, and operators see calibrated confidence. Imputed channels enter with inflated measurement noise R_meas, so reconstructed data widens uncertainty rather than falsely sharpening it.</p>
 <h3>Why not a simple filter</h3>
 <p>A linear filter would misrepresent the nonlinear equilibrium and confinement physics and could produce over-confident, biased estimates near the strongly nonlinear operating points that matter most, the pedestal, the plug throat. The ensemble/unscented approach propagates uncertainty through the true nonlinear model, so the twin's confidence stays honest across the operating space.</p>

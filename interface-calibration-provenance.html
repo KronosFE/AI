@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Trust travels with the number</h2>
 <p>Across both machines' 60+ ports, no layer is allowed to act on a bare number. Each engineering-unit value carries a provenance record: which calibration produced it, when, with what uncertainty, and whether the calibration is still valid. This interface defines and enforces that record.</p>
 <h2>Provenance fields</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — calibration"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt12-calibration.mp4" type="video/mp4"></video><figcaption>Kronos motion — calibration</figcaption></figure>
+
 <ul><li>Calibration polynomial/gain and its reference standard.</li><li>Calibration epoch and validity window (drift-based expiry).</li><li>Stated uncertainty for the channel.</li><li>Health status: valid / suspect / masked.</li></ul>
 <div class="lang">python</div><pre><code># provenance gate before any layer uses a value
 def trusted(reading):

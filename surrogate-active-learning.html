@@ -424,7 +424,7 @@ while budget:
     y = high_fidelity_solve(x_query)     # Monte Carlo / FEM / MHD
     dataset.add(x_query, y)
     retrain_surrogates(dataset)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — active learning"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ml11-active-learning.mp4" type="video/mp4"></video><figcaption>Kronos motion — active learning</figcaption></figure>
+
 <p>The acquisition function balances epistemic uncertainty (learn where the model is ignorant) against control relevance (prioritize regions the machine actually operates in and the safety-critical edges of the envelope). This concentrates fidelity on the negative-triangularity pedestal for the breeder and the plug-throat/ambipolar region for the burner, exactly where control tolerance is tightest.</p>
 <h3>Continual retraining</h3>
 <p>Pre-FOAK the design still changes, so surrogates are retrained in batch at L0 as geometries and parameters update, then re-validated before redeployment. Post-FOAK, plant telemetry becomes the richest data source: divergence between shadow and plant flags where the surrogate is wrong, active learning targets those regions, and retraining folds real data in. This is the loop that keeps the twin faithful as materials activate and the machine ages under neutron fluence.</p>

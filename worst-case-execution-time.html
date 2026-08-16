@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Definition</h2>
 <p>WCET is the maximum time a computation can take over all admissible inputs and system states. For Kronos's control plane, WCET is not an empirical maximum from a test campaign; it is derived from the structure of the logic itself, then confirmed by measurement. Only when the analytic bound and the measured bound agree is a path admitted to a protection function.</p>
 <h3>Why fabric makes WCET tractable</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>On a CPU, WCET analysis must account for caches, pipelines, speculation, and OS interference, producing loose and fragile bounds. On FPGA fabric, a fully pipelined datapath has a WCET equal to its depth times the clock period &mdash; input-independent by construction. A depth-30 pipeline at 5 ns/cycle has a WCET of 150 ns, exactly, with no data dependence.</p>
 <h2>Handling data-dependent logic</h2>
 <p>Where an algorithm has variable iteration &mdash; an iterative equilibrium solve, for example &mdash; L1 either bounds the iteration count with a hard cap and a defined fallback, or moves the algorithm off the critical path entirely. A capped Newton step for the breeder's fast equilibrium delta runs a fixed number of iterations and returns the best available correction; the uncapped high-fidelity solve lives at L3.</p>

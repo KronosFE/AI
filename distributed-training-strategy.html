@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>When one GPU is not enough</h2>
 <p>Some Kronos models are too large or their datasets too big for a single GPU. Distributed training spreads the work across many devices, but naively splitting a model can wreck both efficiency and reproducibility. Kronos chooses a parallelism strategy per model, matched to whether the bottleneck is data volume, model size, or both.</p>
 <h3>Three axes of parallelism</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <p>Data parallelism replicates the model and splits the batch, synchronizing gradients with an all-reduce each step; it suits models that fit on one GPU but have large datasets. Tensor parallelism splits a single layer's math across GPUs for models too big to fit; pipeline parallelism splits the model into stages across devices. Large jobs combine them.</p>
 <ul><li>Data parallelism: split the batch, all-reduce gradients</li><li>Tensor parallelism: split individual layers</li><li>Pipeline parallelism: split the model into staged layers</li><li>Hybrid combinations for the largest models</li></ul>
 <h3>Communication is the constraint</h3>

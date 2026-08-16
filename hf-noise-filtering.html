@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Noise in a high-field machine</h2>
 <p>The electromagnetic environment of a 16.84 T machine carrying 9.86 MA is hostile. Switching transients, the ICE-PISTON preload cycle, and coupling between the megampere plasma current and low-level diagnostics all inject noise. Analog rejection at the <a href=./signal-conditioning-front-end.html>front end</a> handles most common-mode pickup; digital filtering after sampling removes what remains without discarding real signal.</p>
 <h3>Filter design against physics bandwidth</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>Each channel has a known physics bandwidth. The filter is designed to pass that band and reject above it: a linear-phase FIR where group-delay flatness matters (magnetics used for phase-sensitive mode analysis), an IIR where latency must be minimal. Cutoffs are stored with the channel so any later analysis knows the exact band retained.</p>
 <div class="lang">python</div><pre><code>import numpy as np
 # simple linear-phase FIR low-pass (windowed sinc)

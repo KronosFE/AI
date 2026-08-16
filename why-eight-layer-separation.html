@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The case for eight</h2>
 <p>The layer count is not arbitrary. Kronos chose eight so that each layer contains functions of a single latency class and a single safety criticality — no layer mixes microsecond determinism with hour-long training, and no layer mixes hardware protection with strategy.</p>
 <h3>What each boundary buys</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — safety factor"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh5-safety-factor.mp4" type="video/mp4"></video><figcaption>Kronos motion — safety factor</figcaption></figure>
+
 <ul><li>L0 | L1 — separates offline compute from hard real-time; a training job cannot stall a control loop.</li><li>L1 | L2 — separates deterministic actuation from best-effort telemetry.</li><li>L2 | L3 — separates data curation from model inference; data faults are not model faults.</li><li>L3 | L4 — separates prediction from orchestration and safety bounds.</li><li>L4 | L5 — separates routing and rules from applications and copilots.</li><li>L5 | L6 — separates reasoning from presentation to humans.</li><li>L6 | L7 — separates in-plant experience from external ecosystem integration.</li></ul>
 <h3>Why not fewer</h3>
 <p>Collapsing layers would couple concerns that must stay independent. Merging L1 and L3, for example, would put AI inference on the safety path — precisely what the architecture forbids. Merging L2 and L3 would blur the line between a bad sensor and a bad model. Each boundary exists to make a specific failure mode diagnosable.</p>

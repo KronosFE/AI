@@ -427,7 +427,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 
   small lambda_k -&gt; smooth eigenvectors (low graph frequency)
   large lambda_k -&gt; oscillatory (high graph frequency)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — constellation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/diagnostic-constellation.mp4" type="video/mp4"></video><figcaption>Kronos motion — constellation</figcaption></figure>
+
 <h3>Graph Fourier and filtering</h3>
 <p>Projecting a sensor signal onto the eigenvectors is the graph Fourier transform. Smoothing keeps low-frequency components (physically coherent fields), while high-frequency energy flags noise or a localized anomaly. This is the formal basis of the Laplacian smoothness term used in imputation, and of spectral anomaly scores.</p>
 <div class="lang">python</div><pre><code># graph Fourier smoothing / anomaly energy (schematic)

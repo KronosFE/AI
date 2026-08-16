@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The control objective</h2>
 <p>In the D-3He tandem-mirror burner, central-cell confinement is set by the ambipolar potential established by the dense end plugs at 26.49 T. Too little plug density and the confining potential dip weakens and the central cell leaks; too much and plug power and stability suffer. Plug-density control is the MPC that holds the plug density, and hence the potential profile, at the target for good central-cell confinement.</p>
 <h3>Model and actuation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <p>The prediction model is the ambipolar-potential PINN: given plug fueling and heating it predicts the plug density and the resulting potential profile phi(z), and hence central-cell confinement, across the horizon. The actuators are end-plug fueling, plug heating (ECH/neutral-beam), and the DEC collector potentials that set the boundary condition on phi.</p>
 <div class="lang">python</div><pre><code># plug-density / potential MPC (burner)
 minimize over u = (fuel_plug, P_heat, V_dec)[0..N-1]:

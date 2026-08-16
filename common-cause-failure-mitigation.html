@@ -424,7 +424,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
     return independent + common      # common term sets the floor
 
 print(system_pfd(1e-2, n=3, beta=0.05))   # ~5e-4, floored by CCF</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — power balance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa2-power-balance.mp4" type="video/mp4"></video><figcaption>Kronos motion — power balance</figcaption></figure>
+
 <h3>How Kronos drives beta down</h3>
 <ul><li>Physical diversity: back the digital reflex with an analog/latching failsafe on a different principle.</li><li>Supply diversity: source redundant sensors and controllers from different lines where feasible.</li><li>Power and clock domain separation so one rail or one clock cannot take all channels.</li><li>Software diversity and staggered updates so a single firmware bug does not deploy everywhere at once.</li><li>Procedural diversity: independent calibration and installation checks to break shared human error.</li></ul>
 <p>Environmental CCF gets specific attention on these machines: neutron and gamma fields, strong magnetic fields, cryogenic temperatures, and vacuum all stress electronics in correlated ways. Safety electronics are sited, shielded, and rated so that a single environmental excursion does not exceed the qualified envelope of an entire redundant set at once.</p>

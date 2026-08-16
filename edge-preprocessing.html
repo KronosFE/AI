@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Compute at the source</h2>
 <p>Not all processing can afford a round trip to the data center. The fabric runs a first pass of validation and feature extraction at the edge, on hardware close to the machine, so the fastest features are ready inside the control loop's budget and the data volume shipped upstream is reduced. This mirrors the edge-to-cloud latency gradient of the wider architecture.</p>
 <h3>What runs at the edge</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Anti-alias handling, HF filtering, and first-pass range and dead-sensor checks.</li><li>Fast features the loop needs immediately: strain deltas, mode amplitudes, plug density.</li><li>Compression before uplink, to fit the link's bandwidth.</li><li>Timestamp de-embedding, so upstream data arrives already time-aligned.</li></ul>
 <h3>Edge versus cloud split</h3>
 <p>The split is set by latency and information needs. Features required within the sub-10 microsecond control neighborhood are computed at the edge; heavy inversions like the full core pressure map and the offline multi-physics Monte Carlo run in the data center on L0. The <a href=./feature-store-online-offline.html>parity contract</a> guarantees a feature computed at the edge matches the same feature recomputed from the archive.</p>

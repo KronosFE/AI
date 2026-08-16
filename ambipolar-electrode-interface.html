@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Confinement by potential</h2>
 <p>In a tandem mirror, the central-cell ions are confined not only by the magnetic mirror but by an <b>electrostatic ambipolar potential</b> raised in the end plugs. Controlling that potential is as central to the burner as current control is to a tokamak. This interface reads the potential profile and drives it via plug heating and bias electrodes.</p>
 <h2>Sense and actuate</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <div class="lang">python</div><pre><code># ambipolar potential regulation (burner)
 phi_z = estimate_potential(emissive_probes, endloss_analyzer)
 u     = potential_ctrl(phi_z, phi_ref, twin)
@@ -428,7 +428,7 @@ bias_electrode(u.V_bias)    # trim end potential
 <p>The controlled quantity is the confining <b>potential dip</b> between plug and center, not an absolute voltage. Emissive probes and end-loss ion analyzers estimate the potential profile; plug heating (raising the hot-electron population) and bias electrodes are the actuators.</p>
 <h2>Coupling and gates</h2>
 <ul><li>Tightly coupled to <a href=./plug-density-fueling-interface.html>plug density</a> &mdash; density and potential are not independent.</li><li>Subject to the same un-post-dictable <b>166&ndash;830&times;</b> regime gate: the potential dynamics have no experimental precedent at this scale.</li><li>Sense side timestamped by L2; setpoint by L3; actuation by L1.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d1-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — tandem mirror</figcaption></figure>
+
 <p>Owner: L3 for the potential setpoint, L1 for heating/bias actuation. Because the mirror's confinement rests on holding this potential in an untested regime, the interface is documented with explicit uncertainty rather than an implied performance guarantee. Design-and-simulation specification; the burner is not built.</p><div class="related"><h3>Related</h3><a href="./plug-density-fueling-interface.html">Plug-density fueling interface &rarr;</a><a href="./plug-coil-actuation-interface.html">Plug-coil actuation interface &rarr;</a><a href="./sensor-actuator-map-burner.html">Burner sensor to actuator map &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

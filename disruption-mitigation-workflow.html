@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Predict, then act within bounds</h2>
 <p>A disruption is a sudden loss of the breeder plasma's confinement that can damage the machine. The twin (L3) forecasts disruption risk from real-time diagnostics; when risk crosses a threshold, orchestration triggers a pre-planned mitigation sequence. Because this is a protective action it runs at high priority, but it still passes the <a href=./safety-envelope-checks.html>envelope</a> and rate checks, since a mitigation that itself violates magnet limits helps nothing.</p>
 <h2>The mitigation decision</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — disruption handled"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac5-disruption-handled.mp4" type="video/mp4"></video><figcaption>Kronos motion — disruption handled</figcaption></figure>
+
 <div class="lang">python</div><pre><code>if twin.disruption_risk &gt; RISK_TRIGGER and twin.uncertainty &lt; UNC_MAX:
     action = mitigation_plan(state)          # e.g. controlled termination / injection
     if envelope_ok(action) and rate_ok(action):

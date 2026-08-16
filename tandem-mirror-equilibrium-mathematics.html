@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
     particle reflects if  v_par^2 &lt; v_perp0^2 (R_m - 1)
     mirror ratio R_m = B_max / B_min
     Burner: throat 17 T, plug 26.49 T set the mirror ratios</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>Paraxial force balance</h3>
 <p>In the paraxial (long-thin) limit, radial force balance across the narrow flux bundle relates plasma pressure, magnetic field, and field-line curvature. The axial variation of B, density, and potential is solved as a coupled 1D system. This replaces the 2D elliptic Grad-Shafranov solve with an axial two-point boundary-value problem.</p>
 <div class="lang">text</div><pre><code>Paraxial radial pressure balance (schematic):
@@ -439,7 +439,7 @@ Axial (parallel) force balance with anisotropy:
   p_par, p_perp : parallel/perpendicular pressures (anisotropic)
   Phi(z)        : ambipolar electrostatic potential</code></pre>
 <h3>Why this is a design-and-simulation study</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <p>The tandem-mirror equilibrium the burner needs sits far outside any built device. The plug operating regime is 166-830x beyond experimental experience, so the equilibrium cannot be post-dicted against data today - it is a simulation construct. The stack treats every burner equilibrium quantity as carrying that extrapolation risk, and reports it, rather than presenting the solve as validated.</p>
 <ul><li>State variables: B(z), n(z), Phi(z), p_par(z), p_perp(z) along axis.</li><li>Boundary data: plug/throat fields (26.49 T / 17 T), end-cell conditions.</li><li>Confinement set jointly by mirror ratio and ambipolar potential.</li></ul>
 <p>The same PINN and estimation machinery used on the breeder is retargeted to this 1D axial operator, but the honesty requirement is stronger: with no comparable device, uncertainty bands dominate and are surfaced to every consumer.</p><div class="related"><h3>Related</h3><a href="./ambipolar-potential-mathematics.html">Ambipolar Potential Mathematics &rarr;</a><a href="./mirror-interchange-stability.html">Mirror Interchange Stability &rarr;</a><a href="./pinn-burner-ambipolar-formulation.html">PINN for the Ambipolar Potential &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>

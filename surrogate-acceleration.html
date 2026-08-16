@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The speed requirement</h2>
 <p>A first-principles solve, Monte Carlo neutron transport, finite-element equilibrium and thermomechanics, ideal-MHD eigenvalue analysis, can take minutes to hours. The predictive shadow needs a full coupled state every few tens of milliseconds. The gap is many orders of magnitude, and no amount of hardware closes it directly. Kronos closes it by replacing the online solve with surrogates, models trained offline to reproduce the expensive solver's output at a fraction of the cost.</p>
 <h3>Kinds of surrogate Kronos uses</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Physics-informed networks: equilibrium, stability, ambipolar potential (physics in the loss)</li><li>Neural operators: learn solution operators for parametric transport/thermal fields</li><li>Reduced-order models: project high-dimensional fields onto dominant modes</li><li>Distilled Monte Carlo: fast neutronics surrogates trained on offline transport runs</li></ul>
 <p>The choice per module depends on the physics. Where a governing PDE is known and enforceable, PINNs give physics-grounded surrogates. Where the map is from parameters to full fields (neutron flux over the blanket, temperature over the divertor), neural operators learn the solution operator and generalize across parameters. Reduced-order models exploit that these fields live near a low-dimensional manifold.</p>
 <h3>Offline cost, online speed</h3>

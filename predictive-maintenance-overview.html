@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From reactive to predictive</h2>
 <p>Maintenance can be reactive (fix on failure), preventive (fix on a fixed schedule), or predictive (fix when telemetry says a component is heading toward failure). Predictive maintenance is the highest-leverage resiliency strategy because it converts unplanned outages - which hit availability hardest - into planned openings scheduled between campaigns. This is central to defending the 0.86-0.995 envelope.</p>
 <h3>The pipeline</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — maintenance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac9-maintenance.mp4" type="video/mp4"></video><figcaption>Kronos motion — maintenance</figcaption></figure>
+
 <ul><li>Acquire: continuous telemetry from magnets, cooling, RF, vacuum, diagnostics</li><li>Feature: extract health indicators (trend, spectral content, residual growth)</li><li>Estimate: remaining-useful-life models per component</li><li>Schedule: place maintenance in the next opening before predicted failure</li><li>Verify: reconcile prediction against what teardown actually finds</li></ul>
 <div class="lang">python</div><pre><code>def maintenance_decision(rul_hours, next_opening_hours, safety_margin=1.5):
     # act at the opening only if RUL comfortably clears the following opening

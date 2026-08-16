@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Slow and absolute</h2>
 <p>A flux loop is a conductor around a closed path; the voltage across it integrates to the magnetic flux enclosed. Where Mirnov coils give fast fluctuations, flux loops give the slow, absolute magnetic state. Together they span the frequency range the fabric needs: loops for equilibrium, coils for stability.</p>
 <h3>Feeding equilibrium</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — magnetic bottle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab2-magnetic-bottle.mp4" type="video/mp4"></video><figcaption>Kronos motion — magnetic bottle</figcaption></figure>
+
 <p>Equilibrium reconstruction — solving Grad-Shafranov for the breeder's flux surfaces — is constrained by the magnetics. Flux loops and pickup coils supply the boundary and internal magnetic measurements the PINN fits. The quality of the negative-triangularity shape estimate (delta -0.30) rests directly on well-calibrated loop signals.</p>
 <h3>The integrator drift problem</h3>
 <ul><li>Integrating a voltage accumulates any offset into baseline drift over a long shot.</li><li>The fabric tracks and corrects this baseline via <a href=./calibration-drift-tracking.html>drift tracking</a> and cross-checks against redundant loops.</li><li>A loop whose baseline walks beyond bounds is flagged and its contribution down-weighted in the fit.</li></ul>

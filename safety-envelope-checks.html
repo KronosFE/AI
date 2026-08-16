@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Beyond scalar limits</h2>
 <p>Individual quantities can each be legal while their combination is unsafe. The safety-envelope checker evaluates the joint operating point: for the breeder, a plasma current, shape, and pressure combination that risks a vertical displacement or a disruption; for the burner, a plug-to-throat mirror ratio and beta combination that risks losing plug confinement. It is state-dependent, evaluated against the current reconstructed machine state.</p>
 <h2>Envelope as a region</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <div class="lang">python</div><pre><code>def in_envelope(cmd, state):
     proj = project_state(state, cmd)          # predicted next operating point
     return all([

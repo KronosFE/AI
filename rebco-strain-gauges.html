@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Watching the magnets</h2>
 <p>REBCO high-temperature-superconductor magnets carry the fields that define both machines — 16.84 T peak in the breeder, 26.49 T at the burner's plugs — and with those fields come immense Lorentz loads. Strain gauges bonded across the winding pack and its structure measure the resulting deformation, the raw input to the magnet-strain-delta feature and to structural-health monitoring.</p>
 <h3>Sensitivity and environment</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Gauges resolve microstrain, so front-end gain and drift correction are critical.</li><li>They operate cold, in high field, under neutron flux, so their sensitivity is drift-tracked continuously.</li><li>Bonded sensors relax mechanically over load cycles, a drift the fabric models explicitly.</li><li>Signals cross the boundary through cryo-rated feedthroughs characterized for parasitics.</li></ul>
 <h3>Baseline and delta</h3>
 <p>The gauge's absolute reading includes the static ICE-PISTON preload. The fabric subtracts the preload baseline to yield the operational <a href=./magnet-strain-deltas.html>strain delta</a>, the quantity the twin and failsafe act on. A delta trending toward its structural envelope is a quench-and-mechanical precursor.</p>

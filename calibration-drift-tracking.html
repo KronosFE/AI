@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Calibration is data</h2>
 <p>A raw ADC count means nothing without the calibration that maps it to physical units: gain, offset, feedthrough parasitics, filter delay, and sensor sensitivity. The fabric stores this per channel and applies it as the first step of normalization. Because the calibration is versioned, any archived shot can be re-reduced with the exact calibration in force when it was taken.</p>
 <h3>Sources of drift</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — calibration"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt12-calibration.mp4" type="video/mp4"></video><figcaption>Kronos motion — calibration</figcaption></figure>
+
 <ul><li>Thermal drift in front-end gain and offset as the cryostat and hall temperatures move.</li><li>Neutron-induced changes in sensitivity, from 14 MeV neutrons in the breeder and the 5.44%-fraction flux in the burner.</li><li>Mechanical relaxation of bonded sensors such as REBCO strain gauges over load cycles.</li><li>Baseline wander in integrated diagnostics like flux loops.</li></ul>
 <h3>Detecting drift</h3>
 <p>Drift is detected against references and against redundancy: a channel that steadily disagrees more with its neighbors, or whose baseline walks between shots, is flagged. Where an in-situ reference exists, the fabric corrects continuously; where it does not, it flags the channel for the next calibration and lowers its quality score in the meantime.</p>

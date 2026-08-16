@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two-out-of-three, and why</h2>
 <p>A single sensor or channel can fail in a way that reads plausible but wrong. Kronos triplicates the most critical safety signals and votes them two-out-of-three (2oo3). A single deviating channel is outvoted, the machine keeps running on the agreeing pair, and the odd channel is flagged for maintenance. Two channels must fail the same way at the same time to defeat the vote, which is far less likely than one.</p>
 <table class="tt"><thead><tr><th>Ch A</th><th>Ch B</th><th>Ch C</th><th>Voted</th><th>Fault flag</th></tr></thead><tbody><tr><td>1</td><td>1</td><td>1</td><td>1</td><td>none</td></tr><tr><td>1</td><td>1</td><td>0</td><td>1</td><td>C</td></tr><tr><td>1</td><td>0</td><td>1</td><td>1</td><td>B</td></tr><tr><td>0</td><td>1</td><td>1</td><td>1</td><td>A</td></tr><tr><td>1</td><td>0</td><td>0</td><td>0</td><td>A</td></tr><tr><td>0</td><td>0</td><td>0</td><td>0</td><td>none</td></tr></tbody></table>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <div class="lang">python</div><pre><code>def vote_2oo3(a, b, c):
     voted = (a and b) or (a and c) or (b and c)
     disagree = [name for name, v in ((&#x27;A&#x27;,a),(&#x27;B&#x27;,b),(&#x27;C&#x27;,c)) if v != voted]

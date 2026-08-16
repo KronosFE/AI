@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The archive as ground truth</h2>
 <p>At the base of L0 sits the pulse-history archive: a petabyte-scale store of complete records from every pulse and every major simulation campaign for both machines. It is the memory of the whole system. Every retraining cycle, every refinement, and every audit reaches into this archive, which is why it is engineered for completeness and replay, not just capacity.</p>
 <h3>What a pulse record contains</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <p>A stored pulse is more than raw waveforms. It bundles the validated diagnostic streams from the full constellation, the engineered features, the twin's predictions and residuals, the control decisions, and the metadata and lineage needed to interpret them. A record is meant to be sufficient to reconstruct and re-analyze the pulse long after it occurred.</p>
 <ul><li>Validated multi-diagnostic telemetry</li><li>Twin predictions and predicted-versus-actual residuals</li><li>Control decisions and actuation traces</li><li>Calibration state, provenance, and lineage</li></ul>
 <h3>Replay, not just storage</h3>

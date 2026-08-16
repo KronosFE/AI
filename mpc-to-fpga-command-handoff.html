@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The seam between thinking and acting</h2>
 <p>Kronos's MPC agents at L3 solve an optimization over a 50&ndash;100 ms predictive horizon: given the twin's forecast, what trajectory of coil currents, beam power, fueling, or DEC voltages best meets the objectives while respecting constraints? The answer is a <b>setpoint trajectory</b>, not an instantaneous command. L1 is where that trajectory becomes physical action.</p>
 <h3>The handoff contract</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>L3 publishes the trajectory as advisory targets tagged with validity time. L1 accepts them only after validation &mdash; range, rate, and cross-consistency against the live state &mdash; then interpolates and executes them through the deterministic loops and drivers. If a new trajectory does not arrive in time, L1 continues on the last valid one; if targets go stale, it falls back to safe local control. The intelligent layer can never stall the machine.</p>
 <h2>Why MPC lives above L1</h2>
 <ul><li>MPC solve time is data-dependent &mdash; it cannot meet a 10 &micro;s deadline.</li><li>It optimizes over a horizon; L1 acts on the current instant.</li><li>Its constraints are soft objectives; L1's clamps are hard limits.</li><li>It can be improved offline without touching L1's certified logic.</li></ul>

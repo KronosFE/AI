@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One coherent snapshot</h2>
 <p>External consumers need to know what the plant is doing without touching how it does it. The plant state API answers that. It publishes a versioned snapshot assembled from the L3 KRONOS-CTRL twin: current operating mode, power export, availability, key physics summaries, isotope production rates, and health rollups. The snapshot is internally consistent (all fields share one twin timestamp) so a consumer never sees a state stitched from different instants.</p>
 <h3>What is exposed, and what is not</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <p>The read model is a projection, not a firehose. It exposes decision-relevant summaries: for the breeder, instantaneous tritium and helium-3 production rate against the ~4 kg/yr and ~1.97 kg/yr classes, neutron flux availability for services, and breeding balance under the active TBR lever; for the burner, net export power, direct-energy-conversion efficiency, and plug status abstracted to a single confidence. Raw microsecond diagnostics, control gains, and model weights are never exposed.</p>
 <div class="lang">python</div><pre><code># GET /v2/state  -&gt; coherent projection from the twin
 {

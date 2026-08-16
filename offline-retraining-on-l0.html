@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>L0 as the retraining substrate</h2>
 <p>Retraining is intentionally exiled to the L0 Foundation layer, the non-real-time compute base of the stack. L0 is allowed to be slow and thorough: multi-physics Monte Carlo neutronics, GPU-cluster PINN training, and petabyte-scale replay of pulse histories all run here. No retraining job ever runs on the L1 control plane, which must stay deterministic.</p>
 <p>Every retraining job is a first-class, reproducible unit of work. It pins its dataset version, its base-model version, its random seeds, its container image, and its hardware profile, then emits a signed artifact plus a lineage record. Two runs of the same job on the same inputs must produce byte-identical or tolerance-identical models; this is enforced, not hoped for. See <a href=./reproducible-training-runbooks.html>reproducible training runbooks</a>.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h3>Retraining triggers</h3>
 <ul><li>Scheduled cadence (e.g. after each breeder campaign block)</li><li>Drift breach flagged by <a href=./drift-detection-covariate-shift.html>drift monitors</a></li><li>New physics regime explored (breeder TBR lever 1.1/1.5/1.8, burner plug-density scan)</li><li>Incident-driven retrain after a postmortem</li><li>Active-learning request for high-value samples</li></ul>
 <div class="lang">python</div><pre><code># Retraining job manifest (pinned for reproducibility)

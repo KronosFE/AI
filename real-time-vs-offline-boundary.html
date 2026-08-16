@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The line that organizes everything</h2>
 <p>If the architecture has one central boundary, it is between the real-time world and the offline world. Below the line, timing is guaranteed and actions are irreversible; above it, compute is abundant and work can retry. Understanding where a function sits relative to this line explains most of its design.</p>
 <h3>Below the line</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — central column"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/b4-central-column.mp4" type="video/mp4"></video><figcaption>Kronos motion — central column</figcaption></figure>
+
 <ul><li>L1 Control Plane — sub-10-microsecond determinism.</li><li>The autonomous failsafe and deterministic interlocks.</li><li>The soft-real-time twin shadow that informs, but does not bypass, control.</li></ul>
 <h3>Above the line</h3>
 <ul><li>L0 batch retraining and Monte Carlo neutronics.</li><li>MLOps model validation and promotion.</li><li>Design sweeps and ecosystem scheduling.</li></ul>

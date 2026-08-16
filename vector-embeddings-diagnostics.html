@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Turning shots into vectors</h2>
 <p>An embedding maps a shot, or a window of diagnostic telemetry, into a fixed-length vector such that physically similar situations land close together. This lets the fabric answer 'what past shots looked like this one?' by nearest-neighbor search — invaluable when a copilot or operator faces an unfamiliar state on the breeder or the burner.</p>
 <h3>What the embedding captures</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — data assimilation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt5-data-assimilation.mp4" type="video/mp4"></video><figcaption>Kronos motion — data assimilation</figcaption></figure>
+
 <ul><li>The shape of key features over a window: mode activity, pressure profile, strain deltas.</li><li>Regime membership: ELM-free negative-triangularity for the breeder, plug-and-potential state for the burner.</li><li>Precursor signatures, so shots that preceded a disruption cluster together.</li><li>Machine and configuration context, so retrieval respects which machine it is.</li></ul>
 <h3>How the vectors are made</h3>
 <p>Embeddings are produced by models trained on the archive to preserve physical similarity — a shot with a locking mode embeds near other locking-mode shots. Because they are built from the same AI-ready features, they inherit their quality tags and lineage. The vectors are stored in the <a href=./rag-vector-database.html>vector database</a> for retrieval.</p>

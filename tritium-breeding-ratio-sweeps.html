@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>TBR as a swept design lever</h2>
 <p>Kronos treats the breeder's tritium breeding ratio as a design lever rather than a single fixed target, studying it across 1.1, 1.5, and 1.8. A parameter sweep on L0 launches many independent neutronics runs, each with different blanket composition, lithium-6 enrichment, multiplier fraction, and structural layout, and scores the TBR each configuration achieves.</p>
 <h3>An embarrassingly parallel campaign</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <p>Each configuration is independent, so the sweep is embarrassingly parallel: thousands of Monte Carlo jobs run concurrently with no cross-talk, ideal for elastic <a href=./cloud-hpc-and-bare-metal.html>cloud HPC</a>. The campaign fans out, each job traces its histories to a variance target, and results are gathered into a response surface over the design space.</p>
 <ul><li>Lithium-6 enrichment fraction</li><li>Neutron multiplier loading</li><li>Blanket thickness and coolant fraction</li><li>Structural and manifold penalties on breeding</li></ul>
 <h3>Reading the response surface</h3>

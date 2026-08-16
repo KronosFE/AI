@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>An accountable record of everything that happened</h2>
 <p>A fusion plant handling tritium (breeder) and operating under a nuclear-adjacent regulatory framework must be able to show, after the fact, exactly what happened and who did what. The audit view is the operator-facing window into that record: a searchable, attributable, tamper-evident timeline of alerts, acknowledgements, overrides, mode changes, escalations, and the model versions in effect at each moment.</p>
 <h3>What is recorded</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — override"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl12-override.mp4" type="video/mp4"></video><figcaption>Kronos motion — override</figcaption></figure>
+
 <ul><li>Every alert: when it fired, its confidence, its recommended action</li><li>Every operator action: who, what, when, and the reason if it was an override</li><li>Model provenance: which model version produced each acted-upon estimate</li><li>Escalations: who was paged, when acknowledged, what was decided</li><li>Mode and automation-level changes, with the authorizing identity</li><li>Shelved alarms and the justification for shelving</li></ul>
 <p>The record is generated automatically from the live systems, not curated by hand, so it cannot be edited by hand into a cleaner story — and it is tamper-evident so any alteration is detectable. Attribution ties every action to an identity, which is why mobile and console actions alike carry strong authentication: an unattributable action would be a hole in the record.</p>
 <h3>From audit to improvement</h3>

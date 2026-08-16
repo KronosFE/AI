@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A number without an error bar is incomplete</h2>
 <p>No simulation output is exact. A breeder TBR of 1.5 or a burner stability margin means little without knowing how uncertain it is. Uncertainty quantification (UQ) is the L0 discipline of attaching honest error bars to predictions by propagating the uncertainties in inputs, data, and models through to the outputs. It is what keeps Kronos results defensible.</p>
 <h3>Sources of uncertainty</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <p>Uncertainty enters from several places: statistical noise in Monte Carlo, uncertainty in nuclear <a href=./cross-section-data-pipeline.html>cross-section data</a>, uncertainty in plasma profiles and boundary conditions, and model-form error in surrogates and reduced models. UQ distinguishes these because they behave differently: statistical noise shrinks with more compute, while data and model uncertainty do not.</p>
 <ul><li>Statistical noise from stochastic sampling</li><li>Nuclear data and cross-section uncertainty</li><li>Input and boundary-condition uncertainty</li><li>Model-form error in surrogates and closures</li></ul>
 <h3>Propagation methods</h3>

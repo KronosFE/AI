@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Keeping the twin honest</h2>
 <p>The Kronos digital twin runs reduced-order and neural-operator surrogates fast enough for the real-time layers, but a surrogate is only as good as the physics it was trained on. Refinement is the MLOps process that closes the gap between what the twin predicts and what diagnostics actually measured, then folds that gap back into the surrogates on L0.</p>
 <p>Refinement is not recalibration of a single scalar; it is targeted retraining. Residuals between twin prediction and measurement are accumulated per module (MHD stability, neutronics, thermomechanics, power systems), and modules whose residuals exceed tolerance are queued for surrogate retraining with the newly labeled data. Modules within tolerance are left frozen so refinement stays surgical and auditable.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h3>The refinement cycle</h3>
 <ul><li>Collect prediction-vs-measurement residuals per twin module</li><li>Score fidelity against tolerance bands (see twin fidelity metrics)</li><li>Flag modules that breach and assemble a labeled refinement set</li><li>Retrain those surrogates on <a href=./offline-retraining-on-l0.html>L0</a></li><li>Validate, register, and re-inject via the <a href=./model-registry-promotion-states.html>registry</a></li></ul>
 <div class="lang">python</div><pre><code>def refine_twin(twin, pulses, tol):

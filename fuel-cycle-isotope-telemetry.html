@@ -418,12 +418,12 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Accounting for atoms</h2>
 <p>Both machines run on isotopes that must be measured, not assumed. The breeder consumes deuterium and tritium and breeds tritium in its blanket; the burner runs deuterium and helium-3. The fabric ingests telemetry from the fuel cycle — injection, exhaust, processing, and storage — to keep a live isotope balance.</p>
 <h3>Breeder balance</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fuel cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g1-fuel-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — fuel cycle</figcaption></figure>
+
 <ul><li>Tritium bred in the blanket, inferred with <a href=./neutron-fluence-mapping.html>neutron fluence mapping</a> and measured in processing.</li><li>Tritium consumed in the burn, from fusion rate via neutron flux.</li><li>The breeding ratio treated as a design lever across 1.1/1.5/1.8, driving toward the ~4 kg/yr tritium class.</li><li>Helium-3 produced from tritium decay, on the order of ~1.97 kg/yr.</li></ul>
 <h3>Burner balance</h3>
 <p>The burner's helium-3 supply is a strategic input, so its consumption is tracked closely against the deuterium feed. The fabric's isotope telemetry lets the operations copilot schedule fueling against available inventory — an operational, never economic, calculation.</p>
 <h3>Closing the loop in real time</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tritium cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/l3-tritium-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — tritium cycle</figcaption></figure>
+
 <p>Isotope balancing is a control feature, not just accounting: the fueling and blanket-processing systems act on it. The fabric fuses processing-plant telemetry with in-vessel diagnostics so the balance reflects both what the plasma is doing and what the plant has recovered. Lineage records every input to the balance. These are design and simulation specifications for machines whose FOAK breeder first tritium is expected near 2030.</p><div class="related"><h3>Related</h3><a href="./neutron-fluence-mapping.html">Neutron Fluence Mapping &rarr;</a><a href="./neutron-flux-diagnostics.html">Neutron Flux Diagnostics &rarr;</a><a href="./metadata-governance.html">Metadata Governance &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The invariants</h2>
 <p>Beneath the layers and colors sit a few invariants that no design change may break. They are the tests a proposed architecture must pass, derived from the physics of the machines and the discipline of the honest gates.</p>
 <h3>The four invariants</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — materials first"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a6-materials-first.mp4" type="video/mp4"></video><figcaption>Kronos motion — materials first</figcaption></figure>
+
 <ul><li>Latency classes never mix — a single path carries a single latency guarantee.</li><li>There is always a physical safety floor — the failsafe works with zero AI dependency.</li><li>Intelligence is always bounded — no AI output actuates without passing safety bounds.</li><li>Data is always traceable — every signal, model, and decision carries lineage.</li></ul>
 <h3>How the invariants are derived</h3>
 <p>Each invariant answers a specific hazard. Mixing latency classes would let a slow function delay a fast one — hazardous near the magnets, so it is forbidden. Depending on AI for the last line of defense would couple safety to the least predictable component — so a physical floor is mandatory. Unbounded intelligence could actuate on a wrong prediction — so bounds are mandatory. Untraceable data would make the honest gates unenforceable — so lineage is mandatory.</p>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Current as the master parameter</h2>
 <p>Plasma current I_p sets the poloidal field, the confinement, and the stability margins; the breeder's operating point targets <b>9.86 MA</b>. L1 regulates I_p by controlling the loop voltage the central solenoid and PF system impose, tracking a programmed current waveform through ramp-up, flat-top, and ramp-down.</p>
 <h3>The regulation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — central solenoid"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/j2-central-solenoid.mp4" type="video/mp4"></video><figcaption>Kronos motion — central solenoid</figcaption></figure>
+
 <p>L1 measures I_p from Rogowski/flux magnetics and compares against the reference waveform. The error drives the solenoid current-ramp command; because the plasma is inductively coupled, the controller accounts for mutual inductances so a solenoid change produces the intended I_p change without disturbing position and shape more than necessary. The control math is a coordinated multi-coil law executed in fabric.</p>
 <h2>Coupling and decoupling</h2>
 <ul><li>I_p, position, and shape share the same coil system.</li><li>The controller uses a decoupling matrix so each objective is addressable.</li><li>Current ramp rate is limited to respect field and force constraints.</li><li>Flat-top I_p held at 9.86 MA while shape and stability loops operate.</li></ul>

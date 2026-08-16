@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Deployment is the start, not the end</h2>
 <p>Once a model holds authority over the breeder or burner, monitoring is continuous and non-negotiable. Every cycle, monitors observe the model's inputs, outputs, self-reported uncertainty, inference latency, and agreement with independent physics checks. Monitoring exists to catch the moment a model that passed all gates begins to fail in the field, and to arm rollback before failure becomes fault.</p>
 <p>Monitoring is layered. Input monitors watch for <a href=./drift-detection-covariate-shift.html>covariate shift</a> and out-of-envelope operation. Output monitors watch for physically implausible commands, sudden distribution changes, and rate-limit approaches. Behavioral monitors compare the model against a cheap independent predictor and against the physics-based twin; large, sustained disagreement is a red flag even when each individual output looks plausible.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — learning physics"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f3-learning-physics.mp4" type="video/mp4"></video><figcaption>Kronos motion — learning physics</figcaption></figure>
+
 <h3>Monitored signals</h3>
 <ul><li>Input distribution and envelope membership</li><li>Output plausibility, saturation, and rate-limit proximity</li><li>Model self-reported uncertainty and abstention rate</li><li>Inference latency and jitter against the edge budget</li><li>Agreement with physics twin and with the incumbent shadow</li></ul>
 <div class="lang">python</div><pre><code>def monitor_cycle(model, state, out, twin, log):

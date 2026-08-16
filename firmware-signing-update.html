@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Updates are a privileged, rare event</h2>
 <p>Updating firmware on a control FPGA is one of the highest-consequence routine operations in the plant: it changes what runs on the actuation path. Kronos makes updates infrequent, signed, verified at load, monotonic in version, and delivered only through the controlled <a href=./airgaps-and-bridging.html>air-gap bridge</a> under <a href=./separation-of-duties.html>two-person control</a>. There is no over-the-internet auto-update to OT.</p>
 <h3>The update pipeline</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Build with provenance and SBOM - see <a href=./sbom-and-provenance.html>SBOM and provenance</a>.</li><li>Sign with a post-quantum firmware key (SLH-DSA root) - see <a href=./pqc-signatures-ml-dsa.html>PQC signatures</a>.</li><li>Import via the air-gap ceremony, re-signed with an OT-domain key at the import station.</li><li>Verify at load and enforce version monotonicity - see <a href=./fpga-bitstream-integrity.html>bitstream integrity</a>.</li><li>Re-attest after update so peers confirm the new measurement matches policy - see <a href=./remote-attestation-fpga.html>attestation</a>.</li></ul>
 <h3>Rollback protection</h3>
 <div class="lang">python</div><pre><code># Refuse older versions even if validly signed (anti-rollback)

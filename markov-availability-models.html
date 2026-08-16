@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>When structure is not enough</h2>
 <p>Reliability block diagrams assume components are simply up or down. Real plants have in-between states: degraded operation, awaiting-repair, in-repair, redundancy-exhausted. Markov models represent these as states with transition rates (failures and repairs), letting us compute the long-run fraction of time in each - including the degraded-but-serving states that graceful degradation creates.</p>
 <h3>A minimal model</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state estimation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt3-state-estimation.mp4" type="video/mp4"></video><figcaption>Kronos motion — state estimation</figcaption></figure>
+
 <p>Consider a unit with states UP, DERATE, DOWN. Failures move it down the ladder at rates driven by MTBF; repairs move it back up at rates driven by MTTR. The stationary distribution gives availability as time in UP plus a partial credit for time in DERATE.</p>
 <div class="mxt">rate matrix Q (from x to)</div><div class="matrix" style="grid-template-columns:repeat(3,auto)"><span style="grid-column:1;grid-row:1">-</span><span style="grid-column:2;grid-row:1">lam_ud</span><span style="grid-column:3;grid-row:1">lam_uD</span><span style="grid-column:1;grid-row:2">mu_du</span><span style="grid-column:2;grid-row:2">-</span><span style="grid-column:3;grid-row:2">lam_dD</span><span style="grid-column:1;grid-row:3">mu_Du</span><span style="grid-column:2;grid-row:3">mu_Dd</span><span style="grid-column:3;grid-row:3">-</span></div>
 <div class="lang">python</div><pre><code>import numpy as np

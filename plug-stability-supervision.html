@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The plug is the burner&#x27;s crux</h2>
 <p>The burner (Aegis / MetroVolt) is a D-3He tandem mirror whose end plugs (design field 26.49 T, throat 17 T) confine the central-cell plasma. Losing plug confinement ends the operating point. In steady state, orchestration runs a continuous plug-stability supervisor that watches plug field, mirror ratio, and stability indicators and issues small corrective setpoints through the full gating pipeline.</p>
 <h2>Supervisory loop</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plug field"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bdc6-plug-field.mp4" type="video/mp4"></video><figcaption>Kronos motion — plug field</figcaption></figure>
+
 <div class="lang">python</div><pre><code>while state == STEADY_STATE:
     s = twin.reconstruct()                     # plug field, mirror ratio, beta
     if s.stability_margin &lt; MARGIN_WARN:
@@ -430,7 +430,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Envelope in plug space</h2>
 <p>The <a href=./safety-envelope-checks.html>envelope checker</a> for the burner is expressed in plug-relevant coordinates: the joint region of plug field, throat field, mirror ratio, and beta that keeps confinement and stays within magnet ratings. A setpoint that individually looks fine but pushes the mirror ratio combination toward a loss-of-confinement boundary is rejected.</p>
 <h2>Two failure directions</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <ul><li>Toward instability: escalate corrective setpoints, then controlled safe-bleed if the margin keeps falling.</li><li>Toward magnet limits: rate-limit and clamp per the <a href=./rate-limiting-and-quotas-for-actuation.html>actuation limiter</a> so no correction exceeds the 26.49 T rating.</li><li>Sensor loss: hold last-known-safe and route to a <a href=./human-in-the-loop-approval-routing.html>human gate</a> rather than act on bad state.</li></ul>
 <h2>Continuous, checkpointed, simulated</h2>
 <p>Supervision is a long-running procedure that <a href=./long-running-procedure-checkpointing.html>checkpoints</a> continuously so a supervisor restart resumes without dropping the plug. As a design-and-simulation study with no built machine and no net-gain claim, plug supervision is validated against long-duration twin runs and fault injection.</p><div class="related"><h3>Related</h3><a href="./burner-campaign-orchestration.html">Burner Campaign Orchestration &rarr;</a><a href="./safety-envelope-checks.html">Safety-Envelope Checks &rarr;</a><a href="./long-running-procedure-checkpointing.html">Long-Running Procedure Checkpointing &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>

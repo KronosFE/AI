@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Priority by deadline</h2>
 <p>The pure reflexes run on dedicated FPGA fabric, but the deterministic supervisory tasks &mdash; equilibrium updates, slower position loops, telemetry framing &mdash; share real-time cores. Kronos schedules these with deadline-monotonic priority: the task with the shortest relative deadline gets the highest priority. This is optimal for fixed-priority scheduling of periodic tasks with deadlines no greater than their periods.</p>
 <h3>Schedulability, not hope</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — 14 mev materials test"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/14-mev-materials-test.mp4" type="video/mp4"></video><figcaption>Kronos motion — 14 mev materials test</figcaption></figure>
+
 <p>A response-time analysis proves each task finishes before its deadline under worst-case interference from higher-priority tasks. A task set is admitted only if every task passes.</p>
 <div class="lang">python</div><pre><code>def response_time(i, C, T, D):
     # C=WCETs, T=periods, D=deadlines; tasks sorted by deadline (i highest prio first)

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The ELM problem</h2>
 <p>Edge-localized modes (ELMs) are periodic edge instabilities that expel bursts of energy onto plasma-facing components. In high-confinement operation they can impose damaging transient heat loads on the divertor. The breeder's negative-triangularity design aims to access good confinement while avoiding the edge conditions that drive large ELMs &mdash; an ELM-free operating regime.</p>
 <h3>Control objective</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — reaching conditions"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac2-reaching-conditions.mp4" type="video/mp4"></video><figcaption>Kronos motion — reaching conditions</figcaption></figure>
+
 <p>L1's role is to keep the plasma inside that regime. This means holding the <a href=./shape-control-negative-triangularity.html>shape</a> at &delta; = &minus;0.30 and managing the edge pressure gradient and density so the edge does not cross into an ELMy state. The controller watches edge diagnostics for precursors that the regime is being approached at its boundary and adjusts fueling and shape to stay clear.</p>
 <h2>Edge monitoring</h2>
 <ul><li>Edge profile diagnostics (Thomson, ECE) for pressure gradient trends.</li><li>Magnetics for edge MHD activity.</li><li>Fueling and shape actuation to keep the edge in the safe window.</li><li>Divertor loads watched via the thermal-protection loop.</li></ul>

@@ -428,7 +428,7 @@ Update:
   K_k   = P^-_k H&#x27; (H P^-_k H&#x27; + R)^-1      (Kalman gain)
   x_k   = x^-_k + K_k ( z_k - H x^-_k )      (innovation correction)
   P_k   = (I - K_k H) P^-_k</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <h3>The gain balances trust</h3>
 <p>The Kalman gain K is the crux: it weights the measurement against the prediction by their relative uncertainties. When diagnostics are precise (small R), K is large and the filter trusts sensors; when the model is confident (small P^-), K is small and it trusts the prediction. This is exactly how the twin should behave as the breeder's diagnostics degrade or drop.</p>
 <div class="lang">python</div><pre><code># one Kalman cycle (schematic)

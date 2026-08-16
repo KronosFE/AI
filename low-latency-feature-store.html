@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One source of features</h2>
 <p>The feature store is the fabric's serving layer: the single place that engineered features — instantaneous Q, core pressure map, strain deltas, plug density — are read from, whether by the low-latency online path feeding control or the offline batch path building training sets. Making it the one source is what guarantees a model sees the same feature in training and in operation.</p>
 <h3>Online and offline</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Online: features computed and served fast enough to feed the twin's predictive shadow and the sub-10 microsecond control boundary.</li><li>Offline: the same feature definitions applied to archived series for retraining.</li><li>Parity is enforced by construction (see <a href=./feature-store-online-offline.html>online/offline parity</a>).</li><li>Every feature is served with its data-quality score and lineage handle.</li></ul>
 <h3>Latency budget</h3>
 <p>The store must serve within the loop's timing budget. It keeps recent features in memory, indexed by machine, channel set, and time, and precomputes the reductions that the twin requests repeatedly. Features that require heavy inversion (the pressure map) are computed once and shared, not recomputed per consumer.</p>

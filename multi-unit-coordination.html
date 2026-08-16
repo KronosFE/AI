@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Coordinating through the single door</h2>
 <p>Because every unit exposes the identical unified API, a fleet controller talks to twenty plants exactly as an operator talks to one. Multi-unit coordination is therefore a client of the same read and write planes, one tier up: it reads each unit's state and forecast and writes dispatch and maintenance intents back, while each unit's own L1 through L3 stack keeps final authority over its own safety.</p>
 <h3>What the coordinator balances</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — power balance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa2-power-balance.mp4" type="video/mp4"></video><figcaption>Kronos motion — power balance</figcaption></figure>
+
 <p>The coordinator solves an allocation across units: meet aggregate firm-power obligations from the burner fleet, meet isotope-production and offtake commitments from the breeder foundry, respect each unit's maintenance windows, and keep helium-3 flowing from foundry to fleet. These are the same constraints the dispatch optimizer and material graph express; the coordinator is where they meet at fleet scale.</p>
 <div class="lang">python</div><pre><code># fleet coordinator loop (each unit is an API client target)
 while True:

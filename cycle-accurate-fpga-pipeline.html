@@ -425,7 +425,7 @@ def pipeline_latency_ns(clk_hz):
 
 print(round(pipeline_latency_ns(250e6),1)) # 60.0 ns, deterministic
 # throughput is one result per cycle once the pipeline is full</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Design constraints that keep it exact</h3>
 <ul><li>No data-dependent branching in the datapath; use predicated logic.</li><li>Fixed-tap filters and lookup tables, so every path through the logic has equal depth.</li><li>No off-chip memory on the fast path; state lives in on-chip registers/BRAM.</li><li>Registered I/O with the same clock domain to avoid metastability on the boundary.</li></ul>
 <p>Because throughput is one sample per clock once the pipeline is primed, the fabric can service many channels concurrently without adding latency &mdash; each channel is a parallel lane, not a queued job. This is why the reflex tier can watch the full magnetics and quench-sensing constellation without falling behind.</p>

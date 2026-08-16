@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Defense in depth</h2>
 <p>The Kronos control philosophy layers protection: predictive orchestration (L4) aims to avoid faults, and hard-wired interlocks (below L1) catch what prediction misses. Interlocks are physical or firmware safety circuits that act in real time, with no dependence on the event plane, the twin, or the copilot. Orchestration integrates with them, observes their state, and defers to them, but never sits in their protective path.</p>
 <h2>Independence is the point</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <p>If the entire software stack, including L4, froze, the interlocks would still trip a breeder quench energy-dump or a burner magnet safe-state on their own. This is why the fast quench and over-current protection are hardware, not orchestration; the <a href=./quench-abort-orchestration.html>quench-abort workflow</a> coordinates the rest of the machine but the reflex is hard-wired.</p>
 <h2>Software-to-interlock contract</h2>
 <ul><li>Orchestration reads interlock status as high-priority events but cannot disable an interlock.</li><li>Every command respects interlock preconditions; a command that would violate one is rejected upstream at the <a href=./rules-engine-hard-bounds.html>rules</a> stage.</li><li>An interlock trip is a P0 event that preempts all procedures and forces a safe-state saga.</li></ul>

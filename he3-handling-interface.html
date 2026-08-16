@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two roles for one isotope</h2>
 <p>On the breeder, helium-3 appears as a byproduct (~1.97 kg/yr class) chiefly from tritium decay, separated in the tritium plant. On the burner it is the fusion fuel with deuterium. The handling interface therefore links a supply side (breeder plant) to a demand side (burner fueling), and it is where the fourth-order supply constraint becomes concrete.</p>
 <h2>The supply gate</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <p>A single commercial burner unit demands helium-3 at <b>~400&times; the domestic terrestrial supply</b>. This is a physics-and-inventory fact, not an economic one: the fuel does not exist at terrestrial scale, which is why breeder-bred helium-3 and, ultimately, lunar helium-3 are part of the fuel strategy. The interface tracks inventory against this gate explicitly.</p>
 <div class="lang">python</div><pre><code># helium-3 inventory vs demand (accountancy loop)
 supply  = breeder_he3_rate + external_receipts     # kg/yr class

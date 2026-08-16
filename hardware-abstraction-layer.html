@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why abstract the hardware at all</h2>
 <p>L0 spans cloud HPC and owned bare-metal, CPU-dense and GPU-dense nodes, high-latency and low-latency fabrics. If workloads addressed hardware directly, every neutronics study or PINN training run would encode brittle assumptions about node counts, memory, and topology. The hardware abstraction layer (HAL) removes those assumptions.</p>
 <h3>Declaring, not placing</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>A job declares a profile: what it needs, not where to run. A breeder blanket Monte Carlo run declares CPU histories, scratch bandwidth, and a reproducibility class. A burner ambipolar-potential surrogate training run declares GPUs, memory per device, and a checkpoint volume. The HAL resolves the profile to a concrete partition and places it.</p>
 <ul><li>Resource shape: CPU or GPU dominant, memory, scratch</li><li>Fabric class: latency-sensitive coupled or throughput-parallel</li><li>Reproducibility class: certified deterministic or elastic</li><li>Data affinity: proximity to the pulse archive</li></ul>
 <h3>Portability and reproducibility</h3>

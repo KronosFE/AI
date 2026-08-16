@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>No permanent superusers</h2>
 <p>Persistent administrative accounts are a standing liability: if compromised, they hand an attacker durable control. Kronos removes standing privilege from control systems. Elevated capability is requested for a specific task, granted for a bounded window, scoped to the minimum systems needed, and revoked automatically when the window closes. The default state of every account is low privilege.</p>
 <h3>Just-in-time elevation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — power balance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa2-power-balance.mp4" type="video/mp4"></video><figcaption>Kronos motion — power balance</figcaption></figure>
+
 <div class="lang">python</div><pre><code># JIT grant: scoped, time-boxed, second-party approved for high tiers
 def grant(request):
     if request.tier == &#x27;high&#x27; and not two_person_ok(request):  # SoD

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The right tool per tier</h2>
 <p>Kronos does not favor one silicon; it matches fabric to requirement. GPUs deliver throughput for offline multi-physics and model training at L0. CPUs give flexible, ordered coordination at L2/L3. FPGAs give bounded, jitter-free timing at L1. Only the FPGA can promise a cycle-exact deadline, which is why it owns the fast loops on both machines.</p>
 <h3>Latency and determinism</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>CPU: microsecond-to-millisecond response, but variance from caches, interrupts, and scheduling makes worst-case bounds loose.</li><li>GPU: enormous parallel throughput, but kernel launch and batching add latency and jitter unfit for a 10 &micro;s deadline.</li><li>FPGA: sub-microsecond, cycle-exact response with WCET fixed by pipeline depth.</li></ul>
 <h2>A comparison</h2>
 <table class="tt"><thead><tr><th>Fabric</th><th>Deterministic</th><th>Fast loop role</th></tr></thead><tbody><tr><td>FPGA</td><td>yes</td><td>protection + inner loops</td></tr><tr><td>CPU</td><td>no</td><td>supervisory + config</td></tr><tr><td>GPU</td><td>no</td><td>offline training only</td></tr></tbody></table>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Isolation as a safety property</h2>
 <p>A deterministic control plane must be protected from anything that could inject latency, jitter, or unauthorized commands &mdash; including from the network. Kronos isolates the L1 safety-critical layer from general-purpose and external networks, so its timing and behavior cannot be perturbed by traffic or actors outside the machine's control domain. Isolation here is a determinism and safety measure, described operationally, not a product claim.</p>
 <h3>Controlled crossings</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Telemetry egress to L2 is one-directional where feasible &mdash; data out, no command in.</li><li>Setpoint ingress from L3 passes the validation gate before it can act.</li><li>Configuration and bitstream loading happen only in defined maintenance states.</li><li>Every crossing is authenticated and logged.</li></ul>
 <p>The principle mirrors the layer boundary: information may cross, but the ability to compromise timing or force an unsafe actuation must not. A setpoint that arrives from above is data to be validated, never a trusted command &mdash; exactly the discipline the whole control plane applies to any external input.</p>
 <h2>Why the failsafe is immune</h2>

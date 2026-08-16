@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why twins drift</h2>
 <p>A validated twin does not stay validated forever. Neutron fluence activates and embrittles materials, magnets settle, sensors age, and surfaces erode, so the real machine slowly departs from the model that once matched it. If unnoticed, this drift silently degrades every L3 decision. Kronos treats drift monitoring as a permanent background function of the twin.</p>
 <h3>How drift is detected</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Innovation statistics: a biased or growing shadow-to-plant divergence over time</li><li>Residual trends: rising equilibrium reconstruction or coupling residuals at healthy states</li><li>Calibration checks: periodic re-evaluation of fidelity and uncertainty calibration</li><li>Baseline creep: the autoencoders' healthy-state reconstruction error rising</li></ul>
 <p>The key discrimination is drift versus anomaly. A sudden divergence is an anomaly (a physical event); a slow, systematic divergence at nominal operating points is drift (a stale model). Kronos separates these by timescale and persistence, so a drifting model triggers recalibration while a sharp event triggers the anomaly response, and the two do not mask each other.</p>
 <h3>Correction</h3>

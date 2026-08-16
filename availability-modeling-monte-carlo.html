@@ -428,7 +428,7 @@ def sim_availability(comps, years, n, rng=np.random.default_rng(0)):
         up += alive_frac
     return up / n
 # sweeping input assumptions yields the 0.86-0.995 envelope</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <h3>Inputs and their honesty</h3>
 <ul><li>Component MTBF/MTTR - many are estimated pre-FOAK, hence a range not a point</li><li>Redundancy structure - N+1/N+2 at unit and fleet level</li><li>Degradation coupling - predictive maintenance shifts failures to planned openings</li><li>Correlated / common-mode events - modelled explicitly, not assumed away</li></ul>
 <h3>Reading the result against the gate</h3>

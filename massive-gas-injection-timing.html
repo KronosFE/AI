@@ -425,7 +425,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 ok, t = injection_ok(open_delay_ms=0.5, transit_ms=1.0,
                      assimilate_ms=1.5, budget_ms=8.0)
 assert ok</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — wall loading"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa7-wall-loading.mp4" type="video/mp4"></video><figcaption>Kronos motion — wall loading</figcaption></figure>
+
 <h3>Why pre-arming matters</h3>
 <p>The valve or pellet mechanism has an irreducible mechanical opening delay. If the injector is only armed at the moment mitigation is decided, that delay is spent inside the disruption budget. Kronos pre-arms the injectors when avoidance confidence falls, so that at the decision instant only the fire command remains &mdash; converting a mechanical delay into a near-instant release.</p>
 <ul><li>Multiple injectors distributed toroidally give redundancy and more uniform assimilation.</li><li>Pre-arm on falling avoidance confidence; fire on the mitigation trigger.</li><li>Fail-safe on the injector itself: loss of hold releases toward the safe (mitigating) action.</li></ul>

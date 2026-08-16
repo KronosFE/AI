@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Commands, not direct control</h2>
 <p>External parties do not drive actuators. They submit intents: a grid operator requests a power setpoint, an isotope customer requests a neutron-service window, a maintenance planner requests an outage slot. The dispatch command API receives these, validates them, and stages them into the L1 control plane where the twin and the safe operating envelope have final say. The separation means an external system can never bypass plant physics or safety.</p>
 <h3>Exactly-once, envelope-bounded</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <p>Every write carries an idempotency key so a retried or duplicated request executes at most once. Every write is checked against the certified envelope before staging. For the burner, a requested export above the direct-energy-conversion limit is clamped to the limit and the caller is told it was clamped; for the breeder, a neutron-service request that would perturb the breeding balance below the active TBR target under lever 1.1/1.5/1.8 is deferred, not forced.</p>
 <div class="lang">python</div><pre><code>def submit_dispatch(cmd):
     if seen(cmd.idempotency_key):

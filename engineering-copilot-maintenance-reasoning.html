@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Condition-based maintenance reasoning</h2>
 <p>The Engineering Copilot plans maintenance from condition rather than a fixed calendar. It combines subsystem-analysis trends, triaged anomaly events, and cumulative-exposure models — most importantly neutron fluence on the breeder's plasma-facing and structural components driven by the 88.7 MW / 14 MeV neutron output — to estimate remaining margin and recommend when and what to inspect or replace.</p>
 <h3>Inputs to a maintenance plan</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — remote op"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac10-remote-op.mp4" type="video/mp4"></video><figcaption>Kronos motion — remote op</figcaption></figure>
+
 <ul><li>Degradation trends from subsystem analysis (strain, delta-T, activation)</li><li>Cumulative neutron fluence and material-property projections</li><li>Remote-handling and access constraints inside an activated vessel</li><li>Retrieved procedures, part lead times (as schedule facts), and prior interventions</li></ul>
 <p>The copilot reasons explicitly about activation and remote handling: after significant neutron exposure many interventions must be performed by remote handling, which reshapes the plan. It cites the <a href=./activation-and-damage-modeling.html>activation and damage modeling</a> and neutron-fluence maps rather than asserting exposure levels.</p>
 <div class="lang">text</div><pre><code>plan_maintenance(component):

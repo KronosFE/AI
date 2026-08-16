@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The state vector</h2>
 <p>A controller acts on a state estimate x: for the breeder, quantities like plasma current, vertical and radial position, shape moments, and stored energy; for the burner, plug density, ambipolar potential, and mirror-cell conditions. L1's ingress path builds this vector every cycle from the diagnostics constellation and hands a validated, time-coherent x to the control loops.</p>
 <h3>Feeding the estimate</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plasma state"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/i1-plasma-state.mp4" type="video/mp4"></video><figcaption>Kronos motion — plasma state</figcaption></figure>
+
 <p>Inputs arrive from Thomson scattering, interferometry, Mirnov coils, flux loops, ECE, fast-ion trackers, neutron flux, and magnet strain, through cryo-rated vacuum feedthroughs. Each channel is sampled on the shared clock so the assembled vector is a single-instant snapshot. Fabric performs range checks, spatial normalization, and unit conversion before any value enters x.</p>
 <h2>Validation before use</h2>
 <ul><li>Range and rate checks reject impossible readings.</li><li>Cross-checks compare redundant or physically related channels.</li><li>Dropped channels are flagged; L3's GNN imputer can fill them.</li><li>A validity mask travels with x so downstream logic knows what to trust.</li></ul>

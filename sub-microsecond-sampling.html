@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why sub-microsecond</h2>
 <p>The control-relevant physics of both machines has structure below the microsecond. Mirnov coils see MHD modes whose rotation and growth are resolved only when the sampler is faster than the mode. In the burner, the ambipolar potential and end-plug density can move on comparably short timescales. Sampling below the microsecond is what lets the <a href=./anomaly-precursor-features.html>precursor features</a> exist at all; a slow sampler simply cannot represent a fast quench precursor.</p>
 <h3>The Nyquist floor</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plug field"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bdc6-plug-field.mp4" type="video/mp4"></video><figcaption>Kronos motion — plug field</figcaption></figure>
+
 <p>For a diagnostic with meaningful spectral content up to f_max, faithful reconstruction requires a sample rate above 2*f_max (see Nyquist and aliasing). The fabric sets each channel's rate from its physics bandwidth, not a single global clock rate, then anti-alias filters the front end to that rate. Magnetics and ECE run fastest; slower thermal and strain channels are sampled proportionately.</p>
 <div class="lang">python</div><pre><code># per-channel rate from physics bandwidth, then guard
 def sample_rate(f_max_hz, guard=2.5):

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Wrong labels are worse than no labels</h2>
 <p>Supervised models are only as correct as their labels. A breeder pulse mislabeled as non-disruptive teaches a precursor detector to ignore a real precursor; a burner transient mislabeled as nominal teaches a monitor to stay quiet during an off-normal event. Kronos treats labels as versioned artifacts with explicit provenance and confidence, never as ground truth taken on faith.</p>
 <p>Labels come from several sources of differing reliability: automated derivation from physics signals, expert human annotation, and consensus across multiple annotators. Each label records its source, the labeler, a confidence, and any disagreement. Low-confidence and disputed labels are surfaced for review rather than silently used, and their influence in training can be down-weighted.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — disruption handled"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac5-disruption-handled.mp4" type="video/mp4"></video><figcaption>Kronos motion — disruption handled</figcaption></figure>
+
 <h3>Label metadata</h3>
 <ul><li>Source: automated rule, single expert, or multi-annotator consensus</li><li>Labeler identity and, for humans, expertise weighting</li><li>Confidence and inter-annotator agreement</li><li>Revision history — labels can be corrected, never overwritten silently</li><li>Link to the exact pulse segment and features labeled</li></ul>
 <div class="lang">python</div><pre><code>label = {

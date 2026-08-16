@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Scarce, exclusive machine time</h2>
 <p>Both machines are single, exclusive resources: only one campaign owns the breeder or the burner at a time. The scheduler decides what runs next from a queue of approved experiment plans, using priority classes, and can preempt a running plan when a higher-priority need arises, above all a safety action.</p>
 <h2>Priority classes</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Class</th><th>Example</th><th>Preempts</th></tr></thead><tbody><tr><td>P0 safety</td><td>quench abort, disruption mitigation</td><td>everything</td></tr><tr><td>P1 commissioning</td><td>new operating-point validation</td><td>P2,P3</td></tr><tr><td>P2 campaign</td><td>planned parameter sweep</td><td>P3</td></tr><tr><td>P3 opportunistic</td><td>background diagnostics</td><td>nothing</td></tr></tbody></table>
 <h2>Preemption is graceful</h2>
 <p>Preemption never yanks the machine. A preempted breeder shot is brought to a safe stop through its saga compensations before the higher-priority plan starts; the preempted plan is re-queued with its progress checkpointed. A P0 safety action is the exception that runs immediately through the abort path, which itself leaves the machine safe.</p>

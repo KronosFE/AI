@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Protecting the plasma-facing surface</h2>
 <p>The first wall and plasma-facing components absorb radiated and conducted power from the plasma. On the breeder, edge-localized transients and the negative-triangularity edge condition set the loads; on the burner, the central-cell and throat regions see intense flux. This interface senses surface heat flux and temperature and can act to protect the wall.</p>
 <h2>Sense-to-actuate chain</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — countdown first plasma"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae14-countdown-first-plasma.mp4" type="video/mp4"></video><figcaption>Kronos motion — countdown first plasma</figcaption></figure>
+
 <div class="lang">python</div><pre><code># first-wall protection (L1/L3)
 q_surf = infer_heatflux(ir_thermography, thermocouples)
 if q_surf &gt; q_limit or dT_dt &gt; ramp_limit:
@@ -428,7 +428,7 @@ if q_surf &gt; q_limit or dT_dt &gt; ramp_limit:
 <p>The protective actions escalate: seed a radiating impurity to spread the load, cut auxiliary power, and only then abort. The fast options (gas seeding, beam notch) live in L1 because they must act within milliseconds; the slow trend (surface erosion, hot-spot growth) is tracked by the twin.</p>
 <h2>Sensing</h2>
 <ul><li>Infrared thermography of the wall and divertor surface.</li><li>Embedded thermocouples at component roots.</li><li>Cross-link to <a href=./divertor-thermography-interface.html>divertor thermography</a> and the <a href=./divertor-expander-interface.html>expander interface</a>.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — first wall"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/j3-first-wall.mp4" type="video/mp4"></video><figcaption>Kronos motion — first wall</figcaption></figure>
+
 <p>Owner: L1 for the fast protection trigger, L3 for heat-flux inference and erosion trending. Calibration ties IR emissivity and thermocouple response to reference conditions. Design-and-simulation specification; the loop is validated against the twin before hardware commissioning and no operational net-gain is implied.</p><div class="related"><h3>Related</h3><a href="./divertor-expander-interface.html">Divertor and expander interface &rarr;</a><a href="./divertor-thermography-interface.html">Divertor thermography interface &rarr;</a><a href="./neutral-beam-injector-interface.html">Neutral-beam injector interface &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Detecting a stuck controller</h2>
 <p>A controller can fail silently &mdash; hung, stalled, or looping &mdash; while its last output lingers on an actuator. Watchdog timers catch this. Each controller must periodically service (kick) a hardware watchdog; if it fails to within the timeout, the watchdog assumes the controller is dead and forces the guarded actuator to its safe state.</p>
 <h3>Heartbeats across the fabric</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — traffic controller"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab8-traffic-controller.mp4" type="video/mp4"></video><figcaption>Kronos motion — traffic controller</figcaption></figure>
+
 <p>Beyond a single watchdog, L1 nodes exchange heartbeats on the deterministic fabric so peers and supervisors know each node is alive and on time. A missing heartbeat is treated like a fault: authority is withdrawn from the silent node and its actuators default safe, per each function's <a href=./fail-safe-vs-fail-operational.html>fail-safe or fail-operational</a> disposition.</p>
 <h2>Design points</h2>
 <ul><li>Watchdog timeout set below the actuator's safe-response requirement.</li><li>The kick must depend on the controller actually completing its work, not a dumb timer.</li><li>Watchdog action is hardware, independent of the controller it guards.</li><li>Heartbeat loss is logged and raises a supervisory alarm.</li></ul>

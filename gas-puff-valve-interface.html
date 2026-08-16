@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Role in the fueling mix</h2>
 <p>Gas puffing is the fast, edge-localized complement to deep pellet fueling on the breeder, and it is also used for edge density and radiative control. On the burner it feeds the plug and central cell. The interface commands piezoelectric servo valves that respond in milliseconds &mdash; far faster than a pellet but with shallow deposition.</p>
 <h2>Command and interlock</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <div class="lang">python</div><pre><code># gas-puff flow command (L1)
 flow_cmd = density_mpc(n_e_edge, n_ref).fast
 if plenum_P_ok and vac_valve_open and not disruption_lock:

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Storage as a compute resource</h2>
 <p>At L0 scale, storage is not passive; it is a performance resource. Monte Carlo campaigns write large tallies, training jobs stream shards continuously, and refinement studies replay old pulses at speed. The storage array architecture is designed for parallel high-bandwidth access, because a starved storage system throttles the compute it feeds.</p>
 <h3>Parallel and tiered</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <p>The archive uses a parallel file system striping data across many devices so that many nodes can read and write concurrently at aggregate bandwidth no single device could reach. Fast NVMe scratch sits close to compute for active jobs, while the bulk archive holds the full petabyte history on higher-capacity media, connected by the escalation and staging logic.</p>
 <ul><li>Parallel file system striped for aggregate bandwidth</li><li>NVMe scratch near compute for active jobs</li><li>Bulk capacity tier for the full pulse archive</li><li>Redundancy and integrity checking across devices</li></ul>
 <h3>Matching storage to workload</h3>

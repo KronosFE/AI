@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Quench is a P0 event</h2>
 <p>In the breeder's high-field superconducting magnet system (design peak 16.84 T), a quench, the loss of superconductivity, must be handled immediately to protect the coils. Quench abort is a P0 priority that preempts any running procedure through the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a> and executes a pre-authorized safe-state sequence using an emergency <a href=./command-authorization-and-tokens.html>token</a> so it is never blocked.</p>
 <h2>The abort sequence</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — shutdown"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac8-shutdown.mp4" type="video/mp4"></video><figcaption>Kronos motion — shutdown</figcaption></figure>
+
 <div class="lang">text</div><pre><code>&gt;&gt;&gt; QUENCH DETECTED (L1 hardware detection, fastest path)
 L1 fires hardware protection immediately (energy dump) -- does NOT wait on L4
 L4 in parallel:

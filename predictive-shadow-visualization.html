@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Showing the near future honestly</h2>
 <p>The KRONOS-CTRL twin runs a predictive shadow 50-100 ms ahead of the real plant. L6 renders that lookahead as a distinct, clearly-labeled forecast alongside the live state — never blended into it. The operator sees two things at once: where the machine is, and where the twin expects it to be shortly, with the uncertainty of that expectation drawn explicitly.</p>
 <h3>Forecast, not fact</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <p>The forecast is visually differentiated from measured state — a lighter weight, a leading marker, an explicit horizon label — so it can never be mistaken for data. As the horizon extends, a fan chart widens to show growing uncertainty, honest about the fact that a 100 ms projection is less certain than a 20 ms one. When the forecast's epistemic uncertainty grows large, the display says the twin is extrapolating beyond confident ground.</p>
 <div class="lang">python</div><pre><code>def draw_shadow(live, shadow):
     plot(live.t, live.y, style=&#x27;measured&#x27;)          # solid, current

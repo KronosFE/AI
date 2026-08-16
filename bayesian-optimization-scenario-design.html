@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 Expected Improvement acquisition:
   EI(x) = E[ max(0, f_best - f(x)) ]
         = (f_best-mu) Phi(z) + sigma phi(z),  z=(f_best-mu)/sigma</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <h3>Acquisition functions balance the trade</h3>
 <p>The acquisition function turns the surrogate's mean and variance into a score for where to sample next. Expected improvement, upper-confidence-bound, and knowledge-gradient all trade exploitation (sample where the mean is good) against exploration (sample where variance is high). This is how BO avoids wasting simulations while still discovering better regions of scenario space.</p>
 <div class="lang">python</div><pre><code># one BO iteration (schematic)

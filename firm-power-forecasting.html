@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Forecasting availability, not weather</h2>
 <p>A fusion source is not intermittent like wind or solar, so forecasting is not about weather; it is about the machine. The question is: over the next hours to weeks, how much export can this unit firmly commit to, and with what confidence? L7 answers by combining the L3 twin's health and confidence estimates, the maintenance service loop's planned outages, and fuel (helium-3) availability into a probabilistic availability forecast.</p>
 <h3>Inputs to the forecast</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grid firm power"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/r5-grid-firm-power.mp4" type="video/mp4"></video><figcaption>Kronos motion — grid firm power</figcaption></figure>
+
 <ul><li>Twin confidence: per-module health and remaining-useful-life on magnets, DEC train, plug</li><li>Planned outages: scheduled maintenance windows from the service loop</li><li>Fuel supply: committed helium-3 inventory and inbound deliveries</li><li>Historical de-rate: distribution of unplanned trips from fleet learning</li></ul>
 <div class="lang">python</div><pre><code># probabilistic availability for unit i over horizon h
 # returns firm level p_firm with confidence 1-alpha

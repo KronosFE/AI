@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The lab notebook for models</h2>
 <p>Model development generates thousands of runs; without systematic tracking, the knowledge of what was tried and what worked evaporates. Kronos logs every run — training, HPO trial, evaluation, backtest — with its configuration, metrics, environment, and output artifacts into a central tracking store. This is the queryable lab notebook behind every model in the registry.</p>
 <p>Tracking is distinct from the registry: the registry holds artifacts eligible to act on a machine; tracking holds the full experimental history, including the failures. A promoted model links back to the exact tracked run that produced it, and that run links to its HPO campaign, its dataset, and its code. The chain is unbroken from a deployed controller to the first exploratory experiment.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <h3>Tracked per run</h3>
 <ul><li>Config and hyperparameters, seed, code commit, container digest</li><li>Metrics over training: loss, validation error, calibration</li><li>Dataset and feature versions consumed</li><li>Output artifacts and their hashes</li><li>Links to parent campaign and to registry entry if promoted</li></ul>
 <div class="lang">python</div><pre><code>with tracker.run(project=&#x27;breeder/equilibrium&#x27;) as run:

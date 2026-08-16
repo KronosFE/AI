@@ -428,7 +428,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 
 def hotspot_ok(detect_ms, dump_time_ms, allowable_ms):
     return (detect_ms + dump_time_ms) &lt;= allowable_ms</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quench protection"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/y3-quench-protection.mp4" type="video/mp4"></video><figcaption>Kronos motion — quench protection</figcaption></figure>
+
 <h3>The budget that must be met</h3>
 <p>The whole chain &mdash; detect, briefly confirm, fire the dump, extract the current &mdash; must complete inside the conductor's allowable hot-spot time, or the local temperature exceeds safe limits. Detection therefore favors fast, robust indicators; confirmation is just long enough to reject noise; and the dump path is pre-armed so firing is immediate.</p>
 <ul><li>Detect: normal-zone voltage and complementary indicators, voted for robustness.</li><li>Confirm: a short window to reject transients, never long enough to blow the hot-spot budget.</li><li>Dump: irreversible energy extraction into external resistors, fail-safe on loss of hold.</li></ul>

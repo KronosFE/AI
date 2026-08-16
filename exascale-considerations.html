@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What exascale means for Kronos</h2>
 <p>Exascale is only useful where a workload can consume it without falling apart on communication or losing reproducibility. Kronos has both kinds of workload. Monte Carlo neutronics scales almost perfectly and would happily absorb exascale-class throughput; tightly coupled implicit multi-physics solves hit communication walls long before that.</p>
 <h3>The workloads that scale</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — breed prove scale"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g3-breed-prove-scale.mp4" type="video/mp4"></video><figcaption>Kronos motion — breed prove scale</figcaption></figure>
+
 <p>Particle transport is the exascale-friendly case. Each neutron history is independent, so a breeder blanket TBR study or a burner 5.44 percent neutron-fraction shielding study partitions cleanly across an enormous node count. The limit is not coupling but variance: more cores buy more histories, and error falls as one over the square root of history count.</p>
 <h3>The workloads that resist</h3>
 <p>Implicit MHD and coupled thermomechanics resist naive scaling. They exchange halo data every iteration, so at extreme node counts communication dominates and the strong-scaling curve flattens. Here the frontier is set by the <a href=./interconnect-fabric.html>interconnect</a> and the solver's communication-avoidance, not by adding nodes.</p>

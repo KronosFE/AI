@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What notching does</h2>
 <p>Beam notching is the rapid, brief removal of neutral-beam power. When L1 detects a fast precursor &mdash; a disruption cue on the breeder or a plug/potential fault on the burner &mdash; cutting beam drive can arrest an instability that the beam was feeding, or protect beam hardware from an adverse plasma state. It is fast, reversible, and low-regret, which makes it a first-response protection lever.</p>
 <h3>Timing</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>Notching must land inside the fast-protection window. The command path &mdash; precursor detection, arbitration at protection priority, delivery to the beam driver, and power cut &mdash; is engineered within the deterministic bound so the notch takes effect before the instability has grown. The beam driver supports a fast power step precisely so this actuation is available on demand.</p>
 <h2>Why reversible protection matters</h2>
 <ul><li>A notch removes drive without terminating the discharge.</li><li>If the precursor clears, power ramps back and operation continues.</li><li>If it does not, slower mitigation proceeds with time bought.</li><li>Low false-trip cost encourages sensitive, early triggering.</li></ul>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Rehearsing decisions safely</h2>
 <p>Operators need to ask 'what if' — what if we push end-plug density, what if we take the breeder shape closer to its stability edge, what if a diagnostic drops mid-shot. The what-if console lets them explore these against the KRONOS-CTRL twin in a strictly offline sandbox. It shares the twin's physics and the live interface's look, but it is firewalled from actuation: nothing done here can reach the real machine.</p>
 <h3>How a scenario runs</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — what is twin"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt1-what-is-twin.mp4" type="video/mp4"></video><figcaption>Kronos motion — what is twin</figcaption></figure>
+
 <p>A scenario starts from either the current live state (snapshotted) or a saved/recorded state, then applies proposed changes and runs the twin forward. The operator sees the projected trajectory with its uncertainty, the envelope margins it would consume, and any precursors it would raise — the same surfaces they use live, so intuition transfers directly. Because the twin exposes confidence, the console also shows where a scenario pushes the model out of its trained distribution and therefore where the projection is least trustworthy.</p>
 <div class="lang">python</div><pre><code>scn = twin.sandbox(from_state=live.snapshot())   # isolated copy, no actuation
 scn.set(&#x27;plug_density_setpoint&#x27;, +5e18)            # burner what-if

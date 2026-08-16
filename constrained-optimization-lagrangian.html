@@ -425,7 +425,7 @@ Lagrangian:
 Stationarity:  grad_x L = 0
 Dual function: d(mu,nu) = min_x L(x,mu,nu)
 Dual problem:  max_{mu&gt;=0, nu} d(mu, nu)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <h3>Weak and strong duality</h3>
 <p>The dual function is always a lower bound on the primal optimum (weak duality); for convex problems satisfying a constraint qualification the bound is tight (strong duality), so primal and dual optima coincide. Convex problems - the QPs in MPC, Tikhonov-regularized reconstruction - enjoy strong duality, which is why they solve reliably and their multipliers are meaningful.</p>
 <div class="lang">python</div><pre><code># multipliers reveal constraint sensitivities (shadow prices)

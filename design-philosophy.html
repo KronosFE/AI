@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Principles before components</h2>
 <p>The Master Blueprint follows a small set of principles that resolve the hard trade-offs of running a fusion plant with AI. When two designs conflict, these principles decide.</p>
 <h3>The five principles</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <ul><li>Safety is physical. The last line of defense — quench dump, vacuum interlock — is deterministic hardware with zero AI dependency.</li><li>Intelligence is bounded. Every AI output passes through rules and safety bounds before it can actuate.</li><li>Data is the asset. Telemetry is curated, governed, and lineage-tracked as a first-class product, not a byproduct.</li><li>Layers are contracts. Each layer exposes an explicit interface and can be tested and certified in isolation.</li><li>The twin is the source of truth. Control reasons over the predictive twin, and the twin is continuously reconciled with the real machine.</li></ul>
 <h3>How the principles interact</h3>
 <p>The principles are ordered. Safety overrides intelligence; if a model is uncertain, the plant degrades to conservative, deterministic control rather than trusting a shaky prediction. Data quality underwrites the twin; a governed data fabric is what lets the twin be trusted as truth. Layer contracts are what make all of this auditable.</p>

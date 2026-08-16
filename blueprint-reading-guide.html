@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>How to read a blueprint diagram</h2>
 <p>The Master Blueprint diagrams pack a great deal into a single page. Read in a fixed order, they are unambiguous. This guide is the order Kronos engineers use.</p>
 <h3>The four questions, in order</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <ul><li>Which layer? Find the horizontal band — L0 at the bottom to L7 at the top — to know the role and latency class.</li><li>Which color? The block's color gives its function — governance, infrastructure, operations, AI, reactor, feedback, or framing.</li><li>Which line? The connection style gives the latency class — microsecond real-time, standard telemetry, or offline batch.</li><li>Which termination? Follow the block to the named subsystem it touches — a magnet, a feedthrough, the divertor, the DEC train.</li></ul>
 <h3>The checks the order enables</h3>
 <p>Reading in this order makes violations pop out. A pink block on the sub-10-microsecond path (a feedback function on the safety line) is wrong. A standard-telemetry line touching the command boundary is wrong. A yellow AI block wired straight to an orange actuator without passing through a purple/gray safety gate is wrong. The grammar is designed so that mistakes look like mistakes.</p>

@@ -422,7 +422,7 @@ maximize  sum_i  I(shot_{pi(i)})  -  sum_i  t_setup( pi(i-1) -&gt; pi(i) )
 #   I(shot)      expected information gain (from twin/surrogate model)
 #   t_setup      reconfiguration time between successive shots
 # a prize-collecting sequencing / TSP-like structure -&gt; NP-hard</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — 14 mev materials test"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/14-mev-materials-test.mp4" type="video/mp4"></video><figcaption>Kronos motion — 14 mev materials test</figcaption></figure>
+
 <h3>Ising encoding of an ordering</h3>
 <p>An ordering is encoded with position-indexed binaries x_{s,p} = 1 if shot s occupies position p, with permutation constraints as penalties, the same recipe as the traveling-salesman Ising map, then handed to <a href=./qaoa-fundamentals.html>QAOA</a> or a <a href=./quantum-annealing-vs-gate-model.html>quantum annealer</a>.</p>
 <div class="lang">text</div><pre><code>H = -sum_{s,p} I_s x_{s,p}

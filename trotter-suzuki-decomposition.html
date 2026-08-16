@@ -429,7 +429,7 @@ def trotter2(H_terms, t, r):
     for Hj in H_terms:            step.append((&#x27;exp&#x27;, Hj, dt/2))
     for Hj in reversed(H_terms):  step.append((&#x27;exp&#x27;, Hj, dt/2))
     return step * r          # circuit = r repetitions of S2</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <h3>Error scaling</h3>
 <p>For the first-order formula the total error scales as O(t^2/r), i.e. it falls linearly with the number of steps r. The second-order formula scales as O(t^3/r^2). More precisely the step error is bounded by nested commutators of the terms:</p>
 <div class="lang">text</div><pre><code>|| exp(-iHt) - S2(t/r)^r ||  =  O( t^3 / r^2 * sum_{j,k,l} ||[H_j,[H_k,H_l]]|| )

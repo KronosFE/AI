@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Authority in small, reversible increments</h2>
 <p>A controller that survives shadow has proven it would not obviously misbehave; it has not proven the machine responds as the model expects when it actually acts. Canary bridges that gap by granting minimal authority: the new policy may command only small deviations from the incumbent's setpoints, inside envelopes far tighter than the machine's true limits, and only during nominal operation.</p>
 <p>The canary's authority is a scalar that ramps. It begins near zero, and each monitoring window that passes without a breach widens the allowed deviation and the operating regimes it covers. Any breach collapses the scalar to zero instantly, handing control back to the certified incumbent. This is a continuous, reversible handover, not a switch.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Canary guardrails</h3>
 <ul><li>Bounded command delta blended with the incumbent output</li><li>Restricted to a subset of the validated envelope</li><li>Tight rate limits and hard clamps at the L1 edge</li><li>Armed <a href=./controller-rollback-safe-state.html>rollback</a> to the incumbent at all times</li><li>Human oversight for each authority-widening step</li></ul>
 <div class="lang">python</div><pre><code>def canary_command(state, incumbent, candidate, alpha, env):

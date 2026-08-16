@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Procedures beyond the shot</h2>
 <p>Where a runbook covers a single scenario, procedures cover the standing operations of the machine: cool-down and warm-up of the superconducting magnets, vacuum conditioning, plasma-facing-component bake-out, fault recovery, and maintenance interventions. The Operations Copilot generates these from approved procedure templates bound to the current condition of the machine as reported by the twin and the Engineering Copilot.</p>
 <h3>Recovery procedures</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — startup"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac1-startup.mp4" type="video/mp4"></video><figcaption>Kronos motion — startup</figcaption></figure>
+
 <p>Recovery procedures are the most safety-relevant class. After a disruption on the breeder or a potential collapse on the burner, the copilot generates the ordered recovery: verify hardware state, confirm quench-detection and dump-system integrity, re-establish vacuum and cryogenics, and re-enter the operating envelope from a known-safe state. The generated procedure defers to hardware interlocks and never proposes bypassing an interlock.</p>
 <div class="lang">text</div><pre><code>generate_procedure(kind, machine):
   tmpl  = rag.retrieve(kind, machine)   # approved template

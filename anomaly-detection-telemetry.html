@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Beyond the fault dictionary</h2>
 <p>FMEA and FDI catch the faults you anticipated. Anomaly detection catches the ones you did not. It learns the manifold of normal plant behavior from telemetry and flags departures from it, without needing a labeled example of each fault. On machines operating in un-characterized regimes - the burner especially - this is essential, because the fault dictionary is necessarily incomplete.</p>
 <h3>Reconstruction-residual method</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <p>A common approach trains a model to reconstruct normal telemetry; on anomalous data it reconstructs poorly, and the reconstruction error is the anomaly score. A threshold on the score, calibrated to a false-alarm budget, raises a flag that routes to human review or conservative derate rather than an immediate trip.</p>
 <div class="lang">python</div><pre><code>def anomaly_score(x, model):
     x_hat = model.reconstruct(x)

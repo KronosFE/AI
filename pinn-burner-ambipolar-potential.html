@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Confinement by potential</h2>
 <p>The burner is a D-3He tandem-mirror generator. Unlike a tokamak, it confines the central-cell plasma with an axial electrostatic potential established by dense, hot end plugs at 26.49 T. Ions are held by the ambipolar potential difference between the plug and the central cell; get that potential wrong and confinement collapses. The twin must therefore solve the potential profile phi(z) along the machine axis in real time.</p>
 <h3>The quasineutral balance</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <p>The potential is set by requiring quasineutrality and ambipolar (equal ion and electron) end-loss along the field line. Kronos solves this with a PINN whose residual enforces the balance:</p>
 <div class="lang">python</div><pre><code># ambipolar / quasineutral potential along the axis
 #   sum_s Z_s n_s(phi(z), z) = 0        (quasineutrality)
@@ -428,7 +428,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 # PINN residual = quasineutrality mismatch + ambipolarity mismatch</code></pre>
 <p>Solving this natively gives the plug potential and the confining potential dip in one forward pass. The plug-density controller (an MPC agent) uses the PINN to predict how a change in end-plug fueling or heating will move the ambipolar potential, and hence central-cell confinement, over the shadow horizon.</p>
 <h3>Coupling to DEC</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d1-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — tandem mirror</figcaption></figure>
+
 <p>The potential solve is not isolated: the direct-energy-conversion train sets the collector potentials at the machine ends, and those boundary potentials feed back into the ambipolar balance. Kronos co-conditions the potential PINN on the Power Systems module's DEC state so the confinement and the energy-extraction picture stay consistent. This is the burner analogue of the breeder's free-boundary coupling between coil currents and plasma shape.</p><div class="related"><h3>Related</h3><a href="./l3-burner-ambipolar-confinement.html">Ambipolar Confinement &rarr;</a><a href="./mpc-burner-plug-density-control.html">Plug-Density Control &rarr;</a><a href="./twin-power-systems-module.html">Power Systems Module &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

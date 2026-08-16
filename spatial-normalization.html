@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From sensor space to physics space</h2>
 <p>A Mirnov coil reports at its poloidal angle; an interferometry chord reports a line integral along its path; a strain gauge reports at a magnet location. The twin does not reason in sensor indices — it reasons in flux coordinates for the breeder and in axial-and-radial mirror coordinates for the burner. Spatial normalization is the transform that carries each raw channel into that shared frame.</p>
 <h3>Breeder: flux coordinates</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>For the breeder (Hyperion), a spherical tokamak with R0 1.2 m, aspect ratio 2.5, and negative triangularity delta -0.30, normalization maps magnetics and profiles onto normalized flux (psi_N). This makes a core pressure sample comparable across shots regardless of small equilibrium shifts, and it is the natural frame for the PINN that solves Grad-Shafranov (see <a href=./breeder-equilibrium-telemetry.html>equilibrium telemetry</a>).</p>
 <h3>Burner: mirror coordinates</h3>
 <p>For the burner, the tandem mirror, normalization uses axial position along the field line and radius from the axis, so end-plug density and the ambipolar potential are expressed where the confinement physics happens — at the 26.49 T plugs and the 17 T throats. This lets the same feature definition describe the plug on either end symmetrically.</p>

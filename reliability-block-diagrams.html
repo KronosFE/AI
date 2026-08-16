@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Structure sets reliability</h2>
 <p>A reliability block diagram (RBD) expresses how component reliabilities combine into system reliability by their logical structure. Components in series all must work; components in parallel provide redundancy. The RBD is the skeleton the Monte-Carlo simulation walks and the fastest way to see where a single point of failure hides.</p>
 <h3>Series and parallel</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <div class="lang">python</div><pre><code>from functools import reduce
 def series(rs):    return reduce(lambda a, b: a * b, rs, 1.0)
 def parallel(rs):  return 1.0 - reduce(lambda a, b: a * (1 - b), rs, 1.0)

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Randomness must be controlled, not free</h2>
 <p>Monte Carlo transport and neural-network training are both stochastic: they consume streams of random numbers. Left uncontrolled, that randomness makes a result impossible to reproduce. Kronos manages seeds deterministically so that a stochastic run, despite being random, produces the same result whenever it is re-executed with the same seed and environment.</p>
 <h3>Seeds as recorded inputs</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <p>A seed is treated as a first-class input, recorded in the run manifest alongside code and data versions. Given the seed and the pinned environment, the pseudo-random stream is fully determined, so the run is reproducible. This is what lets a certified neutronics result or a trained surrogate be re-derived exactly rather than merely re-approximated.</p>
 <ul><li>Seeds recorded in every run manifest</li><li>Independent streams per parallel rank</li><li>Reproducible parallel reductions of stochastic tallies</li><li>Distinct seeds for genuine statistical replicas</li></ul>
 <h3>Parallelism complicates seeding</h3>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Replay as ground truth</h2>
 <p>Because the event log is the single source of truth and procedure logic is deterministic, orchestration can re-run any past shot bit-for-bit. Feed the recorded events back into the same procedure version and it reaches the same states and would emit the same commands. This is the core tool for post-shot analysis on the breeder and for validating orchestration changes before they touch either machine.</p>
 <h2>Requirements for determinism</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — what is fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae1-what-is-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — what is fusion</figcaption></figure>
+
 <ul><li>All external inputs (sensors, twin predictions, timers, random seeds) are captured as events, never read live during replay.</li><li>Procedure code has no hidden clock or nondeterministic branch; time advances by recorded events.</li><li>Schema versions are pinned, so old events deserialize with the schema that produced them (see <a href=./schema-evolution-compatibility.html>schema evolution</a>).</li></ul>
 <div class="lang">python</div><pre><code>def replay(shot_id, procedure_version):
     events = log.read(correlation_id=shot_id)   # exact recorded stream

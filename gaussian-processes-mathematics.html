@@ -426,7 +426,7 @@ Posterior at test points X* given data (X, y):
   K   = k(X, X)   (train-train)
   K*  = k(X*, X)  (test-train)
   common kernel: k(x,x&#x27;) = s^2 exp(-||x-x&#x27;||^2 / 2 l^2)  (RBF)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <h3>Kernels encode assumptions</h3>
 <p>The kernel is where prior knowledge lives: smoothness (RBF), roughness (Matern), periodicity, or length scales that differ per input. Hyperparameters - length scale, signal and noise variance - are learned by maximizing the marginal likelihood, which trades data fit against smoothness automatically, guarding against overfit on small datasets.</p>
 <div class="lang">python</div><pre><code># GP marginal likelihood for hyperparameter fit (schematic)

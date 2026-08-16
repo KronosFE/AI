@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From cold iron to first plasma</h2>
 <p>A cold start is the highest-risk routine operation because nearly every subsystem transitions state at once. The stack sequences it as a guarded state machine: each phase has entry conditions, an abort path, and a timeout. Nothing advances until the twin confirms the prior phase converged. This narrative applies to the breeder (Hyperion); the burner variant is in <a href=./burner-continuous-operation-narrative.html>the burner narrative</a>.</p>
 <h3>Ordered phases</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — operating point"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa3-operating-point.mp4" type="video/mp4"></video><figcaption>Kronos motion — operating point</figcaption></figure>
+
 <ul><li>Vacuum and bake: pump to base pressure, confirm leak rate within budget</li><li>Cryogenic cooldown: superconducting magnets to operating temperature, watched by quench diagnostics</li><li>Magnet energization: ramp toward 16.84 T peak field (8 T on-axis) with continuous normal-zone monitoring</li><li>Gas fueling and breakdown: admit deuterium, apply loop voltage, initiate breakdown</li><li>Current ramp: drive plasma current toward 9.86 MA while holding vertical stability at delta -0.30</li><li>Flat-top: establish the target scenario and hand over to shot control</li></ul>
 <div class="lang">python</div><pre><code>PHASES = [&#x27;vacuum&#x27;,&#x27;cooldown&#x27;,&#x27;energize&#x27;,&#x27;breakdown&#x27;,&#x27;ramp&#x27;,&#x27;flattop&#x27;]
 def cold_start(twin):
@@ -429,7 +429,7 @@ def cold_start(twin):
     return &#x27;flattop_ok&#x27;</code></pre>
 <h3>Where it can stop</h3>
 <p>At any phase the twin can raise a hold (recoverable pause), an abort (retreat to the prior safe state), or a safe (drive the whole plant to a defined low-energy configuration). Magnet energization is the most consequential gate: a normal-zone signature during the ramp triggers a protective discharge rather than a retry. See <a href=./magnet-quench-detection-and-protection.html>Quench Detection</a> and <a href=./controlled-shutdown-and-safe-states.html>Safe States</a>.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — countdown first plasma"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae14-countdown-first-plasma.mp4" type="video/mp4"></video><figcaption>Kronos motion — countdown first plasma</figcaption></figure>
+
 <p>Because Hyperion is a design-and-simulation study before FOAK ~2030, cold-start is exercised entirely against the digital twin with injected faults at each phase boundary, building the guard logic that will run on hardware.</p><div class="related"><h3>Related</h3><a href="./shot-lifecycle-breeder.html">Breeder Shot Lifecycle &rarr;</a><a href="./state-machine-plant-modes.html">Plant State Machine &rarr;</a><a href="./controlled-shutdown-and-safe-states.html">Safe States &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

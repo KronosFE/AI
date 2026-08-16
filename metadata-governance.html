@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>No datum without metadata</h2>
 <p>A raw number with no context is dangerous in a control system: it could be from the wrong machine, an uncalibrated channel, or a dead sensor. Metadata governance is the policy and enforcement that no datum enters the fabric without complete, correct metadata: which machine, which channel, which calibration version, which quality score, which schema version.</p>
 <h3>The required metadata</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Machine and configuration: breeder (Hyperion) or burner, and the shot configuration.</li><li>Channel identity and its registry version, tying the value to a calibrated sensor.</li><li>Timestamp and clock domain, so cross-channel phase is defined.</li><li>Data-quality score and validation verdict.</li><li>Feature version and lineage handle for anything engineered.</li></ul>
 <h3>Enforcement, not convention</h3>
 <p>Governance is enforced at ingest: a record missing required metadata is rejected or quarantined, never accepted by default. This is stricter than typical data engineering because the consumers are safety-relevant — a twin acting on a mislabeled channel could mis-actuate a 9.86 MA plasma or a 26.49 T plug.</p>

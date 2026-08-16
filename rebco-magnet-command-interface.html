@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the interface drives</h2>
 <p>Both machines use high-temperature REBCO magnets: the breeder to reach 16.84 T peak field (8 T on-axis) and hold the negative-triangularity equilibrium; the burner to reach the 26.49 T plug and 17 T throat. The command interface delivers <b>current setpoints and ramp rates</b> to each coil's power supply, never a raw voltage.</p>
 <h2>Command structure</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — current ramp"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bht6-current-ramp.mp4" type="video/mp4"></video><figcaption>Kronos motion — current ramp</figcaption></figure>
+
 <div class="lang">python</div><pre><code># per-coil command frame (L3 -&gt; L1)
 cmd = { &#x27;coil_id&#x27;: k,
         &#x27;I_target&#x27;: I_k,        # A

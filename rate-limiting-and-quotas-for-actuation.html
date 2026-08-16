@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Fast is not always safe</h2>
 <p>A command can be schema-valid, rule-legal, and inside the envelope, yet still be dangerous if issued too fast or too often. Superconducting magnets have slew limits; gas valves and heating systems have duty limits. The actuation rate limiter enforces these as a distinct gate, independent of throughput, so a flood of individually-legal setpoints cannot exceed hardware slew on the breeder coils or the burner plug magnet.</p>
 <h2>Token-bucket per actuator</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — planet limits"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ad10-planet-limits.mp4" type="video/mp4"></video><figcaption>Kronos motion — planet limits</figcaption></figure>
+
 <div class="lang">python</div><pre><code>class SlewGuard:
     def allow(self, actuator, new_sp, now):
         max_delta = SLEW_MAX[actuator] * (now - self.last_t[actuator])

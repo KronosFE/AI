@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why a log, not a bus</h2>
 <p>Orchestration is built on an append-only, partitioned commit log rather than a fire-and-forget message bus. Every fact about the breeder (Hyperion) and burner (Aegis / MetroVolt) enters as an immutable, sequenced event. Consumers read at their own offset, replay history deterministically, and rebuild state from scratch. This is the substrate that makes <a href=./deterministic-replay.html>deterministic replay</a> and <a href=./audit-and-decision-lineage-bus.html>decision lineage</a> possible.</p>
 <h2>Topic and partition model</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stack"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/control-stack.mp4" type="video/mp4"></video><figcaption>Kronos motion — stack</figcaption></figure>
+
 <p>Events are grouped into topics by domain and partitioned by a key that preserves the ordering that physics requires. For the breeder, magnetics telemetry partitions by coil-set so that a single coil's current history is a totally ordered sub-stream; for the burner, plug and throat diagnostics partition by mirror-cell. Partition key selection is a correctness decision, covered in <a href=./event-ordering-and-partitioning.html>event ordering and partitioning</a>.</p>
 <div class="lang">text</div><pre><code>topic: breeder.magnetics.coil_current   key=coil_id
 topic: breeder.plasma.equilibrium        key=shot_id

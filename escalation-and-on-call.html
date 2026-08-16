@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Getting the right human, quickly</h2>
 <p>Not every condition needs the whole control room, and not every condition can wait for the next scheduled review. Escalation workflows route a condition to the appropriate responder — plasma physicist, magnet engineer, tritium specialist — based on what the anomaly touches, with a clear, time-bounded path if the first responder does not engage. The design bias is that escalating should be easier than not escalating.</p>
 <h3>Escalation triggers</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fast proton"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/buc11-fast-proton.mp4" type="video/mp4"></video><figcaption>Kronos motion — fast proton</figcaption></figure>
+
 <ul><li>A high-priority alert unacknowledged past its response window</li><li>A model going out of distribution on a safety-relevant loop</li><li>An override that touches the safe operating envelope</li><li>A degraded-diagnostic condition that thins a critical estimate's provenance</li><li>Operator-initiated: any crew member can escalate with one action</li></ul>
 <p>Routing is by domain. A REBCO quench-margin excursion at the breeder's 16.84 T peak field pages the magnet engineer; a burner ambipolar-potential anomaly pages the mirror-confinement physicist; a tritium-accountancy flag pages the tritium specialist. The on-call schedule is part of the system, so the interface knows who to reach and shows the operator that contact is in progress rather than leaving them wondering.</p>
 <h3>Acknowledgement and dead-man behavior</h3>

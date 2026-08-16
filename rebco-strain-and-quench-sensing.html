@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why strain matters for REBCO</h2>
 <p>REBCO conductor carries current density that degrades if strain exceeds an irreversible limit, and mechanical disturbances &mdash; conductor motion, epoxy cracking, differential thermal contraction &mdash; can deposit energy that seeds a normal zone. Kronos instruments the high-field windings with strain gauges so that mechanical precursors are visible to L1 alongside thermal and electrical ones.</p>
 <h3>The ICE-PISTON connection</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — rebco tape"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/y1-rebco-tape.mp4" type="video/mp4"></video><figcaption>Kronos motion — rebco tape</figcaption></figure>
+
 <p>Kronos's cryogenic <a href=./ice-piston-preload-control.html>ICE-PISTON preload cycle</a> applies controlled mechanical preload to the magnet structure. Strain sensing closes the loop on that preload: L1 confirms the winding is held within its strain envelope through cooldown and energization. A strain excursion outside the envelope is both a structural-health flag and a quench-risk flag.</p>
 <h2>Sensing and use</h2>
 <ul><li>Distributed gauges report local strain &epsilon; across the winding pack.</li><li>L1 compares &epsilon; against a static irreversible-strain envelope.</li><li>Sudden strain steps (conductor motion) arm the quench detector.</li><li>Slow strain drift feeds L2/L3 structural-health monitoring.</li></ul>

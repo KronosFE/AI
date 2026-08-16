@@ -430,7 +430,7 @@ L_bc   = mean_j ( psi_theta(x_j) - psi_bnd(x_j) )**2
 
 # 3) data fit to L2-validated diagnostics (flux loops, Mirnov, MSE)
 L_data = mean_k ( H(psi_theta)(x_k) - y_meas_k )**2</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — reaching conditions"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac2-reaching-conditions.mp4" type="video/mp4"></video><figcaption>Kronos motion — reaching conditions</figcaption></figure>
+
 <p>The differential operators inside L_pde are taken by automatic differentiation of the network, so no mesh is required. The data term H maps the flux field to what a diagnostic actually measures (a flux-loop integral, a line-integrated interferometer chord, a motional-Stark-effect pitch angle), which is how sparse, noisy measurements from L2 constrain the solution.</p>
 <h3>Weighting and conditioning</h3>
 <p>The weights w_pde, w_bc, w_data are not fixed. Kronos uses adaptive weighting (gradient-magnitude balancing) so no single term dominates the optimization and the boundary condition is not sacrificed to shrink an interior residual. Hard-constraint parameterizations, covered separately, remove the boundary term entirely by construction where possible, which improves conditioning.</p>

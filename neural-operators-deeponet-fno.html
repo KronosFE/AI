@@ -428,7 +428,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   Fourier Neural Operator (one layer):
      u &lt;- sigma( W u + F^-1( R . F u ) )
      F : FFT ,  R : learned spectral weights (low modes)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — operating point"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa3-operating-point.mp4" type="video/mp4"></video><figcaption>Kronos motion — operating point</figcaption></figure>
+
 <h3>DeepONet structure</h3>
 <p>A DeepONet factorizes the operator into a branch network that reads the input function and a trunk network that reads the query coordinate; their inner product gives the output at that point. This separation lets it evaluate the solution at any location and generalize across input functions drawn from the training distribution of breeder profiles.</p>
 <h3>Fourier neural operators</h3>

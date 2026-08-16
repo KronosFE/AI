@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The plant&#x27;s senses</h2>
 <p>The diagnostics constellation is the set of instruments through which the architecture observes the plasma and the machine. More than 60 analog channels flow from it into L2, where they are validated and fused. Everything the twin knows and the copilots reason about begins here.</p>
 <h3>The instruments</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — neutron transport"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bnu1-neutron-transport.mp4" type="video/mp4"></video><figcaption>Kronos motion — neutron transport</figcaption></figure>
+
 <ul><li>Thomson scattering — electron temperature and density profiles.</li><li>Interferometry — line-integrated density.</li><li>Mirnov coils and flux loops — magnetic fluctuations and equilibrium reconstruction.</li><li>REBCO strain gauges — magnet mechanical state.</li><li>Electron cyclotron emission (ECE) — electron temperature dynamics.</li><li>Fast-ion trackers — energetic-ion behavior.</li><li>Neutron flux — fusion rate and, on the breeder, 14 MeV neutron transport.</li></ul>
 <h3>Chosen for models, not only humans</h3>
 <p>Because the plant is AI-native, the constellation is specified for what the twin needs to infer. Redundant and topologically related sensors let GNNs impute a dropped channel from its neighbors; complementary diagnostics let PINNs constrain an equilibrium from several independent measurements. The suite is an inference substrate, not just a set of gauges.</p>

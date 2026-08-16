@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From raw flags to actionable events</h2>
 <p>The L3 <a href=./anomaly-detection-ensembles.html>anomaly-detection ensembles</a> emit many flags — autoencoder residual spikes, subthreshold threshold crossings, precursor detections. Left raw, these overwhelm operators. The Engineering Copilot's triage function clusters correlated flags into a single event, ranks events by severity and lead time, attributes a probable root cause, and recommends a response.</p>
 <h3>Triage pipeline</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — ensembles"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ml12-ensembles.mp4" type="video/mp4"></video><figcaption>Kronos motion — ensembles</figcaption></figure>
+
 <div class="lang">text</div><pre><code>triage(flags):
   events = cluster(flags by time, location, correlation)
   for e in events:

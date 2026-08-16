@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Crossing the boundary</h2>
 <p>Signals and power must cross two hostile boundaries: the vacuum wall and the cryostat that keeps the REBCO magnets cold. Every diagnostic wire, coil lead, coolant line, and gas line passes a feedthrough. This interface owns the integrity of those crossings &mdash; leak-tightness, thermal isolation, and electrical continuity &mdash; on both machines.</p>
 <h2>What it monitors and enforces</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — sensor fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f2-sensor-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — sensor fusion</figcaption></figure>
+
 <ul><li>Vacuum integrity: pressure, leak rate, feedthrough seal status.</li><li>Cryogenic: feedthrough temperature and heat-leak budget.</li><li>Electrical: continuity and isolation of instrument and power leads.</li><li>Interlock: vacuum-boundary faults gate fueling and beam actuation.</li></ul>
 <table class="tt"><thead><tr><th>Vac ok</th><th>Cryo ok</th><th>Fueling/beam enable</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td></tr><tr><td>1</td><td>1</td><td>1</td></tr></tbody></table>
 <p>The feedthrough interface is an <b>interlock source</b> more than an actuator: a vacuum-boundary fault immediately gates the fueling and beam interfaces closed, and a cryostat heat-leak excursion raises the magnet-protection posture. These interlocks are enforced at L1 so no supervisory layer can override a breached boundary.</p>

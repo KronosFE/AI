@@ -424,7 +424,7 @@ H_B = sum_i X_i             # mixer (transverse field)
 # QAOA depth-p ansatz:
 |gamma,beta&gt; = prod_{l=1..p} [ exp(-i beta_l H_B) exp(-i gamma_l H_C) ] |+&gt;^n
 # classically optimize (gamma,beta) to minimize &lt;H_C&gt;</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — shown gate assumed"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g5-shown-gate-assumed.mp4" type="video/mp4"></video><figcaption>Kronos motion — shown gate assumed</figcaption></figure>
+
 <h3>How it is meant to work</h3>
 <ul><li>The cost-operator phase separation marks good bit strings; the mixer spreads amplitude toward them.</li><li>Depth p controls expressivity: p -> infinity recovers the adiabatic optimum, but depth is limited by noise.</li><li>A classical optimizer tunes the 2p angles using measured expectation values.</li></ul>
 <h3>The honest verdict</h3>

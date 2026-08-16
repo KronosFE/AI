@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why maintenance must be remote</h2>
 <p>After operation, the breeder's first wall, blanket, and divertor are activated by 14 MeV neutron exposure, and even the burner, with its lower 5.44% neutron fraction, activates nearby structure. Hands-on maintenance in these zones is limited by dose. L7's remote-maintenance service coordinates robotic and teleoperated intervention so most in-vessel and near-vessel work is done without a human entering the radiation field.</p>
 <h3>Twin-guided teleoperation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — remote op"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac10-remote-op.mp4" type="video/mp4"></video><figcaption>Kronos motion — remote op</figcaption></figure>
+
 <p>Teleoperation is not blind driving; it is guided by the digital twin. The twin provides the remote operator or autonomous manipulator with a live geometric and radiation model of the workspace: where activated hotspots are, where residual field remains, and where the component under service sits relative to tooling. Motion plans are checked against this model before execution so a manipulator does not collide with structure or linger in a hotspot.</p>
 <div class="lang">python</div><pre><code># validate a remote-handling motion plan against the twin
 def safe_plan(plan, comp):

@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
     + w_ax  * | psi_theta(x_axis) - psi_axis |^2
 
   Delta* from autodiff (see PINN fundamentals)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>Encoding the operating point</h3>
 <p>The breeder's canonical parameters enter through normalization and the profile parameterization: 9.86 MA total current fixes the integral of J_phi, 16.84 T peak field and 8 T on-axis fix F near axis, and the boundary term carries delta -0.30. Non-dimensionalizing R, Z, and psi keeps the loss terms comparably scaled, which conditioning demands.</p>
 <div class="lang">python</div><pre><code># equilibrium PINN training step (schematic)
@@ -438,7 +438,7 @@ def step(net, prof, coll_pts, bdy_pts):
     return L                                       # backprop -&gt; theta</code></pre>
 <h3>Role in the loop</h3>
 <p>Once trained over a family of profiles and shapes, the PINN evaluates a full equilibrium in one forward pass, feeding the KRONOS-CTRL twin's MHD module inside the 1-100 ms L3 budget. It is retrained offline against the FEM solver, and its per-point residual is exposed as a confidence field so the twin can down-weight regions where the PINN is straining.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/z12-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>This equilibrium PINN is a design-and-simulation tool validated against FEM; it will be re-anchored to reconstructed equilibria after FOAK first tritium ~2030, but it makes no net-gain claim.</p>
 <h3>Training the profile family</h3>
 <p>The PINN is not trained on a single equilibrium but on a parameterized family: profiles p'(psi) and F F'(psi) are drawn across their admissible ranges, and boundary shape descriptors are varied around delta -0.30. The network conditions on these parameters as extra inputs, so one trained model spans the operating space rather than a single point. This is what lets the twin query equilibria for candidate scenarios without retraining.</p>

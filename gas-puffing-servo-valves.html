@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Gas puffing as fueling and control</h2>
 <p>Gas puffing injects neutral fuel (or impurity) gas through fast servo valves. It is the primary fine-fueling actuator: L1 modulates valve opening to control plasma density, feed the edge, and &mdash; with impurity species &mdash; radiate power where wanted. The valves are piezo-driven for fast, proportional response on the control timescale.</p>
 <h3>Deterministic flow control</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>Each valve driver closes a fast loop on commanded flow (or valve position as a flow proxy), so L1's density controller sees a predictable actuator. Because gas transport into the plasma has its own delay, the valve response must be fast and repeatable for the outer density loop to remain stable; jitter in valve actuation would translate into density ripple.</p>
 <h2>Roles per machine</h2>
 <ul><li>Breeder: line-averaged density control, edge fueling for the ELM-free regime, impurity seeding for radiative divertor operation.</li><li>Burner: central-cell and plug fueling to support the density profile that holds the ambipolar potential.</li><li>Both: gated by vacuum permissives &mdash; valves enable only in a proven vacuum state.</li></ul>

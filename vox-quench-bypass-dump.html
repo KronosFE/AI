@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Function</h2>
 <p>The dump element's job is to take current out of a threatened winding fast enough that Joule heating in the forming normal zone stays below the conductor's damage limit. Kronos uses a VOx (vanadium/metal-oxide) switching path biased so that, on a trip, it opens a low-impedance route from the coil into an external resistive dump bank, forcing the magnetic energy to dissipate outside the cold mass.</p>
 <h3>Energy accounting</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stored energy"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/mag4-stored-energy.mp4" type="video/mp4"></video><figcaption>Kronos motion — stored energy</figcaption></figure>
+
 <p>The stored energy E = &frac12; L I&sup2; must go somewhere. If it stays in the coil it appears as local heating at the normal zone; if it is commutated to an external resistor R_d it dissipates there as the current decays with time constant &tau; = L / (R_d + R_normal). The design sizes R_d so &tau; is short enough to protect the conductor yet not so short that induced voltages exceed insulation limits.</p>
 <h2>Why a passive-biased element</h2>
 <p>Speed and independence drive the choice. The switching path is biased so that loss of control power, or a trip signal from the analog comparator, causes it to act &mdash; a <a href=./fail-safe-vs-fail-operational.html>fail-safe</a> disposition. It does not wait for a command from any processor. This is what lets the whole chain, from <a href=./magnet-delta-t-precursor.html>&Delta;T precursor</a> to dump, carry a zero-AI, zero-software guarantee.</p>

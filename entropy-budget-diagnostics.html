@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Bits, not bytes</h2>
 <p>Two channels can produce the same number of bytes yet carry very different amounts of information: a slow, quiet thermocouple and a fast, structured Mirnov coil. The fabric tracks an entropy budget — the real information content per diagnostic — and matches sampling rate, retention fidelity, and compression to it, so effort follows information.</p>
 <h3>Estimating information content</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — data assimilation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt5-data-assimilation.mp4" type="video/mp4"></video><figcaption>Kronos motion — data assimilation</figcaption></figure>
+
 <ul><li>Entropy of the sample distribution bounds the lossless storage a channel needs.</li><li>Effective bandwidth times log of signal-to-noise bounds its rate of information.</li><li>Redundancy with other channels discounts a channel's unique contribution.</li><li>Regime dependence: a channel can be information-rich during a disruption and quiet otherwise.</li></ul>
 <h3>Matching effort to content</h3>
 <p>A high-entropy channel earns full-rate sampling and lossless retention; a low-entropy channel can be sampled slower and compressed harder without losing physics. Because the budget is regime-dependent, the fabric can retain more during interesting windows (a breeder disruption, a burner plug event) and less during quiet flat-tops, all recorded explicitly.</p>

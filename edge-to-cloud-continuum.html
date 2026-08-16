@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Placement follows latency</h2>
 <p>The architecture's compute is distributed along a continuum from the edge to the cloud, and placement is decided by time budget, not convenience. The tighter a function's latency requirement, the closer to the machine it runs; the more compute it needs, the farther away it can afford to be.</p>
 <h3>The continuum</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — confinement time"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bc14-confinement-time.mp4" type="video/mp4"></video><figcaption>Kronos motion — confinement time</figcaption></figure>
+
 <ul><li>Edge FPGAs — microsecond determinism at L1, physically at the machine.</li><li>On-site servers — the L3 twin and its 50-100 ms predictive shadow, near the data.</li><li>Site data fabric — L2 archive, feature store, and vector DB.</li><li>Cloud HPC and bare metal — L0 batch training and Monte Carlo, latency-tolerant.</li></ul>
 <h3>Why the twin runs on-site</h3>
 <p>The predictive twin sits in the middle of the continuum for a reason: it needs enough compute to run four physics modules but must stay within tens of milliseconds of the plant to be useful for control. Running it on-site keeps the round-trip short while leaving the heaviest work — retraining, neutronics — for the cloud.</p>

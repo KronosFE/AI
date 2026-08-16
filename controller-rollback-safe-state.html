@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Reversibility as a precondition of deployment</h2>
 <p>A model is only allowed to act if there is a defined, tested way to stop it acting. Kronos maintains two fallback targets for every model that holds authority: the previous certified model version, and a model-free safe state driven entirely by the deterministic L1 control plane. Rollback to either is bounded in time and does not depend on the failing model behaving well.</p>
 <p>Rollback is triggered automatically by monitor breaches — an uncertainty spike, an envelope violation attempt, a drift alarm, or a divergence beyond threshold — and can also be triggered manually by an operator at any time. Because the L1 failsafe path is certified independently of any ML component, the safe-state fallback holds even if every model is wrong at once.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — learning physics"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f3-learning-physics.mp4" type="video/mp4"></video><figcaption>Kronos motion — learning physics</figcaption></figure>
+
 <h3>The fallback ladder</h3>
 <ul><li>Level 0: revert to previous PROD model version (same task, known-good)</li><li>Level 1: hand control to model-free deterministic controller</li><li>Level 2: L1 safe-state sequence (breeder controlled ramp-down; burner beam-notch / plug de-energize)</li><li>All levels: append rollback event to the registry, do not delete history</li></ul>
 <div class="lang">python</div><pre><code>def guard(model, state, monitors):

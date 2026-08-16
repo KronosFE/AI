@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A model is more than weights</h2>
 <p>A deployable Kronos model is a bundle: the weights, the exact training code revision, the pinned dataset hash, the random seeds, the container image digest, the hyperparameters, and a pointer to its parent model. Version the bundle, not just the weights. This is what lets a reviewer certify not a black box but a fully specified, rebuildable object.</p>
 <p>Versioning follows semantic rules tied to behavior, not to file changes. A patch bump is a retrain on the same architecture and feature set; a minor bump changes features or adds data regimes; a major bump changes architecture, output contract, or safety envelope. Any major bump forces a full re-validation and a fresh <a href=./shadow-deployment-controllers.html>shadow</a> and <a href=./canary-controller-rollout.html>canary</a> cycle before it can act.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — traffic controller"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab8-traffic-controller.mp4" type="video/mp4"></video><figcaption>Kronos motion — traffic controller</figcaption></figure>
+
 <h3>The lineage chain</h3>
 <ul><li>artifact hash and semantic version</li><li>dataset hash (see <a href=./data-versioning-lineage.html>data lineage</a>)</li><li>code commit, container digest, seed, hardware profile</li><li>parent model version and diff of behavior on the shared holdout</li><li>validation report hash and registry promotion history</li></ul>
 <div class="lang">python</div><pre><code>model_card_meta = {

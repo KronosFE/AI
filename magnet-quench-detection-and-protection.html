@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why quench is special</h2>
 <p>In a superconducting magnet a quench is the transition of part of the winding to a resistive (normal) state. If the normal zone spreads faster than protection acts, the coil's own stored energy heats that spot and can damage it. For the breeder at 16.84 T peak field this is the highest-severity fast fault; for the burner the stressed 26.49 T plug makes it more acute still. Detection must happen in milliseconds and protection must be independent of the supervisory network.</p>
 <h3>Detection</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stored energy"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/mag4-stored-energy.mp4" type="video/mp4"></video><figcaption>Kronos motion — stored energy</figcaption></figure>
+
 <p>The signature is a resistive voltage that cannot be explained by inductance. Co-wound voltage taps and bridge arrangements subtract the inductive component so the resistive residual stands out. The AI contribution is discriminating a true quench from noise, ramp transients, and sensor artifacts fast enough to avoid both false dumps and missed quenches.</p>
 <div class="lang">python</div><pre><code>def quench_detect(taps, L, dIdt, R_lead, I, thresh_V, persist_ms, dt_ms):
     V_res = taps.total() - (L * dIdt + R_lead * I)
@@ -430,7 +430,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 quench_detect.count = 0</code></pre>
 <h3>Protection</h3>
 <ul><li>Fire the dump: open the circuit and steer stored energy into external dump resistors</li><li>Spread the heat: heaters or coupling drive the whole coil normal so energy deposits uniformly, not at one spot</li><li>Confirm safe: verify current decay follows the protected profile</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quench protection"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/y3-quench-protection.mp4" type="video/mp4"></video><figcaption>Kronos motion — quench protection</figcaption></figure>
+
 <p>The protection path is hard-wired and supervisor-independent so it acts even if the control plane is down - this is why quench protection anchors the <a href=./controlled-shutdown-and-safe-states.html>safe-state</a> guarantee. Slow precursors to quench (cooling-margin erosion) are tracked as <a href=./remaining-useful-life-estimation.html>RUL</a> so many quenches become scheduled interventions instead.</p><div class="related"><h3>Related</h3><a href="./fmea-breeder-magnets.html">Breeder Magnet FMEA &rarr;</a><a href="./controlled-shutdown-and-safe-states.html">Safe States &rarr;</a><a href="./remaining-useful-life-estimation.html">Remaining Useful Life &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

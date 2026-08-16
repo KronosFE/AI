@@ -425,7 +425,7 @@ UKF: unscented transform (sigma points)
   choose 2n+1 sigma points X_i from (x^, P)
   propagate: Y_i = f(X_i)
   x^- = sum w_i Y_i ,  P^- = sum w_i (Y_i-x^-)(Y_i-x^-)&#x27; + Q</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state estimation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt3-state-estimation.mp4" type="video/mp4"></video><figcaption>Kronos motion — state estimation</figcaption></figure>
+
 <h3>EKF versus UKF trade</h3>
 <p>The EKF is cheap but its first-order linearization degrades when dynamics are strongly nonlinear, and it needs Jacobians (available by autodiff from the PINN/twin models). The UKF captures mean and covariance to higher order without Jacobians, at the cost of multiple model evaluations. The stack picks per subsystem: EKF where near-linear and fast, UKF where nonlinearity bites, such as near stability boundaries.</p>
 <div class="lang">python</div><pre><code># UKF predict via sigma points (schematic)

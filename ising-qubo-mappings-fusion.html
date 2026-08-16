@@ -422,7 +422,7 @@ Ising:  minimize  sum_i h_i z_i + sum_{i&lt;j} J_ij z_i z_j,  z in {-1,+1}
 map:    x_i = (1 - z_i)/2
 # only linear and quadratic terms allowed -&gt; higher-order terms must
 # be reduced with auxiliary variables (quadratization)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <h3>Turning constraints into penalties</h3>
 <p>QUBO is unconstrained, so every hard constraint becomes a squared penalty added to the objective with a weight large enough that any violation costs more than any objective gain.</p>
 <div class="lang">text</div><pre><code>constraint  sum_i a_i x_i = b   --&gt;   + P * ( sum_i a_i x_i - b )^2

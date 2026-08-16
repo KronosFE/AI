@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The pipeline as an information channel</h2>
 <p>The fabric can be read as an information channel from plasma state to feature. Information theory bounds what it can do: the sampling theorem sets the minimum rate, channel capacity bounds the bits a noisy diagnostic can convey, and entropy sets the floor for lossless compression. Designing the fabric is, in part, budgeting information.</p>
 <h3>Capacity and noise</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — planet limits"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ad10-planet-limits.mp4" type="video/mp4"></video><figcaption>Kronos motion — planet limits</figcaption></figure>
+
 <p>A diagnostic channel with bandwidth B and signal-to-noise ratio S/N has a capacity C = B*log2(1+S/N) bits per second. This is why the fabric fights noise at the front end and sizes the ADC so quantization is not the limit: every decibel of S/N is capacity that would otherwise be lost, and no downstream cleverness can recover information the channel never carried.</p>
 <div class="lang">python</div><pre><code>import math
 def capacity_bps(bandwidth_hz, snr_linear):

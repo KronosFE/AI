@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the Plasma Copilot does</h2>
 <p>The Plasma Copilot is the physics-facing agent of L5. For the breeder (Hyperion) it drafts shot waveforms, optimizes scenarios against confinement and stability objectives, and advises operators when a disruption-avoidance margin is eroding. For the burner (Aegis / MetroVolt) it advises on plug/mirror operating points — end-plug density, ambipolar potential, and the DEC operating window. It is a reasoning layer over the <a href=./kronos-ctrl-overview.html>KRONOS-CTRL twin</a>, not a controller.</p>
 <h3>The reason-act loop</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — operating point"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa3-operating-point.mp4" type="video/mp4"></video><figcaption>Kronos motion — operating point</figcaption></figure>
+
 <p>Each request runs a bounded reason-act loop. The copilot assembles context from live twin state and L2 retrieval, plans a sequence of tool calls (twin queries, scenario simulations, envelope checks), inspects results, and iterates until it can propose a grounded answer with citations and uncertainty. Every tool it can call is a read or a simulate action; no tool writes to the plant. Any action with a side-effect on hardware is routed as a proposal to L4 and requires human approval.</p>
 <div class="lang">text</div><pre><code>loop(request):
   ctx  = build_context(twin_state, rag_retrieve(request))

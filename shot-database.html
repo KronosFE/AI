@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Every shot, indexed</h2>
 <p>Beyond the raw telemetry archive, the fabric keeps a structured shot database: one record per shot capturing its configuration, key outcomes, regime, events, and pointers into the archive, feature store, and vector database. It is how a person or a copilot finds the right shot without sifting petabytes of raw series.</p>
 <h3>What a shot record holds</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Machine and configuration: breeder or burner, target parameters, actuator settings.</li><li>Outcome features: peak instantaneous Q, achieved profiles, whether a disruption or plug event occurred.</li><li>Event log: precursors that fired, overrides, failsafe actions.</li><li>Links: to raw telemetry, engineered features, and the shot's embedding.</li></ul>
 <h3>Querying by physics</h3>
 <p>Because records are structured, the database answers physics questions directly: shots at a given breeder shape and current, shots where the burner's plug density crossed a threshold, shots that preceded a disruption. For fuzzier queries it hands off to the <a href=./vector-embeddings-diagnostics.html>embedding search</a>, which finds physically similar shots by nearest neighbor.</p>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The retry problem</h2>
 <p>Networks partition, processes restart, and producers time out and retry. Without protection, a retried write duplicates a breeder magnetics sample or, catastrophically, re-issues a burner neutral-beam command. Layer 4 makes every producer and every command handler idempotent: applying the same operation twice yields the same state as applying it once.</p>
 <h2>Idempotency keys</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>Each event carries an <b>idempotency_key</b> derived from the semantic identity of the operation, not from wall-clock time. The backbone and each stateful consumer keep a bounded dedup window keyed on it. A duplicate is silently absorbed.</p>
 <div class="lang">python</div><pre><code>def handle(cmd):
     # dedup on semantic identity, not arrival time

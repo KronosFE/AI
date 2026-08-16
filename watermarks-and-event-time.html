@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Event time vs processing time</h2>
 <p>Diagnostics from the breeder and burner are timestamped at the source (occurred_at). Because of buffering, retries, and multi-partition merges, they can arrive out of order and late. Any computation that windows over time (for example, energy or neutron-flux integrals during a shot) must use event time, or it will attribute samples to the wrong window.</p>
 <h2>The watermark</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — is it safe"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae2-is-it-safe.mp4" type="video/mp4"></video><figcaption>Kronos motion — is it safe</figcaption></figure>
+
 <p>A watermark is the consumer's assertion that it has seen all events with occurred_at at or before time W. It advances as ordered streams progress and lets the consumer close windows deterministically. Late events arriving after their window closed are handled explicitly, not silently misplaced.</p>
 <div class="lang">python</div><pre><code>watermark = min(latest_occurred_at[p] for p in partitions) - allowed_lateness
 for window in windows_ending_before(watermark):

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Where tritium is bred</h2>
 <p>The breeder's lithium blanket captures 14 MeV neutrons and breeds tritium via lithium reactions. The design treats the tritium breeding ratio as a <b>lever across 1.1 / 1.5 / 1.8</b>; the blanket interface is where coolant flow, purge-gas cycling, and temperature distribution are sensed and regulated to hold the intended breeding condition.</p>
 <h2>Interface signal set</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lithium blanket"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/b5-lithium-blanket.mp4" type="video/mp4"></video><figcaption>Kronos motion — lithium blanket</figcaption></figure>
+
 <ul><li>Sense: blanket module temperatures, coolant inlet/outlet, purge tritium partial pressure, neutron fluence.</li><li>Actuate: coolant flow setpoints, purge-gas flow, module isolation valves.</li><li>Cross-link: extraction feeds the <a href=./tritium-plant-interface.html>tritium plant interface</a>.</li></ul>
 <div class="lang">python</div><pre><code># blanket thermal + breeding monitor (L3/L4)
 for m in modules:

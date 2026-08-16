@@ -424,7 +424,7 @@ PINN ansatz:    psi ~ psi_theta(x)   (neural network)
 
 Residual at x:  r_theta(x) = N[psi_theta](x)
   computed with exact autodiff derivatives of psi_theta</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plug field"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bdc6-plug-field.mp4" type="video/mp4"></video><figcaption>Kronos motion — plug field</figcaption></figure>
+
 <h3>Why autodiff makes it work</h3>
 <p>The differential operator is applied to the network itself. For Grad-Shafranov the loss needs second derivatives of psi_theta with respect to R and Z; autodiff produces these to machine precision, not by finite differences. This is what lets a mesh-free network satisfy an elliptic PDE. The same mechanism handles the burner's axial ambipolar operator.</p>
 <div class="lang">python</div><pre><code># PDE residual via automatic differentiation (schematic)

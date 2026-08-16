@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One train, several modes</h2>
 <p>The burner's energy leaves in several forms &mdash; directed charged-particle flow, bulk plasma flow, and thermalized heat &mdash; so a single conversion method cannot capture all of it. Kronos uses a multi-modal DEC train: traveling-wave direct energy conversion (TWDEC), ultra-high-field MHD conversion, and thermionics, each matched to an energy channel. L1 coordinates the modes so they cooperate rather than compete for the same flow.</p>
 <h3>The modes</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — conversion efficiency"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa10-conversion-efficiency.mp4" type="video/mp4"></video><figcaption>Kronos motion — conversion efficiency</figcaption></figure>
+
 <ul><li>TWDEC: decelerates a bunched, directed ion beam by phased RF fields, recovering directed kinetic energy.</li><li>Ultra-high-field MHD: extracts energy from conducting plasma flow crossing a strong field.</li><li>Thermionics / grids: capture thermalized and lower-energy fractions.</li><li>Electrostatic collector grids: the graded-voltage stage detailed elsewhere.</li></ul>
 <p>Each mode has its own actuators and control loop &mdash; RF phase and amplitude for TWDEC, field and load for MHD, emitter/collector conditions for thermionics &mdash; and L1 runs them on a common clock so their handling of a shared particle and energy flow is coordinated, not conflicting.</p>
 <h2>Coordination logic</h2>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Different jobs, different clocks</h2>
 <p>The Kronos stack spans an enormous range of timescales, and that range is deliberate. The latency gradient describes how each layer operates at the clock its responsibility requires: the edge in microseconds, the real-time twin in milliseconds, the foundation in minutes to hours. Trying to force any layer onto another's clock would break it.</p>
 <h3>The three regimes</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — he 3 cold edge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/c1-he-3-cold-edge.mp4" type="video/mp4"></video><figcaption>Kronos motion — he 3 cold edge</figcaption></figure>
+
 <p>At L1, the control plane enforces a strict sub-10-microsecond command boundary for hard real-time actuation, and the autonomous hardware failsafe acts with no AI in the path. The KRONOS-CTRL twin runs a 50 to 100 ms predictive shadow. L0, the foundation, runs offline over minutes to hours for simulation and retraining. Each regime is separated by orders of magnitude.</p>
 <div class="mxt">Latency regimes (rows: edge, twin, foundation)</div><div class="matrix" style="grid-template-columns:repeat(2,auto)"><span style="grid-column:1;grid-row:1">microseconds</span><span style="grid-column:2;grid-row:1">actuation and failsafe</span><span style="grid-column:1;grid-row:2">50-100 ms</span><span style="grid-column:2;grid-row:2">predictive shadow</span><span style="grid-column:1;grid-row:3">minutes-hours</span><span style="grid-column:2;grid-row:3">simulation and retraining</span></div>
 <h3>Why the gradient exists</h3>

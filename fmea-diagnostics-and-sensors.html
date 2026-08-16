@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The blindness problem</h2>
 <p>Every control and protection loop depends on diagnostics: magnetic probes, interferometers, bolometers, thermocouples, neutron detectors. A sensor failure is doubly dangerous because it can be silent and because it can make a fault elsewhere invisible. Diagnostics therefore get their own FMEA, focused on detectability of the sensor fault itself.</p>
 <ul><li>Dropout: sensor stops reporting - relatively easy to detect (missing heartbeat)</li><li>Bias / drift: sensor reports plausibly wrong values - hard to detect</li><li>Saturation: sensor pinned at range limit during a transient</li><li>Latency spike: data arrives too late for its loop deadline</li><li>Common-mode: shared power or fabric fails many sensors at once</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control stack"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl1-control-stack.mp4" type="video/mp4"></video><figcaption>Kronos motion — control stack</figcaption></figure>
+
 <h3>Drift is the worst</h3>
 <p>A slowly drifting sensor is the highest-detection-difficulty mode: values stay in-range and plausible while diverging from truth. The defense is redundancy and cross-checking - comparing a measurement against an independent sensor and against the twin's prediction. Disagreement beyond tolerance flags the sensor, not the plant.</p>
 <div class="lang">python</div><pre><code>def sensor_trust(meas, redundant, twin_pred, tol_r, tol_m):
@@ -430,7 +430,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
         return &#x27;watch&#x27;
     return &#x27;trusted&#x27;</code></pre>
 <h3>Graceful blindness</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control stack"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/e5-control-stack.mp4" type="video/mp4"></video><figcaption>Kronos motion — control stack</figcaption></figure>
+
 <p>When a sensor is declared suspect, the twin supplies a virtual measurement so control degrades gracefully rather than tripping. This is the core of <a href=./sensor-fusion-for-health.html>sensor fusion</a> and <a href=./graceful-degradation-modes.html>graceful degradation</a>. Common-mode failures of the sensing fabric are treated as a plant fault, not a sensor fault, and route to <a href=./failover-architecture.html>failover</a>.</p><div class="related"><h3>Related</h3><a href="./sensor-fusion-for-health.html">Sensor Fusion for Health &rarr;</a><a href="./fault-detection-and-isolation.html">Fault Detection and Isolation &rarr;</a><a href="./anomaly-detection-telemetry.html">Anomaly Detection &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

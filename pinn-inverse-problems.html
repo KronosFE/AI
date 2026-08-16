@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   lambda : unknown physical coefficients (profiles, potential)
 
   PDE residual couples lambda to the field; data pins the field.</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <h3>Regularization is essential</h3>
 <p>Inverse problems are ill-posed: many profile choices fit the data. The PINN adds smoothness and physical-admissibility priors on lambda - monotonicity, sign, bounded curvature - so the recovered profiles are physical, not noise-fit. This mirrors the regularization in classical equilibrium reconstruction but is embedded in one differentiable objective.</p>
 <div class="lang">python</div><pre><code># joint field + profile identification (schematic)

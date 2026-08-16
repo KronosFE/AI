@@ -429,7 +429,7 @@ def coil_permit(ratio, trip_at=1.0, warn_at=0.85):
 
 # the design-point specification sits at ratio ~3-3.9: infeasible as-is
 assert coil_permit(3.4) == &#x27;TRIP -&gt; dump&#x27;</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — materials first"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a6-materials-first.mp4" type="video/mp4"></video><figcaption>Kronos motion — materials first</figcaption></figure>
+
 <h3>What protection can and cannot do</h3>
 <ul><li>It CAN guarantee no built coil is driven past its real material limit &mdash; current is capped or dumped first.</li><li>It CANNOT make the specified 26.49&nbsp;T bore feasible; that requires a design change, not a control loop.</li><li>It therefore bounds the achievable operating field to what the actual coil can survive, and reports the gap.</li></ul>
 <p>The protection loop is coupled to the <a href=./energy-dump-and-discharge.html>magnet energy extraction</a> path: an overstress trip drives the coil current into the dump rather than holding it. Coil stress is inferred from strain sensing and the structural model, cross-checked, and voted like any critical safety signal (see <a href=./voting-and-redundancy-architecture.html>voting and redundancy</a>).</p>

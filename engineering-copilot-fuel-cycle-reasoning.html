@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Closing the isotope loop</h2>
 <p>The breeder (Hyperion) exists to produce isotopes: a tritium-breeding design targeting the ~4 kg/yr tritium class and ~1.97 kg/yr helium-3, alongside 14 MeV neutrons. The Engineering Copilot reasons over the fuel-cycle inventory — tritium bred, burned, retained, and extracted — using the twin's fuel-cycle and isotope-balance module. It answers questions about inventory margin, self-sufficiency, and extraction scheduling.</p>
 <h3>The breeding-ratio lever</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fuel cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g1-fuel-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — fuel cycle</figcaption></figure>
+
 <p>Tritium breeding ratio (TBR) is treated as a design lever spanning 1.1 / 1.5 / 1.8, not a fixed number. The copilot frames inventory reasoning against the chosen lever and is explicit that TBR is a design choice with an honest local-versus-net distinction. It never asserts self-sufficiency as settled; it cites the twin's balance and flags the open reconciliation.</p>
 <div class="lang">text</div><pre><code>fuel_balance(t):
   bred    = TBR * burn_rate(neutron_output)       # TBR in {1.1,1.5,1.8}
@@ -429,7 +429,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   flag:    local TBR vs net self-sufficiency (open reconciliation)</code></pre>
 <h3>Burner fuel reasoning</h3>
 <ul><li>D-3He supply logistics reasoning (schedule and inventory, not economics)</li><li>Helium-3 handling and accountancy across both machines</li><li>Neutron-fraction context: 5.44% burner vs D-T breeder neutron budget</li><li>Cross-machine isotope flow (breeder He-3 co-product as burner-relevant context)</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tritium cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/l3-tritium-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — tritium cycle</figcaption></figure>
+
 <p>All quantities are physical and schedule facts — inventories, rates, kilograms-per-year classes. The copilot is barred from economics: no monetary, value, or market framing enters its reasoning or output. Fuel-cycle conclusions are cited to the twin's <a href=./fuel-cycle-isotope-balancing.html>isotope-balancing module</a> and the frozen product canon, and any inventory action is a proposal to L4. See <a href=./digital-twin-fuel-cycle-isotope-balance.html>the twin fuel-cycle balance</a> and <a href=./tritium-breeding-ratio-sweeps.html>TBR sweeps</a>.</p><div class="related"><h3>Related</h3><a href="./engineering-copilot-overview.html">Engineering Copilot &rarr;</a><a href="./fuel-cycle-isotope-balancing.html">Isotope Balancing &rarr;</a><a href="./tritium-breeding-ratio-sweeps.html">TBR Sweeps &rarr;</a><a href="./engineering-copilot-maintenance-reasoning.html">Maintenance Reasoning &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

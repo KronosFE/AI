@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Keep the fast structure</h2>
 <p>A summary statistic — a per-shot average or peak — throws away exactly the fast structure the machines are controlled on. High-fidelity retention stores the full time series at acquisition resolution for the diagnostics where it matters, so a Mirnov trace archived today still shows the mode rotation, and a strain trace still shows the transient.</p>
 <h3>What full fidelity buys</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — confinement time"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bc14-confinement-time.mp4" type="video/mp4"></video><figcaption>Kronos motion — confinement time</figcaption></figure>
+
 <ul><li>Re-derivation of any feature from raw series with improved definitions.</li><li>Forensic reconstruction of disruptions and quenches at native resolution.</li><li>Training sets that expose models to real fast dynamics, not smoothed averages.</li><li>Verification that a live feature matches its offline re-computation (parity).</li></ul>
 <h3>Storage strategy</h3>
 <p>Full-resolution retention across 60+ channels is expensive in bytes, so the fabric applies lossless <a href=./data-compression-lossless.html>compression</a> and columnar time-series layout tuned for range queries. Where a channel's <a href=./information-theory-pipeline.html>information content</a> genuinely supports downsampling — a slow thermal channel — a lower rate is stored, but the decision is explicit and recorded, never a silent default.</p>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Preferences are data, treated as data</h2>
 <p>RLHF is only as trustworthy as the preferences it learns from. Kronos collects operator and expert preferences through structured interfaces that record not just the ranking but its full context: the machine situation shown, the two responses or trajectories compared, the judge's role and expertise, timestamp, and any rationale. This is versioned and lineage-tracked like any dataset.</p>
 <p>Judgments come from qualified operators and physicists, and are weighted by domain: a reactor physicist's ranking of a plug-stability explanation carries more weight than a generalist's, and vice versa for procedural UX. Inter-rater agreement is measured; low-agreement items are flagged for review rather than fed blindly into the reward model, because noisy preferences produce a noisy objective.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h3>What each preference record holds</h3>
 <ul><li>Context snapshot: machine (breeder / burner), state, prompt</li><li>The compared items and the chosen ranking</li><li>Judge identity, role, and expertise weighting</li><li>Rationale text and any correction supplied</li><li>Agreement with other judges on the same item</li></ul>
 <div class="lang">python</div><pre><code>pref = {

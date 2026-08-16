@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A product that is also a fuel</h2>
 <p>Helium-3 is unusual in the Kronos material graph: the breeder produces it (~1.97 kg/yr class), and the burner consumes it as fuel in its D-3He reaction. So every kilogram is contested between external customers (quantum computing cryogenics, medical and national-security uses, neutron detection) and internal burner-fleet demand. L7 arbitrates this explicitly rather than letting one side silently starve the other.</p>
 <h3>Allocation as a constraint, not an afterthought</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <p>Helium-3 is stable (it does not decay), so unlike tritium the accounting is simpler in time but harder in allocation: it is genuinely scarce. L7 treats helium-3 as a shared pool with a policy that reserves the burner fleet's committed fuel need first, then releases the remainder to external offtake. The fleet dispatch optimizer reads the same pool as a hard fuel constraint, so a firm-power commitment is never made against helium-3 that has been sold externally.</p>
 <div class="lang">python</div><pre><code># helium-3 allocation policy
 pool      = he3_inventory() + he3_breeder_inflow(horizon)

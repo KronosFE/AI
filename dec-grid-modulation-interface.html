@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From collector to grid</h2>
 <p>The collected direct-conversion power must be conditioned and exported. The grid-modulation interface sits between the <a href=./burner-dec-collector-interface.html>DEC collectors</a> and the grid-tie inverter, modulating collector-grid voltages and inverter output to track demand while protecting the plasma source from grid disturbances.</p>
 <h2>Control loop</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — direct conversion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d5-direct-conversion.mp4" type="video/mp4"></video><figcaption>Kronos motion — direct conversion</figcaption></figure>
+
 <div class="lang">python</div><pre><code># DEC output modulation (L1)
 P_demand = dispatch_setpoint()             # from L4
 V_grid   = dec_voltage_mpc(P_demand, spectrum, limits)

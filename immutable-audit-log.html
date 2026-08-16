@@ -431,7 +431,7 @@ def verify(chain):
         assert e[&#x27;h&#x27;] == sha384(canonical({k:e[k] for k in e if k!=&#x27;h&#x27;}))
         assert i == 0 or e[&#x27;prev&#x27;] == chain[i-1][&#x27;h&#x27;]  # unbroken chain
 </code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — supply security"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/o7-supply-security.mp4" type="video/mp4"></video><figcaption>Kronos motion — supply security</figcaption></figure>
+
 <h3>Beyond a single log</h3>
 <ul><li>Write-once (WORM) media on the OT side so operators cannot overwrite entries.</li><li>Periodic anchoring: the chain head is co-signed by two custodians and mirrored offsite via the <a href=./unidirectional-data-diodes.html>diode</a>, so a local rewrite conflicts with the external anchor.</li><li>Independent from the control plane: an attacker who owns a controller still cannot silently rewrite the log's history without breaking hashes others hold.</li></ul>
 <h3>What tamper-evident does and does not give</h3>

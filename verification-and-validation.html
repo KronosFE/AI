@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two questions, not one</h2>
 <p>Before any simulation result is trusted, it must pass two separate tests. Verification asks whether the code solves the equations correctly. Validation asks whether those equations describe reality. They are different questions, and Kronos treats them as distinct disciplines, because a perfectly verified code can still model the wrong physics, and correct physics can still be coded wrong.</p>
 <h3>Verification</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — validation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt13-validation.mp4" type="video/mp4"></video><figcaption>Kronos motion — validation</figcaption></figure>
+
 <p>Verification checks the numerics. It compares code output against analytic solutions where they exist, confirms that error shrinks at the expected rate as the mesh or time step refines, and checks conservation of mass, energy, and charge. A neutronics code is verified against known benchmarks; a finite-element solver is verified against manufactured solutions with a known answer.</p>
 <ul><li>Comparison against analytic and benchmark solutions</li><li>Convergence at the expected order under refinement</li><li>Conservation of mass, energy, momentum, charge</li><li>Code-to-code cross-checks between independent solvers</li></ul>
 <h3>Validation</h3>

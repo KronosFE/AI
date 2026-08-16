@@ -425,7 +425,7 @@ def materials_energy(active_space):
         assert agrees(q, classical, tol=&#x27;chemical&#x27;) # gate on agreement
         return reconcile(q, classical)
     return classical                                # default is classical</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — classical vs quantum"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/qc12-classical-vs-quantum.mp4" type="video/mp4"></video><figcaption>Kronos motion — classical vs quantum</figcaption></figure>
+
 <h3>The orchestration pattern</h3>
 <ul><li>A classical optimizer or driver owns the loop; the quantum device evaluates a cost or estimates a scalar.</li><li>Every quantum result is checked against a classical baseline computed in parallel.</li><li>Jobs are scheduled like any other L0 batch workload, with reproducibility and provenance tracked.</li></ul>
 <h3>Two integration shapes</h3>

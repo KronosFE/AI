@@ -425,7 +425,7 @@ T = sum_{ia} t_ia a_a^dag a_i                       # singles
 
 # Hardware-efficient (layer l of rotations + entanglers):
 |psi(theta)&gt; = prod_l [ U_ent . (x)_q Ry(theta_{l,q}) ] |0...0&gt;</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — 14 mev materials test"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/14-mev-materials-test.mp4" type="video/mp4"></video><figcaption>Kronos motion — 14 mev materials test</figcaption></figure>
+
 <h3>The trade</h3>
 <table class="tt"><thead><tr><th>Ansatz</th><th>Strength</th><th>Weakness</th></tr></thead><tbody><tr><td>UCCSD</td><td>physically grounded, systematic</td><td>deep circuits, many terms -&gt; NISQ-infeasible</td></tr><tr><td>Hardware-efficient</td><td>shallow, native gates</td><td>barren plateaus, no physical guarantee</td></tr><tr><td>ADAPT-VQE</td><td>grows operator pool adaptively</td><td>many measurements to pick operators</td></tr></tbody></table>
 <h3>Barren plateaus</h3>

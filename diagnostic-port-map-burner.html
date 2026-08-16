@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>An axial machine</h2>
 <p>The burner (Aegis / MetroVolt) is linear: plasma sits in a central cell between two end plugs. Its diagnostic ports are therefore mapped along the <b>axial</b> coordinate z rather than to flux surfaces. Density, potential, and field are functions of position along the axis, and the port map reflects that geometry.</p>
 <h2>Port classes by region</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — central cell coils"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/k6-central-cell-coils.mp4" type="video/mp4"></video><figcaption>Kronos motion — central cell coils</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Region</th><th>Key diagnostics</th><th>Controls served</th></tr></thead><tbody><tr><td>central cell</td><td>interferometry, neutron</td><td>fueling, power</td></tr><tr><td>throat</td><td>field probes, thermography</td><td>plug field</td></tr><tr><td>plug</td><td>density, emissive probe</td><td>plug density/potential</td></tr><tr><td>expander</td><td>end-loss analyzer, IR</td><td>DEC feed, heat load</td></tr></tbody></table>
 <p>The plug and expander regions are the most heavily instrumented because they hold the two hardest-to-observe quantities: the plug density/potential that confines the machine, and the ion energy spectrum arriving at the direct-energy-conversion collectors.</p>
 <div class="lang">python</div><pre><code># axial channel registration

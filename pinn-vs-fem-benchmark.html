@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why benchmark at all</h2>
 <p>A PINN is a surrogate for a PDE solution, and surrogates can be confidently wrong. Before any PINN enters KRONOS-CTRL, Kronos benchmarks it against established mesh solvers, finite-element Grad-Shafranov codes for equilibrium, eigenvalue MHD codes for stability, on a battery of cases spanning the operating space and, deliberately, its edges.</p>
 <ul><li>Accuracy: flux-map L2 error and boundary-shape error vs FEM reference</li><li>Derived quantities: q-profile, delta, kappa, X-point position agreement</li><li>Stability: growth-rate and marginal-boundary agreement vs eigenvalue code</li><li>Extrapolation: behavior just outside the training envelope (must degrade gracefully)</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — twin metal math"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/digital-twin-metal-math.mp4" type="video/mp4"></video><figcaption>Kronos motion — twin metal math</figcaption></figure>
+
 <h3>The trade the benchmark quantifies</h3>
 <p>FEM is the accuracy reference but is too slow for the 50-100 ms shadow; the PINN is fast but approximate. The benchmark quantifies exactly how much accuracy is traded for speed and where. Kronos accepts a PINN only if its error is bounded below the tolerance the consuming controller needs, for shape control that is a boundary-position tolerance, for disruption avoidance a growth-rate tolerance.</p>
 <h3>Guarding extrapolation</h3>

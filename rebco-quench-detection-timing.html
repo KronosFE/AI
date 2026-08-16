@@ -425,7 +425,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 def detect(resistive_V, threshold_V, dwell_us, min_dwell_us):
     # require a small resistive voltage to persist briefly
     return resistive_V &gt; threshold_V and dwell_us &gt;= min_dwell_us</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Diversity of indicators</h3>
 <ul><li>Co-wound voltage taps / bridges to cancel the inductive term and expose the resistive quench voltage.</li><li>Distributed fiber or acoustic sensing to localize a normal zone the voltage barely shows.</li><li>Temperature and strain trends as slower, corroborating channels.</li><li>Voting across indicator types to cut both missed detections and spurious trips.</li></ul>
 <p>The detection dwell &mdash; how long a signal must persist before it counts &mdash; is the knob that trades sensitivity against false trips. It is set just long enough to reject known noise transients, then handed to the confirmation stage of the <a href=./quench-protection-reflex-chain.html>quench protection chain</a>. Every microsecond of detection latency is a microsecond less for the dump, so the two budgets are designed together.</p>

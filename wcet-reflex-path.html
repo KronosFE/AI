@@ -426,7 +426,7 @@ print(round(wcet_ns(cycles=250, clk_hz=250e6), 1))   # 1000.0 ns
 def path_wcet(stage_cycles, clk_hz):
     # sum of fixed-depth stages: still exact, no distribution
     return sum(wcet_ns(c, clk_hz) for c in stage_cycles)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Where iteration is forbidden</h3>
 <p>Any construct whose runtime depends on data &mdash; an unbounded loop, a variable-length search, a solver iterating to a tolerance &mdash; is banned from the reflex path because its WCET is unbounded or hard to certify. Such work is pushed up to the supervisory or twin tiers, whose outputs enter L1 only as pre-validated, clamped setpoints.</p>
 <ul><li>Allowed on fast path: affine control laws, table lookups, comparators, fixed-tap filters.</li><li>Banned on fast path: dynamic allocation, unbounded iteration, recursion, blocking I/O.</li><li>Pushed upstream: MPC optimization, equilibrium reconstruction, surrogate inference.</li></ul>

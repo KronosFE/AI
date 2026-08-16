@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The measurement</h2>
 <p>A high-power laser pulse scatters off plasma electrons; the scattered light's spectral broadening gives the local electron temperature and its intensity gives the local electron density. Because it is spatially localized at each collection volume, Thomson scattering provides true profiles rather than line integrals — the anchor for the breeder's core pressure map.</p>
 <h3>Into the fabric</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — density profile"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa6-density-profile.mp4" type="video/mp4"></video><figcaption>Kronos motion — density profile</figcaption></figure>
+
 <ul><li>Each spatial channel is validated and calibrated independently, then placed on normalized flux via the reconstructed equilibrium.</li><li>Density from Thomson cross-checks the line-integrated <a href=./interferometry.html>interferometry</a>, and disagreement triggers a validation flag.</li><li>Dropped channels are imputed over the sensor-topology graph so the profile stays continuous.</li><li>Temperature and density feed the pressure map, the instantaneous Q cross-check, and training sets in the feature store.</li></ul>
 <h3>Sampling and timing</h3>
 <p>Thomson is pulsed at the laser repetition rate rather than continuously, so its samples are timestamped precisely and interpolated in the twin between pulses using the faster ECE and interferometry channels. Precision timestamping (see <a href=./timestamping-ptp.html>PTP timestamping</a>) keeps its samples phase-aligned with the continuous diagnostics.</p>

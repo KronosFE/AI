@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From breeding surplus to shipment</h2>
 <p>The breeder's headline product is tritium, near the ~4 kg/yr class depending on the TBR lever. Tritium is valuable, radioactive, and decays (half-life ~12.3 years), so offtake logistics must account for time as a first-class variable. L7 schedules offtake from the true surplus (bred minus self-consumption minus decay and process loss) and never from gross breeding.</p>
 <h3>Assay, custody, and decay accounting</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tritium clock"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/c4-tritium-clock.mp4" type="video/mp4"></video><figcaption>Kronos motion — tritium clock</figcaption></figure>
+
 <p>Each shipment is assayed for quantity and purity, tagged with an isotopic composition, and entered into a chain of custody that follows it from the plant boundary onward. Because tritium decays continuously, the recorded quantity is stamped with its measurement time, and any quoted delivery quantity is decay-corrected to the delivery date so the customer receives what was promised, not a stale figure.</p>
 <div class="lang">python</div><pre><code>import math
 LAMBDA = math.log(2) / (12.32*365.25*24*3600)  # tritium decay const (1/s)

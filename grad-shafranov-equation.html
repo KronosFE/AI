@@ -429,7 +429,7 @@ with the elliptic (Shafranov) operator
   p(psi)      : plasma pressure profile (free function)
   F(psi)=R*Bt : poloidal-current / toroidal-field function (free)
   &#x27; = d/dpsi ,  mu0 = 4*pi*1e-7</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmh1-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <h3>The two free functions</h3>
 <p>The right-hand side depends on psi only through two free profile functions, p'(psi) and F F'(psi). Physically these encode the pressure gradient and the toroidal field/current. The problem is nonlinear because the source depends on the unknown solution through psi. In the breeder these profiles carry the negative-triangularity, high-field (16.84 T peak, 8 T on-axis) operating point at 9.86 MA.</p>
 <h3>Fields recovered from psi</h3>
@@ -442,7 +442,7 @@ with the elliptic (Shafranov) operator
 Toroidal plasma current density (from Delta* psi):
 
   J_phi = R * p&#x27;(psi) + F*F&#x27;(psi)/(mu0 * R)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grad shafranov"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/z12-grad-shafranov.mp4" type="video/mp4"></video><figcaption>Kronos motion — grad shafranov</figcaption></figure>
+
 <p>Once psi is known everywhere, the entire equilibrium follows algebraically: flux surfaces are level sets of psi, the last closed flux surface defines the plasma boundary, and the safety factor and current profile are integrals over psi. Boundary conditions come from external poloidal-field coils, which makes the practical breeder problem a free-boundary one, treated on its own page.</p>
 <p>Because the operator is elliptic and self-adjoint under the weight 1/R, GS is well suited both to finite-element discretization and to physics-informed neural network solvers, and its structure is what lets a PINN carry the residual directly in its loss.</p><div class="related"><h3>Related</h3><a href="./grad-shafranov-free-boundary.html">Free-Boundary Grad-Shafranov &rarr;</a><a href="./grad-shafranov-weak-form-fem.html">Weak Form and FEM Discretization &rarr;</a><a href="./pinn-grad-shafranov-formulation.html">PINN for Grad-Shafranov &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 

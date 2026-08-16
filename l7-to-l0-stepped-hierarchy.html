@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Authority flows downward</h2>
 <p>While telemetry rises from the plant, authority descends. The blueprint is often drawn as a staircase from L7 at the top to L0 at the bottom, each tread handing a narrower, faster, more constrained decision to the layer below it.</p>
 <h3>The descent</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — latency"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl11-latency.mp4" type="video/mp4"></video><figcaption>Kronos motion — latency</figcaption></figure>
+
 <ul><li>L7 Ecosystem sets plant-level intent — grid dispatch windows, maintenance schedules, regulatory constraints.</li><li>L6 Experience presents that intent to operators and captures their confirmations.</li><li>L5 Copilots translate intent into engineering goals — a target equilibrium, a plug-density setpoint.</li><li>L4 Orchestration routes goals through the rules engine and safety bounds before anything reaches control.</li><li>L3 Twin & AI computes the actuation trajectory using the predictive shadow and MPC agents.</li><li>L1 Control Plane executes the trajectory deterministically and holds the autonomous failsafe.</li></ul>
 <h3>Each step tightens the contract</h3>
 <p>As commands descend, three things tighten simultaneously: latency budgets shrink from minutes at L7 to microseconds at L1; scope narrows from plant strategy to a single actuator; and the ability of AI to intervene falls to zero at the bottom, where the hardware failsafe is purely physical. This is intentional — the most consequential, least reversible actions are the least dependent on intelligence.</p>

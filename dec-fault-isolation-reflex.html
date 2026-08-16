@@ -424,7 +424,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
     if not plasma_ok:
         return &#x27;DECOUPLE DEC -&gt; controlled ride-down&#x27;
     return &#x27;run&#x27;</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — direct conversion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d5-direct-conversion.mp4" type="video/mp4"></video><figcaption>Kronos motion — direct conversion</figcaption></figure>
+
 <h3>Ride-through, then decide</h3>
 <ul><li>Load-side fault: disconnect the load fast, hold the plasma on a controlled setpoint, then resynchronize or shut down deliberately.</li><li>Plasma-side fault: decouple the DEC collector so a plasma transient does not appear as a converter fault.</li><li>Both: the isolation action is a reflex; the recovery decision is supervisory.</li></ul>
 <p>The dv/dt limit is the fast trigger: a rapid collector-voltage swing is the earliest sign of trouble on either side, and the reflex trips on it before slower protections would react. This is the same fast-slow split used across the reflex tier &mdash; act on the fastest robust indicator, defer the reasoning to the supervisory layer.</p>

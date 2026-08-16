@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Supervising more than one machine</h2>
 <p>Kronos operates one architecture across two machine types, and units of each kind follow (breeder first-of-a-kind, then next-of-a-kind and beyond). Operators and engineers will need to watch several at once. The fleet view presents a compact health row per machine — the essential KPIs, the worst active alert, and confidence — so a supervisor sees the state of everything at a glance and drills into any one machine for full depth.</p>
 <h3>Comparable, not identical</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — machine view"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/exploded-machine-view.mp4" type="video/mp4"></video><figcaption>Kronos motion — machine view</figcaption></figure>
+
 <p>The breeder and burner have different physics, so the fleet row shows each machine's own most-decision-relevant indicators (breeder: shape fidelity, disruption risk, Q_sci vs 3.424; burner: plug-density balance, potential-well depth, DEC stability) under a common health summary. Same-type units are directly comparable, which is how a supervisor spots that one breeder unit is drifting relative to its siblings — an early, cheap signal.</p>
 <ul><li>Per machine: health summary, top KPI set, worst active alert, confidence</li><li>Breeder rows: shape/disruption/performance indicators</li><li>Burner rows: plug/potential/DEC indicators</li><li>Cross-unit comparison to surface a single drifting unit early</li><li>One click to the full single-machine control view</li></ul>
 <h3>Attention routing across the fleet</h3>

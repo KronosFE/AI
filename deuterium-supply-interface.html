@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Common fuel, two consumers</h2>
 <p>Deuterium fuels both the breeder (as the D in D&ndash;T) and the burner (as the D in D&ndash;<sup>3</sup>He). Unlike tritium and helium-3, deuterium is abundant, so this interface is about <b>metering and purity</b> rather than scarcity. It supplies the pellet, gas-puff, and beam interfaces with fuel of known isotopic and chemical purity.</p>
 <h2>Interface functions</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <ul><li>Metering: mass-flow sense and setpoints per consumer.</li><li>Purity: isotopic assay (D vs H) and impurity monitoring before delivery.</li><li>Buffering: plenum pressure regulation for the <a href=./gas-puff-valve-interface.html>gas-puff valves</a> and <a href=./ice-piston-fueling-interface.html>ice-piston</a> feed.</li></ul>
 <div class="lang">python</div><pre><code># purity gate before fueling delivery (L3/L4)
 if d_fraction &gt;= d_min and impurity_ppm &lt;= imp_max:

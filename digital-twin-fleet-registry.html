@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Every unit has a twin; the registry holds them all</h2>
 <p>Each Kronos unit runs its own L3 KRONOS-CTRL twin. The fleet registry is the L7 index of all of them: a directory that maps each unit to its live twin, its machine type (breeder or burner), its housing (Aegis or MetroVolt for burners), its generation (FOAK/NOAK/BOAK), and its configuration (for the breeder, the active TBR lever; for the burner, the plug operating point). The registry is how fleet-level services address individual units.</p>
 <h3>What the registry enables</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Discovery: which units exist, of what type and generation</li><li>Addressing: route a coordination or learning action to the right twins</li><li>Compatibility: match spares, models, and updates to a unit's configuration</li><li>Rollup: aggregate state, forecast, and inventory across the fleet</li></ul>
 <div class="lang">python</div><pre><code># registry entry per unit
 {

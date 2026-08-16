@@ -420,7 +420,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <div class="lang">text</div><pre><code>IDLE -&gt; PUMPDOWN -&gt; FIELD_RAMP -&gt; BREAKDOWN -&gt; RAMP_UP
      -&gt; FLATTOP(diagnostics, fuelling, heating) -&gt; RAMP_DOWN -&gt; RECOVERY -&gt; IDLE
 any phase --fault--&gt; SAFE_ABORT -&gt; RECOVERY -&gt; IDLE</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <h2>Guards reference frozen design points</h2>
 <p>Entry and exit guards are written against the machine's design targets so the procedure and the physics stay consistent: toroidal field ramp targets 8 T on-axis (16.84 T peak at the conductor), flat-top plasma current targets 9.86 MA, and the equilibrium is held at negative triangularity delta -0.30. These are design-and-simulation set points; the engine validates that commanded programs stay inside them and defers to the <a href=./safety-envelope-checks.html>safety envelope</a> for hard limits.</p>
 <h2>Per-phase abort</h2>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Models are only as good as their data</h2>
 <p>Every twin model is trained on data, and the quality of that data bounds the model. Training-data curation is the L0 process that converts raw pulse histories and simulation campaigns into clean, labeled, versioned datasets. It sits between the petabyte archive and the GPU clusters, and it is where much of a model's eventual accuracy is actually determined.</p>
 <h3>From raw to trainable</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — training from sim"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/sur8-training-from-sim.mp4" type="video/mp4"></video><figcaption>Kronos motion — training from sim</figcaption></figure>
+
 <p>Curation cleans and validates signals, aligns them in time and space, labels events, and splits data into training, validation, and test sets that do not leak. It draws on the L2 data fabric's validated telemetry and metadata lineage, so each curated sample carries provenance back to its source diagnostics and calibration state.</p>
 <ul><li>Signal validation and outlier handling</li><li>Temporal and spatial alignment across diagnostics</li><li>Event labeling, including simulated off-normal cases</li><li>Leakage-safe train/validation/test splits</li></ul>
 <h3>Filling the gaps with simulation</h3>

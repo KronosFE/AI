@@ -427,7 +427,7 @@ def lsb(v_fs, N):
 
 print(round(quant_snr_db(16),1), &#x27;dB&#x27;)   # 98.1 dB
 print(lsb(10.0, 16))                      # ~153 uV per count</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <h3>Dynamic range budget</h3>
 <p>Dynamic range is the span between the smallest resolvable change and the largest un-clipped excursion. A Mirnov channel must resolve a small precursor oscillation yet survive a large disruption transient without saturating. The <a href=./signal-conditioning-front-end.html>front end</a> sets gain so both live inside the converter's range; the calibration record ties counts back to physical units.</p>
 <h3>Effective bits, not nameplate bits</h3>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Transport sets performance</h2>
 <p>Beyond equilibrium and stability lies transport: how particles, energy, and momentum diffuse and convect across the confining field. Transport determines the density and temperature profiles, and therefore the fusion power and confinement, of both machines. L0 runs transport solves to predict these profiles and to close the loop between heating, fueling, and performance.</p>
 <h3>The transport equations</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>Plasma transport is described by coupled continuity and energy-balance equations for each species, with fluxes driven by gradients through diffusivities and convective velocities. The central difficulty is that the transport coefficients are set by turbulence, so they are not simple constants but depend on the very gradients they redistribute.</p>
 <div class="lang">python</div><pre><code># 1D flux-surface-averaged transport (per species):
 # dn/dt = -1/V&#x27; d/drho( V&#x27; Gamma ) + S_n

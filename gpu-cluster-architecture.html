@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>GPUs as the training engine of L0</h2>
 <p>The GPU partitions of L0 exist to train the models that later run in the real-time twin. This is dense, memory-bandwidth-bound work: physics-informed neural networks solving Grad-Shafranov and MHD residuals, graph neural networks over the diagnostic sensor topology, surrogate emulators of expensive solvers, and anomaly-detection ensembles for sub-threshold quench precursors.</p>
 <h3>Node and memory design</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <p>Nodes are built around high-bandwidth GPU memory and fast intra-node GPU-to-GPU links, because PINN training is dominated by repeated evaluation of differential-operator residuals over large collocation sets. The bottleneck is rarely raw arithmetic; it is feeding tensors and gradients through memory. Kronos sizes memory per GPU to hold the largest single-machine twin module without sharding.</p>
 <h3>Multi-GPU and multi-node scaling</h3>
 <p>Larger models shard across GPUs with tensor and data parallelism; large sweeps run one model per GPU in parallel. The <a href=./interconnect-fabric.html>interconnect fabric</a> carries gradient all-reduce traffic for distributed training. For the breeder disruption-precursor ensembles, many small models train concurrently, so throughput matters more than single-model scale.</p>

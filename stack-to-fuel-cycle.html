@@ -418,12 +418,12 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Controlling the fuel loop</h2>
 <p>The fuel cycle is where the breeder's products are made and where both machines' fuel is managed. The architecture treats it as a real-time balancing problem: measuring inventory, tracking production, and scheduling supply, all as operations, never as economics.</p>
 <h3>What the stack tracks</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fuel cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/g1-fuel-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — fuel cycle</figcaption></figure>
+
 <ul><li>Breeder tritium production — a roughly 4 kg/yr tritium class output.</li><li>Helium-3 co-production — roughly 1.97 kg/yr.</li><li>14 MeV neutron flux, tied to the tritium breeding ratio lever (1.1 / 1.5 / 1.8).</li><li>Burner D-3He fuel supply against the DEC train's operating windows.</li></ul>
 <h3>The tritium breeding ratio as a lever</h3>
 <p>On the breeder, the tritium breeding ratio (TBR) is treated as a design lever studied across 1.1, 1.5, and 1.8, not a fixed result. L0's Monte Carlo neutronics quantifies breeding for each case, and the twin's Neutronics module tracks the operating point. The honest gates keep this explicit: TBR is a study range, not a settled number.</p>
 <h3>Real-time balancing</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tritium cycle"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/l3-tritium-cycle.mp4" type="video/mp4"></video><figcaption>Kronos motion — tritium cycle</figcaption></figure>
+
 <p>During operation, L2 maintains the isotope inventory from neutron-flux and gas diagnostics, the twin projects production forward, and L7's operations functions schedule fuel handling and product logistics. The whole loop is described operationally — inventory, timing, availability — with no price or cost anywhere in the architecture.</p>
 <p>The neutron side connects to the <a href=./kronos-ctrl-digital-twin.html>twin's</a> Neutronics module; scheduling is a <a href=./color-green-operations-ecosystem.html>green operations</a> function.</p><div class="related"><h3>Related</h3><a href="./color-green-operations-ecosystem.html">Green — Operations &rarr;</a><a href="./kronos-ctrl-digital-twin.html">The KRONOS-CTRL Twin &rarr;</a><a href="./physical-plant-wiring.html">Physical Plant Wiring &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 

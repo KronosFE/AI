@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Promising only what you can hold</h2>
 <p>A firm-power customer - a MetroVolt data center, an Aegis fixed defense installation - needs a commitment the plant can keep. Degraded-mode power scheduling decides, given the current health of every unit, how much firm power to promise so that a further single fault does not break the commitment. It is graceful degradation expressed as a dispatch policy, and it is bounded by the honest availability gate.</p>
 <h3>Firm vs available</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — burner power flow"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa9-burner-power-flow.mp4" type="video/mp4"></video><figcaption>Kronos motion — burner power flow</figcaption></figure>
+
 <p>Available power is what the fleet can produce right now; firm power is what it can guarantee through the next credible fault. The scheduler commits firm power below available power by a reserve margin sized to the worst single-unit loss, so a failover event causes a reserve draw, not a shortfall.</p>
 <div class="lang">python</div><pre><code>def firm_power(unit_caps, reserve_units=1):
     # firm = total capacity minus the largest &#x27;reserve_units&#x27; contributors
@@ -429,7 +429,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 print(firm_power([80, 80, 80, 80], reserve_units=1))  # 240 firm from 320 available</code></pre>
 <h3>The plug shapes the schedule</h3>
 <ul><li>Each burner unit's committed cap is its conservative derate point, because the 26.49 T plug is stressed 3-3.9x at the design bore</li><li>The regime is 166-830x beyond data, so headroom is held back as low-confidence margin</li><li>He-3 fuel availability (~400x supply gap) is a scheduling constraint, not just a design one</li><li>Facility firm power leans on N+k units, never a single machine, per the 0.99982 gate</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — grid firm power"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/r5-grid-firm-power.mp4" type="video/mp4"></video><figcaption>Kronos motion — grid firm power</figcaption></figure>
+
 <p>The scheduler never promises past the availability envelope; if health degrades, the firm commitment steps down transparently rather than being missed. It draws unit health from <a href=./predictive-maintenance-overview.html>predictive maintenance</a> and reserve sizing from <a href=./fleet-availability-and-model-propagation.html>fleet availability</a>. Nothing here is expressed in economic terms - only megawatts and time.</p><div class="related"><h3>Related</h3><a href="./graceful-degradation-modes.html">Graceful Degradation &rarr;</a><a href="./fleet-availability-and-model-propagation.html">Fleet Availability &rarr;</a><a href="./burner-continuous-operation-narrative.html">Burner Narrative &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

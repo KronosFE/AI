@@ -428,7 +428,7 @@ total = sum(chain_ms.values())      # 3.15 ms
 available = 8.0                     # ms of disruption budget (example)
 assert total &lt; available            # with margin
 print(round(available-total,2), &#x27;ms margin&#x27;)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — time to disruption"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/prd3-time-to-disruption.mp4" type="video/mp4"></video><figcaption>Kronos motion — time to disruption</figcaption></figure>
+
 <h3>Where the time actually goes</h3>
 <p>The electronic links &mdash; detection and decision &mdash; are fast; the slow terms are mechanical and physical: opening an injector, the flight time of gas or pellets, and the finite time for injected material to radiate the stored energy. This is why detection must be early: buying milliseconds at the front of the chain is the only way to afford the mechanical tail.</p>
 <ul><li>Detection latency is minimized by watching fast, robust precursors, not slow integrated ones.</li><li>Injector latency is minimized by pre-arming when avoidance confidence drops.</li><li>Transit latency is fixed by geometry; it is a budgeted constant, not a variable.</li></ul>

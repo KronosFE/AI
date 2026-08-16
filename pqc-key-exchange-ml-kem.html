@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Lattice-based key encapsulation</h2>
 <p>ML-KEM (FIPS 203, from CRYSTALS-Kyber) is a module-lattice key-encapsulation mechanism. One party publishes a public key; the other encapsulates a random shared secret to it and returns a ciphertext; both derive the same symmetric key. Its security rests on the hardness of the module learning-with-errors problem, which no known quantum algorithm breaks efficiently. Kronos uses it to establish the symmetric keys protecting exported telemetry and cross-boundary sessions.</p>
 <h3>Hybrid, not replacement</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — classical vs quantum"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/qc12-classical-vs-quantum.mp4" type="video/mp4"></video><figcaption>Kronos motion — classical vs quantum</figcaption></figure>
+
 <p>During transition Kronos runs a hybrid: the session key is derived from both an X25519 (classical) exchange and an ML-KEM encapsulation. An attacker must break both to recover the key. This guards against an as-yet-undiscovered flaw in the newer lattice scheme while still defeating a future quantum adversary against the classical half.</p>
 <div class="lang">python</div><pre><code># Hybrid key derivation: classical XOR quantum-safe, both required
 def hybrid_session_key(peer):

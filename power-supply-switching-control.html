@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Supplies as the muscle behind the coils</h2>
 <p>Every field the control loops command is realized by a power supply pushing current through a coil. Kronos uses fast switching converters whose output current tracks L1's demand. The switching itself &mdash; the gating of the power devices &mdash; is a deterministic control task: it sets how fast and how cleanly the coil current follows the setpoint the shape, position, or plug loops request.</p>
 <h3>Current-mode inner loop</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — clean"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a3-clean.mp4" type="video/mp4"></video><figcaption>Kronos motion — clean</figcaption></figure>
+
 <p>Each supply closes a fast current-control inner loop: it modulates its switching duty to make output current equal the demand, rejecting back-EMF and load changes. This inner loop turns the coil-plus-supply into a predictable actuator for the outer plasma loops, which is the pattern used throughout <a href=./rt-compute-actuators.html>RT-compute actuators</a>. The switching frequency and control bandwidth are chosen so the coil current has the response the outer loop assumes.</p>
 <h2>Deterministic switching</h2>
 <ul><li>Gate timing referenced to the shared clock to bound jitter.</li><li>Current, voltage, and di/dt limits enforced locally.</li><li>Coordinated turn-on/off to avoid cross-supply transients.</li><li>Fast, controlled ramp paths for current ramp-down and dumps.</li></ul>

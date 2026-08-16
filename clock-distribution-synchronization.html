@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One clock, everywhere</h2>
 <p>Determinism across a distributed system requires a common notion of time. Kronos distributes a single low-jitter master clock and a synchronized time-of-day to every L1 node &mdash; FPGA controllers, actuator drivers, and the deterministic front end. Shared time is what makes <a href=./synchronized-gates.html>synchronized gates</a>, time-triggered links, and correlated diagnostics possible.</p>
 <h3>Fan-out and skew</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>The reference is fanned out through matched-length paths and clock buffers so that phase skew between nodes stays in the nanosecond range. Skew is budgeted like latency: every node's clock arrival is characterized, and the worst-case skew feeds the timing and jitter budgets of every cross-node operation.</p>
 <h2>Time-triggered operation</h2>
 <ul><li>Sampling instants aligned across diagnostics for coherent state vectors.</li><li>Communication slots scheduled, not contended, on the deterministic fabric.</li><li>Actuation gates released on shared clock edges.</li><li>Event timestamps consistent across the L2 archive for later correlation.</li></ul>

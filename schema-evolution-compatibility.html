@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Long-lived machines, changing schemas</h2>
 <p>The breeder and burner control stacks will evolve for years. Event schemas gain fields, diagnostics are added, and models are versioned. Without discipline, a schema change would break replay of old data or crash consumers still reading old formats. Compatibility rules in the <a href=./event-schema-registry.html>schema registry</a> keep every version readable and every consumer resilient.</p>
 <h2>Compatibility classes</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Change</th><th>Backward</th><th>Forward</th><th>Allowed in place</th></tr></thead><tbody><tr><td>add optional field</td><td>yes</td><td>yes</td><td>yes</td></tr><tr><td>add required field</td><td>no</td><td>yes</td><td>no (new version)</td></tr><tr><td>remove field</td><td>yes</td><td>no</td><td>no (new version)</td></tr><tr><td>change type/units</td><td>no</td><td>no</td><td>never (new topic)</td></tr></tbody></table>
 <h2>Rules that hold the line</h2>
 <ul><li>Additive, optional changes only for in-place evolution; anything breaking gets a new major version or topic.</li><li>Units and types are immutable for a given schema name; a burner plug-field value never silently changes units.</li><li>Every event stamps its schema_version so decoders pick the exact schema that wrote it.</li></ul>

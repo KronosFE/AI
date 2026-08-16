@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the burner must control</h2>
 <p>The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T end-plug field, a 17 T throat, and a low neutron fraction of 5.44%. Its control problems are those of an open magnetic system, quite different from a tokamak's, and they center on holding the ends and converting the output.</p>
 <h3>The three core problems</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <ul><li>End-plug density — sustaining the high-density plugs that confine the central-cell plasma.</li><li>The ambipolar potential — maintaining the electrostatic potential profile that plugs ion loss.</li><li>Direct energy conversion — steering the escaping charged-particle flux into the multi-modal DEC train.</li></ul>
 <h3>The ambipolar potential</h3>
 <p>Confinement in a tandem mirror is electrostatic as much as magnetic. The end plugs raise a potential that reflects central-cell ions; the balance between electron and ion losses sets the profile, and the control loop must hold it:</p>
@@ -426,7 +426,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 # n_plug / n_center = exp( e * phi_c / T_e )
 # phi_c : central-cell confining potential   T_e : electron temperature
 # The plug density sets phi_c; the loop holds phi_c against fluctuations.</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d1-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — tandem mirror</figcaption></figure>
+
 <h3>Low-neutron, not aneutronic</h3>
 <p>D-3He is a low-neutron fuel — 5.44% of the power appears as neutrons — not an aneutronic one. That residual neutron flux is a diagnostic and a materials input, tracked by the twin's Neutronics module. p-11B remains a gated research endpoint; there is no p-6Li main burn. The DEC train's job is to convert the dominant charged-particle output directly.</p>
 <p>These problems map onto the shared stack in <a href=./mapping-stack-to-tandem-mirror.html>mapping to the tandem mirror</a>, and the conversion side in <a href=./stack-to-dec-train.html>the DEC train</a>.</p><div class="related"><h3>Related</h3><a href="./mapping-stack-to-tandem-mirror.html">Mapping to the Tandem Mirror &rarr;</a><a href="./breeder-control-problems.html">Breeder Control Problems &rarr;</a><a href="./stack-to-dec-train.html">The DEC Train &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>

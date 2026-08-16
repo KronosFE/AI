@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Measuring the reaction directly</h2>
 <p>Neutrons are the most direct signature of fusion. The breeder produces 14 MeV neutrons from D&ndash;T (design fusion power 88.7 MW), and the burner produces a much smaller neutron flux &mdash; only <b>5.44%</b> of D&ndash;<sup>3</sup>He energy is neutronic. The neutron interface measures total flux, energy spectrum, and spatial emission to estimate fusion rate and, on the breeder, close the breeding budget.</p>
 <h2>Signal set</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a2-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — fusion</figcaption></figure>
+
 <ul><li>Total yield: fission chambers / activation foils for absolute rate.</li><li>Spectrum: to separate 14 MeV D-T neutrons from scattered/other components.</li><li>Imaging: collimated cameras for the spatial emission profile.</li><li>Cross-link: feeds the twin's <a href=./lithium-blanket-interface.html>neutronics/blanket</a> estimate.</li></ul>
 <div class="lang">python</div><pre><code># fusion rate + breeding closure
 rate_fus = calibrate(neutron_count, detector_eff)   # absolute

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Failure Mode and Effects Analysis</h2>
 <p>FMEA is the disciplined enumeration of how each component can fail, what effect each failure has, how likely it is, and how detectable it is. The output is a ranked list of risks that drives where sensors, redundancy, and maintenance effort go. Kronos runs FMEA per subsystem and rolls the results up to the plant level for both machines.</p>
 <h3>Scoring</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — maintenance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac9-maintenance.mp4" type="video/mp4"></video><figcaption>Kronos motion — maintenance</figcaption></figure>
+
 <p>Each failure mode gets three 1-10 scores: severity S (effect if it occurs), occurrence O (likelihood), and detection D (how hard it is to catch before it matters - higher is worse). The Risk Priority Number is RPN = S x O x D. Modes are addressed in RPN order until residual risk is acceptable.</p>
 <div class="lang">python</div><pre><code>from dataclasses import dataclass
 @dataclass

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the plug coils do</h2>
 <p>A tandem mirror confines plasma between high-field end plugs. The burner's plugs target <b>26.49 T</b> with a 17 T throat &mdash; the fields that create the magnetic mirror and, with the ambipolar potential, plug the ends. This interface commands the plug-coil currents and reads their electromagnetic and mechanical state.</p>
 <h2>The stress gate, stated plainly</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <p>At the design bore, the required field structure overstresses the plug coil by <b>~3&ndash;3.9&times;</b> the conductor's mechanical limit &mdash; it is <b>infeasible as specified</b>. This is a design-and-simulation finding, not a solved engineering problem, and it is not softened here. The actuation interface is documented so the constraint is explicit to any layer or agent reasoning about the burner.</p>
 <div class="lang">python</div><pre><code># plug-coil command with the honest limit exposed
 sigma_hoop = lorentz_stress(I_plug, B_local, geom)

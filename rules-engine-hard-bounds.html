@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Independence from intelligence</h2>
 <p>The rules engine is the machine's written law. It is small, deterministic, human-authored, and version-controlled, with <b>no dependence</b> on the twin, the copilot, or any learned model. Its sole power is to REJECT a proposed command that violates a hard bound. It never originates an action. This asymmetry is deliberate: intelligence can be wrong, so the veto authority must not itself be intelligent.</p>
 <h2>Hard bounds are physics and engineering limits</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — battery never recharge"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab7-battery-never-recharge.mp4" type="video/mp4"></video><figcaption>Kronos motion — battery never recharge</figcaption></figure>
+
 <ul><li>Breeder toroidal field must not exceed the conductor's peak-field rating (design peak 16.84 T); on-axis target 8 T.</li><li>Breeder plasma current commanded slew and magnitude bounded around the 9.86 MA design point.</li><li>Burner plug field bounded at the 26.49 T design point; throat field at 17 T; no command may exceed magnet ratings.</li><li>Fuelling, heating, and pumping interlocked so no combination can be commanded outside the validated envelope.</li></ul>
 <h2>Rule structure</h2>
 <div class="lang">python</div><pre><code># rules are pure predicates over (command, machine_state); default DENY

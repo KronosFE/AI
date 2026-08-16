@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A schema per tool</h2>
 <p>Every copilot tool is defined by a machine-checkable schema. The schema fixes the argument names and types, the valid ranges for physical arguments, whether the tool has a side effect, and the resource bounds. A tool call is validated against its schema before execution; a call that omits a required argument, uses an out-of-range value, or claims the wrong class is rejected and returned to the planner as an error to reason about.</p>
 <h3>Why ranges live in the schema</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — validation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt13-validation.mp4" type="video/mp4"></video><figcaption>Kronos motion — validation</figcaption></figure>
+
 <p>Physical arguments carry hard ranges drawn from the machine's canon and the certified envelope. A proposed plasma-current setpoint above the breeder's 9.86 MA design point, or a plug-field argument above the burner's 26.49 T, fails schema validation before it ever reaches L4. This is a first, cheap line of defense: obviously invalid actions never become proposals.</p>
 <div class="lang">json</div><pre><code>{
   &quot;tool&quot;: &quot;propose.set_current_reference&quot;,

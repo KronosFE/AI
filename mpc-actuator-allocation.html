@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Over-actuation as an asset</h2>
 <p>The breeder has many poloidal-field and solenoid coils plus heating and fueling; the burner has plug fueling, multiple heating sources and DEC potentials. There are more actuators than independent control objectives, which is an asset: the same shape or confinement target can be met by many actuator combinations, and MPC picks the combination that also respects secondary goals, staying off actuator limits, minimizing strain, keeping reserve for disturbance rejection.</p>
 <h3>Allocation inside the optimization</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>Kronos does not use a separate allocation stage; allocation falls out of the MPC objective. The actuator-effort term u^T R u with a per-actuator weight matrix R distributes effort, and constraints keep each actuator within limits with headroom. Weighting a nearly saturated coil more heavily pushes effort to coils with reserve, preserving the ability to respond to the next disturbance.</p>
 <div class="lang">python</div><pre><code># per-actuator effort weighting drives allocation
 R = diag(r_i)                      # larger r_i -&gt; use actuator i less

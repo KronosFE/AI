@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Fast surrogates need fresh grounding</h2>
 <p>The twin's neural operators and reduced-order models trade fidelity for speed so the real-time layers can run. That trade is only safe if the surrogates are re-grounded often enough to track the true machine. Retraining cadence is the policy that decides how often each surrogate is refreshed, balancing compute against the risk of a surrogate drifting away from physics.</p>
 <p>Cadence is not one number. Fast-changing subsystems (edge conditions, first-wall state) are refreshed more often than slow ones (bulk neutronics response). Each surrogate declares a cadence policy combining a scheduled floor, a drift trigger, and a regime trigger, whichever fires first. The registry tracks the age of each surrogate against its policy so an overdue surrogate is visible.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — learning physics"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f3-learning-physics.mp4" type="video/mp4"></video><figcaption>Kronos motion — learning physics</figcaption></figure>
+
 <h3>Cadence drivers</h3>
 <ul><li>Scheduled floor: retrain at least every N campaign blocks</li><li>Drift trigger: retrain on <a href=./drift-detection-covariate-shift.html>shift</a> or <a href=./concept-drift-detection.html>concept drift</a> breach</li><li>Regime trigger: retrain when new operating space is explored</li><li>Fidelity trigger: retrain when twin residuals exceed tolerance</li><li>Compute budget: batch overdue surrogates efficiently on L0</li></ul>
 <div class="lang">python</div><pre><code>def due_for_retrain(sur, now, monitors):

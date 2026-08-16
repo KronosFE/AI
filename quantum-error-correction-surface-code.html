@@ -423,7 +423,7 @@ corrects any error pattern of weight &lt; d/2
 logical error rate  ~  A * ( p / p_th )^{ (d+1)/2 }
 #   p    = physical gate error,  p_th ~ 1e-2 threshold
 #   need p &lt; p_th, then increase d to drive logical error down</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — error correction"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/qc9-error-correction.mp4" type="video/mp4"></video><figcaption>Kronos motion — error correction</figcaption></figure>
+
 <h3>The threshold condition</h3>
 <p>QEC only helps if the physical error rate p is below the code threshold p_th (about 1% for the surface code). Below threshold, increasing the code distance d suppresses logical errors exponentially; above it, adding qubits makes things worse. Today's best hardware sits near this threshold, which is why fault tolerance is emerging but not yet at scale.</p>
 <h3>The cost that shapes the timeline</h3>

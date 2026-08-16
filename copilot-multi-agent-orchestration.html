@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Three specialists, one workflow</h2>
 <p>Real operator questions cross copilot boundaries. "Can we run this high-confinement scenario tonight?" needs the Plasma Copilot's stability assessment, the Engineering Copilot's magnet-margin check, and the Operations Copilot's runbook feasibility. Kronos orchestrates the three specialists rather than building one monolith, so each stays deep in its domain and grounded in its own evidence.</p>
 <h3>Orchestration through L4</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — countdown first plasma"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae14-countdown-first-plasma.mp4" type="video/mp4"></video><figcaption>Kronos motion — countdown first plasma</figcaption></figure>
+
 <p>Cross-copilot workflows are coordinated through <a href=./l4-orchestration.html>L4</a>, which routes a compound request to the relevant copilots, passes shared context (the same twin snapshot and session state), and assembles their contributions. Each copilot answers within its authority; none can invoke a side-effect on behalf of another. A proposal still passes the single authorization gate and single human approval.</p>
 <div class="lang">text</div><pre><code>orchestrate(compound_request):
   subtasks = decompose(compound_request)   # by domain

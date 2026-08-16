@@ -427,7 +427,7 @@ def throat_permit(B_throat_T, target_T, coil_stress_ratio, tol=0.05):
 
 # 17 T throat, 3 T center -&gt; mirror ratio ~5.7 (illustrative)
 print(round(mirror_ratio(17.0, 3.0), 2))</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — mirror ratio"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bmr2-mirror-ratio.mp4" type="video/mp4"></video><figcaption>Kronos motion — mirror ratio</figcaption></figure>
+
 <h3>Coupled to the plug</h3>
 <p>The throat and plug fields are not independent knobs: the confinement picture depends on their ratio and profile together. The supervisor therefore cross-checks throat and plug states and trips if their relationship leaves the modeled envelope, not just if either exceeds an individual limit. This coupling is why plug and throat supervision are designed as one subsystem.</p>
 <ul><li>Field guard: hold the throat field within tolerance of target.</li><li>Stress guard: keep the throat coil below its material limit, dump on breach.</li><li>Consistency guard: trip if the plug/throat relationship exits the modeled regime.</li></ul>

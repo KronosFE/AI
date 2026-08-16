@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Ride through, don&#x27;t trip out</h2>
 <p>A collector-grid arc, a supply glitch, or a transient overvoltage on one DEC stage should not stop the whole conversion train. L1 implements <b>fault ride-through</b>: detect the stage fault, isolate it, and keep the remaining stages converting, then attempt controlled re-insertion once the fault clears. This preserves operation through disturbances that would otherwise force a full shutdown.</p>
 <h3>Detection and isolation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — direct conversion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/d5-direct-conversion.mp4" type="video/mp4"></video><figcaption>Kronos motion — direct conversion</figcaption></figure>
+
 <p>Each stage is monitored for fault signatures &mdash; arc current, voltage collapse, rate-of-change limits. On detection, L1 removes drive from the affected stage and reconfigures the grid schedule so the remaining stages absorb the redistributed load without exceeding their limits. The whole sequence completes inside the fast window so the fault cannot cascade to neighboring stages or back into the plasma loss channel.</p>
 <h2>Why determinism matters here</h2>
 <ul><li>An arc evolves fast; late isolation can damage the stage.</li><li>Load redistribution must respect the surviving stages' envelopes.</li><li>Re-insertion is gated on verified fault clearance.</li><li>The plasma-side coupling must stay bounded during the transient.</li></ul>

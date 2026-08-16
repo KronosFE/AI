@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The gate between decision and energy</h2>
 <p>A synchronized actuation gate is the last checkpoint before a command moves energy. It admits a command only when three conditions hold simultaneously: the command is inside its clamped envelope, the machine state permits the action, and every relevant interlock reads permissive. Any one condition failing holds the gate closed and the actuator stays in its last safe state.</p>
 <h3>Gate truth table</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Cmd valid</th><th>State permits</th><th>Interlocks clear</th><th>Gate opens</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td><td>0</td></tr><tr><td>1</td><td>1</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td><td>0</td></tr><tr><td>1</td><td>1</td><td>1</td><td>1</td></tr></tbody></table>
 <p>The gate is a hardware AND of independent permissives. It is deliberately not clever: no single software fault can force it open, because the interlock permissive originates outside the software domain in the <a href=./interlock-matrix-hardwired.html>hardwired interlock matrix</a>.</p>
 <div class="lang">python</div><pre><code>def gate(cmd_valid, state_permits, interlocks_clear, in_window):

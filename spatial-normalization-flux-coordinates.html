@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Normalized flux as the ruler</h2>
 <p>In the breeder (Hyperion), the confinement geometry is set by nested flux surfaces. Normalized poloidal flux psi_N runs from 0 on the magnetic axis to 1 at the last closed flux surface. Expressing every profile diagnostic against psi_N — rather than against machine radius — removes the ambiguity introduced when the plasma shifts, breathes, or changes its negative-triangularity shape (delta -0.30).</p>
 <h3>Why the shape makes this hard</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — synthetic diagnostics"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt11-synthetic-diagnostics.mp4" type="video/mp4"></video><figcaption>Kronos motion — synthetic diagnostics</figcaption></figure>
+
 <p>Negative triangularity pulls the outboard edge inward, and at aspect ratio 2.5 the flux surfaces are strongly shaped. A naive radial mapping would misplace edge diagnostics badly. The normalization uses the reconstructed equilibrium to place each sample on the correct surface, so an edge pressure sample lands at the right psi_N even as the boundary moves shot to shot.</p>
 <h3>Coupled to the equilibrium solver</h3>
 <p>Flux-coordinate normalization and equilibrium reconstruction are mutually dependent: the mapping needs the equilibrium, and the equilibrium fit uses normalized magnetics. The fabric provides a fast, calibrated first mapping from magnetics; the L3 PINN that solves Grad-Shafranov then refines it. The fabric records which equilibrium version produced a given normalization.</p>

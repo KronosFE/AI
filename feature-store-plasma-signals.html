@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One definition, two read paths</h2>
 <p>The most common silent failure in deployed ML is training-serving skew: a feature computed one way offline and a subtly different way online. Kronos eliminates it with a feature store that defines each plasma or diagnostic feature once, then serves it through two backends: a batch path for L0 training and a low-latency path for the online layers. Both execute the same definition.</p>
 <p>Features are versioned objects. A change to how normalized plasma current or plug field ratio is computed produces a new feature version; models pin the feature versions they were trained on, so a redefinition never silently changes what a deployed model consumes. Backfills recompute historical values so training sets stay internally consistent.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — countdown first plasma"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae14-countdown-first-plasma.mp4" type="video/mp4"></video><figcaption>Kronos motion — countdown first plasma</figcaption></figure>
+
 <h3>Example feature definitions</h3>
 <ul><li>Breeder: q95, normalized beta, Greenwald fraction, elongation, triangularity vs delta -0.30 target</li><li>Burner: mirror ratio, plug field toward 26.49 T, ambipolar potential estimate, neutron fraction vs 5.44% design</li><li>Shared: coil temperature margins, diagnostic health flags, control error integrals</li></ul>
 <div class="lang">python</div><pre><code>@feature(name=&#x27;breeder.greenwald_fraction&#x27;, version=3,

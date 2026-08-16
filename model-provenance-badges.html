@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Provenance you can read in one glance</h2>
 <p>The full provenance card answers everything but takes attention to read. During an upset an operator needs the summary instantly, so each AI-derived value also carries a small badge encoding its trust state. The badge is deliberately coarse — it exists to tell the operator whether to lean on this number or scrutinize it, not to replace the detail one click away.</p>
 <h3>Badge dimensions</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — pid vs model"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl2-pid-vs-model.mp4" type="video/mp4"></video><figcaption>Kronos motion — pid vs model</figcaption></figure>
+
 <table class="tt"><thead><tr><th>Dimension</th><th>Meaning</th></tr></thead><tbody><tr><td>Validated</td><td>the producing model passed V&amp;V and is released</td></tr><tr><td>Calibrated</td><td>its confidence is currently trustworthy</td></tr><tr><td>Inputs healthy</td><td>no critical diagnostic is imputed or dead</td></tr><tr><td>In distribution</td><td>the machine state is within the model&#x27;s training regime</td></tr></tbody></table>
 <p>A value with all four green is a value to act on. Any amber or red dimension is a cue to open the provenance card and understand the limitation before trusting the number. Out-of-distribution is the most important flag: it means the machine has entered a regime the model was never trained on, which is exactly when an unbadged AI is most dangerous and most confident-looking.</p>
 <h3>Badges follow the value everywhere</h3>

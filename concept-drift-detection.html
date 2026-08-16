@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>When the mapping changes, not the inputs</h2>
 <p>Covariate shift is a change in what inputs arrive; concept drift is a change in what those inputs mean. A breeder disruption-precursor model may see familiar-looking magnetics yet the precursor-to-disruption mapping shifts as first-wall conditioning changes. A burner plug model's inputs may look nominal while the potential-to-confinement relationship moves as coil performance ages. Concept drift is the more dangerous of the two because the inputs give no warning.</p>
 <p>Detecting it requires labels, which arrive late: the outcome of a pulse is known only after the pulse. Kronos therefore runs concept-drift detection as a backward-looking process on the L0 archive, comparing rolling model error against a stable baseline error rather than comparing input distributions.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — when"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae3-when.mp4" type="video/mp4"></video><figcaption>Kronos motion — when</figcaption></figure>
+
 <h3>Methods</h3>
 <ul><li>DDM / EDDM style error-rate trackers with warning and drift thresholds</li><li>ADWIN adaptive windowing over the residual stream</li><li>Page-Hinkley test on cumulative prediction error</li><li>Sliding-window AUC / calibration decay for classifiers</li></ul>
 <div class="lang">python</div><pre><code>class PageHinkley:

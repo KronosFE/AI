@@ -427,7 +427,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   Update each member with perturbed observations:
     x_i^a = x_i^f + K ( z + eps_i - H x_i^f )
     K = P^f H&#x27; (H P^f H&#x27; + R)^-1     (via ensemble, low-rank)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — plug field"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/bdc6-plug-field.mp4" type="video/mp4"></video><figcaption>Kronos motion — plug field</figcaption></figure>
+
 <h3>Why ensembles scale</h3>
 <p>The gain is computed through the ensemble anomalies, so cost scales with the number of members (tens to hundreds), not the millions of state variables. The ensemble also propagates through the true nonlinear model, capturing non-Gaussian structure the EKF misses. This is the practical estimator for a field-scale digital twin.</p>
 <div class="lang">python</div><pre><code># EnKF update (schematic, low-rank via ensemble)

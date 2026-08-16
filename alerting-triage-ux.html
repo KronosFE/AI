@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>From detections to decisions</h2>
 <p>The lower layers emit many signals: L3 anomaly ensembles flag sub-threshold quench and disruption precursors, SCADA reports process excursions, L1 logs interlock events. Left raw, this is a flood. The alerting pipeline deduplicates, correlates, and ranks these into a single triage stream so an operator always knows the one thing that most needs attention now.</p>
 <h3>Ranking by expected consequence and lead time</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — disruption precursors"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/m3-disruption-precursors.mp4" type="video/mp4"></video><figcaption>Kronos motion — disruption precursors</figcaption></figure>
+
 <p>Each alert carries a severity, a confidence from the detecting model, and — critically — a lead time: how long until the operator must act. A high-confidence disruption precursor with 40 ms of lead time outranks a low-confidence cryo drift with minutes of slack. Ranking blends these rather than sorting by raw severity, so a genuinely urgent, actionable item is never buried under chronic nuisances.</p>
 <div class="lang">python</div><pre><code>def triage_score(alert):
     # higher = surface sooner

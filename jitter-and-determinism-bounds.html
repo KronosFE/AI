@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Determinism is a worst-case property</h2>
 <p>Determinism on the reflex path means the response time is bounded above by a value that holds under every admissible input and load. Average latency is irrelevant to safety; only the tail matters. Kronos designs the fast path so its distribution has a hard right edge, not a long tail.</p>
 <h3>Sources of jitter, and how each is bounded</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Clock jitter: bounded by a distributed reference (PTP-disciplined) and cycle-accurate FPGA logic.</li><li>Contention: eliminated on the fast path &mdash; no shared buses, no locks, no OS scheduler.</li><li>Cache / pipeline effects: absent in the FPGA datapath; every stage is fixed-latency logic.</li><li>Link variability: point-to-point deterministic serial with fixed framing, not switched Ethernet.</li></ul>
 <div class="lang">python</div><pre><code>def deadline_ok(wcet_ns, jitter_ns, deadline_ns):
     # the loop is safe only if worst case + jitter still fits

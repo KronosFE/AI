@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Semantic recall over engineering knowledge</h2>
 <p>The vector index is the semantic half of copilot retrieval. Documents — design notes, physics rationale, fault write-ups, procedure prose, and diagnostic descriptions — are chunked, embedded, and stored with metadata. A query is embedded into the same space and the nearest chunks are retrieved, then filtered and reranked. This complements the exact, structured retrieval from the <a href=./shot-database.html>shot database</a>.</p>
 <h3>Approximate nearest-neighbor search</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — design envelope"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa13-design-envelope.mp4" type="video/mp4"></video><figcaption>Kronos motion — design envelope</figcaption></figure>
+
 <p>Retrieval uses approximate nearest-neighbor search (for example an HNSW graph) over normalized embeddings with cosine similarity, sized so that the search stays well under the copilot's context-assembly latency budget. Recall is tuned against a labeled retrieval set specific to fusion engineering, not a generic benchmark.</p>
 <div class="lang">python</div><pre><code>def search(query, machine, tier, k=20):
     q = normalize(embed(query))

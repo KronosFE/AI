@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Proving the control plane before first plasma</h2>
 <p>Both machines are, today, design and simulation studies; construction of the breeder begins Q2 2027, with first-of-a-kind first tritium around 2030. Long before energization, the control plane must be proven. Kronos validates L1 with hardware-in-the-loop (HIL) testing: the real FPGA controllers, drivers, and interlocks run against the digital twin standing in for the plasma and plant.</p>
 <h3>What HIL exercises</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Every fast loop against twin-generated state: shape, stability, plug density, DEC.</li><li>Protection paths: quench precursor to dump, disruption mitigation trigger, thermal limits.</li><li>Timing: measured WCET and jitter compared against the analytic budgets.</li><li>Fault injection: dropped diagnostics, stage faults, stalled controllers, missing setpoints.</li></ul>
 <p>Fault injection is central: HIL deliberately drops channels, faults DEC stages, stalls controllers, and withholds MPC targets to confirm that watchdogs fire, redundancy votes, ride-through holds, and the machine defaults safe. A failsafe is only trustworthy once it has been made to act in test.</p>
 <h2>Closing the analytic loop</h2>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Confinement you cannot see directly</h2>
 <p>In the tandem mirror, ions are confined by an axial electrostatic potential, not by closed magnetic flux surfaces. The confining potential dip between the end plugs and the central cell is the quantity that matters, but it is inferred, not measured directly, so L3 must estimate it from diagnostics and physics. This is the burner's counterpart to the breeder's equilibrium reconstruction.</p>
 <h3>Estimating and shaping the potential</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — what is twin"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt1-what-is-twin.mp4" type="video/mp4"></video><figcaption>Kronos motion — what is twin</figcaption></figure>
+
 <p>The ambipolar-potential PINN enforces quasineutrality and ambipolar end-loss to solve phi(z) along the axis, conditioned on plug and central-cell diagnostics and on the DEC boundary potentials. State estimation fuses this physics with the available measurements to hold a best estimate of the potential profile, with uncertainty, in the twin. MPC then shapes the potential by acting on plug density and the DEC collectors.</p>
 <div class="lang">python</div><pre><code># what the burner twin tracks, mirroring the breeder equilibrium
 # breeder:  psi(R,Z)  reconstructed via Grad-Shafranov PINN

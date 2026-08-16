@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Two different things</h2>
 <p>A <b>command</b> is a request to change the machine: 'ramp coil PF3 to setpoint'. It is addressed to one handler, can be validated, and can be rejected. An <b>event</b> is an immutable record that something happened: 'coil PF3 reached setpoint'. It is broadcast, cannot be rejected, and is never mutated. Confusing the two is a common source of control-plane bugs; Layer 4 keeps them on separate topics with separate semantics.</p>
 <table class="tt"><thead><tr><th>Aspect</th><th>Command</th><th>Event</th></tr></thead><tbody><tr><td>mood</td><td>imperative</td><td>past-tense fact</td></tr><tr><td>can reject</td><td>yes</td><td>no</td></tr><tr><td>recipients</td><td>one handler</td><td>many consumers</td></tr><tr><td>mutable</td><td>no (single-use)</td><td>no (immutable)</td></tr></tbody></table>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stack"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/control-stack.mp4" type="video/mp4"></video><figcaption>Kronos motion — stack</figcaption></figure>
+
 <h2>CQRS separation</h2>
 <p>Command handling (the write path through the <a href=./action-gating-pipeline.html>gating pipeline</a>) is separated from query/read models built by consuming events. The read side, for instance a live breeder equilibrium view or a burner plug-field dashboard, is a projection rebuilt from the event log and never actuates anything. This keeps the safety-critical write path small and auditable while read models can be many and disposable.</p>
 <h2>Command lifecycle</h2>

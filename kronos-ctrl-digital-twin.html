@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A machine that runs ahead of the machine</h2>
 <p>KRONOS-CTRL is the digital twin at the heart of L3. It maintains a live, physics-based state estimate of the reactor and projects it forward, running a predictive shadow 50-100 ms ahead of the present. Control reasons over that shadow, so the plant acts on where the machine is going, not only where it is.</p>
 <h3>The four modules</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — state estimation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/dt3-state-estimation.mp4" type="video/mp4"></video><figcaption>Kronos motion — state estimation</figcaption></figure>
+
 <ul><li>Power — plasma power balance and heating response.</li><li>Neutronics — 14 MeV neutron transport and, on the breeder, tritium breeding across the TBR lever.</li><li>Thermomechanics — vessel, divertor, and cocoon thermal and structural state.</li><li>MHD — equilibrium and stability, the dominant control physics on both machines.</li></ul>
 <h3>How it stays faithful</h3>
 <p>The twin is continuously reconciled with L2 telemetry. GNNs fuse the diagnostics constellation and impute dropped channels; PINNs enforce the governing equations so the state estimate honors physics rather than merely fitting data. The gap between prediction and observation is itself a monitored signal, feeding anomaly detection and the retraining loop.</p>

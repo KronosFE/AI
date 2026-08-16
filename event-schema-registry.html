@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Contract-first events</h2>
 <p>No event enters the backbone without a registered schema. A central registry holds the schema for every topic, assigns it a version and an ID, and refuses writes that fail validation. This turns the event log into a set of enforced contracts between the twin (L3), copilot (L5), orchestration (L4), and control (L1). A malformed equilibrium reconstruction from the breeder twin is rejected at the edge, not discovered mid-procedure.</p>
 <h2>Canonical envelope</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <p>Every event shares an envelope; the payload is schema-specific. The envelope carries the identity, causality, and provenance fields that the audit and replay machinery depend on.</p>
 <div class="lang">json</div><pre><code>{
   &quot;event_id&quot;: &quot;uuid-v7&quot;,          // time-ordered, unique

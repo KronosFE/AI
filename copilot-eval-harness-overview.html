@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why copilots need their own harness</h2>
 <p>A copilot cannot be validated the way a numerical solver is. Its outputs are language, its reasoning is multi-step, and its failures are subtle — a fluent but ungrounded claim, a dropped safety caveat, a right answer reached by a wrong path. The evaluation harness is the machinery that catches these before a prompt, model, or retrieval change reaches operators.</p>
 <h3>What the harness grades</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>Answer correctness against grounded, machine-specific reference cases</li><li>Reasoning-trace soundness: were the tool calls appropriate and in-bounds</li><li>Grounding: does every claim trace to a real source</li><li>Safety: are envelope, refusal, and no-forbidden-claim rules honored</li><li>Calibration: does stated uncertainty match observed accuracy</li></ul>
 <p>The harness is layered. Golden-shot cases test end-to-end behavior on curated scenarios with known-good answers. Grounding checks verify citation coverage and entailment. A regression suite runs on every change. Adversarial and red-team cases probe for failure. Each layer has its own page; this one describes how they fit together.</p>
 <div class="lang">text</div><pre><code>evaluate(candidate_copilot):

@@ -425,7 +425,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   compl. slack:  mu_i * g_i(z) = 0
 
   mu_i &gt; 0  &lt;=&gt;  constraint i is ACTIVE (binding)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — operating point"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa3-operating-point.mp4" type="video/mp4"></video><figcaption>Kronos motion — operating point</figcaption></figure>
+
 <h3>Reading the multipliers</h3>
 <p>Complementary slackness says each inequality is either inactive (its multiplier zero) or active (binding, multiplier positive). The active set is exactly the set of limits currently shaping the command - which envelope boundary the plasma is riding. The stack surfaces the active constraints to operators, so it is transparent which physical limit is governing at any instant.</p>
 <div class="lang">python</div><pre><code># inspect active constraints from an MPC solve

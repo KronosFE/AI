@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why lineage, not just logs</h2>
 <p>A conventional log tells you what happened. Lineage tells you why, in a form you can replay. When an autonomy layer or an operator drives a magnet ramp on the breeder or a plug-field adjustment on the burner, Kronos records not only the command but the exact model version, the sensor snapshot that fed it, the policy that authorized it, and the code and configuration hashes in effect. This is essential for a machine that makes fast decisions faster than a human can review them, and for regulators who must reconstruct events.</p>
 <h3>What a lineage record contains</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>The actuator command and its timestamp, signed by the issuing node's identity.</li><li>The input state vector (diagnostics snapshot / twin state) by content hash.</li><li>The model or controller version and its bitstream/model hash.</li><li>The authorizing policy id and, for human actions, the operator identity.</li><li>The parent decisions this one depended on - forming a directed acyclic graph.</li></ul>
 <div class="lang">python</div><pre><code># Each decision emits a signed, hash-linked lineage node
 def record_decision(cmd, state, model, policy_id, parents):

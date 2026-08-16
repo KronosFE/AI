@@ -427,12 +427,12 @@ def vqe(H_paulis, ansatz, theta0, optimizer):
     return optimizer.minimize(energy, theta0)
 
 # Variational bound:  E(theta) = &lt;psi(theta)|H|psi(theta)&gt;  &gt;=  E_ground</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — materials first"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a6-materials-first.mp4" type="video/mp4"></video><figcaption>Kronos motion — materials first</figcaption></figure>
+
 <h3>The first-wall problem</h3>
 <p>The breeder first wall faces 14 MeV neutrons at high fluence. Understanding displacement damage, helium and hydrogen retention, and vacancy clustering in tungsten requires accurate energetics of open-shell d-electron configurations, where classical mean-field methods are least reliable. A small correlated active space around a defect is the natural target for VQE benchmarking.</p>
 <h3>The obstacles we do not hide</h3>
 <ul><li>Measurement cost: the number of Pauli terms grows as O(N^4) in orbitals, so accurate energies need enormous shot counts.</li><li>Barren plateaus: for many ansatze the cost-function gradient vanishes exponentially in qubit count, stalling optimization.</li><li>Noise: gate errors bias the energy, requiring <a href=./error-mitigation-nisq.html>error mitigation</a> that itself costs more samples.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — first wall"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/j3-first-wall.mp4" type="video/mp4"></video><figcaption>Kronos motion — first wall</figcaption></figure>
+
 <p>Because of these, VQE has not beaten classical coupled-cluster or DMRG on any real first-wall problem. Kronos uses it as a calibrated benchmark: run VQE and a classical solver on the same small active space, and only extend trust as hardware and <a href=./vqe-ansatze-uccsd-hardware-efficient.html>ansatze</a> improve. Genuine advantage waits on <a href=./quantum-error-correction-surface-code.html>error correction</a>.</p><div class="related"><h3>Related</h3><a href="./vqe-ansatze-uccsd-hardware-efficient.html">VQE ansatze &rarr;</a><a href="./defect-formation-neutron-damage-quantum.html">Neutron-damage defects &rarr;</a><a href="./error-mitigation-nisq.html">Error mitigation &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->

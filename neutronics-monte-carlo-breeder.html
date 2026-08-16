@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The breeder neutronics problem</h2>
 <p>The breeder (Hyperion) is a D-T spherical tokamak producing 88.7 MW of fusion power, dominated by 14 MeV neutrons from the D-T reaction. Those neutrons must do two jobs in the blanket: breed tritium via lithium reactions and deposit their energy as recoverable heat. Monte Carlo transport on L0 is how both are quantified before the machine exists.</p>
 <h3>Tritium breeding as a design lever</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — monte carlo"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/uq4-monte-carlo.mp4" type="video/mp4"></video><figcaption>Kronos motion — monte carlo</figcaption></figure>
+
 <p>The tritium breeding ratio (TBR) is treated as a design lever, studied across 1.1, 1.5, and 1.8. Each value corresponds to different blanket composition, lithium enrichment, and neutron multiplier choices. The Monte Carlo campaign scores the T(n,x) and Li(n,x) reaction rates that determine TBR, letting the design team map breeding against the geometry that produces it.</p>
 <h3>Coupled outputs</h3>
 <p>Neutronics does not stop at breeding. The same histories score nuclear heating throughout the blanket and structure, and those heating fields are handed to the <a href=./activation-and-damage-modeling.html>activation and damage</a> and thermomechanics workloads. The breeder's roughly 4 kg/yr tritium class output and 1.97 kg/yr helium-3 co-product trace back to these transport results.</p>

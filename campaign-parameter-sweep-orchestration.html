@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Systematic exploration</h2>
 <p>A breeder campaign explores how the machine behaves as parameters vary: fuelling, heating waveform, shape, and the tritium breeding ratio design lever across 1.1, 1.5, and 1.8. The sweep orchestrator turns a parameter specification into an ordered set of individual shot plans, each identical in structure so results are directly comparable, and submits them to the <a href=./experiment-scheduler-priority-preemption.html>scheduler</a>.</p>
 <h2>Grid to plans</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — parameter scan"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa4-parameter-scan.mp4" type="video/mp4"></video><figcaption>Kronos motion — parameter scan</figcaption></figure>
+
 <div class="lang">python</div><pre><code>grid = product(fuelling=[...], heating=[...], tbr_lever=[1.1,1.5,1.8])
 for point in ordered(grid, by=RISK_ASCENDING):   # safe points first
     plan = shot_plan(base=campaign.base, overrides=point)

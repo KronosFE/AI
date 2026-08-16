@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Why it has top authority</h2>
 <p>A quench &mdash; loss of superconductivity in a REBCO coil &mdash; deposits large stored magnetic energy locally. On the breeder's 16.84 T system and the burner's 26.49 T plug, detection latency directly bounds the peak hot-spot temperature. This interface therefore sits above all shape, fueling, and power commands.</p>
 <h2>Detection signal set</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — stored energy"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/mag4-stored-energy.mp4" type="video/mp4"></video><figcaption>Kronos motion — stored energy</figcaption></figure>
+
 <ul><li>Co-wound voltage taps (resistive-voltage rise past the inductive baseline).</li><li>Fiber-optic and RTD temperature along the winding pack.</li><li>Acoustic and quench-antenna precursors for early, sub-threshold indication.</li><li>Cross-check against the <a href=./rebco-strain-thermometry-interface.html>strain/thermometry interface</a>.</li></ul>
 <div class="lang">python</div><pre><code># quench discriminator (L1 edge, fixed WCET)
 v_res = v_tap - inductive_model(dI_dt)      # remove L*dI/dt

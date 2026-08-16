@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>A coupled multi-physics state</h2>
 <p>The four KRONOS-CTRL modules are not independent solvers reporting side by side; they share boundary conditions and must agree. The equilibrium sets the neutron source; the neutrons deposit heat; the heat strains and expands structure; the geometry change shifts the equilibrium; for the burner the DEC potentials close a further loop through confinement. KRONOS-CTRL solves this as a weakly coupled system every twin step.</p>
 <h3>Fixed-point iteration</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — power balance"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/aa2-power-balance.mp4" type="video/mp4"></video><figcaption>Kronos motion — power balance</figcaption></figure>
+
 <p>Kronos uses a Picard (fixed-point) scheme: solve MHD, pass the source to Neutronics, pass heating to Thermomechanics, pass geometry and (burner) potential back to MHD, and repeat until the coupled state stops changing. Warm-starting from the previous twin step means the state is already near the fixed point, so one or two passes converge, which is what makes a full multi-physics update fit inside the 50-100 ms shadow budget.</p>
 <div class="lang">python</div><pre><code># one coupled twin step (weak coupling, Picard)
 state = prev_state                     # warm start

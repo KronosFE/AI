@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>One registry, explicit states</h2>
 <p>Every model artifact lives in one registry keyed by name and version. The registry is authoritative: the online layers resolve which artifact to load by querying the registry's promotion state, never by pulling a file from a directory. This makes the question who is in control right now answerable at any instant for both the breeder and the burner.</p>
 <h3>Promotion states</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — lego machine"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ab12-lego-machine.mp4" type="video/mp4"></video><figcaption>Kronos motion — lego machine</figcaption></figure>
+
 <ul><li>REGISTERED — artifact exists with full lineage; no authority</li><li>STAGING — passing offline validation; eligible for shadow</li><li>SHADOW — running alongside production, zero actuation authority</li><li>CANARY — limited, bounded authority under tight envelopes</li><li>PROD — full authority within its validated envelope</li><li>DEPRECATED — superseded; retained for audit and rollback</li><li>QUARANTINED — failed a gate or a monitor; blocked from promotion</li></ul>
 <p>Transitions are one-directional through the gates and reversible only via explicit rollback. A model cannot jump from STAGING to PROD; it must pass shadow, then canary, then a promotion review. Any monitor breach in production can force a model to QUARANTINED and trigger fallback to the previous PROD version in a bounded time.</p>
 <div class="lang">python</div><pre><code>ALLOWED = {

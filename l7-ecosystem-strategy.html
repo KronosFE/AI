@@ -418,12 +418,12 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The plant in its world</h2>
 <p>L7 Ecosystem & Strategy is where the plant meets everything outside it. It integrates grid dispatch, supply chains, maintenance planning, and regulatory constraints through a unified API layer, and it sets the plant-level intent that the stepped hierarchy carries down toward control.</p>
 <h3>What L7 does</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — supply chain"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/l7-supply-chain.mp4" type="video/mp4"></video><figcaption>Kronos motion — supply chain</figcaption></figure>
+
 <ul><li>Grid synchronization and dispatch scheduling for the plant's output.</li><li>Supply-chain and fuel-cycle logistics coordination.</li><li>Predictive-maintenance planning from structural-health trends.</li><li>Regulatory and safety-case constraints that bound the layers below.</li><li>Fleet coordination across breeder and burner units.</li></ul>
 <h3>Intent, not action</h3>
 <p>L7 is mostly purple (governance) and green (operations). It sets intent and constraints; it does not actuate. A dispatch window or a maintenance goal is passed to L5 copilots to translate into engineering objectives, then validated at L4 before anything reaches control. L7's authority is real but always mediated by the layers beneath it.</p>
 <h3>Operational, never economic</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — supply chain"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/y12-supply-chain.mp4" type="video/mp4"></video><figcaption>Kronos motion — supply chain</figcaption></figure>
+
 <p>L7 reasons about timing, availability, and logistics — when to bring a unit up, when to schedule inspection, how to sequence fuel handling. It does not reason about price, cost, or value; those are outside the architecture entirely. The operations copilot at L5 shares this discipline.</p>
 <h3>The unified API</h3>
 <p>L7 presents a single API to the outside world rather than a patchwork of subsystem interfaces. Grid operators, supply-chain systems, maintenance planners, and regulators each interact through governed endpoints, and every external request is subject to the same authority and audit rules as an internal one. This keeps the plant's boundary small and inspectable: there is one place where external intent enters, one place where it is validated, and one lineage record of what it asked for and what the plant did in response.</p>

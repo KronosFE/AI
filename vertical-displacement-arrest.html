@@ -427,7 +427,7 @@ def controllable(gamma_s, loop_bw_hz, u_available, u_needed):
 # growth rate gamma sets the minimum loop bandwidth
 assert controllable(gamma_s=700.0, loop_bw_hz=1200.0,
                     u_available=1.0, u_needed=0.7)</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Two failure modes, two guards</h3>
 <ul><li>Too slow: the loop bandwidth is below the growth rate; the displacement wins. Guarded by the timing budget.</li><li>Saturated: the coils hit their current or voltage limit; authority runs out. Guarded by envelope headroom.</li><li>If arrest fails, the event becomes a vertical displacement event (VDE) and hands off to disruption mitigation.</li></ul>
 <p>The loop is designed with explicit reserve authority so that a routine disturbance never runs the coils to saturation; the reserve exists specifically for the off-nominal kick. When both the bandwidth and the authority reserve are consumed, the design does not chase a lost cause &mdash; it recognizes the incipient displacement event and hands off to mitigation while a controlled termination is still possible, converting a failed catch into a mitigated shutdown rather than a full disruption.</p>

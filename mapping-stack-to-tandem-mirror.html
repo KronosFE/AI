@@ -418,12 +418,12 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The stack on the burner</h2>
 <p>On the burner (Aegis / MetroVolt) the eight layers keep their roles but reason about an open magnetic system. The mapping shows how the shared stack becomes a control system for a D-3He tandem mirror with a 26.49 T plug and direct energy conversion.</p>
 <h3>Layer by layer</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — hero tandem mirror"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/burner-hero-tandem-mirror.mp4" type="video/mp4"></video><figcaption>Kronos motion — hero tandem mirror</figcaption></figure>
+
 <ul><li>L0 — plug-density and ambipolar-potential design sweeps; DEC-train optimization studies.</li><li>L1 — FPGA control of plug and throat coils; protection of the 26.49 T plug and 17 T throat.</li><li>L2 — diagnostics resolving plug density, potential, and the 5.44% neutron fraction.</li><li>L3 — twin modules for plug stability and potential; MPC steering flux into the DEC train.</li><li>L4-L7 — orchestration, the plasma copilot, DEC-train dashboards, and dispatch scheduling.</li></ul>
 <h3>The dominant loop</h3>
 <p>The burner's signature loop is plug-and-potential: diagnostics measure end-plug density and the ambipolar potential, the twin projects their evolution, the MPC agent adjusts plug heating and coil currents to hold confinement, and L1 executes within budget. Steering the escaping charged flux cleanly into the DEC train is part of the same loop.</p>
 <h3>Direct energy conversion</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control stack"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ctl1-control-stack.mp4" type="video/mp4"></video><figcaption>Kronos motion — control stack</figcaption></figure>
+
 <p>Where the breeder ends in neutrons and heat, the burner ends in a multi-modal DEC train — TWDEC, ultra-high-field MHD, and thermionic stages — that converts charged-particle energy directly. The architecture treats DEC as an orange thermal/reactor path with its own control and diagnostics, described in <a href=./stack-to-dec-train.html>the DEC train</a>.</p>
 <h3>Two housings</h3>
 <p>The burner ships in two housings: Aegis, for fixed defense installations, and MetroVolt, for data centers. Both run the identical architecture; the housing changes packaging and dispatch context, handled at L7, not the control physics.</p>

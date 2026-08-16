@@ -422,7 +422,7 @@ minimize  sum_{u,w} c_{u,w} x_{u,w}         # preference / risk cost
 s.t.  sum_w x_{u,w} = 1        for all u    # each unit serviced once
       sum_u x_{u,w} &lt;= K_w                  # crew capacity per window
       availability(w) &gt;= A_min  for all w   # firm-output floor</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — classical vs quantum"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/qc12-classical-vs-quantum.mp4" type="video/mp4"></video><figcaption>Kronos motion — classical vs quantum</figcaption></figure>
+
 <h3>Mapping to Ising for QAOA</h3>
 <p>Hard constraints become quadratic penalty terms so the whole objective is a single Ising/QUBO cost, the form <a href=./qaoa-fundamentals.html>QAOA</a> and <a href=./quantum-annealing-vs-gate-model.html>annealers</a> consume. Penalty weights must dominate the objective scale so violating a constraint is never favorable.</p>
 <div class="lang">text</div><pre><code>H = sum_{u,w} c_{u,w} x_{u,w}

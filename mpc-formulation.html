@@ -428,7 +428,7 @@ subject to:
     x_k in X_safe                        # state constraints (envelope)
     u_k in U,  du_k in dU               # actuator limits and slew rates
     x_N in X_terminal                    # terminal safe set</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <p>Q, R, S and P weight state error, actuator effort, move rate and terminal error. The dynamics f_twin come from KRONOS-CTRL's surrogates, so the forecast is physics-grounded but fast enough to solve inside the cycle. The state constraint set X_safe is the certified safe operating envelope, and it is what makes MPC the natural controller for a machine that must never leave that envelope.</p>
 <h3>Why MPC over simple feedback</h3>
 <p>MPC handles multi-input multi-output coupling and hard constraints natively. The breeder's shape depends on many coils at once; the burner's confinement couples plug fueling, heating and DEC potential. A PID loop cannot respect a stability-margin constraint the way MPC can encode X_safe directly. And because MPC plans over a horizon, it acts before a constraint is violated rather than reacting after.</p>

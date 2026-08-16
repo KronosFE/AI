@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Density as a shared control axis</h2>
 <p>Fueling sets density, and density sets a large share of the physics on both machines. On the breeder (Hyperion), density controls the Greenwald-fraction margin, radiated-power balance, and fusion rate at the 88.7 MW design point. On the burner (Aegis / MetroVolt), central-cell and end-plug densities set the ambipolar potential and confinement. The Plasma Copilot advises on the fueling schedule that reaches a target density profile without crossing limits.</p>
 <h3>Actuators and their dynamics</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — central cell coils"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/k6-central-cell-coils.mp4" type="video/mp4"></video><figcaption>Kronos motion — central cell coils</figcaption></figure>
+
 <ul><li>Gas-puff servo valves: fast, edge-weighted, high recycling</li><li>Pellet injection: deeper deposition, discrete timing, core fueling</li><li>Breeder: hold n/n_Greenwald below the density-limit margin</li><li>Burner: hold end-plug density for phi confinement, central-cell density for pressure</li></ul>
 <p>The copilot proposes a schedule and predicts the resulting profile with the twin's transport model, then checks it against density-limit and radiation constraints. Fueling advice for the breeder is explicitly linked to disruption risk because density-limit proximity is a dominant precursor.</p>
 <div class="lang">text</div><pre><code>advise_fueling(n_target(rho)):

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What the plant does</h2>
 <p>The breeder is a tritium source: from D&ndash;T fusion and the lithium blanket it targets a <b>~4 kg/yr tritium class</b> product, with tritium breeding ratio treated as a design lever across 1.1 / 1.5 / 1.8. The plant interface controls the loops that recover unburned fuel, extract bred tritium from the blanket, separate isotopes, and store product safely.</p>
 <h2>Interface segments</h2>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — tritium extraction"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/j7-tritium-extraction.mp4" type="video/mp4"></video><figcaption>Kronos motion — tritium extraction</figcaption></figure>
+
 <ul><li>Blanket extraction: purge-gas flow, getter-bed cycling, tritium partial-pressure sensing.</li><li>Isotopics: cryogenic distillation column setpoints and stream composition (see <a href=./he3-handling-interface.html>helium-3 handling</a>).</li><li>Storage: getter-bed loading, inventory, and glovebox/containment status.</li><li>Accountancy: mass balance feeding the <a href=./isotope-accountancy-interface.html>byproduct accountancy interface</a>.</li></ul>
 <div class="lang">python</div><pre><code># blanket tritium mass balance (L4, slow loop)
 dT_inv = (breed_rate*TBR - burn_consume - decay - losses) * dt

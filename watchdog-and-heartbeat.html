@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Detecting silence</h2>
 <p>The most treacherous fault is silence: a node that stops computing without saying so. Watchdogs and heartbeats make silence detectable. A heartbeat is a periodic I-am-alive message; a watchdog is a timer that forces a defined action if it is not petted in time. Together they bound how long a dead component can go unnoticed.</p>
 <h3>Heartbeat budget</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — is it safe"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ae2-is-it-safe.mp4" type="video/mp4"></video><figcaption>Kronos motion — is it safe</figcaption></figure>
+
 <p>The heartbeat interval and the watchdog timeout are chosen relative to the loop the component serves. A fast protection node must be declared dead within a few loop periods; a slow analytics node can tolerate seconds. The timeout must be shorter than the time for the un-controlled phenomenon to become dangerous.</p>
 <div class="lang">python</div><pre><code>class Watchdog:
     def __init__(self, timeout_ms, on_timeout):

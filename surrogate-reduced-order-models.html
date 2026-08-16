@@ -423,7 +423,7 @@ U = pod_basis(snapshots, rank=r)        # r &lt;&lt; full dimension
 a = U.T @ field                          # reduced coordinates
 a_next = reduced_dynamics(a, u)          # cheap r-dim update
 field_hat = U @ a_next                    # reconstruct when needed</code></pre>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — fast proton"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/buc11-fast-proton.mp4" type="video/mp4"></video><figcaption>Kronos motion — fast proton</figcaption></figure>
+
 <p>The payoff is speed and stability: evolving r modes instead of millions of grid points is cheap and predictable, which suits the shadow's fixed latency budget. Kronos uses reduced-order models where the field is smooth and low-rank, thermal fields, slowly varying equilibria, and reserves full neural operators or PINNs where sharp features (the pedestal, the plug throat) resist low-rank compression.</p>
 <h3>Guarding reduced models</h3>
 <p>A reduced model is only valid where its basis spans the true field. If the machine reaches a state whose field has significant energy outside the retained modes, the reconstruction error rises. Kronos monitors that projection residual as a validity check, a rising residual means the reduced model is being asked to represent something outside its basis, and the twin lowers confidence or falls back to a richer surrogate.</p>

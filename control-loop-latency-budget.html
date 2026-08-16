@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>The five stages</h2>
 <p>Every hard-real-time decision on either machine traverses the same five stages. Budgeting means assigning each stage a worst-case execution time and proving the sum plus jitter clears the deadline. The stages are: sense (diagnostic acquisition and digitization), transport (deterministic fabric to the control node), infer (state estimate or surrogate model evaluation), decide (controller law), and actuate (power electronics response).</p>
 <ul><li>Sense: magnetic probes, interferometry, thermocouples sampled at fixed rate</li><li>Transport: time-triggered fabric with bounded latency, not best-effort Ethernet</li><li>Infer: reduced-order model or distilled network with fixed operation count</li><li>Decide: MPC or PID law with a hard iteration cap</li><li>Actuate: coil power supply / gyrotron / gas valve slew</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <h3>Determinism over average speed</h3>
 <p>Resiliency demands bounded worst case, not fast average. A model that is quick 99% of the time but occasionally stalls is unusable in a 1 ms loop. We therefore forbid dynamic memory allocation, unbounded loops, and non-deterministic branches in the fast path, and we pin the inference model to a fixed-operation form.</p>
 <div class="lang">python</div><pre><code># Overrun guard: if inference exceeds its slice, fall back to the last-good

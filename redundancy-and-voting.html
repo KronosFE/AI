@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Voting over channels</h2>
 <p>Redundant channels only help if a policy combines them safely. The classic scheme is triple modular redundancy with majority voting: three channels compute the same decision and the majority wins, tolerating any single fault. For protection functions the policy is often asymmetric - any channel may trip, but consensus is needed to continue - so a stuck-safe channel cannot block protection.</p>
 <table class="tt"><thead><tr><th>Ch A</th><th>Ch B</th><th>Ch C</th><th>Trip?</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td><td>1</td></tr><tr><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>1</td><td>1</td></tr></tbody></table>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — quantum verdict"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f5-quantum-verdict.mp4" type="video/mp4"></video><figcaption>Kronos motion — quantum verdict</figcaption></figure>
+
 <p>The table shows a fail-safe (1-out-of-3 to trip) protection vote: a single channel asserting trip is honored, which prevents a silent channel from masking a real fault. Control decisions instead use 2-out-of-3 majority so one noisy channel cannot cause spurious action.</p>
 <div class="lang">python</div><pre><code>def vote(channels, mode):
     n = sum(channels)

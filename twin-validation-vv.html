@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Verification vs validation</h2>
 <p>Kronos separates two questions. Verification asks whether the model solves the equations it claims to, checked against reference numerical solvers and analytic cases. Validation asks whether those equations represent the real machine, checked against experimental and (post-FOAK) plant data. A model must pass both; a beautifully verified PINN of the wrong physics is still wrong, and a model tuned to data without solving the physics will not generalize.</p>
 <h3>The V&amp;V gate</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — control room"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/ac4-control-room.mp4" type="video/mp4"></video><figcaption>Kronos motion — control room</figcaption></figure>
+
 <ul><li>Verify: residuals and derived quantities vs FEM/Monte Carlo/eigenvalue references</li><li>Validate: agreement with legacy-device data and, from ~2030, FOAK telemetry</li><li>Calibrate: predictive uncertainty checked and adjusted to be honest</li><li>Extrapolate: graceful degradation and confidence drop outside the training envelope</li><li>Version: lineage recorded; only gated models reach the control path</li></ul>
 <p>The gate is a hard boundary in the architecture: no surrogate, PINN, GNN, anomaly detector, or MPC model reaches the control-relevant twin state without passing it, and any retrained version must re-pass. This is what lets Kronos treat L3 outputs as evidence rather than suggestions, and it is the same discipline that governs the L2 lineage the twin state inherits.</p>
 <h3>Independence and traceability</h3>

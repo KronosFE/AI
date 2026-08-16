@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Beams as an actuator</h2>
 <p>Neutral-beam injection (NBI) delivers energetic neutral atoms that ionize and heat the plasma, and can drive current and momentum. For control, NBI is an actuator whose <b>delivered power</b> and, where steerable, deposition location are commanded by L1. The breeder uses beam power for heating and current-profile influence; the burner uses beams to sustain the plug and mirror-cell populations.</p>
 <h3>Deterministic modulation</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — three machines"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/a4-three-machines.mp4" type="video/mp4"></video><figcaption>Kronos motion — three machines</figcaption></figure>
+
 <p>The beam driver closes a fast inner loop on delivered power, tracking L1's setpoint. Power can be modulated on the control timescale for feedback on stored energy or plug density. Because delivered power is a physical quantity with device limits, the driver clamps commands to the beam's safe operating envelope locally.</p>
 <h2>Fast protection: beam notching</h2>
 <p>NBI participates in protection through <a href=./beam-notching-fast-protection.html>notching</a>: on a disruption precursor or a plug fault, L1 can cut or notch beam power within the deterministic window to remove drive from an evolving instability. This is a fast, reversible actuation that buys time for slower mitigation, and it is arbitrated below protection priority.</p>

@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Learning offline, acting online</h2>
 <p>Continual learning at Kronos is strictly a <b>batch</b> discipline. Each pulse or campaign on the breeder or burner writes labeled evidence into the L0 archive; periodically that evidence retrains or refines the surrogates, controllers, and anomaly detectors; the improved artifacts are validated and staged back out. The online layers never update their own weights. This separation is what lets the failsafe path be certified independently of any learning component.</p>
 <p>The loop is deliberately asymmetric in speed. The control plane acts in microseconds; the learning loop turns in hours to weeks. Coupling them tightly would make control behavior non-reproducible. Decoupling them means every deployed controller corresponds to a frozen, hash-identified artifact you can point to after the fact.</p>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — online learning"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/prd9-online-learning.mp4" type="video/mp4"></video><figcaption>Kronos motion — online learning</figcaption></figure>
+
 <div class="lang">python</div><pre><code># Continual learning loop (batch, offline) — conceptual
 while True:
     evidence = L0.collect_new_pulses(since=last_watermark)

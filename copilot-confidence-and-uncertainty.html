@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>Uncertainty is part of the answer</h2>
 <p>A copilot answer without uncertainty is incomplete. Kronos copilots attach a calibrated confidence to every substantive claim and proposal, aggregated from three sources: the twin's own uncertainty quantification on any predicted quantity, the quality and agreement of the retrieved evidence, and the self-consistency of the copilot's reasoning across independent samples.</p>
 <h3>Sources of uncertainty</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — twin metal math"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/digital-twin-metal-math.mp4" type="video/mp4"></video><figcaption>Kronos motion — twin metal math</figcaption></figure>
+
 <ul><li>Twin UQ: predictive bands on tau_E, margins, DEC efficiency, etc.</li><li>Retrieval quality: rerank scores, evidence agreement, coverage</li><li>Self-consistency: agreement across sampled reasoning traces</li><li>Calibration state: how well the copilot's stated confidence has matched reality</li></ul>
 <div class="lang">text</div><pre><code>confidence(claim):
   u_twin  = twin.uq(claim.predicted_quantity)     # if physical

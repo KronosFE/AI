@@ -418,7 +418,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>How much does a sensor tell you</h2>
 <p>Mutual information measures how much knowing a diagnostic reduces uncertainty about the quantity you care about — the equilibrium, the pressure map, the plug density. The fabric uses it to rank diagnostics, set fusion weights, size redundancy, and understand which parts of the constellation carry the state estimate.</p>
 <h3>The quantity</h3>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — diagnostic constellation"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f1-diagnostic-constellation.mp4" type="video/mp4"></video><figcaption>Kronos motion — diagnostic constellation</figcaption></figure>
+
 <p>For a target state variable X and a diagnostic Y, the mutual information I(X;Y) = H(X) - H(X|Y) is the reduction in entropy of X from observing Y. A diagnostic with high I(X;Y) for a given target is worth its place; one whose information is already supplied by others is redundant — useful for cross-checking and imputation, but not for new content.</p>
 <div class="lang">python</div><pre><code>import math
 def mutual_information(p_xy, p_x, p_y):
@@ -429,7 +429,7 @@ def mutual_information(p_xy, p_x, p_y):
     return mi   # bits that Y reveals about X</code></pre>
 <h3>Uses across the fabric</h3>
 <ul><li>Fusion weights: diagnostics with higher mutual information about a target weigh more.</li><li>Redundancy design: keep enough overlap that imputation can cover a dropped channel.</li><li>Precursor selection: choose features with high mutual information about disruption or plug collapse.</li><li>Constellation design: understand which diagnostics are load-bearing for each machine's control problems.</li></ul>
-<figure class="clip"><video autoplay muted loop playsinline preload="none" aria-label="Kronos motion — sensor fusion"><source data-src="https://pub-6f4141e515994eaf98b678a16ccbf603.r2.dev/f2-sensor-fusion.mp4" type="video/mp4"></video><figcaption>Kronos motion — sensor fusion</figcaption></figure>
+
 <h3>Per machine</h3>
 <p>The rankings differ by machine and target: magnetics carry high mutual information about the breeder's equilibrium; density and potential diagnostics carry it about the burner's plug and ambipolar state. The method is shared, the answers machine-specific. It is an analysis discipline underpinning the fabric's design for machines not yet built.</p><div class="related"><h3>Related</h3><a href="./information-theory-pipeline.html">Information Theory of the Pipeline &rarr;</a><a href="./entropy-budget-diagnostics.html">Entropy Budget per Diagnostic &rarr;</a><a href="./signal-fusion-multimodal.html">Multi-Modal Sensor Fusion &rarr;</a></div></main></div><div class="kfe-embed"><div style="text-align:center;color:#8FA0B8;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.05em;padding:14px 0 2px;opacity:.75">Content reviewed August 2026 &middot; design-and-simulation stage</div>
 
