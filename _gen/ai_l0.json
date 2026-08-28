@@ -11,7 +11,7 @@
 ["h3","What runs on L0"],
 ["ul",["Offline multi-physics Monte Carlo for neutronics and activation, both machines","Batch retraining and refinement of every twin surrogate","GPU-cluster training runs for PINNs, GNNs, and anomaly ensembles","Large parameter sweeps: breeder triangularity and TBR levers, burner plug-density scans","Petabyte-scale archival and replay of pulse histories"]],
 ["h3","Both machines, always"],
-["p","L0 serves the breeder (Hyperion), a D-T spherical tokamak with R0 1.2 m, aspect ratio 2.5, peak field 16.84 T (8 T on-axis), Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, and negative triangularity delta -0.30. It equally serves the burner, a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, and 5.44 percent neutron fraction. The physics differs sharply, but both share this compute base."],
+["p","L0 serves the breeder (Hyperion), a D-T spherical tokamak with R0 1.2 m, aspect ratio 2.5, peak field 16.84 T (8 T on-axis), Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, and negative triangularity delta -0.30. It equally serves the burner, a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, and 5.44 percent neutron fraction. The physics differs sharply, but both share this compute base."],
 ["p","Because construction of the breeder begins Q2 2027 and first tritium is expected around 2030, everything on L0 today is design and simulation. There is no hardware net-gain claim before FOAK. L0 is therefore where the machines currently exist most fully: as validated, reproducible numerical models rather than as steel and plasma."]
 ],
 "related":[["compute-substrate-architecture","The Compute Substrate"],["offline-realtime-separation","Offline vs Real-Time"],["gpu-clusters-twin-sync","Twin Synchronization"]],
@@ -232,7 +232,7 @@
 "lede":"Tracing 14 MeV neutrons through Hyperion's blanket to quantify tritium breeding, heating, and activation across the TBR lever set.",
 "body":[
 ["h2","The breeder neutronics problem"],
-["p","The breeder (Hyperion) is a D-T spherical tokamak producing 88.7 MW of fusion power, dominated by 14 MeV neutrons from the D-T reaction. Those neutrons must do two jobs in the blanket: breed tritium via lithium reactions and deposit their energy as recoverable heat. Monte Carlo transport on L0 is how both are quantified before the machine exists."],
+["p","The breeder (Hyperion) is a D-T spherical tokamak producing 85.0 MW of fusion power, dominated by 14 MeV neutrons from the D-T reaction. Those neutrons must do two jobs in the blanket: breed tritium via lithium reactions and deposit their energy as recoverable heat. Monte Carlo transport on L0 is how both are quantified before the machine exists."],
 ["h3","Tritium breeding as a design lever"],
 ["p","The tritium breeding ratio (TBR) is treated as a design lever, studied across 1.1, 1.5, and 1.8. Each value corresponds to different blanket composition, lithium enrichment, and neutron multiplier choices. The Monte Carlo campaign scores the T(n,x) and Li(n,x) reaction rates that determine TBR, letting the design team map breeding against the geometry that produces it."],
 ["h3","Coupled outputs"],
@@ -388,9 +388,9 @@
 "body":[
 ["h2","Equilibrium is the starting point"],
 ["p","Every breeder plasma calculation begins from an equilibrium: the magnetohydrostatic force balance that fixes the shape of the flux surfaces. For an axisymmetric tokamak this is the Grad-Shafranov equation, a nonlinear elliptic PDE for the poloidal flux. L0 runs a farm of these solves to map how equilibrium responds to plasma current, pressure, and coil configuration."],
-["code",["python","# Grad-Shafranov equation for poloidal flux psi(R,Z):\n# R d/dR( (1/R) dpsi/dR ) + d2psi/dZ2\n#   = -mu0 R^2 dp/dpsi - F dF/dpsi\n# p(psi) : pressure profile   F(psi)=R B_toroidal\n# solved for the breeder: R0 1.2 m, aspect ratio 2.5, Ip 9.86 MA"]],
+["code",["python","# Grad-Shafranov equation for poloidal flux psi(R,Z):\n# R d/dR( (1/R) dpsi/dR ) + d2psi/dZ2\n#   = -mu0 R^2 dp/dpsi - F dF/dpsi\n# p(psi) : pressure profile   F(psi)=R B_toroidal\n# solved for the breeder: R0 1.2 m, aspect ratio 2.5, Ip 9.66 MA"]],
 ["h3","The negative-triangularity target"],
-["p","The breeder's design shape has negative triangularity, delta -0.30, chosen to access an ELM-free edge regime. The solver farm computes equilibria across current, pressure, and coil settings to find and hold this shape at the design point: R0 1.2 m, aspect ratio 2.5, plasma current 9.86 MA, and the fields consistent with 16.84 T peak, 8 T on-axis."],
+["p","The breeder's design shape has negative triangularity, delta -0.30, chosen to access an ELM-free edge regime. The solver farm computes equilibria across current, pressure, and coil settings to find and hold this shape at the design point: R0 1.2 m, aspect ratio 2.5, plasma current 9.66 MA, and the fields consistent with 16.84 T peak, 8 T on-axis."],
 ["h3","Why a farm, not a single solve"],
 ["p","A single equilibrium is cheap; the design needs thousands. Shape scans, current and pressure sweeps, and coil-current studies each demand an independent solve, so the farm runs them in parallel, one equilibrium per core. This is where offline compute buys a dense map of the breeder's accessible equilibrium space."],
 ["ul",["Shape scans around delta -0.30","Plasma-current and pressure-profile sweeps","Poloidal-field coil-current optimization","Boundary and separatrix control studies"]],
@@ -451,7 +451,7 @@
 ["code",["python","# 1D flux-surface-averaged transport (per species):\n# dn/dt = -1/V' d/drho( V' Gamma ) + S_n\n# 3/2 d(nT)/dt = -1/V' d/drho( V' q ) + P_heat - P_loss\n# Gamma = -D dn/drho + n v   ;  q = -n chi dT/drho\n# D, chi, v from turbulence models / gyrokinetics"]],
 ["h3","Where the coefficients come from"],
 ["p","Kronos supplies transport coefficients either from reduced turbulence models or from first-principles <a href=./gyrokinetic-turbulence-runs.html>gyrokinetic runs</a>. The gyrokinetic route is expensive and lives among the heaviest L0 workloads; the reduced-model route is cheap enough to sweep. Both feed the same profile solver, trading fidelity against breadth."],
-["ul",["Breeder core profiles feeding 88.7 MW fusion power estimates","Edge transport in the negative-triangularity ELM-free regime","Burner central-cell profiles under mirror confinement","Impurity and helium-ash transport"]],
+["ul",["Breeder core profiles feeding 85.0 MW fusion power estimates","Edge transport in the negative-triangularity ELM-free regime","Burner central-cell profiles under mirror confinement","Impurity and helium-ash transport"]],
 ["p","The two machines pose distinct transport questions. The breeder's negative triangularity changes edge transport and is a central reason for the delta -0.30 choice; the burner's open geometry couples transport to end losses and the ambipolar potential rather than to a closed-flux edge. The same solver framework handles both with different geometry and closures."],
 ["p","Transport results are the bridge from physics to performance. They set the profiles that feed neutronics source distributions, thermomechanical loads, and the twin's Power module, making transport the workload that ties the rest of the L0 chain to the numbers that define each machine."]
 ],
@@ -487,7 +487,7 @@
 ["h2","Why scan the shape"],
 ["p","The breeder's edge shape is a deliberate design choice: negative triangularity, delta -0.30, chosen to access an ELM-free edge that avoids the pulsed heat loads of edge-localized modes. To trust that choice, L0 scans the shape space around delta -0.30, computing equilibria and their stability so the design point is understood as a region, not a single fragile setting."],
 ["h3","What the scan varies"],
-["p","Each point in the scan is a full equilibrium solve, followed by stability and edge-transport evaluation. The campaign varies triangularity, elongation, and edge gradients around the target, holding the design anchors, R0 1.2 m, aspect ratio 2.5, plasma current 9.86 MA, near their design values, to map how edge behavior changes with shape."],
+["p","Each point in the scan is a full equilibrium solve, followed by stability and edge-transport evaluation. The campaign varies triangularity, elongation, and edge gradients around the target, holding the design anchors, R0 1.2 m, aspect ratio 2.5, plasma current 9.66 MA, near their design values, to map how edge behavior changes with shape."],
 ["ul",["Triangularity around delta -0.30","Elongation and squareness of the boundary","Edge pressure gradient and current","Proximity to stability and operational limits"]],
 ["h3","An independent-solve campaign"],
 ["p","Because each shape is an independent equilibrium plus stability solve, the scan parallelizes cleanly across the <a href=./grad-shafranov-solver-farm.html>solver farm</a>. It behaves like the neutronics TBR sweep: a wide, embarrassingly parallel exploration that produces a response surface, here mapping shape to edge stability and confinement rather than blanket design to breeding."],

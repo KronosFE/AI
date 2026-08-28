@@ -23,7 +23,7 @@
    ],
    [
     "p",
-    "Both Kronos machines are design-and-simulation studies today. The breeder (Hyperion) is a D-T spherical tokamak — Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat and 5.44% neutron fraction. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030. The copilots are being built and validated against the twin now; none of their advice implies a hardware net-gain claim before FOAK."
+    "Both Kronos machines are design-and-simulation studies today. The breeder (Hyperion) is a D-T spherical tokamak — Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat and 5.44% neutron fraction. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted ~2030. The copilots are being built and validated against the twin now; none of their advice implies a hardware net-gain claim before FOAK."
    ],
    [
     "ul",
@@ -161,7 +161,7 @@
    ],
    [
     "p",
-    "A breeder (Hyperion) shot is a set of time-dependent actuator waveforms: plasma current ramp toward the 9.86 MA flat-top, poloidal-field shaping toward negative triangularity delta -0.30, gas puffing and pellet fueling, and auxiliary heating. The Plasma Copilot drafts these waveforms from a natural-language objective (\"reach a stable ELM-free flat-top with maximum confinement time\") and a library of prior shots retrieved from L2."
+    "A breeder (Hyperion) shot is a set of time-dependent actuator waveforms: plasma current ramp toward the 9.66 MA flat-top, poloidal-field shaping toward negative triangularity delta -0.30, gas puffing and pellet fueling, and auxiliary heating. The Plasma Copilot drafts these waveforms from a natural-language objective (\"reach a stable ELM-free flat-top with maximum confinement time\") and a library of prior shots retrieved from L2."
    ],
    [
     "p",
@@ -192,7 +192,7 @@
      "Every waveform segment traces to a retrieved prior shot or an explicit twin simulation",
      "Predicted metrics carry uncertainty bands from the twin's UQ, not point claims",
      "Scenarios that leave the envelope are rejected, not clipped silently",
-     "No net-gain or performance claim beyond what the twin and frozen canon support (Q_sci 3.424, 88.7 MW)"
+     "No net-gain or performance claim beyond what the twin and frozen canon support (Q_sci 3.076, 85.0 MW)"
     ]
    ],
    [
@@ -256,7 +256,7 @@
    [
     "ul",
     [
-     "Breeder: maximize confinement time / stability margin at fixed 9.86 MA flat-top and delta -0.30",
+     "Breeder: maximize confinement time / stability margin at fixed 9.66 MA flat-top and delta -0.30",
      "Breeder: frame tritium-breeding scenarios across the 1.1 / 1.5 / 1.8 TBR lever as context, not a tuned setpoint",
      "Burner: maximize direct-energy-conversion window width at the 26.49 T plug operating line",
      "Burner: hold end-plug density and ambipolar potential inside the confinement-stable band"
@@ -532,7 +532,7 @@
    ],
    [
     "p",
-    "Fueling sets density, and density sets a large share of the physics on both machines. On the breeder (Hyperion), density controls the Greenwald-fraction margin, radiated-power balance, and fusion rate at the 88.7 MW design point. On the burner (Aegis / MetroVolt), central-cell and end-plug densities set the ambipolar potential and confinement. The Plasma Copilot advises on the fueling schedule that reaches a target density profile without crossing limits."
+    "Fueling sets density, and density sets a large share of the physics on both machines. On the breeder (Hyperion), density controls the Greenwald-fraction margin, radiated-power balance, and fusion rate at the 85.0 MW design point. On the burner (Aegis / MetroVolt), central-cell and end-plug densities set the ambipolar potential and confinement. The Plasma Copilot advises on the fueling schedule that reaches a target density profile without crossing limits."
    ],
    [
     "h3",
@@ -629,7 +629,7 @@
       ],
       [
        "Vessel / PFC",
-       "neutron fluence, thermal load from 88.7 MW",
+       "neutron fluence, thermal load from 85.0 MW",
        "expander and plug thermal load"
       ],
       [
@@ -839,7 +839,7 @@
    ],
    [
     "p",
-    "The Engineering Copilot plans maintenance from condition rather than a fixed calendar. It combines subsystem-analysis trends, triaged anomaly events, and cumulative-exposure models — most importantly neutron fluence on the breeder's plasma-facing and structural components driven by the 88.7 MW / 14 MeV neutron output — to estimate remaining margin and recommend when and what to inspect or replace."
+    "The Engineering Copilot plans maintenance from condition rather than a fixed calendar. It combines subsystem-analysis trends, triaged anomaly events, and cumulative-exposure models — most importantly neutron fluence on the breeder's plasma-facing and structural components driven by the 85.0 MW / 14 MeV neutron output — to estimate remaining margin and recommend when and what to inspect or replace."
    ],
    [
     "h3",
@@ -1124,7 +1124,7 @@
     "code",
     [
      "text",
-     "step:\n  action:        'ramp Ip to 9.86 MA at dIp/dt <= limit'  (breeder)\n  precondition:  vacuum ok, coils armed, envelope entered\n  expected:      Ip(t) tracks reference within tolerance\n  abort_if:      q95 < q_min OR vertical growth > gamma_max\n  authorization: L4 + human            # side-effecting"
+     "step:\n  action:        'ramp Ip to 9.66 MA at dIp/dt <= limit'  (breeder)\n  precondition:  vacuum ok, coils armed, envelope entered\n  expected:      Ip(t) tracks reference within tolerance\n  abort_if:      q95 < q_min OR vertical growth > gamma_max\n  authorization: L4 + human            # side-effecting"
     ]
    ],
    [
@@ -1346,7 +1346,7 @@
    ],
    [
     "p",
-    "Every commissioning measurement is compared to the twin's prediction; a mismatch is a finding routed to the Engineering Copilot, not a number to be explained away. This is how the twin is <a href=./twin-validation-vv.html>validated</a> against the real machine as it comes online, and how the copilots earn calibrated confidence before they advise on real shots. No performance or net-gain claim is made during commissioning — the frozen design point (Q_sci 3.424, 88.7 MW) is a target the built machine must demonstrate."
+    "Every commissioning measurement is compared to the twin's prediction; a mismatch is a finding routed to the Engineering Copilot, not a number to be explained away. This is how the twin is <a href=./twin-validation-vv.html>validated</a> against the real machine as it comes online, and how the copilots earn calibrated confidence before they advise on real shots. No performance or net-gain claim is made during commissioning — the frozen design point (Q_sci 3.076, 85.0 MW) is a target the built machine must demonstrate."
    ],
    [
     "p",
@@ -1483,13 +1483,13 @@
    ],
    [
     "p",
-    "Physical arguments carry hard ranges drawn from the machine's canon and the certified envelope. A proposed plasma-current setpoint above the breeder's 9.86 MA design point, or a plug-field argument above the burner's 26.49 T, fails schema validation before it ever reaches L4. This is a first, cheap line of defense: obviously invalid actions never become proposals."
+    "Physical arguments carry hard ranges drawn from the machine's canon and the certified envelope. A proposed plasma-current setpoint above the breeder's 9.66 MA design point, or a plug-field argument above the burner's 26.49 T, fails schema validation before it ever reaches L4. This is a first, cheap line of defense: obviously invalid actions never become proposals."
    ],
    [
     "code",
     [
      "json",
-     "{\n  \"tool\": \"propose.set_current_reference\",\n  \"class\": \"propose\",\n  \"args\": {\n     \"machine\": {\"enum\": [\"breeder\"]},\n     \"Ip_MA\":  {\"type\": \"number\", \"min\": 0, \"max\": 9.86},\n     \"dIpdt\":  {\"type\": \"number\", \"max\": \"ramp_limit\"}\n  },\n  \"side_effect\": true,\n  \"authorization\": [\"L4\", \"human\"]\n}"
+     "{\n  \"tool\": \"propose.set_current_reference\",\n  \"class\": \"propose\",\n  \"args\": {\n     \"machine\": {\"enum\": [\"breeder\"]},\n     \"Ip_MA\":  {\"type\": \"number\", \"min\": 0, \"max\": 9.66},\n     \"dIpdt\":  {\"type\": \"number\", \"max\": \"ramp_limit\"}\n  },\n  \"side_effect\": true,\n  \"authorization\": [\"L4\", \"human\"]\n}"
     ]
    ],
    [
@@ -1656,7 +1656,7 @@
     "ul",
     [
      "Shot and scenario histories (waveforms, outcomes, twin runs)",
-     "Design documents and the frozen canon (Q_sci 3.424, 88.7 MW, 26.49 T plug, ...)",
+     "Design documents and the frozen canon (Q_sci 3.076, 85.0 MW, 26.49 T plug, ...)",
      "Fault and maintenance records with root-cause attributions",
      "Approved procedure and runbook templates, standing orders"
     ]
@@ -1914,7 +1914,7 @@
    ],
    [
     "p",
-    "The distinction between a grounded fact and a reasoned inference is made visible to the operator rather than blurred. A copilot may reason beyond its sources — that is useful — but it must say so, so the operator can weight it accordingly. Canonical numbers (Q_sci 3.424, 88.7 MW, 26.49 T plug) are always cited to the frozen design canon, never recalled from parametric memory, so they cannot drift."
+    "The distinction between a grounded fact and a reasoned inference is made visible to the operator rather than blurred. A copilot may reason beyond its sources — that is useful — but it must say so, so the operator can weight it accordingly. Canonical numbers (Q_sci 3.076, 85.0 MW, 26.49 T plug) are always cited to the frozen design canon, never recalled from parametric memory, so they cannot drift."
    ],
    [
     "p",
@@ -2262,7 +2262,7 @@
      [
       [
        "Breeder Ip",
-       "<= 9.86 MA design point, ramp-rate limited",
+       "<= 9.66 MA design point, ramp-rate limited",
        "current / disruption"
       ],
       [
@@ -2434,7 +2434,7 @@
    ],
    [
     "p",
-    "Reference answers are grounded in the twin, the frozen canon, and validated physics — not in a reviewer's taste. A golden shot's expected answer for the breeder is checked against twin simulation and the canonical design point (Q_sci 3.424, 88.7 MW, delta -0.30); for the burner against the tandem-mirror model (26.49 T plug, 5.44% neutron fraction). Where an LLM-as-judge is used for language quality, it is calibrated against human-labeled cases and never used to judge physical correctness."
+    "Reference answers are grounded in the twin, the frozen canon, and validated physics — not in a reviewer's taste. A golden shot's expected answer for the breeder is checked against twin simulation and the canonical design point (Q_sci 3.076, 85.0 MW, delta -0.30); for the burner against the tandem-mirror model (26.49 T plug, 5.44% neutron fraction). Where an LLM-as-judge is used for language quality, it is calibrated against human-labeled cases and never used to judge physical correctness."
    ],
    [
     "p",
@@ -2559,7 +2559,7 @@
    ],
    [
     "p",
-    "Entailment for engineering prose uses a natural-language-inference model, but physical and canonical claims get a stricter, rule-based check. A claim that states a canonical number (Q_sci 3.424, 88.7 MW, 26.49 T plug) must cite the frozen canon and match it exactly; a numeric claim about a shot must match the cited twin run or record within tolerance. This prevents a plausible-but-wrong number from passing an NLI check that only sees surface similarity."
+    "Entailment for engineering prose uses a natural-language-inference model, but physical and canonical claims get a stricter, rule-based check. A claim that states a canonical number (Q_sci 3.076, 85.0 MW, 26.49 T plug) must cite the frozen canon and match it exactly; a numeric claim about a shot must match the cited twin run or record within tolerance. This prevents a plausible-but-wrong number from passing an NLI check that only sees surface similarity."
    ],
    [
     "ul",

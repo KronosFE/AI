@@ -11,7 +11,7 @@
    ],
    [
     "p",
-    "A Kronos plant is a cyber-physical system where software decides how plasma is heated, shaped, and shut down. The breeder (Hyperion) is a D-T spherical tokamak (Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30) that breeds a tritium product (~4 kg/yr class) plus ~1.97 kg/yr helium-3 and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator (26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion). A single spoofed sensor or forged actuator command in either machine can drive the plasma off its operating point. Perimeter trust is therefore inadequate: we assume the perimeter is already breached and defend every hop."
+    "A Kronos plant is a cyber-physical system where software decides how plasma is heated, shaped, and shut down. The breeder (Hyperion) is a D-T spherical tokamak (Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30) that breeds a tritium product (~4 kg/yr class) plus ~1.97 kg/yr helium-3 and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator (26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion). A single spoofed sensor or forged actuator command in either machine can drive the plasma off its operating point. Perimeter trust is therefore inadequate: we assume the perimeter is already breached and defend every hop."
    ],
    [
     "h3",
@@ -71,7 +71,7 @@
    ],
    [
     "p",
-    "Information Technology (IT) carries email, engineering documents, model training clusters, and the L7 external API. Operational Technology (OT) runs the machine: magnet power supplies, gyrotron/NBI heating, gas valves, cryoplant, the L1 fast control loop, and the safety-instrumented systems. Their threat profiles diverge. IT tolerates a reboot; an OT node that stalls mid-discharge can leave a 9.86 MA plasma unactuated. IT prizes confidentiality; OT prizes availability and integrity of control. Mixing them lets an IT compromise (phishing, ransomware) reach machine actuators. We keep them apart."
+    "Information Technology (IT) carries email, engineering documents, model training clusters, and the L7 external API. Operational Technology (OT) runs the machine: magnet power supplies, gyrotron/NBI heating, gas valves, cryoplant, the L1 fast control loop, and the safety-instrumented systems. Their threat profiles diverge. IT tolerates a reboot; an OT node that stalls mid-discharge can leave a 9.66 MA plasma unactuated. IT prizes confidentiality; OT prizes availability and integrity of control. Mixing them lets an IT compromise (phishing, ransomware) reach machine actuators. We keep them apart."
    ],
    [
     "h3",
@@ -267,7 +267,7 @@
    ],
    [
     "p",
-    "The innermost control and safety domain - the L1 fast loop, the safety-instrumented system, and the master interlock chain - has no routable connection to any wider network during operation. An air gap is the strongest available containment: an attacker on the enterprise or even the OT supervisory network has no packet path to these nodes. For a machine holding a 9.86 MA plasma (breeder) or a 26.49 T plug (burner), that guarantee is worth the operational friction it imposes."
+    "The innermost control and safety domain - the L1 fast loop, the safety-instrumented system, and the master interlock chain - has no routable connection to any wider network during operation. An air gap is the strongest available containment: an attacker on the enterprise or even the OT supervisory network has no packet path to these nodes. For a machine holding a 9.66 MA plasma (breeder) or a 26.49 T plug (burner), that guarantee is worth the operational friction it imposes."
    ],
    [
     "h3",
@@ -492,7 +492,7 @@
    ],
    [
     "p",
-    "The L1 fast control loop runs on FPGAs at the machine edge because plasma shape and position on the breeder (9.86 MA, delta -0.30) and mirror/plug control on the burner demand deterministic sub-millisecond response. That places these devices directly on the actuation path. If an attacker can substitute the bitstream, they own the actuators. Secure boot ensures the device will refuse to run anything not signed by Kronos."
+    "The L1 fast control loop runs on FPGAs at the machine edge because plasma shape and position on the breeder (9.66 MA, delta -0.30) and mirror/plug control on the burner demand deterministic sub-millisecond response. That places these devices directly on the actuation path. If an attacker can substitute the bitstream, they own the actuators. Secure boot ensures the device will refuse to run anything not signed by Kronos."
    ],
    [
     "h3",
@@ -1390,7 +1390,7 @@
    ],
    [
     "p",
-    "For the breeder (Hyperion), a safe state includes controlled termination of the 9.86 MA discharge and securing tritium/vacuum boundaries. For the burner (Aegis / MetroVolt), it includes de-energizing the high-field plug/throat magnets and stopping D-3He fueling. In both, the safety path can command these independently of the L1/L2 control autonomy."
+    "For the breeder (Hyperion), a safe state includes controlled termination of the 9.66 MA discharge and securing tritium/vacuum boundaries. For the burner (Aegis / MetroVolt), it includes de-energizing the high-field plug/throat magnets and stopping D-3He fueling. In both, the safety path can command these independently of the L1/L2 control autonomy."
    ],
    [
     "h3",
@@ -1582,7 +1582,7 @@
    ],
    [
     "p",
-    "The L1 fast loop keeps the breeder plasma on its operating point - shape and vertical position at 9.86 MA with negative triangularity delta -0.30 - and manages the burner's mirror/plug regime. An attacker who could issue or alter commands here could attempt to induce a disruption, a vertical displacement event, or an off-normal excursion. This is the scenario the whole architecture is built to defeat."
+    "The L1 fast loop keeps the breeder plasma on its operating point - shape and vertical position at 9.66 MA with negative triangularity delta -0.30 - and manages the burner's mirror/plug regime. An attacker who could issue or alter commands here could attempt to induce a disruption, a vertical displacement event, or an off-normal excursion. This is the scenario the whole architecture is built to defeat."
    ],
    [
     "h3",

@@ -23,7 +23,7 @@
    ],
    [
     "p",
-    "L3 is instantiated twice from the same framework. For the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30, the hard problems are equilibrium reconstruction, the ELM-free negative-triangularity shape, and disruption avoidance. For the burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat, the hard problems are end-plug density, the ambipolar potential, and direct energy conversion of the 5.44%-neutron-fraction output."
+    "L3 is instantiated twice from the same framework. For the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30, the hard problems are equilibrium reconstruction, the ELM-free negative-triangularity shape, and disruption avoidance. For the burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug and 17 T throat, the hard problems are end-plug density, the ambipolar potential, and direct energy conversion of the 5.44%-neutron-fraction output."
    ],
    [
     "ul",
@@ -428,7 +428,7 @@
    ],
    [
     "p",
-    "This matters specifically for the breeder's negative-triangularity delta -0.30 shape at 9.86 MA and 16.84 T peak field: the equilibrium is where the ELM-free advantage of negative triangularity is realized or lost, and the twin must hold that shape accurately to reason about stability. The PINN provides the equilibrium that the MHD Stability module and the shape-control MPC both build on."
+    "This matters specifically for the breeder's negative-triangularity delta -0.30 shape at 9.66 MA and 16.84 T peak field: the equilibrium is where the ELM-free advantage of negative triangularity is realized or lost, and the twin must hold that shape accurately to reason about stability. The PINN provides the equilibrium that the MHD Stability module and the shape-control MPC both build on."
    ]
   ],
   "related": [
@@ -1269,7 +1269,7 @@
    ],
    [
     "p",
-    "A disruption is a sudden loss of the tokamak plasma's confinement and current, dumping thermal and magnetic energy into the vessel. In a high-current spherical tokamak (9.86 MA) this is the event control most wants to avoid. Disruptions are usually preceded by identifiable precursors, and catching them early is the difference between a planned soft landing and an uncontrolled event."
+    "A disruption is a sudden loss of the tokamak plasma's confinement and current, dumping thermal and magnetic energy into the vessel. In a high-current spherical tokamak (9.66 MA) this is the event control most wants to avoid. Disruptions are usually preceded by identifiable precursors, and catching them early is the difference between a planned soft landing and an uncontrolled event."
    ],
    [
     "ul",
@@ -1436,7 +1436,7 @@
    ],
    [
     "p",
-    "The breeder's performance and ELM-free character depend on maintaining the negative-triangularity delta -0.30 boundary, the elongation, the X-point and divertor strike points, all at 9.86 MA. Shape control is the MPC that drives the poloidal-field and central-solenoid coil currents to hold that target shape against disturbances (pressure evolution, current-profile changes, thermal drift of the vessel)."
+    "The breeder's performance and ELM-free character depend on maintaining the negative-triangularity delta -0.30 boundary, the elongation, the X-point and divertor strike points, all at 9.66 MA. Shape control is the MPC that drives the poloidal-field and central-solenoid coil currents to hold that target shape against disturbances (pressure evolution, current-profile changes, thermal drift of the vessel)."
    ],
    [
     "h3",
@@ -3072,7 +3072,7 @@
   "slug": "l3-breeder-equilibrium-control",
   "title": "L3 for the Breeder: Equilibrium Control",
   "cat": "l3-twin-modeling",
-  "lede": "For Hyperion, the central L3 task is holding a valid, stable Grad-Shafranov equilibrium at 9.86 MA in a compact spherical geometry.",
+  "lede": "For Hyperion, the central L3 task is holding a valid, stable Grad-Shafranov equilibrium at 9.66 MA in a compact spherical geometry.",
   "body": [
    [
     "h2",
@@ -3080,7 +3080,7 @@
    ],
    [
     "p",
-    "The breeder is a compact spherical tokamak, R0 1.2 m, aspect ratio 2.5, 9.86 MA plasma current, 16.84 T peak field. Its performance rests on maintaining a valid MHD equilibrium continuously as pressure and current profiles evolve. Everything else in the breeder twin, neutron source, heat loads, stability margins, is downstream of that equilibrium, so L3's first job is to reconstruct and control it accurately."
+    "The breeder is a compact spherical tokamak, R0 1.2 m, aspect ratio 2.5, 9.66 MA plasma current, 16.84 T peak field. Its performance rests on maintaining a valid MHD equilibrium continuously as pressure and current profiles evolve. Everything else in the breeder twin, neutron source, heat loads, stability margins, is downstream of that equilibrium, so L3's first job is to reconstruct and control it accurately."
    ],
    [
     "h3",
@@ -3192,7 +3192,7 @@
    ],
    [
     "p",
-    "A disruption suddenly terminates the plasma, dumping thermal and magnetic energy into the structure, the event a 9.86 MA spherical tokamak most needs to avoid. Kronos's L3 strategy is avoidance-first: use the twin's stability margins and the anomaly ensemble's precursors to steer away from disruptive boundaries before they are reached, keeping mitigated shutdown as a fallback rather than a routine tool."
+    "A disruption suddenly terminates the plasma, dumping thermal and magnetic energy into the structure, the event a 9.66 MA spherical tokamak most needs to avoid. Kronos's L3 strategy is avoidance-first: use the twin's stability margins and the anomaly ensemble's precursors to steer away from disruptive boundaries before they are reached, keeping mitigated shutdown as a fallback rather than a routine tool."
    ],
    [
     "h3",

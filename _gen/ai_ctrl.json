@@ -1462,7 +1462,7 @@
    ],
    [
     "p",
-    "On the breeder (Hyperion), a D-T spherical tokamak at 9.86&nbsp;MA plasma current and 88.7&nbsp;MW fusion power, a disruption is the loss of plasma control that dumps thermal and magnetic energy into the vessel and coils. The control strategy is two-stage: the supervisory tier <a href=./l3-breeder-disruption-avoidance.html>avoids</a> approaches to instability, and when avoidance fails, the reflex tier <b>mitigates</b> &mdash; it deliberately terminates the plasma in a controlled way rather than letting it disrupt uncontrolled."
+    "On the breeder (Hyperion), a D-T spherical tokamak at 9.66&nbsp;MA plasma current and 85.0&nbsp;MW fusion power, a disruption is the loss of plasma control that dumps thermal and magnetic energy into the vessel and coils. The control strategy is two-stage: the supervisory tier <a href=./l3-breeder-disruption-avoidance.html>avoids</a> approaches to instability, and when avoidance fails, the reflex tier <b>mitigates</b> &mdash; it deliberately terminates the plasma in a controlled way rather than letting it disrupt uncontrolled."
    ],
    [
     "h3",
@@ -1485,7 +1485,7 @@
    ],
    [
     "p",
-    "The trigger logic is deliberately biased toward acting, because the two outcomes are asymmetric: a mitigated shutdown sacrifices a pulse and requires a recovery sequence, while an unmitigated disruption at 9.86&nbsp;MA can load the vessel and coils near their structural limits. Kronos therefore accepts a rate of precautionary mitigations that terminate healthy-looking pulses, treating those false positives as a small, accepted penalty that guarantees the true positives are always caught in time."
+    "The trigger logic is deliberately biased toward acting, because the two outcomes are asymmetric: a mitigated shutdown sacrifices a pulse and requires a recovery sequence, while an unmitigated disruption at 9.66&nbsp;MA can load the vessel and coils near their structural limits. Kronos therefore accepts a rate of precautionary mitigations that terminate healthy-looking pulses, treating those false positives as a small, accepted penalty that guarantees the true positives are always caught in time."
    ],
    [
     "p",

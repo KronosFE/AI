@@ -23,7 +23,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30, tritium breeding ratio treated as a design lever (1.1 / 1.5 / 1.8). Its operator views center on equilibrium, the ELM-free shape, and disruption avoidance. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator: 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. Its views center on end-plug density, the ambipolar potential, and DEC grid modulation."
+    "The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field, negative triangularity delta -0.30, tritium breeding ratio treated as a design lever (1.1 / 1.5 / 1.8). Its operator views center on equilibrium, the ELM-free shape, and disruption avoidance. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator: 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. Its views center on end-plug density, the ambipolar potential, and DEC grid modulation."
    ],
    [
     "ul",
@@ -183,7 +183,7 @@
    ],
    [
     "p",
-    "The plant-floor SCADA/HMI supervises the balance-of-plant systems that surround the fusion core: cryogenic plant for the REBCO magnets, high-vacuum pumping, gas and pellet fueling, tritium handling for the breeder, coolant loops, and the power-supply banks driving the 9.86 MA plasma current (breeder) or the 26.49 T plug (burner). It presents state and lets operators issue supervisory setpoints, but interlocks and fast trips are enforced in hardware by L1. The HMI can request a state change; it can never bypass an interlock."
+    "The plant-floor SCADA/HMI supervises the balance-of-plant systems that surround the fusion core: cryogenic plant for the REBCO magnets, high-vacuum pumping, gas and pellet fueling, tritium handling for the breeder, coolant loops, and the power-supply banks driving the 9.66 MA plasma current (breeder) or the 26.49 T plug (burner). It presents state and lets operators issue supervisory setpoints, but interlocks and fast trips are enforced in hardware by L1. The HMI can request a state change; it can never bypass an interlock."
    ],
    [
     "h3",
@@ -445,7 +445,7 @@
    ],
    [
     "p",
-    "The twin runs a 50-100 ms predictive shadow ahead of the real plant, and the anomaly ensembles quote lead times before an event. L6 turns both into a projection surface: the operator sees not just that plasma current is 9.86 MA now, but the twin's forecast trajectory and how close it is drifting to the safe operating envelope. For the burner, the same surface projects end-plug density and ambipolar potential forward so an operator can see a plug excursion forming before it trips. See <a href=./predictive-shadow-visualization.html>predictive shadow visualization</a>."
+    "The twin runs a 50-100 ms predictive shadow ahead of the real plant, and the anomaly ensembles quote lead times before an event. L6 turns both into a projection surface: the operator sees not just that plasma current is 9.66 MA now, but the twin's forecast trajectory and how close it is drifting to the safe operating envelope. For the burner, the same surface projects end-plug density and ambipolar potential forward so an operator can see a plug excursion forming before it trips. See <a href=./predictive-shadow-visualization.html>predictive shadow visualization</a>."
    ],
    [
     "h3",
@@ -506,8 +506,8 @@
    [
     "ul",
     [
-     "Q_sci trajectory vs the 3.424 design point, with confidence band",
-     "Fusion power vs 88.7 MW reference; plasma current vs 9.86 MA",
+     "Q_sci trajectory vs the 3.076 design point, with confidence band",
+     "Fusion power vs 85.0 MW reference; plasma current vs 9.66 MA",
      "Shape fidelity: measured triangularity vs delta -0.30, ELM-free status",
      "Disruption risk index and precursor lead time",
      "Tritium breeding context (TBR lever 1.1 / 1.5 / 1.8) and fuel-cycle balance",
@@ -1084,7 +1084,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, and 16.84 T peak field. Its control-room view foregrounds the three problems that dominate its operation: holding equilibrium, maintaining the ELM-free negative-triangularity boundary at delta -0.30, and avoiding disruptions. The 3D overlay centers the spherical-torus flux surfaces; the console strips carry current, shape, and stability margins."
+    "The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, and 16.84 T peak field. Its control-room view foregrounds the three problems that dominate its operation: holding equilibrium, maintaining the ELM-free negative-triangularity boundary at delta -0.30, and avoiding disruptions. The 3D overlay centers the spherical-torus flux surfaces; the console strips carry current, shape, and stability margins."
    ],
    [
     "h3",
@@ -1098,10 +1098,10 @@
     "ul",
     [
      "LCFS with measured vs target triangularity (-0.30) and ELM-free status",
-     "Plasma current vs 9.86 MA reference, with ramp phase",
+     "Plasma current vs 9.66 MA reference, with ramp phase",
      "Vertical/radial position error against stability envelope",
      "PF/CS coil currents and remaining headroom",
-     "Q_sci trajectory vs 3.424 and fusion power vs 88.7 MW, with confidence"
+     "Q_sci trajectory vs 3.076 and fusion power vs 85.0 MW, with confidence"
     ]
    ],
    [
@@ -1690,7 +1690,7 @@
     [
      "Shot quality: fraction of shots reaching target parameters without disruption",
      "Shape fidelity: measured triangularity vs delta -0.30, ELM-free fraction",
-     "Performance: Q_sci vs 3.424, fusion power vs 88.7 MW, current vs 9.86 MA",
+     "Performance: Q_sci vs 3.076, fusion power vs 85.0 MW, current vs 9.66 MA",
      "Disruption rate and mean precursor lead time achieved",
      "Diagnostic availability: fraction of the 60+ ports healthy (un-imputed)",
      "Magnet health: REBCO strain and quench margin at 16.84 T peak field"
@@ -1913,7 +1913,7 @@
    ],
    [
     "p",
-    "A disruption in the breeder (Hyperion) — a rapid loss of the 9.86 MA plasma current — develops on a timescale of milliseconds to tens of milliseconds, faster than a human can compose a plan from scratch. So when disruption risk crosses into the actionable range, the operator view escalates to a purpose-built countdown surface that strips away everything non-essential and shows only what the decision needs. The fast protection itself runs in L1 hardware; this surface supports the human's supervisory choice, it does not replace the failsafe."
+    "A disruption in the breeder (Hyperion) — a rapid loss of the 9.66 MA plasma current — develops on a timescale of milliseconds to tens of milliseconds, faster than a human can compose a plan from scratch. So when disruption risk crosses into the actionable range, the operator view escalates to a purpose-built countdown surface that strips away everything non-essential and shows only what the decision needs. The fast protection itself runs in L1 hardware; this surface supports the human's supervisory choice, it does not replace the failsafe."
    ],
    [
     "h3",
@@ -2421,7 +2421,7 @@
    ],
    [
     "p",
-    "The breeder and burner have different physics, so the fleet row shows each machine's own most-decision-relevant indicators (breeder: shape fidelity, disruption risk, Q_sci vs 3.424; burner: plug-density balance, potential-well depth, DEC stability) under a common health summary. Same-type units are directly comparable, which is how a supervisor spots that one breeder unit is drifting relative to its siblings — an early, cheap signal."
+    "The breeder and burner have different physics, so the fleet row shows each machine's own most-decision-relevant indicators (breeder: shape fidelity, disruption risk, Q_sci vs 3.076; burner: plug-density balance, potential-well depth, DEC stability) under a common health summary. Same-type units are directly comparable, which is how a supervisor spots that one breeder unit is drifting relative to its siblings — an early, cheap signal."
    ],
    [
     "ul",

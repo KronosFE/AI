@@ -1875,7 +1875,7 @@
    ],
    [
     "p",
-    "The frozen parameters of the <b>Hyperion</b> breeder, a spherical tokamak at 9.86 MA plasma current with an 8 T on-axis field and 16.84 T peak, and of the <b>Aegis</b> and <b>MetroVolt</b> burner with its 26.49 T plug, are the kind of top-level quantities a systems study fixes before detailed physics simulation refines them. All remain design values, not measured performance."
+    "The frozen parameters of the <b>Hyperion</b> breeder, a spherical tokamak at 9.66 MA plasma current with an 8 T on-axis field and 16.84 T peak, and of the <b>Aegis</b> and <b>MetroVolt</b> burner with its 26.49 T plug, are the kind of top-level quantities a systems study fixes before detailed physics simulation refines them. All remain design values, not measured performance."
    ],
    [
     "ul",
@@ -2419,7 +2419,7 @@
    ],
    [
     "p",
-    "For the <b>Hyperion</b> breeder, uncertainty propagation converts frozen design values such as Q 3.424 and 88.7 MW into ranges reflecting model and input uncertainty, supporting the honest position that these are simulation predictions, not guaranteed hardware performance before first tritium around 2030."
+    "For the <b>Hyperion</b> breeder, uncertainty propagation converts frozen design values such as Q 3.076 and 85.0 MW into ranges reflecting model and input uncertainty, supporting the honest position that these are simulation predictions, not guaranteed hardware performance before first tritium around 2030."
    ],
    [
     "ul",
@@ -3167,7 +3167,7 @@
    ],
    [
     "p",
-    "For the <b>Hyperion</b> breeder, impurity modeling estimates radiated power, fuel dilution, and helium-ash removal, all of which bear on achieving the design fusion power of 88.7 MW at Q 3.424. Seeded-impurity radiation also links to the divertor detachment strategy. These are simulation studies before construction."
+    "For the <b>Hyperion</b> breeder, impurity modeling estimates radiated power, fuel dilution, and helium-ash removal, all of which bear on achieving the design fusion power of 85.0 MW at Q 3.076. Seeded-impurity radiation also links to the divertor detachment strategy. These are simulation studies before construction."
    ],
    [
     "ul",
@@ -3235,7 +3235,7 @@
    ],
    [
     "p",
-    "For the <b>Hyperion</b> breeder, neoclassical modeling predicts the bootstrap current fraction that helps sustain the 9.86 MA plasma current and sets the collisional transport floor. At low aspect ratio the trapped fraction is large, so neoclassical effects are pronounced, making these codes important for the design done in simulation."
+    "For the <b>Hyperion</b> breeder, neoclassical modeling predicts the bootstrap current fraction that helps sustain the 9.66 MA plasma current and sets the collisional transport floor. At low aspect ratio the trapped fraction is large, so neoclassical effects are pronounced, making these codes important for the design done in simulation."
    ],
    [
     "ul",
@@ -3575,7 +3575,7 @@
    ],
    [
     "p",
-    "For the <b>Hyperion</b> breeder, whose blanket must both breed tritium at a ratio of 1.8 and remove the neutron heating from 88.7 MW of fusion power, thermal-hydraulic simulation checks that coolant channels keep materials within their limits. All results are simulation studies preceding construction, with performance confirmable only in operation."
+    "For the <b>Hyperion</b> breeder, whose blanket must both breed tritium at a ratio of 1.8 and remove the neutron heating from 85.0 MW of fusion power, thermal-hydraulic simulation checks that coolant channels keep materials within their limits. All results are simulation studies preceding construction, with performance confirmable only in operation."
    ],
    [
     "ul",

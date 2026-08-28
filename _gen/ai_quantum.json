@@ -577,7 +577,7 @@
    ],
    [
     "p",
-    "The breeder reaches a peak field of 16.84 T (8 T on axis) and 9.86 MA plasma current using REBCO high-temperature superconducting tape. REBCO is a cuprate: its superconductivity emerges from strongly correlated copper-oxygen planes that resist mean-field description. The canonical minimal model is the two-dimensional Hubbard model, itself unsolved in the interesting regime."
+    "The breeder reaches a peak field of 16.84 T (8 T on axis) and 9.66 MA plasma current using REBCO high-temperature superconducting tape. REBCO is a cuprate: its superconductivity emerges from strongly correlated copper-oxygen planes that resist mean-field description. The canonical minimal model is the two-dimensional Hubbard model, itself unsolved in the interesting regime."
    ],
    [
     "code",
@@ -639,7 +639,7 @@
    ],
    [
     "p",
-    "Both machines produce fast neutrons: the breeder at 88.7 MW of D-T fusion power with a 14 MeV neutron spectrum, and the burner with a 5.44% neutron fraction from D-3He side reactions. A 14 MeV neutron initiates a displacement cascade that leaves vacancies, self-interstitials, and, through transmutation, helium and hydrogen. The long-term material state is governed by the energetics of the surviving defects."
+    "Both machines produce fast neutrons: the breeder at 85.0 MW of D-T fusion power with a 14 MeV neutron spectrum, and the burner with a 5.44% neutron fraction from D-3He side reactions. A 14 MeV neutron initiates a displacement cascade that leaves vacancies, self-interstitials, and, through transmutation, helium and hydrogen. The long-term material state is governed by the energetics of the surviving defects."
    ],
    [
     "code",

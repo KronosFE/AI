@@ -15,7 +15,7 @@
    ],
    [
     "p",
-    "Two very different machines share the framework. The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field (8 T on-axis), negative triangularity delta -0.30, tritium breeding ratio treated as a design lever across 1.1/1.5/1.8, producing a ~4 kg/yr tritium class output, ~1.97 kg/yr helium-3, and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, 5.44% neutron fraction and direct energy conversion. A tokamak lives shot-to-shot; a mirror aims at continuous export. Their resiliency problems are therefore different in kind, not just degree."
+    "Two very different machines share the framework. The breeder (Hyperion) is a D-T spherical tokamak: Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field (8 T on-axis), negative triangularity delta -0.30, tritium breeding ratio treated as a design lever across 1.1/1.5/1.8, producing a ~4 kg/yr tritium class output, ~1.97 kg/yr helium-3, and 14 MeV neutrons. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat, 5.44% neutron fraction and direct energy conversion. A tokamak lives shot-to-shot; a mirror aims at continuous export. Their resiliency problems are therefore different in kind, not just degree."
    ],
    [
     "h3",
@@ -327,7 +327,7 @@
      "Cryogenic cooldown: superconducting magnets to operating temperature, watched by quench diagnostics",
      "Magnet energization: ramp toward 16.84 T peak field (8 T on-axis) with continuous normal-zone monitoring",
      "Gas fueling and breakdown: admit deuterium, apply loop voltage, initiate breakdown",
-     "Current ramp: drive plasma current toward 9.86 MA while holding vertical stability at delta -0.30",
+     "Current ramp: drive plasma current toward 9.66 MA while holding vertical stability at delta -0.30",
      "Flat-top: establish the target scenario and hand over to shot control"
     ]
    ],
@@ -379,7 +379,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) operates in discrete shots even at commercial intent, because a spherical tokamak drives current inductively and thermally cycles the plasma-facing components. Each shot is a bounded window with an arm, a ramp, a flat-top, a ramp-down, and a recovery. The stack treats the flat-top as the productive phase where the Q_sci 3.424 / 88.7 MW scenario is held and 14 MeV neutrons drive the breeding blanket."
+    "The breeder (Hyperion) operates in discrete shots even at commercial intent, because a spherical tokamak drives current inductively and thermally cycles the plasma-facing components. Each shot is a bounded window with an arm, a ramp, a flat-top, a ramp-down, and a recovery. The stack treats the flat-top as the productive phase where the Q_sci 3.076 / 85.0 MW scenario is held and 14 MeV neutrons drive the breeding blanket."
    ],
    [
     "matrix",
@@ -425,7 +425,7 @@
    ],
    [
     "p",
-    "During flat-top the controller holds current near 9.86 MA, regulates shape and vertical position, manages fueling and heating to the target profile, and watches for disruption precursors. The tritium breeding ratio - treated as a design lever across 1.1/1.5/1.8 - is a slow accounting quantity computed shot-over-shot from neutron diagnostics, not a fast loop."
+    "During flat-top the controller holds current near 9.66 MA, regulates shape and vertical position, manages fueling and heating to the target profile, and watches for disruption precursors. The tritium breeding ratio - treated as a design lever across 1.1/1.5/1.8 - is a slow accounting quantity computed shot-over-shot from neutron diagnostics, not a fast loop."
    ],
    [
     "code",
@@ -758,7 +758,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) stores large magnetic energy in its superconducting coil set to reach 16.84 T peak field (8 T on-axis) and confine a 9.86 MA plasma. Because that energy must go somewhere on any fault, magnet failure modes carry the highest severity in the breeder FMEA. The negative-triangularity delta -0.30 shape also puts specific structural loads on the shaping coils."
+    "The breeder (Hyperion) stores large magnetic energy in its superconducting coil set to reach 16.84 T peak field (8 T on-axis) and confine a 9.66 MA plasma. Because that energy must go somewhere on any fault, magnet failure modes carry the highest severity in the breeder FMEA. The negative-triangularity delta -0.30 shape also puts specific structural loads on the shaping coils."
    ],
    [
     "matrix",
@@ -1387,7 +1387,7 @@
   "slug": "disruption-prediction-and-mitigation",
   "title": "Disruption Prediction and Mitigation",
   "cat": "resiliency",
-  "lede": "The breeder's fast-loop resiliency problem: predict a tokamak disruption early enough to soften it, at delta -0.30 and 9.86 MA.",
+  "lede": "The breeder's fast-loop resiliency problem: predict a tokamak disruption early enough to soften it, at delta -0.30 and 9.66 MA.",
   "body": [
    [
     "h2",
@@ -1395,7 +1395,7 @@
    ],
    [
     "p",
-    "A disruption is a sudden loss of plasma confinement that dumps thermal and magnetic energy into the machine on a millisecond scale. For the breeder (Hyperion) at 9.86 MA and negative triangularity delta -0.30, an unmitigated disruption imposes large electromagnetic and thermal loads and can generate runaway electrons. Prediction and mitigation is therefore the breeder's tightest fast-loop resiliency task."
+    "A disruption is a sudden loss of plasma confinement that dumps thermal and magnetic energy into the machine on a millisecond scale. For the breeder (Hyperion) at 9.66 MA and negative triangularity delta -0.30, an unmitigated disruption imposes large electromagnetic and thermal loads and can generate runaway electrons. Prediction and mitigation is therefore the breeder's tightest fast-loop resiliency task."
    ],
    [
     "h3",

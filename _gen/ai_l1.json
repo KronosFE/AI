@@ -1742,7 +1742,7 @@
    ],
    [
     "p",
-    "On the breeder (Hyperion), beams contribute to reaching and holding the operating point that yields Q_sci 3.424 and 88.7 MW of fusion power, and to current-profile control alongside the 9.86 MA plasma current. On the burner, beams sustain the end-plug and central-cell populations that hold the ambipolar potential. In both, L1 treats the beam as a fast, envelope-limited power actuator."
+    "On the breeder (Hyperion), beams contribute to reaching and holding the operating point that yields Q_sci 3.076 and 85.0 MW of fusion power, and to current-profile control alongside the 9.66 MA plasma current. On the burner, beams sustain the end-plug and central-cell populations that hold the ambipolar potential. In both, L1 treats the beam as a fast, envelope-limited power actuator."
    ]
   ],
   "related": [
@@ -2062,7 +2062,7 @@
    ],
    [
     "p",
-    "Vertical control is the first defense against VDE-driven disruptions. When it detects that displacement is exceeding what it can recover, it escalates to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a> and, if needed, mitigation. The 9.86 MA plasma current makes a disruption energetic, which is why the vertical loop is engineered with margin and coordinated tightly with the current-feedback loop."
+    "Vertical control is the first defense against VDE-driven disruptions. When it detects that displacement is exceeding what it can recover, it escalates to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a> and, if needed, mitigation. The 9.66 MA plasma current makes a disruption energetic, which is why the vertical loop is engineered with margin and coordinated tightly with the current-feedback loop."
    ]
   ],
   "related": [
@@ -2149,7 +2149,7 @@
   "slug": "plasma-current-feedback",
   "title": "Plasma Current Feedback",
   "cat": "l1-control-plane",
-  "lede": "L1 regulates the breeder plasma current toward its 9.86 MA operating value, coordinating the central solenoid and PF system deterministically.",
+  "lede": "L1 regulates the breeder plasma current toward its 9.66 MA operating value, coordinating the central solenoid and PF system deterministically.",
   "body": [
    [
     "h2",
@@ -2157,7 +2157,7 @@
    ],
    [
     "p",
-    "Plasma current I_p sets the poloidal field, the confinement, and the stability margins; the breeder's operating point targets <b>9.86 MA</b>. L1 regulates I_p by controlling the loop voltage the central solenoid and PF system impose, tracking a programmed current waveform through ramp-up, flat-top, and ramp-down."
+    "Plasma current I_p sets the poloidal field, the confinement, and the stability margins; the breeder's operating point targets <b>9.66 MA</b>. L1 regulates I_p by controlling the loop voltage the central solenoid and PF system impose, tracking a programmed current waveform through ramp-up, flat-top, and ramp-down."
    ],
    [
     "h3",
@@ -2177,12 +2177,12 @@
      "I_p, position, and shape share the same coil system.",
      "The controller uses a decoupling matrix so each objective is addressable.",
      "Current ramp rate is limited to respect field and force constraints.",
-     "Flat-top I_p held at 9.86 MA while shape and stability loops operate."
+     "Flat-top I_p held at 9.66 MA while shape and stability loops operate."
     ]
    ],
    [
     "p",
-    "Decoupling matters: a naive solenoid change would move the plasma radially and distort the shape. L1 applies a transformation so current, radial position, and shape can be commanded semi-independently, then lets the individual loops trim the residual coupling. This keeps the 9.86 MA flat-top stable while &delta; = &minus;0.30 is maintained."
+    "Decoupling matters: a naive solenoid change would move the plasma radially and distort the shape. L1 applies a transformation so current, radial position, and shape can be commanded semi-independently, then lets the individual loops trim the residual coupling. This keeps the 9.66 MA flat-top stable while &delta; = &minus;0.30 is maintained."
    ],
    [
     "h3",
@@ -2190,7 +2190,7 @@
    ],
    [
     "p",
-    "The stored energy in a 9.86 MA current is what makes a disruption consequential, so current control is tightly bound to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a>. A controlled ramp-down is one mitigation path; an uncontrolled current quench is the event the protection stack exists to prevent or soften. L1 therefore treats I_p regulation and disruption handling as one coordinated problem."
+    "The stored energy in a 9.66 MA current is what makes a disruption consequential, so current control is tightly bound to <a href=./disruption-avoidance-actuation.html>disruption avoidance</a>. A controlled ramp-down is one mitigation path; an uncontrolled current quench is the event the protection stack exists to prevent or soften. L1 therefore treats I_p regulation and disruption handling as one coordinated problem."
    ]
   ],
   "related": [
@@ -2285,7 +2285,7 @@
    ],
    [
     "p",
-    "A disruption is a sudden loss of confinement that dumps the plasma's thermal and magnetic energy, potentially damaging the vessel and stressing the magnets. Kronos's strategy is avoidance first: detect precursors early and actuate to steer the plasma back to safety, escalating to mitigation only if avoidance fails. At 9.86 MA the stakes make this the breeder's central protection problem."
+    "A disruption is a sudden loss of confinement that dumps the plasma's thermal and magnetic energy, potentially damaging the vessel and stressing the magnets. Kronos's strategy is avoidance first: detect precursors early and actuate to steer the plasma back to safety, escalating to mitigation only if avoidance fails. At 9.66 MA the stakes make this the breeder's central protection problem."
    ],
    [
     "h3",
@@ -2374,7 +2374,7 @@
    ],
    [
     "p",
-    "At 9.86 MA and with the breeder's stored energy, an unmitigated disruption imposes severe electromagnetic and thermal loads. Mitigation does not prevent the disruption; it converts a potentially damaging event into a survivable one, which is why it is the terminal rung of the <a href=./disruption-avoidance-actuation.html>graded response</a>."
+    "At 9.66 MA and with the breeder's stored energy, an unmitigated disruption imposes severe electromagnetic and thermal loads. Mitigation does not prevent the disruption; it converts a potentially damaging event into a survivable one, which is why it is the terminal rung of the <a href=./disruption-avoidance-actuation.html>graded response</a>."
    ],
    [
     "h3",
@@ -2501,7 +2501,7 @@
    ],
    [
     "p",
-    "On the breeder, pellet fueling supports reaching and holding the density needed for the operating point behind Q_sci 3.424 and 88.7 MW, and it interacts with the fuel cycle's isotope balance since pellets carry a defined D-T composition. The injector's deterministic timing lets L1 place each pellet's density perturbation predictably."
+    "On the breeder, pellet fueling supports reaching and holding the density needed for the operating point behind Q_sci 3.076 and 85.0 MW, and it interacts with the fuel cycle's isotope balance since pellets carry a defined D-T composition. The injector's deterministic timing lets L1 place each pellet's density perturbation predictably."
    ],
    [
     "h3",
@@ -3716,7 +3716,7 @@
    ],
    [
     "p",
-    "Both machines produce neutrons &mdash; the breeder 14 MeV D-T neutrons at 88.7 MW fusion power, the burner a 5.44% neutron fraction from D-3He. Single-event upsets in an FPGA's configuration or logic must be considered. Kronos places control fabric where shielding keeps flux manageable, and uses configuration scrubbing and error-corrected memory so upsets are detected and corrected before they affect a decision."
+    "Both machines produce neutrons &mdash; the breeder 14 MeV D-T neutrons at 85.0 MW fusion power, the burner a 5.44% neutron fraction from D-3He. Single-event upsets in an FPGA's configuration or logic must be considered. Kronos places control fabric where shielding keeps flux manageable, and uses configuration scrubbing and error-corrected memory so upsets are detected and corrected before they affect a decision."
    ],
    [
     "h3",

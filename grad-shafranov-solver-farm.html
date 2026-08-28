@@ -421,10 +421,10 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 # R d/dR( (1/R) dpsi/dR ) + d2psi/dZ2
 #   = -mu0 R^2 dp/dpsi - F dF/dpsi
 # p(psi) : pressure profile   F(psi)=R B_toroidal
-# solved for the breeder: R0 1.2 m, aspect ratio 2.5, Ip 9.86 MA</code></pre>
+# solved for the breeder: R0 1.2 m, aspect ratio 2.5, Ip 9.66 MA</code></pre>
 
 <h3>The negative-triangularity target</h3>
-<p>The breeder's design shape has negative triangularity, delta -0.30, chosen to access an ELM-free edge regime. The solver farm computes equilibria across current, pressure, and coil settings to find and hold this shape at the design point: R0 1.2 m, aspect ratio 2.5, plasma current 9.86 MA, and the fields consistent with 16.84 T peak, 8 T on-axis.</p>
+<p>The breeder's design shape has negative triangularity, delta -0.30, chosen to access an ELM-free edge regime. The solver farm computes equilibria across current, pressure, and coil settings to find and hold this shape at the design point: R0 1.2 m, aspect ratio 2.5, plasma current 9.66 MA, and the fields consistent with 16.84 T peak, 8 T on-axis.</p>
 <h3>Why a farm, not a single solve</h3>
 <p>A single equilibrium is cheap; the design needs thousands. Shape scans, current and pressure sweeps, and coil-current studies each demand an independent solve, so the farm runs them in parallel, one equilibrium per core. This is where offline compute buys a dense map of the breeder's accessible equilibrium space.</p>
 

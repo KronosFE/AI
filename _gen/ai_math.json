@@ -11,7 +11,7 @@
    ],
    [
     "p",
-    "Kronos does not apply generic machine learning to fusion. Each learned or optimizing component is a discretization, surrogate, or inverse of a governing equation for one of the two machines. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field (8 T on-axis) and negative triangularity delta -0.30. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction feeding direct energy conversion. The AI stack exists to solve, estimate, control, and optimize these physics faster than a mesh solver can."
+    "Kronos does not apply generic machine learning to fusion. Each learned or optimizing component is a discretization, surrogate, or inverse of a governing equation for one of the two machines. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field (8 T on-axis) and negative triangularity delta -0.30. The burner (Aegis / MetroVolt) is a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction feeding direct energy conversion. The AI stack exists to solve, estimate, control, and optimize these physics faster than a mesh solver can."
    ],
    [
     "h3",
@@ -87,7 +87,7 @@
    ],
    [
     "p",
-    "The right-hand side depends on psi only through two free profile functions, p'(psi) and F F'(psi). Physically these encode the pressure gradient and the toroidal field/current. The problem is nonlinear because the source depends on the unknown solution through psi. In the breeder these profiles carry the negative-triangularity, high-field (16.84 T peak, 8 T on-axis) operating point at 9.86 MA."
+    "The right-hand side depends on psi only through two free profile functions, p'(psi) and F F'(psi). Physically these encode the pressure gradient and the toroidal field/current. The problem is nonlinear because the source depends on the unknown solution through psi. In the breeder these profiles carry the negative-triangularity, high-field (16.84 T peak, 8 T on-axis) operating point at 9.66 MA."
    ],
    [
     "h3",
@@ -385,7 +385,7 @@
    ],
    [
     "p",
-    "The closed-form nature of the Green's function is what keeps this whole chain real-time. No mesh solve is needed to relate coils to observations in the vacuum region; a matrix built once from elliptic-integral evaluations, refreshed only as geometry changes, suffices. That efficiency is why coil-to-shape reasoning fits inside the control cycle for the breeder's 9.86 MA, high-field operating point."
+    "The closed-form nature of the Green's function is what keeps this whole chain real-time. No mesh solve is needed to relate coils to observations in the vacuum region; a matrix built once from elliptic-integral evaluations, refreshed only as geometry changes, suffices. That efficiency is why coil-to-shape reasoning fits inside the control cycle for the breeder's 9.66 MA, high-field operating point."
    ]
   ],
   "related": [
@@ -505,7 +505,7 @@
    ],
    [
     "p",
-    "Rational surfaces where q = m/n (m, n integers) are where resonant MHD modes and magnetic islands can grow. The q profile - its edge value q_a, its minimum q_min, and its shear s = (r/q) dq/dr - sets which instabilities are accessible. For the breeder at 9.86 MA the current and q profiles are engineered to keep dangerous rational surfaces out of high-pressure-gradient regions."
+    "Rational surfaces where q = m/n (m, n integers) are where resonant MHD modes and magnetic islands can grow. The q profile - its edge value q_a, its minimum q_min, and its shear s = (r/q) dq/dr - sets which instabilities are accessible. For the breeder at 9.66 MA the current and q profiles are engineered to keep dangerous rational surfaces out of high-pressure-gradient regions."
    ],
    [
     "code",
@@ -563,7 +563,7 @@
    ],
    [
     "p",
-    "In a toroidal plasma the pressure gradient drives a neoclassical bootstrap current parallel to the field. This current shapes the q profile, which shapes the equilibrium, which shapes the pressure - a coupled loop. For the breeder, the bootstrap fraction affects how much external current drive the 9.86 MA target needs and where rational surfaces land."
+    "In a toroidal plasma the pressure gradient drives a neoclassical bootstrap current parallel to the field. This current shapes the q profile, which shapes the equilibrium, which shapes the pressure - a coupled loop. For the breeder, the bootstrap fraction affects how much external current drive the 9.66 MA target needs and where rational surfaces land."
    ],
    [
     "code",
@@ -1480,13 +1480,13 @@
    ],
    [
     "p",
-    "The breeder's canonical parameters enter through normalization and the profile parameterization: 9.86 MA total current fixes the integral of J_phi, 16.84 T peak field and 8 T on-axis fix F near axis, and the boundary term carries delta -0.30. Non-dimensionalizing R, Z, and psi keeps the loss terms comparably scaled, which conditioning demands."
+    "The breeder's canonical parameters enter through normalization and the profile parameterization: 9.66 MA total current fixes the integral of J_phi, 16.84 T peak field and 8 T on-axis fix F near axis, and the boundary term carries delta -0.30. Non-dimensionalizing R, Z, and psi keeps the loss terms comparably scaled, which conditioning demands."
    ],
    [
     "code",
     [
      "python",
-     "# equilibrium PINN training step (schematic)\ndef step(net, prof, coll_pts, bdy_pts):\n    r_pde = gs_residual(net, coll_pts, prof.pprime, prof.ffprime)\n    r_bc  = net(bdy_pts) - psi_boundary            # delta -0.30 shape\n    Ip    = integrate_Jphi(net, prof) - 9.86e6     # current constraint\n    L = w1*mse(r_pde) + w2*mse(r_bc) + w3*Ip**2\n    return L                                       # backprop -> theta"
+     "# equilibrium PINN training step (schematic)\ndef step(net, prof, coll_pts, bdy_pts):\n    r_pde = gs_residual(net, coll_pts, prof.pprime, prof.ffprime)\n    r_bc  = net(bdy_pts) - psi_boundary            # delta -0.30 shape\n    Ip    = integrate_Jphi(net, prof) - 9.66e6     # current constraint\n    L = w1*mse(r_pde) + w2*mse(r_bc) + w3*Ip**2\n    return L                                       # backprop -> theta"
     ]
    ],
    [
@@ -1511,7 +1511,7 @@
    ],
    [
     "p",
-    "Curriculum helps: training starts on smooth, well-behaved profiles and progressively introduces steeper edge gradients and stronger shaping, so the network builds up the hard features rather than facing them cold. The current constraint against 9.86 MA and the axis and boundary conditions are enforced throughout, keeping every intermediate model a physically admissible equilibrium."
+    "Curriculum helps: training starts on smooth, well-behaved profiles and progressively introduces steeper edge gradients and stronger shaping, so the network builds up the hard features rather than facing them cold. The current constraint against 9.66 MA and the axis and boundary conditions are enforced throughout, keeping every intermediate model a physically admissible equilibrium."
    ]
   ],
   "related": [
@@ -1955,7 +1955,7 @@
    ],
    [
     "p",
-    "Before a PINN enters the twin it is scored against FEM on a held-out set of equilibria spanning the breeder's shape and profile range. The metrics are field error, boundary-shape error (especially delta near -0.30), integrated current error against 9.86 MA, and q-profile error at rational surfaces. A PINN passes only if all stay within tolerance."
+    "Before a PINN enters the twin it is scored against FEM on a held-out set of equilibria spanning the breeder's shape and profile range. The metrics are field error, boundary-shape error (especially delta near -0.30), integrated current error against 9.66 MA, and q-profile error at rational surfaces. A PINN passes only if all stay within tolerance."
    ],
    [
     "code",

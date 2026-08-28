@@ -547,7 +547,7 @@
    ],
    [
     "p",
-    "Entry and exit guards are written against the machine's design targets so the procedure and the physics stay consistent: toroidal field ramp targets 8 T on-axis (16.84 T peak at the conductor), flat-top plasma current targets 9.86 MA, and the equilibrium is held at negative triangularity delta -0.30. These are design-and-simulation set points; the engine validates that commanded programs stay inside them and defers to the <a href=./safety-envelope-checks.html>safety envelope</a> for hard limits."
+    "Entry and exit guards are written against the machine's design targets so the procedure and the physics stay consistent: toroidal field ramp targets 8 T on-axis (16.84 T peak at the conductor), flat-top plasma current targets 9.66 MA, and the equilibrium is held at negative triangularity delta -0.30. These are design-and-simulation set points; the engine validates that commanded programs stay inside them and defers to the <a href=./safety-envelope-checks.html>safety envelope</a> for hard limits."
    ],
    [
     "h2",
@@ -756,7 +756,7 @@
     "ul",
     [
      "Breeder toroidal field must not exceed the conductor's peak-field rating (design peak 16.84 T); on-axis target 8 T.",
-     "Breeder plasma current commanded slew and magnitude bounded around the 9.86 MA design point.",
+     "Breeder plasma current commanded slew and magnitude bounded around the 9.66 MA design point.",
      "Burner plug field bounded at the 26.49 T design point; throat field at 17 T; no command may exceed magnet ratings.",
      "Fuelling, heating, and pumping interlocked so no combination can be commanded outside the validated envelope."
     ]
@@ -1401,7 +1401,7 @@
     "code",
     [
      "python",
-     "T = {\n ('PUMPDOWN','FIELD_RAMP'):  lambda s: s.base_pressure_ok,\n ('FIELD_RAMP','FLATTOP'):    lambda s: s.i_p_A >= 9.86e6*0.98 and s.delta <= -0.30,\n ('FLATTOP','RAMP_DOWN'):     lambda s: s.diag_window_done or s.plan_end,\n ('*','SAFE_ABORT'):          lambda s: s.fault or s.envelope_violated,\n}"
+     "T = {\n ('PUMPDOWN','FIELD_RAMP'):  lambda s: s.base_pressure_ok,\n ('FIELD_RAMP','FLATTOP'):    lambda s: s.i_p_A >= 9.66e6*0.98 and s.delta <= -0.30,\n ('FLATTOP','RAMP_DOWN'):     lambda s: s.diag_window_done or s.plan_end,\n ('*','SAFE_ABORT'):          lambda s: s.fault or s.envelope_violated,\n}"
     ]
    ],
    [
@@ -1411,7 +1411,7 @@
    [
     "ul",
     [
-     "FLATTOP asserts plasma current near the 9.86 MA design value and shape at negative triangularity delta -0.30.",
+     "FLATTOP asserts plasma current near the 9.66 MA design value and shape at negative triangularity delta -0.30.",
      "Field states assert on-axis field toward 8 T with peak conductor field within the 16.84 T rating.",
      "Every state asserts the <a href=./safety-envelope-checks.html>safety envelope</a> holds; violation forces SAFE_ABORT."
     ]

@@ -89,7 +89,7 @@
    [
     "ul",
     [
-     "Breeder (Hyperion): heavy on magnetics (Mirnov, flux loops) and REBCO strain because equilibrium at delta -0.30 and disruption avoidance are the hard control problems at 9.86 MA and 16.84 T peak field.",
+     "Breeder (Hyperion): heavy on magnetics (Mirnov, flux loops) and REBCO strain because equilibrium at delta -0.30 and disruption avoidance are the hard control problems at 9.66 MA and 16.84 T peak field.",
      "Burner: heavy on end-plug and central-cell density diagnostics, potential probes for the ambipolar well, and the DEC train's grid and collector telemetry, plus 5.44%-neutron-fraction flux monitors."
     ]
    ],
@@ -155,7 +155,7 @@
    ],
    [
     "p",
-    "Differential wiring and careful shielding cross the feedthrough to reject common-mode pickup from the megampere-class currents nearby (9.86 MA plasma current in the breeder). The feedthrough's parasitic capacitance and inductance are characterized and stored as part of each channel's calibration, so the acquisition chain can de-embed them. Without this, a 16.84 T machine's electromagnetic environment would swamp low-level diagnostic signals."
+    "Differential wiring and careful shielding cross the feedthrough to reject common-mode pickup from the megampere-class currents nearby (9.66 MA plasma current in the breeder). The feedthrough's parasitic capacitance and inductance are characterized and stored as part of each channel's calibration, so the acquisition chain can de-embed them. Without this, a 16.84 T machine's electromagnetic environment would swamp low-level diagnostic signals."
    ],
    [
     "h3",
@@ -260,7 +260,7 @@
    ],
    [
     "p",
-    "The front end is the analog stage sitting after the cryo feedthrough and before the digitizer. It sets the gain so a low-level diagnostic uses the ADC's full range, buffers high-impedance sources so cable and feedthrough capacitance do not load them, and applies the anti-alias filter that guards the sampling rate. In a 16.84 T machine drawing 9.86 MA, it is also the first line of common-mode rejection."
+    "The front end is the analog stage sitting after the cryo feedthrough and before the digitizer. It sets the gain so a low-level diagnostic uses the ADC's full range, buffers high-impedance sources so cable and feedthrough capacitance do not load them, and applies the anti-alias filter that guards the sampling rate. In a 16.84 T machine drawing 9.66 MA, it is also the first line of common-mode rejection."
    ],
    [
     "h3",
@@ -450,7 +450,7 @@
    ],
    [
     "p",
-    "Validation logic is common to the breeder (Hyperion) and the burner; only the physical bounds differ — 9.86 MA and 16.84 T on one machine, the 26.49 T plug and ambipolar potential on the other."
+    "Validation logic is common to the breeder (Hyperion) and the burner; only the physical bounds differ — 9.66 MA and 16.84 T on one machine, the 26.49 T plug and ambipolar potential on the other."
    ]
   ],
   "related": [
@@ -481,7 +481,7 @@
    ],
    [
     "p",
-    "The electromagnetic environment of a 16.84 T machine carrying 9.86 MA is hostile. Switching transients, the ICE-PISTON preload cycle, and coupling between the megampere plasma current and low-level diagnostics all inject noise. Analog rejection at the <a href=./signal-conditioning-front-end.html>front end</a> handles most common-mode pickup; digital filtering after sampling removes what remains without discarding real signal."
+    "The electromagnetic environment of a 16.84 T machine carrying 9.66 MA is hostile. Switching transients, the ICE-PISTON preload cycle, and coupling between the megampere plasma current and low-level diagnostics all inject noise. Analog rejection at the <a href=./signal-conditioning-front-end.html>front end</a> handles most common-mode pickup; digital filtering after sampling removes what remains without discarding real signal."
    ],
    [
     "h3",
@@ -616,7 +616,7 @@
    ],
    [
     "p",
-    "The physical bounds that define 'in-range' differ by machine: magnetics consistent with 9.86 MA and 16.84 T for the breeder, potential and density bounds for the burner's ambipolar well. The masking logic is shared; the thresholds are per-machine and versioned in the registry."
+    "The physical bounds that define 'in-range' differ by machine: magnetics consistent with 9.66 MA and 16.84 T for the breeder, potential and density bounds for the burner's ambipolar well. The masking logic is shared; the thresholds are per-machine and versioned in the registry."
    ]
   ],
   "related": [
@@ -862,7 +862,7 @@
    [
     "ul",
     [
-     "Instantaneous Q: fusion power over input power, computed live (see <a href=./instantaneous-q-value.html>instantaneous Q</a>). Design point Q_sci 3.424 at 88.7 MW for the breeder.",
+     "Instantaneous Q: fusion power over input power, computed live (see <a href=./instantaneous-q-value.html>instantaneous Q</a>). Design point Q_sci 3.076 at 85.0 MW for the breeder.",
      "Core pressure map: the 2-D pressure distribution in flux coordinates (see <a href=./core-pressure-map.html>pressure map</a>).",
      "Magnet strain deltas: change in REBCO strain against the preload baseline (see <a href=./magnet-strain-deltas.html>strain deltas</a>).",
      "Quench and disruption precursors: sub-threshold signatures for the anomaly ensembles."
@@ -905,7 +905,7 @@
    ],
    [
     "p",
-    "The scientific gain Q_sci is fusion power divided by the external heating power coupled to the plasma. The breeder's design point is Q_sci 3.424 at 88.7 MW of fusion power. Computing an instantaneous estimate of this ratio during a shot turns a headline design number into a live control and diagnostic feature."
+    "The scientific gain Q_sci is fusion power divided by the external heating power coupled to the plasma. The breeder's design point is Q_sci 3.076 at 85.0 MW of fusion power. Computing an instantaneous estimate of this ratio during a shot turns a headline design number into a live control and diagnostic feature."
    ],
    [
     "h3",
@@ -919,7 +919,7 @@
     "code",
     [
      "python",
-     "def instantaneous_q(p_fusion_w, p_input_w, eps=1.0):\n    # p_fusion from calibrated neutron flux + profile cross-check\n    # p_input from coupled heating telemetry\n    if p_input_w <= eps:\n        return None            # undefined during ramp; mask\n    return p_fusion_w / p_input_w\n\n# design point sanity check\nassert abs(instantaneous_q(88.7e6, 88.7e6/3.424) - 3.424) < 1e-2"
+     "def instantaneous_q(p_fusion_w, p_input_w, eps=1.0):\n    # p_fusion from calibrated neutron flux + profile cross-check\n    # p_input from coupled heating telemetry\n    if p_input_w <= eps:\n        return None            # undefined during ramp; mask\n    return p_fusion_w / p_input_w\n\n# design point sanity check\nassert abs(instantaneous_q(85.0e6, 85.0e6/3.076) - 3.076) < 1e-2"
     ]
    ],
    [
@@ -1113,7 +1113,7 @@
      "Mode amplitude and rotation frequency from the Mirnov array, tracking MHD growth and locking.",
      "Pressure-gradient proximity to stability limits from the core pressure map.",
      "Edge behavior specific to the negative-triangularity ELM-free regime.",
-     "n=1 locked-mode indicators that presage disruption at 9.86 MA."
+     "n=1 locked-mode indicators that presage disruption at 9.66 MA."
     ]
    ],
    [
@@ -1370,7 +1370,7 @@
     [
      "Toroidal and poloidal mode numbers (n, m) are extracted from the phase relationship across the array.",
      "Mode amplitude and rotation frequency become <a href=./anomaly-precursor-features.html>precursor features</a>.",
-     "A slowing, growing n=1 mode is the classic locked-mode disruption warning at 9.86 MA.",
+     "A slowing, growing n=1 mode is the classic locked-mode disruption warning at 9.66 MA.",
      "Phase coherence across coils depends on the single disciplined acquisition clock."
     ]
    ],
@@ -1627,7 +1627,7 @@
    ],
    [
     "p",
-    "On the breeder, fast-ion trackers monitor the heating-ion population and any fast-ion-driven modes that could degrade confinement at 9.86 MA. The diagnostic family and its feature interfaces are shared across machines; the deployment weight and specific instruments differ, reflecting how much each machine's physics lives in the energetic population. Configurations are versioned per machine."
+    "On the breeder, fast-ion trackers monitor the heating-ion population and any fast-ion-driven modes that could degrade confinement at 9.66 MA. The diagnostic family and its feature interfaces are shared across machines; the deployment weight and specific instruments differ, reflecting how much each machine's physics lives in the energetic population. Configurations are versioned per machine."
    ]
   ],
   "related": [
@@ -1667,7 +1667,7 @@
    [
     "ul",
     [
-     "Neutron flux anchors the instantaneous Q feature (design point Q_sci 3.424 at 88.7 MW).",
+     "Neutron flux anchors the instantaneous Q feature (design point Q_sci 3.076 at 85.0 MW).",
      "Spatial neutron mapping informs the tritium breeding blanket, where the breeding ratio is treated as a design lever across 1.1/1.5/1.8.",
      "The 14 MeV field also drives sensor drift and materials effects the fabric tracks.",
      "Neutron and profile-based power estimates cross-check each other."
@@ -1844,7 +1844,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) is a spherical tokamak, R0 1.2 m, aspect ratio 2.5, running a negative-triangularity shape (delta -0.30) at 9.86 MA and 16.84 T peak field. Its central control problems are maintaining that equilibrium, holding the ELM-free negative-triangularity shape, and avoiding disruptions. The equilibrium telemetry set is the data that makes those problems tractable."
+    "The breeder (Hyperion) is a spherical tokamak, R0 1.2 m, aspect ratio 2.5, running a negative-triangularity shape (delta -0.30) at 9.66 MA and 16.84 T peak field. Its central control problems are maintaining that equilibrium, holding the ELM-free negative-triangularity shape, and avoiding disruptions. The equilibrium telemetry set is the data that makes those problems tractable."
    ],
    [
     "h3",
@@ -2838,7 +2838,7 @@
    ],
    [
     "p",
-    "Governance is enforced at ingest: a record missing required metadata is rejected or quarantined, never accepted by default. This is stricter than typical data engineering because the consumers are safety-relevant — a twin acting on a mislabeled channel could mis-actuate a 9.86 MA plasma or a 26.49 T plug."
+    "Governance is enforced at ingest: a record missing required metadata is rejected or quarantined, never accepted by default. This is stricter than typical data engineering because the consumers are safety-relevant — a twin acting on a mislabeled channel could mis-actuate a 9.66 MA plasma or a 26.49 T plug."
    ],
    [
     "h3",
@@ -3444,7 +3444,7 @@
     [
      "Coordinate frame: flux coordinates for the breeder, mirror coordinates for the burner.",
      "Diagnostic weighting: magnetics-and-profiles versus density-potential-and-DEC.",
-     "Physical bounds: 9.86 MA / 16.84 T versus 26.49 T plug / 17 T throat.",
+     "Physical bounds: 9.66 MA / 16.84 T versus 26.49 T plug / 17 T throat.",
      "Control problems: equilibrium and disruption versus plug density and ambipolar potential."
     ]
    ],

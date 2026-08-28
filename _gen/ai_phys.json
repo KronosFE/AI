@@ -190,7 +190,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) runs a D&ndash;T spherical tokamak with design-point plasma current 9.86 MA, fusion power 88.7 MW, Q<sub>sci</sub> 3.424, peak field 16.84 T (8 T on-axis), and negative triangularity &delta; = &minus;0.30. Every one of those quantities is held by a sensor&rarr;actuator chain."
+    "The breeder (Hyperion) runs a D&ndash;T spherical tokamak with design-point plasma current 9.66 MA, fusion power 85.0 MW, Q<sub>sci</sub> 3.076, peak field 16.84 T (8 T on-axis), and negative triangularity &delta; = &minus;0.30. Every one of those quantities is held by a sensor&rarr;actuator chain."
    ],
    [
     "h2",
@@ -1257,7 +1257,7 @@
    ],
    [
     "p",
-    "Both machines subject their vacuum vessels to large, cyclic electromagnetic and thermal loads &mdash; the breeder from disruptions and the 9.86 MA current, the burner from its mirror fields and thermal cycling. The structural-health-monitoring (SHM) interface instruments the vessel so cumulative damage is tracked long before it becomes a fault."
+    "Both machines subject their vacuum vessels to large, cyclic electromagnetic and thermal loads &mdash; the breeder from disruptions and the 9.66 MA current, the burner from its mirror fields and thermal cycling. The structural-health-monitoring (SHM) interface instruments the vessel so cumulative damage is tracked long before it becomes a fault."
    ],
    [
     "h2",
@@ -2195,7 +2195,7 @@
    ],
    [
     "p",
-    "Neutrons are the most direct signature of fusion. The breeder produces 14 MeV neutrons from D&ndash;T (design fusion power 88.7 MW), and the burner produces a much smaller neutron flux &mdash; only <b>5.44%</b> of D&ndash;<sup>3</sup>He energy is neutronic. The neutron interface measures total flux, energy spectrum, and spatial emission to estimate fusion rate and, on the breeder, close the breeding budget."
+    "Neutrons are the most direct signature of fusion. The breeder produces 14 MeV neutrons from D&ndash;T (design fusion power 85.0 MW), and the burner produces a much smaller neutron flux &mdash; only <b>5.44%</b> of D&ndash;<sup>3</sup>He energy is neutronic. The neutron interface measures total flux, energy spectrum, and spatial emission to estimate fusion rate and, on the breeder, close the breeding budget."
    ],
    [
     "h2",
@@ -2214,7 +2214,7 @@
     "code",
     [
      "python",
-     "# fusion rate + breeding closure\nrate_fus = calibrate(neutron_count, detector_eff)   # absolute\nP_fus_est = rate_fus * E_per_reaction               # design: 88.7 MW class\n# breeding closure\nTBR_eff = bred_T_measured / (rate_fus * fraction_to_blanket)"
+     "# fusion rate + breeding closure\nrate_fus = calibrate(neutron_count, detector_eff)   # absolute\nP_fus_est = rate_fus * E_per_reaction               # design: 85.0 MW class\n# breeding closure\nTBR_eff = bred_T_measured / (rate_fus * fraction_to_blanket)"
     ]
    ],
    [
@@ -2227,7 +2227,7 @@
    ],
    [
     "p",
-    "Owner: L2 for acquisition; L3 for rate/profile inference; L4/L7 for the breeding and accountancy budget. Absolute calibration (detector efficiency, geometry) is the hard part and is traced to reference sources. The 88.7 MW figure is a design-and-simulation value; no measured fusion power is claimed before FOAK first tritium (~2030)."
+    "Owner: L2 for acquisition; L3 for rate/profile inference; L4/L7 for the breeding and accountancy budget. Absolute calibration (detector efficiency, geometry) is the hard part and is traced to reference sources. The 85.0 MW figure is a design-and-simulation value; no measured fusion power is claimed before FOAK first tritium (~2030)."
    ]
   ],
   "related": [

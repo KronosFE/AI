@@ -112,7 +112,7 @@
     ["h2", "Flux management"],
     ["p", "The central solenoid has a finite volt-second supply. Ramp-up must reach flat-top without exhausting it, leaving enough for the flat-top burn. Efficient ramp-up, sometimes assisted by early current drive, stretches the available flux and extends the usable pulse."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder is a spherical tokamak, so its slim central column limits solenoid flux and puts a premium on efficient ramp-up. Control designs for the machine, which is in simulation ahead of construction beginning in the second quarter of 2027, aim to establish the design current of 9.86 megaamperes with a profile that avoids seeding tearing modes at the transition to flat-top."]
+    ["p", "The Hyperion breeder is a spherical tokamak, so its slim central column limits solenoid flux and puts a premium on efficient ramp-up. Control designs for the machine, which is in simulation ahead of construction beginning in the second quarter of 2027, aim to establish the design current of 9.66 megaamperes with a profile that avoids seeding tearing modes at the transition to flat-top."]
   ],
   "related": [["pcs-rampdown-control", "Ramp-Down Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-scenario-optimization", "Scenario Optimization"]],
   "seo_type": "TechArticle"
@@ -252,7 +252,7 @@
     ["h2", "Interaction with the limit"],
     ["p", "The beta limit is not a fixed number; it depends on the current and pressure profiles. Operating near it is safe only if profile control keeps the plasma shape of the pressure and current favorable. This ties beta control to current-profile control, so the two loops are designed together rather than in isolation."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder's design operating point corresponds to 88.7 megawatts of fusion power at a gain of 3.424. Stored-energy control holds the plasma at the pressure that produces this output while profile control maintains the margin to the beta limit. Because the machine is in simulation ahead of construction, these loops are tuned against validated models rather than hardware."]
+    ["p", "The Hyperion breeder's design operating point corresponds to 85.0 megawatts of fusion power at a gain of 3.076. Stored-energy control holds the plasma at the pressure that produces this output while profile control maintains the margin to the beta limit. Because the machine is in simulation ahead of construction, these loops are tuned against validated models rather than hardware."]
   ],
   "related": [["pcs-kinetic-profile-control", "Kinetic and Profile Control"], ["pcs-current-profile-control", "Current-Profile Control"], ["pcs-heating-power-control", "Heating Power Control"]],
   "seo_type": "TechArticle"
@@ -272,7 +272,7 @@
     ["h2", "Actuator localization"],
     ["p", "Shaping a profile requires actuators that deposit their effect at a chosen radius. Neutral beams, electron cyclotron waves, and pellet injection all have controllable deposition locations. Profile control is largely the art of placing these deposits so the profiles relax toward the desired shape as transport carries the effects around."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder relies on profile control to hold the pressure and current profiles that keep it stable near its operating point at a gain of 3.424. Temperature, density, and current-profile loops are designed to work together, since acting on one changes the others through transport. Their coordination is developed in simulation ahead of first plasma."]
+    ["p", "The Hyperion breeder relies on profile control to hold the pressure and current profiles that keep it stable near its operating point at a gain of 3.076. Temperature, density, and current-profile loops are designed to work together, since acting on one changes the others through transport. Their coordination is developed in simulation ahead of first plasma."]
   ],
   "related": [["pcs-current-profile-control", "Current-Profile Control"], ["pcs-beta-stored-energy", "Beta Feedback"], ["pcs-density-control", "Density Control"]],
   "seo_type": "TechArticle"
@@ -292,7 +292,7 @@
     ["h2", "Keeping q above one"],
     ["p", "A common goal is to keep the central safety factor above one to avoid sawteeth, or to hold a broad low-shear region to support a transport barrier. Real-time estimates of the q-profile, from equilibrium reconstruction constrained by internal measurements, tell the controller where to add or remove current drive."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder targets a design current of 9.86 megaamperes, and its current-profile control aims for a q-profile that avoids seeding low-order tearing modes while supporting good confinement. Because the profile responds slowly, the ramp-up scenario is designed to establish the right shape early, and feedback holds it during flat-top. This is exercised in simulation before operation."]
+    ["p", "The Hyperion breeder targets a design current of 9.66 megaamperes, and its current-profile control aims for a q-profile that avoids seeding low-order tearing modes while supporting good confinement. Because the profile responds slowly, the ramp-up scenario is designed to establish the right shape early, and feedback holds it during flat-top. This is exercised in simulation before operation."]
   ],
   "related": [["pcs-kinetic-profile-control", "Kinetic and Profile Control"], ["pcs-ntm-control", "NTM Control"], ["pcs-realtime-equilibrium", "Real-Time Equilibrium"]],
   "seo_type": "TechArticle"
@@ -372,7 +372,7 @@
     ["h2", "Editing and validation"],
     ["p", "A schedule is checked before it runs: waveforms are validated against actuator limits, rates of change, and consistency between coupled quantities. A schedule that asks for more heating than exists, or a current rise faster than the supply can drive, is rejected before it reaches the machine. Flight-simulator runs give a final check."],
     ["h2", "In the Kronos program"],
-    ["p", "For the Hyperion breeder, pulse schedules encode the ramp to 9.86 megaamperes, the shape at negative triangularity, and the flat-top at the design operating point. Because the machine is in simulation ahead of construction in the second quarter of 2027, schedules are developed and validated entirely against models, so the first hardware discharges follow already-vetted waveforms."]
+    ["p", "For the Hyperion breeder, pulse schedules encode the ramp to 9.66 megaamperes, the shape at negative triangularity, and the flat-top at the design operating point. Because the machine is in simulation ahead of construction in the second quarter of 2027, schedules are developed and validated entirely against models, so the first hardware discharges follow already-vetted waveforms."]
   ],
   "related": [["pcs-scenario-optimization", "Scenario Optimization"], ["pcs-feedforward-feedback", "Feedforward and Feedback"], ["pcs-scenario-library", "Scenario Library"]],
   "seo_type": "TechArticle"
@@ -472,7 +472,7 @@
     ["h2", "Protection across the stack"],
     ["p", "The off-normal and protection layer watches every level. It detects developing faults, invokes recovery controllers, commands safe termination, and, as a last resort, hands off to the independent machine protection system. Its authority overrides performance, so it can halt any lower layer."],
     ["h2", "One stack, two machine types"],
-    ["p", "The same layered pattern serves both product lines. The Hyperion breeder's stabilization layer centers on vertical control of its elongated, negative-triangularity plasma at 9.86 megaamperes. The burner generators, tandem-mirror devices, replace the tokamak-specific loops with plug-field and direct-conversion control while keeping the same layering and protection philosophy. Because both machines are in simulation ahead of construction in the second quarter of 2027, the whole stack is validated against models and rehearsed in the flight simulator before it commands hardware."]
+    ["p", "The same layered pattern serves both product lines. The Hyperion breeder's stabilization layer centers on vertical control of its elongated, negative-triangularity plasma at 9.66 megaamperes. The burner generators, tandem-mirror devices, replace the tokamak-specific loops with plug-field and direct-conversion control while keeping the same layering and protection philosophy. Because both machines are in simulation ahead of construction in the second quarter of 2027, the whole stack is validated against models and rehearsed in the flight simulator before it commands hardware."]
   ],
   "related": [["pcs-architecture-overview", "PCS Architecture"], ["pcs-vertical-stabilization", "Vertical Stabilization"], ["pcs-supervisory-control", "Supervisory Control"]],
   "seo_type": "TechArticle"
@@ -532,7 +532,7 @@
     ["h2", "Coupling to profile control"],
     ["p", "Total current control and current-profile control are related but distinct: the first regulates the integral, the second regulates the distribution. They must be consistent, since driving more total current changes the profile. Well-designed systems separate the fast total-current loop from the slow profile loop while keeping them coordinated."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder targets a flat-top current of 9.86 megaamperes. As a spherical tokamak with a slim central column, its solenoid volt-second budget is limited, so current control is designed to reach and hold this value efficiently, leaning on non-inductive drive during flat-top. The scheme is validated in simulation before hardware operation."]
+    ["p", "The Hyperion breeder targets a flat-top current of 9.66 megaamperes. As a spherical tokamak with a slim central column, its solenoid volt-second budget is limited, so current control is designed to reach and hold this value efficiently, leaning on non-inductive drive during flat-top. The scheme is validated in simulation before hardware operation."]
   ],
   "related": [["pcs-current-profile-control", "Current-Profile Control"], ["pcs-rampup-control", "Ramp-Up Control"], ["pcs-shape-position-control", "Shape and Position Control"]],
   "seo_type": "TechArticle"
@@ -572,7 +572,7 @@
     ["h2", "Deposition control"],
     ["p", "For wave systems, steering the deposition changes which physics goal is served: central deposition heats the core and can control sawteeth, off-axis deposition broadens profiles and drives current. Real-time steering mirrors let one system move between roles within a discharge under supervisor control."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder's heating systems support the stored-energy loop that holds it at 88.7 megawatts of fusion power and are shared, through allocation, with sawtooth, tearing-mode, and profile control. The burner generators use their own heating and sustainment scheme suited to a tandem mirror. Heating control schemes are validated in simulation before operation."]
+    ["p", "The Hyperion breeder's heating systems support the stored-energy loop that holds it at 85.0 megawatts of fusion power and are shared, through allocation, with sawtooth, tearing-mode, and profile control. The burner generators use their own heating and sustainment scheme suited to a tandem mirror. Heating control schemes are validated in simulation before operation."]
   ],
   "related": [["pcs-beta-stored-energy", "Beta Feedback"], ["pcs-actuators-allocation", "Actuator Allocation"], ["pcs-current-profile-control", "Current-Profile Control"]],
   "seo_type": "TechArticle"
@@ -691,7 +691,7 @@
     ["h2", "Arbitration"],
     ["p", "When controllers request the same actuator, the supervisor decides who wins using the priority order. It also enforces mutual exclusion where two controllers must not act at once, and it hands actuators between controllers cleanly so there is no glitch at the transfer."],
     ["h2", "In the Kronos program"],
-    ["p", "The Hyperion breeder's supervisor sequences the ramp to 9.86 megaamperes, the flat-top at the design operating point, and a controlled ramp-down, while allocating the shared electron cyclotron and beam systems among competing uses. Its state machine also embeds the off-normal transitions. The logic is exercised against normal and fault scenarios in the flight simulator."]
+    ["p", "The Hyperion breeder's supervisor sequences the ramp to 9.66 megaamperes, the flat-top at the design operating point, and a controlled ramp-down, while allocating the shared electron cyclotron and beam systems among competing uses. Its state machine also embeds the off-normal transitions. The logic is exercised against normal and fault scenarios in the flight simulator."]
   ],
   "related": [["pcs-layered-kronos-stack", "Kronos Control Stack"], ["pcs-actuators-allocation", "Actuator Allocation"], ["pcs-exception-matrix", "Exception Matrix"]],
   "seo_type": "TechArticle"

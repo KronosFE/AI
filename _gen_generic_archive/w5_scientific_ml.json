@@ -2999,7 +2999,7 @@
    ],
    [
     "p",
-    "Designing a confinement device is a physics-constrained optimization: shape, field, and profile parameters are tuned to meet performance targets while satisfying equilibrium, stability, and engineering limits. For the <b>Hyperion</b> breeder, a spherical tokamak, design studies explore such trade-offs in simulation, with parameters like plasma current near 9.86 MA emerging from constrained searches rather than being chosen freely. These are computational design results, not measurements from built hardware."
+    "Designing a confinement device is a physics-constrained optimization: shape, field, and profile parameters are tuned to meet performance targets while satisfying equilibrium, stability, and engineering limits. For the <b>Hyperion</b> breeder, a spherical tokamak, design studies explore such trade-offs in simulation, with parameters like plasma current near 9.66 MA emerging from constrained searches rather than being chosen freely. These are computational design results, not measurements from built hardware."
    ]
   ],
   "related": [

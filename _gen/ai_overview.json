@@ -23,7 +23,7 @@
    ],
    [
     "p",
-    "The same eight layers run the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.424 and 88.7 MW of fusion power, and the burner, a D-3He tandem-mirror generator with a 26.49 T end plug. What changes between machines is not the architecture but the <b>physics the top layers reason about</b>: equilibrium and disruption for the tokamak, end-plug density and the ambipolar potential for the mirror."
+    "The same eight layers run the breeder (Hyperion), a D-T spherical tokamak with Q_sci 3.076 and 85.0 MW of fusion power, and the burner, a D-3He tandem-mirror generator with a 26.49 T end plug. What changes between machines is not the architecture but the <b>physics the top layers reason about</b>: equilibrium and disruption for the tokamak, end-plug density and the ambipolar potential for the mirror."
    ],
    [
     "h3",
@@ -545,7 +545,7 @@
    [
     "ul",
     [
-     "The plasma — breeder D-T at Q_sci 3.424 and 88.7 MW; burner D-3He with 5.44% neutron fraction.",
+     "The plasma — breeder D-T at Q_sci 3.076 and 85.0 MW; burner D-3He with 5.44% neutron fraction.",
      "The REBCO magnet system — breeder 16.84 T peak (8 T on-axis); burner 26.49 T plug, 17 T throat.",
      "The vessel, divertor, and expander that handle heat and particle exhaust.",
      "The burner's DEC train — TWDEC, ultra-high-field MHD, and thermionic stages."
@@ -816,7 +816,7 @@
    ],
    [
     "p",
-    "The defining property is not raw speed but <b>bounded worst-case latency</b>. A control action that is usually fast but occasionally late is unacceptable for protecting a REBCO magnet carrying 9.86 MA of plasma current on the breeder or holding a 26.49 T plug on the burner. FPGAs are chosen precisely because their timing is deterministic to the clock."
+    "The defining property is not raw speed but <b>bounded worst-case latency</b>. A control action that is usually fast but occasionally late is unacceptable for protecting a REBCO magnet carrying 9.66 MA of plasma current on the breeder or holding a 26.49 T plug on the burner. FPGAs are chosen precisely because their timing is deterministic to the clock."
    ],
    [
     "h3",
@@ -1211,7 +1211,7 @@
    ],
    [
     "p",
-    "The breeder's control problem is <b>equilibrium and disruption</b>: holding a negative-triangularity (delta -0.30), ELM-free shape at 9.86 MA and 16.84 T peak field, and avoiding disruptions. The burner's control problem is <b>end-plug density and the ambipolar potential</b>: sustaining confinement in an open magnetic bottle with a 26.49 T plug and 17 T throat, and steering charged particles into the direct-energy-conversion train."
+    "The breeder's control problem is <b>equilibrium and disruption</b>: holding a negative-triangularity (delta -0.30), ELM-free shape at 9.66 MA and 16.84 T peak field, and avoiding disruptions. The burner's control problem is <b>end-plug density and the ambipolar potential</b>: sustaining confinement in an open magnetic bottle with a 26.49 T plug and 17 T throat, and steering charged particles into the direct-energy-conversion train."
    ],
    [
     "h3",
@@ -1386,7 +1386,7 @@
     [
      "Design and simulation, not hardware. Both machines are studies today; the control stack is validated against physics codes, not an operating reactor.",
      "No net-gain claim before FOAK. Construction begins Q2 2027; first-of-a-kind first tritium is targeted around 2030; no hardware net-gain is claimed before then.",
-     "Frozen canon only. Quoted numbers — Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T, delta -0.30, 26.49 T plug, 5.44% neutron fraction — are the design point, stated with their conditions.",
+     "Frozen canon only. Quoted numbers — Q_sci 3.076, 85.0 MW, 9.66 MA, 16.84 T, delta -0.30, 26.49 T plug, 5.44% neutron fraction — are the design point, stated with their conditions.",
      "The tritium breeding ratio is a lever, studied across 1.1, 1.5, and 1.8, not a settled result.",
      "D-3He is low-neutron, not aneutronic; p-11B is a gated research endpoint only."
     ]
@@ -1594,7 +1594,7 @@
    ],
    [
     "p",
-    "FPGAs are chosen for bounded worst-case timing, not average speed. Protecting a REBCO magnet holding 9.86 MA of breeder plasma current, or a 26.49 T burner plug, requires that the response time never exceeds its budget — not merely that it is usually fast. General-purpose processors and their schedulers cannot make that guarantee; deterministic logic can."
+    "FPGAs are chosen for bounded worst-case timing, not average speed. Protecting a REBCO magnet holding 9.66 MA of breeder plasma current, or a 26.49 T burner plug, requires that the response time never exceeds its budget — not merely that it is usually fast. General-purpose processors and their schedulers cannot make that guarantee; deterministic logic can."
    ],
    [
     "h3",
@@ -2025,7 +2025,7 @@
    ],
    [
     "p",
-    "The breeder (Hyperion) is a D-T spherical tokamak with major radius R0 1.2 m, aspect ratio 2.5, Q_sci 3.424, 88.7 MW of fusion power, and 9.86 MA of plasma current. Its control problems are the classic tokamak set, sharpened by the compact spherical geometry and the chosen shape."
+    "The breeder (Hyperion) is a D-T spherical tokamak with major radius R0 1.2 m, aspect ratio 2.5, Q_sci 3.076, 85.0 MW of fusion power, and 9.66 MA of plasma current. Its control problems are the classic tokamak set, sharpened by the compact spherical geometry and the chosen shape."
    ],
    [
     "h3",
@@ -2165,7 +2165,7 @@
    ],
    [
     "p",
-    "On Hyperion the architecture takes on the tokamak's specific physics while keeping every layer's role unchanged. The mapping shows how a general stack becomes a concrete control system for a D-T spherical tokamak at Q_sci 3.424 and 88.7 MW."
+    "On Hyperion the architecture takes on the tokamak's specific physics while keeping every layer's role unchanged. The mapping shows how a general stack becomes a concrete control system for a D-T spherical tokamak at Q_sci 3.076 and 85.0 MW."
    ],
    [
     "h3",
@@ -3361,7 +3361,7 @@
    [
     "ul",
     [
-     "Breeder (Hyperion) — D-T spherical tokamak; Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T peak, delta -0.30; TBR lever 1.1/1.5/1.8.",
+     "Breeder (Hyperion) — D-T spherical tokamak; Q_sci 3.076, 85.0 MW, 9.66 MA, 16.84 T peak, delta -0.30; TBR lever 1.1/1.5/1.8.",
      "Burner (Aegis / MetroVolt) — D-3He tandem mirror; 26.49 T plug, 17 T throat, 5.44% neutron fraction; direct energy conversion.",
      "Ambipolar potential — the electrostatic confinement mechanism of the tandem mirror.",
      "Negative triangularity — the breeder's ELM-suppressing plasma shape."

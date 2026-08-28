@@ -15,7 +15,7 @@
    ],
    [
     "p",
-    "L7 serves both machines from one framework. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.424, 88.7 MW fusion power, 9.86 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30; its L7 concerns are tritium and helium-3 offtake, 14 MeV neutron services, and lithium blanket supply tied to a tritium breeding ratio treated as a design lever across 1.1/1.5/1.8. The burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction, is instead a firm-power exporter through direct energy conversion, with Aegis as fixed defense installations and MetroVolt as data-center generators."
+    "L7 serves both machines from one framework. The breeder (Hyperion) is a D-T spherical tokamak with Q_sci 3.076, 85.0 MW fusion power, 9.66 MA plasma current, 16.84 T peak field and negative triangularity delta -0.30; its L7 concerns are tritium and helium-3 offtake, 14 MeV neutron services, and lithium blanket supply tied to a tritium breeding ratio treated as a design lever across 1.1/1.5/1.8. The burner (Aegis / MetroVolt), a D-3He tandem-mirror generator with a 26.49 T plug, 17 T throat and 5.44% neutron fraction, is instead a firm-power exporter through direct energy conversion, with Aegis as fixed defense installations and MetroVolt as data-center generators."
    ],
    [
     "h3",
@@ -1940,7 +1940,7 @@
    ],
    [
     "p",
-    "Every quantitative claim in this layer is bounded by the frozen canon: breeder Q_sci 3.424, 88.7 MW, 9.86 MA, 16.84 T, delta -0.30, ~4 kg/yr tritium and ~1.97 kg/yr helium-3 classes, TBR lever 1.1/1.5/1.8; burner 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. No figure outside this canon is invented, and no economic figure appears anywhere in the layer."
+    "Every quantitative claim in this layer is bounded by the frozen canon: breeder Q_sci 3.076, 85.0 MW, 9.66 MA, 16.84 T, delta -0.30, ~4 kg/yr tritium and ~1.97 kg/yr helium-3 classes, TBR lever 1.1/1.5/1.8; burner 26.49 T plug, 17 T throat, 5.44% neutron fraction, direct energy conversion. No figure outside this canon is invented, and no economic figure appears anywhere in the layer."
    ],
    [
     "p",

@@ -313,7 +313,7 @@
    ],
    [
     "p",
-    "Reduced models let designers scan operating scenarios, test control strategies, and study profile stiffness for machines under development. For the Hyperion breeder concept they help estimate whether a target confinement can be reached at the intended plasma current of 9.86 MA, informing the operating point before any hardware exists."
+    "Reduced models let designers scan operating scenarios, test control strategies, and study profile stiffness for machines under development. For the Hyperion breeder concept they help estimate whether a target confinement can be reached at the intended plasma current of 9.66 MA, informing the operating point before any hardware exists."
    ],
    [
     "p",
@@ -2216,7 +2216,7 @@
    ],
    [
     "p",
-    "Density control is part of the operating envelope for any breeder concept, including Hyperion at its design current of 9.86 MA. In Kronos design work these predictors are developed against simulated scenarios; they act on modeled plasmas because the hardware is not yet built, and their estimates are computational."
+    "Density control is part of the operating envelope for any breeder concept, including Hyperion at its design current of 9.66 MA. In Kronos design work these predictors are developed against simulated scenarios; they act on modeled plasmas because the hardware is not yet built, and their estimates are computational."
    ]
   ],
   "related": [
@@ -2623,7 +2623,7 @@
    ],
    [
     "p",
-    "Profile prediction supports finding and holding the design point of concepts like the Hyperion breeder, including operation at 9.86 MA plasma current. These are computational estimates for a machine under design, cross-checked against transport and equilibrium codes, with no performance claimed for hardware that is not yet built."
+    "Profile prediction supports finding and holding the design point of concepts like the Hyperion breeder, including operation at 9.66 MA plasma current. These are computational estimates for a machine under design, cross-checked against transport and equilibrium codes, with no performance claimed for hardware that is not yet built."
    ]
   ],
   "related": [

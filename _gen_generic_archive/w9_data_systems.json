@@ -55,7 +55,7 @@
     ["h3", "Calibration"],
     ["p", "Raw counts are meaningless until mapped to physical units through calibration: gain, offset, and channel-specific response. Calibration data is itself a dataset that must be versioned and stored beside the measurements, because a recalibration changes the interpretation of every past shot. See <a href=./sensor-calibration-data.html>sensor calibration data</a>."],
     ["h3", "Volume and rates"],
-    ["p", "High-speed diagnostics can generate large bursts during a plasma pulse. DAQ systems buffer locally, then transfer to storage between shots. For the Hyperion breeder design, acquisition architecture is specified in simulation now; the physics targets it must eventually resolve include the Q 3.424 operating point and the current and field profiles of the design."],
+    ["p", "High-speed diagnostics can generate large bursts during a plasma pulse. DAQ systems buffer locally, then transfer to storage between shots. For the Hyperion breeder design, acquisition architecture is specified in simulation now; the physics targets it must eventually resolve include the Q 3.076 operating point and the current and field profiles of the design."],
     ["p", "Because current Kronos machines are design and simulation rather than built hardware, DAQ appears today as modeled channel behavior and as the format contracts that future instruments will fill."]
   ],
   "related": [["daq-triggering-and-timing", "Triggering and Timing"], ["sensor-calibration-data", "Sensor Calibration"], ["real-time-vs-archival-data", "Real-Time vs Archival"]],
@@ -829,7 +829,7 @@
     ["h3", "Precision versus storage"],
     ["p", "Storing data in lower precision than the computation used can shrink archives substantially, but it is a form of <a href=./data-compression-lossy.html>lossy</a> reduction and must be a deliberate, documented choice. The authoritative record should preserve the precision the results are valid to; reduced-precision copies are for previews and media, not the citable data."],
     ["h3", "Precision and reproducibility"],
-    ["p", "Nondeterminism in parallel floating-point arithmetic, where the order of summation varies between runs, can make bit-for-bit reproduction impossible even with identical inputs. This is why a rigorous record states whether reproduction is byte-exact or tolerance-based, and gives the tolerance. For a fusion program's deposited results, frozen physics values such as the breeder Q of 3.424 are reported at a precision the simulations support, and reproduction is checked within a stated bound. See <a href=./reproducible-datasets.html>reproducible datasets</a>."]
+    ["p", "Nondeterminism in parallel floating-point arithmetic, where the order of summation varies between runs, can make bit-for-bit reproduction impossible even with identical inputs. This is why a rigorous record states whether reproduction is byte-exact or tolerance-based, and gives the tolerance. For a fusion program's deposited results, frozen physics values such as the breeder Q of 3.076 are reported at a precision the simulations support, and reproduction is checked within a stated bound. See <a href=./reproducible-datasets.html>reproducible datasets</a>."]
   ],
   "related": [["reproducible-datasets", "Reproducible Datasets"], ["data-compression-lossy", "Lossy Compression"], ["model-versioning", "Model Versioning"]],
   "seo_type": "TechArticle"
@@ -890,7 +890,7 @@
     ["h3", "Deriving before discarding"],
     ["p", "Full field output may be too large to keep indefinitely, so the durable pattern computes and stores the derived quantities a figure needs, plus enough to reproduce them, before pruning the raw fields under a documented policy. What is kept must be sufficient to regenerate every published result, so pruning decisions are tied to <a href=./reproducible-datasets.html>reproducibility</a> requirements."],
     ["h3", "In the Kronos program"],
-    ["p", "Because the Kronos machines are design and simulation rather than built hardware, simulation output is the dominant scientific data today. Frozen physics inputs define the operating points, for example the breeder Q of 3.424 and 88.7 MW, and the runs that establish them are cataloged, described, and deposited with their inputs so the published basis can be reproduced. See <a href=./data-provenance.html>provenance</a> and <a href=./open-published-data-record.html>the open published record</a>."]
+    ["p", "Because the Kronos machines are design and simulation rather than built hardware, simulation output is the dominant scientific data today. Frozen physics inputs define the operating points, for example the breeder Q of 3.076 and 85.0 MW, and the runs that establish them are cataloged, described, and deposited with their inputs so the published basis can be reproduced. See <a href=./data-provenance.html>provenance</a> and <a href=./open-published-data-record.html>the open published record</a>."]
   ],
   "related": [["reproducible-datasets", "Reproducible Datasets"], ["data-provenance", "Data Provenance"], ["cold-hot-storage-tiers", "Storage Tiers"]],
   "seo_type": "TechArticle"

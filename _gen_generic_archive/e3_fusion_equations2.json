@@ -30,7 +30,7 @@
     ["p", "In magnetized plasma the electron parallel thermal conductivity is enormous and scales strongly with temperature (Spitzer conduction goes as T^{5/2}). Perpendicular conduction is far smaller. This anisotropy flattens temperature along field lines almost instantly while allowing steep gradients across them, which is precisely what sustains a confined temperature profile. Ion and electron channels have separate chi and exchange energy through collisions."],
     ["h2", "Confinement Consequences"],
     ["p", "Energy confinement time tau_E is essentially the stored thermal energy divided by the loss power, and it is governed by the effective cross-field chi. Because chi is usually turbulence-dominated rather than collisional, predicting it requires gyrokinetic simulation. A stiff temperature profile, where chi rises sharply above a critical gradient, is a widely observed nonlinear feature."],
-    ["p", "For a D-T device the alpha-particle heating term feeds the same equation that governs losses, so ignition analysis is fundamentally a balance in the heat-conduction equation between fusion self-heating and conductive plus radiative losses. Kronos design points such as the Hyperion Q of 3.424 are outputs of transport-balance modeling, not measured results."]
+    ["p", "For a D-T device the alpha-particle heating term feeds the same equation that governs losses, so ignition analysis is fundamentally a balance in the heat-conduction equation between fusion self-heating and conductive plus radiative losses. Kronos design points such as the Hyperion Q of 3.076 are outputs of transport-balance modeling, not measured results."]
   ],
   "related": [["diffusion-equation", "Diffusion Equation"], ["spitzer-resistivity", "Spitzer Resistivity"], ["braginskii-transport-coefficients", "Braginskii Transport"]],
   "seo_type": "TechArticle"
@@ -519,7 +519,7 @@
     ["h2", "Rational Surfaces"],
     ["p", "Where q equals a ratio of small integers m/n, field lines close on themselves and the surface is resonant with an m,n perturbation. These rational surfaces host tearing modes and are focal points for MHD activity. The q=1 surface governs sawtooth oscillations, and the q=2 surface is frequently associated with disruptive tearing modes."],
     ["h2", "Relevance"],
-    ["p", "The q profile ties together current, field, stability, and confinement, and shaping it is central to scenario design. Spherical tokamaks like the Hyperion breeder concept, with low aspect ratio, carry high plasma current at modest field, giving distinctive q profiles that the design-stage stability analysis evaluates. The reported currents such as 9.86 MA are design targets for a machine in simulation."]
+    ["p", "The q profile ties together current, field, stability, and confinement, and shaping it is central to scenario design. Spherical tokamaks like the Hyperion breeder concept, with low aspect ratio, carry high plasma current at modest field, giving distinctive q profiles that the design-stage stability analysis evaluates. The reported currents such as 9.66 MA are design targets for a machine in simulation."]
   ],
   "related": [["magnetic-shear", "Magnetic Shear"], ["kruskal-shafranov-limit", "Kruskal-Shafranov Limit"], ["tearing-mode-equation", "Tearing Mode"]],
   "seo_type": "TechArticle"
@@ -682,7 +682,7 @@
     ["h2", "What It Predicts"],
     ["p", "Nonlinear gyrokinetic simulation is the leading first-principles predictor of turbulent heat, particle, and momentum transport in the plasma core. It resolves ion-temperature-gradient modes, trapped-electron modes, and electron-temperature-gradient modes, and the zonal flows that regulate them. The output is the turbulent diffusivity that sets energy confinement, which fluid models cannot predict from first principles. Because the turbulence self-organizes into zonal flows that shear apart the eddies driving it, the saturated transport level is an emergent nonlinear balance rather than a simple function of the linear growth rate."],
     ["h2", "Relevance"],
-    ["p", "Because confinement is dominated by turbulent rather than collisional transport, gyrokinetic modeling underpins confinement projections for any modern design. For the Hyperion breeder concept, gyrokinetic transport analysis of the core plasma informs the confinement estimate behind its design point; the resulting Q of 3.424 is a simulation-stage figure, not a measured hardware result."]
+    ["p", "Because confinement is dominated by turbulent rather than collisional transport, gyrokinetic modeling underpins confinement projections for any modern design. For the Hyperion breeder concept, gyrokinetic transport analysis of the core plasma informs the confinement estimate behind its design point; the resulting Q of 3.076 is a simulation-stage figure, not a measured hardware result."]
   ],
   "related": [["vlasov-poisson-system", "Vlasov-Poisson System"], ["ion-temperature-gradient-mode", "ITG Mode"], ["normalized-gyroradius-rho-star", "Normalized Gyroradius"]],
   "seo_type": "TechArticle"
@@ -808,7 +808,7 @@
     ["h2", "Consequence for Current"],
     ["p", "Because q at the edge is inversely proportional to the plasma current, the Kruskal-Shafranov condition places a hard ceiling on how much current a given toroidal field can carry stably. This ties maximum current to field strength and is one reason high-field devices can run higher current, which in turn improves confinement and raises the density limit."],
     ["h2", "Relevance"],
-    ["p", "The current limit set by Kruskal-Shafranov, together with the density and beta limits, defines the operational boundary of a tokamak. Spherical tokamaks such as the Hyperion breeder concept carry high current relative to their field, so edge-q margin against the external kink is a key design constraint; the reported 9.86 MA is a design target for a machine in simulation."]
+    ["p", "The current limit set by Kruskal-Shafranov, together with the density and beta limits, defines the operational boundary of a tokamak. Spherical tokamaks such as the Hyperion breeder concept carry high current relative to their field, so edge-q margin against the external kink is a key design constraint; the reported 9.66 MA is a design target for a machine in simulation."]
   ],
   "related": [["safety-factor-formula", "Safety Factor"], ["wall-stabilized-beta-limits", "Wall Beta Limits"], ["greenwald-density-limit", "Greenwald Density Limit"]],
   "seo_type": "TechArticle"
