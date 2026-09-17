@@ -422,7 +422,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <p>The breeder (Hyperion) is a D-T spherical tokamak whose products include a tritium class near 4 kg/yr, helium-3 near 1.97 kg/yr, and 14 MeV neutrons. A tritium campaign orchestrates a sequence of shots while maintaining a running, auditable inventory model of production and breeding performance. The tritium breeding ratio is treated as a design lever explored across 1.1, 1.5, and 1.8 rather than a single fixed value.</p>
 <h2>Accounting as durable state</h2>
 
-<div class="lang">python</div><pre><code># per-shot rollup into campaign inventory (design-and-simulation accounting)
+<div class="lang">python</div><pre><code># per-shot rollup into campaign inventory (design and validation accounting)
 campaign.inventory.tritium_kg     += shot.bred_tritium_estimate
 campaign.inventory.helium3_kg     += shot.helium3_estimate
 campaign.metrics.record(shot_id, TBR_setting=shot.tbr_lever)   # 1.1 | 1.5 | 1.8

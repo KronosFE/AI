@@ -421,8 +421,8 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
 <h2>What orchestration owns</h2>
 
 <ul><li>The event-streaming backbone that carries every measurement, prediction, proposal, and command as an immutable event.</li><li>The workflow / campaign engine that runs shot and experiment procedures as durable, resumable state machines.</li><li>The rules engine and HARD safety bounds, enforced independently of the ML stack.</li><li>Human-in-the-loop approval routing and the experiment scheduler with priority and preemption.</li><li>The audit and decision-lineage bus that records why every action happened.</li></ul>
-<h2>Design and simulation framing</h2>
-<p>Both machines are design-and-simulation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted around 2030; there is no hardware net-gain claim before FOAK. Layer 4 is therefore specified and validated today against the digital twin and against replayed synthetic campaigns, so that the gating discipline is proven long before it governs physical actuators.</p>
+<h2>Design and Validation framing</h2>
+<p>Both machines are design-and-validation studies. Breeder construction begins Q2 2027 with first-of-a-kind first tritium targeted around 2030; there is no hardware net-gain claim before FOAK. Layer 4 is therefore specified and validated today against the digital twin and against replayed synthetic campaigns, so that the gating discipline is proven long before it governs physical actuators.</p>
 <h2>Core invariant</h2>
 <p>The controlling invariant is separation of concerns: intelligence proposes, orchestration disposes. The ML stack may be wrong, drifting, or adversarially perturbed; the orchestration layer assumes it can be and never lets an ungated proposal move a coil current, a gas valve, or a neutral beam. See <a href=./action-gating-pipeline.html>the action-gating pipeline</a> for the enforced sequence.</p>
 <div class="lang">text</div><pre><code>proposal (L3/L5) -&gt; validate -&gt; policy -&gt; safety envelope -&gt; approval? -&gt; command (L1)

@@ -431,7 +431,7 @@ table.tt td{padding:5px 16px 5px 0;border-bottom:1px solid var(--line);color:#cd
   &quot;decision&quot;: &quot;EXECUTED&quot;
 }</code></pre>
 <h2>Tamper-evidence</h2>
-<p>Audit events are chained with content hashes so any retroactive edit breaks the chain and is detectable. The bus is append-only and never compacted. This matters both for internal engineering trust and for eventual regulatory review of an operating fusion machine; the discipline is built and exercised now, during the design-and-simulation phase, so it is mature before FOAK.</p>
+<p>Audit events are chained with content hashes so any retroactive edit breaks the chain and is detectable. The bus is append-only and never compacted. This matters both for internal engineering trust and for eventual regulatory review of an operating fusion machine; the discipline is built and exercised now, during the design and validation phase, so it is mature before FOAK.</p>
 <h2>What it enables</h2>
 <ul><li>Deterministic <a href=./deterministic-replay.html>replay</a> of any decision from its recorded inputs.</li><li>Root-cause analysis: from an anomalous burner plug transient back to the proposal that preceded it.</li><li>Model accountability: attribute an outcome to the exact twin and copilot versions in force.</li><li>Regression testing: assert a new orchestration version reproduces past approved decisions.</li></ul>
 <h2>Separation from operational topics</h2>
